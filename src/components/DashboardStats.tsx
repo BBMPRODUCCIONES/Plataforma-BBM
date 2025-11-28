@@ -8,23 +8,25 @@ interface DashboardStatsProps {
 }
 
 const COLORS = {
-  activo: "hsl(142, 71%, 45%)",
-  pendiente: "hsl(38, 92%, 50%)",
-  completado: "hsl(199, 89%, 48%)",
-  cancelado: "hsl(0, 84%, 60%)",
+  por_planear: "hsl(48, 96%, 53%)",
+  por_ejecutar: "hsl(217, 91%, 60%)",
+  en_progreso: "hsl(142, 71%, 45%)",
+  terminado: "hsl(271, 91%, 65%)",
+  facturado: "hsl(160, 84%, 39%)",
 };
 
 export function DashboardStats({ projects }: DashboardStatsProps) {
-  const totalIngresos = projects.reduce((sum, p) => sum + (p.ingresos || 0), 0);
+  const totalIngresos = projects.reduce((sum, p) => sum + (p.ingresoTotal || 0), 0);
   const totalEventos = projects.length;
-  const eventosActivos = projects.filter((p) => p.estado === "activo").length;
+  const eventosActivos = projects.filter((p) => p.estado === "en_progreso" || p.estado === "por_ejecutar").length;
 
   // Data for status pie chart
   const statusData = [
-    { name: "Activo", value: projects.filter((p) => p.estado === "activo").length, color: COLORS.activo },
-    { name: "Pendiente", value: projects.filter((p) => p.estado === "pendiente").length, color: COLORS.pendiente },
-    { name: "Completado", value: projects.filter((p) => p.estado === "completado").length, color: COLORS.completado },
-    { name: "Cancelado", value: projects.filter((p) => p.estado === "cancelado").length, color: COLORS.cancelado },
+    { name: "Por Planear", value: projects.filter((p) => p.estado === "por_planear").length, color: COLORS.por_planear },
+    { name: "Por Ejecutar", value: projects.filter((p) => p.estado === "por_ejecutar").length, color: COLORS.por_ejecutar },
+    { name: "En Progreso", value: projects.filter((p) => p.estado === "en_progreso").length, color: COLORS.en_progreso },
+    { name: "Terminado", value: projects.filter((p) => p.estado === "terminado").length, color: COLORS.terminado },
+    { name: "Facturado", value: projects.filter((p) => p.estado === "facturado").length, color: COLORS.facturado },
   ].filter((d) => d.value > 0);
 
   // Data for monthly bar chart (mock data based on projects)

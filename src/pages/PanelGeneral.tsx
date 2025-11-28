@@ -5,35 +5,61 @@ import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import { GanttChart } from "@/components/GanttChart";
+import { CalendarFilter } from "@/components/CalendarFilter";
 import { mockProjects } from "@/data/mockData";
-import { Project } from "@/types";
+import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Search, ExternalLink } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 
 const PanelGeneral = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
+  
+  // Calendar filter state
+  const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
+
+  const getDateRange = () => {
+    switch (viewMode) {
+      case "day":
+        return { start: startOfDay(selectedDate), end: endOfDay(selectedDate) };
+      case "week":
+        return { start: startOfWeek(selectedDate, { weekStartsOn: 1 }), end: endOfWeek(selectedDate, { weekStartsOn: 1 }) };
+      case "month":
+        return { start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) };
+    }
+  };
 
   const filteredProjects = mockProjects.filter((p) => {
     const matchesSearch =
       p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
+    
     const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
-    return matchesSearch && matchesStatus;
+    
+    const range = getDateRange();
+    const projectStart = parseISO(p.fechaMontajeInicio);
+    const projectEnd = parseISO(p.fechaEjecucionFin);
+    const matchesDate = 
+      isWithinInterval(projectStart, range) ||
+      isWithinInterval(projectEnd, range) ||
+      (projectStart <= range.start && projectEnd >= range.end);
+
+    return matchesSearch && matchesStatus && matchesDate;
   });
+
+  const handleGanttProjectClick = (projectId: string) => {
+    setHighlightedProjectId(projectId);
+    const tabTrigger = document.querySelector('[value="matriz"]') as HTMLElement;
+    if (tabTrigger) tabTrigger.click();
+  };
 
   const columns = [
     {
@@ -65,6 +91,16 @@ const PanelGeneral = () => {
             {p.evento}
           </div>
         </div>
+      ),
+    },
+    {
+      key: "avanzada",
+      header: "Avanzada",
+      width: "100px",
+      render: (p: Project) => (
+        <span className="text-xs">
+          {p.avanzada === "SE_HIZO" ? "Se hizo" : p.avanzada === "NO_SE_HIZO" ? "No se hizo" : p.avanzada === "NO_NECESARIA" ? "No necesaria" : "-"}
+        </span>
       ),
     },
     {
@@ -164,6 +200,16 @@ const PanelGeneral = () => {
           ]}
         />
 
+        {/* Calendar Filter */}
+        <CalendarFilter
+          viewMode={viewMode}
+          selectedDate={selectedDate}
+          statusFilter={statusFilter}
+          onViewModeChange={setViewMode}
+          onDateChange={setSelectedDate}
+          onStatusChange={setStatusFilter}
+        />
+
         <Tabs defaultValue="matriz" className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <TabsList>
@@ -171,43 +217,33 @@ const PanelGeneral = () => {
               <TabsTrigger value="gantt">Gantt</TabsTrigger>
             </TabsList>
 
-            <div className="flex items-center gap-3">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32 h-9">
-                  <SelectValue placeholder="Estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="activo">Activo</SelectItem>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="completado">Completado</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-9"
-                />
-              </div>
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 h-9"
+              />
             </div>
           </div>
 
           <TabsContent value="matriz" className="mt-4">
             <div className="panel-card">
-              <MatrixTable data={filteredProjects} columns={columns} />
+              <MatrixTable
+                data={filteredProjects}
+                columns={columns}
+                highlightedId={highlightedProjectId}
+              />
             </div>
           </TabsContent>
 
           <TabsContent value="gantt" className="mt-4">
             <GanttChart
               projects={filteredProjects}
-              startDate={new Date(2024, 2, 1)}
+              startDate={startOfMonth(selectedDate)}
               monthsToShow={3}
+              onProjectClick={handleGanttProjectClick}
             />
           </TabsContent>
         </Tabs>

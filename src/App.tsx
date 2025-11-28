@@ -11,6 +11,8 @@ import Proveedores from "./pages/Proveedores";
 import Constructor from "./pages/Constructor";
 import AgentesIA from "./pages/AgentesIA";
 import GoogleCalendar from "./pages/GoogleCalendar";
+import Usuarios from "./pages/Usuarios";
+import Clientes from "./pages/Clientes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,8 @@ const App = () => (
           <Route path="/constructor" element={<Constructor />} />
           <Route path="/agentes-ia" element={<AgentesIA />} />
           <Route path="/calendar" element={<GoogleCalendar />} />
+          <Route path="/usuarios" element={<Usuarios />} />
+          <Route path="/clientes" element={<Clientes />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

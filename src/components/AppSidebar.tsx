@@ -8,6 +8,8 @@ import {
   Bot,
   Calendar,
   ChevronRight,
+  UserPlus,
+  Building2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -34,6 +36,8 @@ const mainNavItems = [
 ];
 
 const adminNavItems = [
+  { title: "Gestión de Usuarios", url: "/usuarios", icon: UserPlus, panel: "usuarios" },
+  { title: "Gestión de Clientes", url: "/clientes", icon: Building2, panel: "clientes" },
   { title: "Constructor de Campos", url: "/constructor", icon: Settings, panel: "constructor" },
   { title: "Agentes IA", url: "/agentes-ia", icon: Bot, panel: "agentes" },
   { title: "Google Calendar", url: "/calendar", icon: Calendar, panel: "calendar" },

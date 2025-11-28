@@ -5,8 +5,10 @@ import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import { GanttChart } from "@/components/GanttChart";
+import { CalendarFilter } from "@/components/CalendarFilter";
+import { FileUploadButton } from "@/components/FileUpload";
 import { mockProjects } from "@/data/mockData";
-import { Project, PersonalItem, InventarioItem } from "@/types";
+import { Project, PersonalItem, InventarioItem, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,21 +20,67 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, MapPin, User } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, Users, Package, FileText, MapPin, User, Printer } from "lucide-react";
+import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 
 const PanelOperaciones = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
+  
+  // Calendar filter state
+  const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
 
-  const filteredProjects = mockProjects.filter(
-    (p) =>
+  const getDateRange = () => {
+    switch (viewMode) {
+      case "day":
+        return { start: startOfDay(selectedDate), end: endOfDay(selectedDate) };
+      case "week":
+        return { start: startOfWeek(selectedDate, { weekStartsOn: 1 }), end: endOfWeek(selectedDate, { weekStartsOn: 1 }) };
+      case "month":
+        return { start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) };
+    }
+  };
+
+  const filteredProjects = mockProjects.filter((p) => {
+    const matchesSearch =
       p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
+    
+    const range = getDateRange();
+    const projectStart = parseISO(p.fechaMontajeInicio);
+    const projectEnd = parseISO(p.fechaEjecucionFin);
+    const matchesDate = 
+      isWithinInterval(projectStart, range) ||
+      isWithinInterval(projectEnd, range) ||
+      (projectStart <= range.start && projectEnd >= range.end);
+
+    return matchesSearch && matchesStatus && matchesDate;
+  });
+
+  const handleGanttProjectClick = (projectId: string) => {
+    setHighlightedProjectId(projectId);
+    const tabTrigger = document.querySelector('[value="matriz"]') as HTMLElement;
+    if (tabTrigger) tabTrigger.click();
+  };
+
+  const handlePrint = (section: string) => {
+    window.print();
+  };
 
   const columns = [
     {
@@ -60,6 +108,16 @@ const PanelOperaciones = () => {
       ),
     },
     {
+      key: "avanzada",
+      header: "Avanzada",
+      width: "90px",
+      render: (p: Project) => (
+        <span className="text-xs">
+          {p.avanzada === "SE_HIZO" ? "✓" : p.avanzada === "NO_SE_HIZO" ? "✗" : p.avanzada === "NO_NECESARIA" ? "-" : "-"}
+        </span>
+      ),
+    },
+    {
       key: "fechas",
       header: "Fechas",
       width: "120px",
@@ -84,7 +142,7 @@ const PanelOperaciones = () => {
     },
     {
       key: "jefeOperaciones",
-      header: "Jefe Ops",
+      header: "Operaciones",
       width: "120px",
       render: (p: Project) => (
         <div className="flex items-center gap-1 text-xs">
@@ -121,6 +179,18 @@ const PanelOperaciones = () => {
       ),
     },
     {
+      key: "formatoPreproduccion",
+      header: "Formato",
+      width: "80px",
+      render: (p: Project) => (
+        <FileUploadButton
+          attachments={p.formatoPreproduccion || []}
+          onAttachmentsChange={() => {}}
+          multiple
+        />
+      ),
+    },
+    {
       key: "personal",
       header: "Personal",
       width: "80px",
@@ -137,6 +207,28 @@ const PanelOperaciones = () => {
           <Users className="h-3 w-3 mr-1" />
           {p.personal?.length || 0}
         </Button>
+      ),
+    },
+    {
+      key: "cotizacionProveedor",
+      header: "Cot. Prov",
+      width: "80px",
+      render: (p: Project) => (
+        <FileUploadButton
+          attachments={p.cotizacionesProveedor || []}
+          onAttachmentsChange={() => {}}
+          multiple
+        />
+      ),
+    },
+    {
+      key: "notas",
+      header: "Notas",
+      width: "150px",
+      render: (p: Project) => (
+        <span className="text-xs text-muted-foreground truncate block max-w-[130px]">
+          {p.notas || "-"}
+        </span>
       ),
     },
     {
@@ -159,13 +251,21 @@ const PanelOperaciones = () => {
       ),
     },
     {
-      key: "notas",
-      header: "Notas",
-      width: "200px",
+      key: "panelGeneral",
+      header: "Panel",
+      width: "80px",
       render: (p: Project) => (
-        <span className="text-xs text-muted-foreground truncate block max-w-[180px]">
-          {p.notas || "-"}
-        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-6 px-2 text-[10px]"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/panel-general?proyecto=${p.id}`);
+          }}
+        >
+          General
+        </Button>
       ),
     },
   ];
@@ -174,6 +274,20 @@ const PanelOperaciones = () => {
     { key: "nombre", header: "Nombre", width: "150px" },
     { key: "cargo", header: "Cargo", width: "120px" },
     { key: "telefono", header: "Teléfono", width: "130px" },
+    { 
+      key: "tipoPersonal", 
+      header: "Tipo", 
+      width: "100px",
+      render: (p: PersonalItem) => (
+        <span className={`text-xs px-2 py-0.5 rounded ${
+          p.tipoPersonal === "BBM" ? "bg-blue-500/20 text-blue-600" :
+          p.tipoPersonal === "Externo" ? "bg-orange-500/20 text-orange-600" :
+          "bg-green-500/20 text-green-600"
+        }`}>
+          {p.tipoPersonal}
+        </span>
+      ),
+    },
     { key: "notas", header: "Notas", width: "200px" },
   ];
 
@@ -194,6 +308,7 @@ const PanelOperaciones = () => {
         <Checkbox checked={i.recibido} disabled />
       ),
     },
+    { key: "notasAdicionales", header: "Notas Adicionales", width: "150px" },
   ];
 
   return (
@@ -207,6 +322,16 @@ const PanelOperaciones = () => {
             { label: "General", to: "/panel-general" },
             { label: "Proveedores", to: "/proveedores" },
           ]}
+        />
+
+        {/* Calendar Filter */}
+        <CalendarFilter
+          viewMode={viewMode}
+          selectedDate={selectedDate}
+          statusFilter={statusFilter}
+          onViewModeChange={setViewMode}
+          onDateChange={setSelectedDate}
+          onStatusChange={setStatusFilter}
         />
 
         <Tabs defaultValue="matriz" className="space-y-4">
@@ -233,6 +358,7 @@ const PanelOperaciones = () => {
                 data={filteredProjects}
                 columns={columns}
                 onRowClick={(p) => setSelectedProject(p)}
+                highlightedId={highlightedProjectId}
               />
             </div>
           </TabsContent>
@@ -240,8 +366,9 @@ const PanelOperaciones = () => {
           <TabsContent value="gantt" className="mt-4">
             <GanttChart
               projects={filteredProjects}
-              startDate={new Date(2024, 2, 1)}
+              startDate={startOfMonth(selectedDate)}
               monthsToShow={3}
+              onProjectClick={handleGanttProjectClick}
             />
           </TabsContent>
         </Tabs>
@@ -252,7 +379,7 @@ const PanelOperaciones = () => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {selectedProject?.evento}
-                <StatusBadge status={selectedProject?.estado || "pendiente"} />
+                <StatusBadge status={selectedProject?.estado || "por_planear"} />
               </DialogTitle>
             </DialogHeader>
 
@@ -280,11 +407,15 @@ const PanelOperaciones = () => {
 
                 {/* Personal Subtemplate */}
                 <Card>
-                  <CardHeader className="py-3">
+                  <CardHeader className="py-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <Users className="h-4 w-4" />
                       Personal ({selectedProject.personal?.length || 0})
                     </CardTitle>
+                    <Button variant="outline" size="sm" onClick={() => handlePrint("personal")}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Imprimir
+                    </Button>
                   </CardHeader>
                   <CardContent className="pt-0">
                     {selectedProject.personal && selectedProject.personal.length > 0 ? (
@@ -300,11 +431,15 @@ const PanelOperaciones = () => {
 
                 {/* Inventario Subtemplate */}
                 <Card>
-                  <CardHeader className="py-3">
+                  <CardHeader className="py-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <Package className="h-4 w-4" />
                       Inventario ({selectedProject.inventario?.length || 0})
                     </CardTitle>
+                    <Button variant="outline" size="sm" onClick={() => handlePrint("inventario")}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Imprimir
+                    </Button>
                   </CardHeader>
                   <CardContent className="pt-0">
                     {selectedProject.inventario && selectedProject.inventario.length > 0 ? (
@@ -320,11 +455,15 @@ const PanelOperaciones = () => {
 
                 {/* Cotizaciones Proveedor */}
                 <Card>
-                  <CardHeader className="py-3">
+                  <CardHeader className="py-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <FileText className="h-4 w-4" />
                       Cotizaciones Proveedor
                     </CardTitle>
+                    <Button variant="outline" size="sm" onClick={() => handlePrint("cotizaciones")}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Imprimir
+                    </Button>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <p className="text-sm text-muted-foreground">

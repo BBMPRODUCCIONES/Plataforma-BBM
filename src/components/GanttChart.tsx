@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Project, GanttMonth } from "@/types";
+import { Project, GanttMonth, HOLIDAYS_2024, HOLIDAYS_2025 } from "@/types";
 import { cn } from "@/lib/utils";
 import {
   format,
@@ -7,6 +7,8 @@ import {
   endOfMonth,
   eachDayOfInterval,
   isWeekend,
+  isSaturday,
+  isSunday,
   differenceInDays,
   parseISO,
   isWithinInterval,
@@ -18,9 +20,17 @@ interface GanttChartProps {
   projects: Project[];
   startDate?: Date;
   monthsToShow?: number;
+  onProjectClick?: (projectId: string) => void;
 }
 
-export function GanttChart({ projects, startDate = new Date(), monthsToShow = 3 }: GanttChartProps) {
+const HOLIDAYS = { ...HOLIDAYS_2024, ...HOLIDAYS_2025 };
+
+export function GanttChart({ 
+  projects, 
+  startDate = new Date(), 
+  monthsToShow = 3,
+  onProjectClick 
+}: GanttChartProps) {
   const { months, allDays } = useMemo(() => {
     const months: GanttMonth[] = [];
     let allDays: Date[] = [];
@@ -34,12 +44,17 @@ export function GanttChart({ projects, startDate = new Date(), monthsToShow = 3 
       months.push({
         name: format(currentMonth, "MMMM", { locale: es }),
         year: currentMonth.getFullYear(),
-        days: days.map((date) => ({
-          date,
-          dayOfMonth: date.getDate(),
-          dayOfWeek: format(date, "EEE", { locale: es }),
-          isWeekend: isWeekend(date),
-        })),
+        days: days.map((date) => {
+          const dateStr = format(date, "yyyy-MM-dd");
+          return {
+            date,
+            dayOfMonth: date.getDate(),
+            dayOfWeek: format(date, "EEE", { locale: es }),
+            isWeekend: isWeekend(date),
+            isHoliday: !!HOLIDAYS[dateStr],
+            holidayName: HOLIDAYS[dateStr],
+          };
+        }),
       });
 
       allDays = [...allDays, ...days];
@@ -56,7 +71,6 @@ export function GanttChart({ projects, startDate = new Date(), monthsToShow = 3 
     const lastDay = allDays[allDays.length - 1];
     const totalDays = differenceInDays(lastDay, firstDay) + 1;
 
-    // Check if project is within visible range
     const isVisible = isWithinInterval(start, { start: firstDay, end: lastDay }) ||
                       isWithinInterval(end, { start: firstDay, end: lastDay }) ||
                       (start <= firstDay && end >= lastDay);
@@ -73,6 +87,16 @@ export function GanttChart({ projects, startDate = new Date(), monthsToShow = 3 
     };
   };
 
+  const getDayClass = (day: Date) => {
+    const dateStr = format(day, "yyyy-MM-dd");
+    const isHoliday = !!HOLIDAYS[dateStr];
+    
+    if (isHoliday) return "bg-orange-500/20";
+    if (isSunday(day)) return "bg-muted/40 border-b-2 border-muted-foreground/30";
+    if (isSaturday(day)) return "bg-muted/30 border-b border-muted-foreground/20";
+    return "";
+  };
+
   return (
     <div className="panel-card overflow-hidden">
       <div className="panel-header">
@@ -86,6 +110,10 @@ export function GanttChart({ projects, startDate = new Date(), monthsToShow = 3 
             <div className="w-4 h-3 rounded-sm bg-gantt-ejecucion" />
             <span className="text-muted-foreground">Ejecución</span>
           </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-3 rounded-sm bg-orange-500/30" />
+            <span className="text-muted-foreground">Festivo</span>
+          </div>
         </div>
       </div>
       
@@ -97,7 +125,7 @@ export function GanttChart({ projects, startDate = new Date(), monthsToShow = 3 
               <span className="text-xs font-medium text-muted-foreground">Proyecto</span>
             </div>
             <div className="flex-1 flex">
-              {months.map((month, idx) => (
+              {months.map((month) => (
                 <div
                   key={`${month.name}-${month.year}`}
                   className="flex-1 text-center py-2 bg-table-header border-r border-border last:border-r-0"
@@ -115,16 +143,22 @@ export function GanttChart({ projects, startDate = new Date(), monthsToShow = 3 
             <div className="w-48 min-w-48 px-3 py-1 bg-table-header border-r border-border" />
             <div className="flex-1 flex">
               {months.map((month) =>
-                month.days.map((day, dayIdx) => (
+                month.days.map((day) => (
                   <div
                     key={`${month.name}-${day.dayOfMonth}`}
                     className={cn(
                       "flex-1 text-center py-1 text-[10px] border-r border-border/50 last:border-r-0",
-                      day.isWeekend ? "bg-muted/50" : "bg-table-header"
+                      getDayClass(day.date)
                     )}
+                    title={day.holidayName}
                   >
                     <div className="font-medium">{day.dayOfMonth}</div>
-                    <div className="text-muted-foreground capitalize">{day.dayOfWeek.charAt(0)}</div>
+                    <div className={cn(
+                      "capitalize",
+                      day.isHoliday ? "text-orange-400" : "text-muted-foreground"
+                    )}>
+                      {day.dayOfWeek.charAt(0)}
+                    </div>
                   </div>
                 ))
               )}
@@ -137,7 +171,14 @@ export function GanttChart({ projects, startDate = new Date(), monthsToShow = 3 
             const ejecucionBar = getBarPosition(project.fechaEjecucionInicio, project.fechaEjecucionFin);
 
             return (
-              <div key={project.id} className="flex border-b border-border hover:bg-table-row-hover transition-colors">
+              <div 
+                key={project.id} 
+                className={cn(
+                  "flex border-b border-border hover:bg-table-row-hover transition-colors",
+                  onProjectClick && "cursor-pointer"
+                )}
+                onClick={() => onProjectClick?.(project.id)}
+              >
                 <div className="w-48 min-w-48 px-3 py-3 border-r border-border">
                   <div className="text-xs font-medium truncate">{project.evento}</div>
                   <div className="text-[10px] text-muted-foreground truncate">{project.cliente}</div>
@@ -150,7 +191,7 @@ export function GanttChart({ projects, startDate = new Date(), monthsToShow = 3 
                         key={idx}
                         className={cn(
                           "flex-1 border-r border-border/30 last:border-r-0",
-                          isWeekend(day) && "bg-muted/30"
+                          getDayClass(day)
                         )}
                       />
                     ))}

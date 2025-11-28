@@ -7,10 +7,11 @@ interface StatusBadgeProps {
 }
 
 const statusConfig: Record<ProjectStatus, { label: string; className: string }> = {
-  activo: { label: "Activo", className: "status-active" },
-  pendiente: { label: "Pendiente", className: "status-pending" },
-  completado: { label: "Completado", className: "status-completed" },
-  cancelado: { label: "Cancelado", className: "status-cancelled" },
+  por_planear: { label: "Por Planear", className: "status-pending" },
+  por_ejecutar: { label: "Por Ejecutar", className: "status-pending" },
+  en_progreso: { label: "En Progreso", className: "status-active" },
+  terminado: { label: "Terminado", className: "status-completed" },
+  facturado: { label: "Facturado", className: "status-completed" },
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {

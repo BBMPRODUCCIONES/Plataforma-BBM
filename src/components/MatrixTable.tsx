@@ -14,6 +14,7 @@ interface MatrixTableProps<T extends { id: string }> {
   columns: Column<T>[];
   onRowClick?: (item: T) => void;
   className?: string;
+  highlightedId?: string;
 }
 
 export function MatrixTable<T extends { id: string }>({
@@ -21,6 +22,7 @@ export function MatrixTable<T extends { id: string }>({
   columns,
   onRowClick,
   className,
+  highlightedId,
 }: MatrixTableProps<T>) {
   return (
     <div className={cn("overflow-x-auto scrollbar-thin", className)}>
@@ -43,7 +45,10 @@ export function MatrixTable<T extends { id: string }>({
             <tr
               key={item.id}
               onClick={() => onRowClick?.(item)}
-              className={cn(onRowClick && "cursor-pointer")}
+              className={cn(
+                onRowClick && "cursor-pointer",
+                highlightedId === item.id && "bg-primary/20 ring-2 ring-primary ring-inset"
+              )}
             >
               {columns.map((col) => (
                 <td key={col.key} className={col.className}>

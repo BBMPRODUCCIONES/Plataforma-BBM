@@ -1,4 +1,12 @@
-import { Project, Proveedor, User } from "@/types";
+import { Project, Proveedor, User, Cliente } from "@/types";
+
+export const mockClientes: Cliente[] = [
+  { id: "c1", nombre: "Corporación Global S.A.", nit: "900123456-1", createdAt: "2024-01-01T00:00:00Z" },
+  { id: "c2", nombre: "Tech Solutions Inc.", nit: "900234567-2", createdAt: "2024-01-05T00:00:00Z" },
+  { id: "c3", nombre: "Fundación Arte Vivo", nit: "900345678-3", createdAt: "2024-01-10T00:00:00Z" },
+  { id: "c4", nombre: "Universidad Nacional", nit: "900456789-4", createdAt: "2024-01-15T00:00:00Z" },
+  { id: "c5", nombre: "Banco Central", nit: "900567890-5", createdAt: "2024-01-20T00:00:00Z" },
+];
 
 export const mockProjects: Project[] = [
   {
@@ -11,17 +19,18 @@ export const mockProjects: Project[] = [
     fechaMontajeFin: "2024-03-12",
     fechaEjecucionInicio: "2024-03-13",
     fechaEjecucionFin: "2024-03-15",
-    estado: "activo",
+    estado: "en_progreso",
     administrativoResponsable: "María García",
-    ingresos: 45000,
+    ingresoTotal: 45000,
+    ingresoBruto: 38000,
     ubicacion: "Centro de Convenciones Norte",
     jefeOperaciones: "Carlos Ruiz",
     productor: "Ana López",
     aCargoDe: "Equipo A",
     notas: "Cliente VIP - Atención especial requerida",
     personal: [
-      { id: "p1", nombre: "Juan Pérez", cargo: "Técnico Audio", telefono: "+57 300 123 4567", notas: "Experiencia en conciertos" },
-      { id: "p2", nombre: "Laura Martínez", cargo: "Iluminación", telefono: "+57 301 234 5678", notas: "" },
+      { id: "p1", nombre: "Juan Pérez", cargo: "Técnico Audio", telefono: "+57 300 123 4567", tipoPersonal: "BBM", notas: "Experiencia en conciertos" },
+      { id: "p2", nombre: "Laura Martínez", cargo: "Iluminación", telefono: "+57 301 234 5678", tipoPersonal: "Externo", notas: "" },
     ],
     inventario: [
       { id: "i1", nombreMaterial: "Parlantes JBL", cantidad: 8, unidad: "unidades", observaciones: "Verificar conexiones", recibido: true },
@@ -40,15 +49,16 @@ export const mockProjects: Project[] = [
     fechaMontajeFin: "2024-03-19",
     fechaEjecucionInicio: "2024-03-20",
     fechaEjecucionFin: "2024-03-20",
-    estado: "pendiente",
+    estado: "por_ejecutar",
     administrativoResponsable: "Pedro Sánchez",
-    ingresos: 28000,
+    ingresoTotal: 28000,
+    ingresoBruto: 22000,
     ubicacion: "Hotel Premium Plaza",
     jefeOperaciones: "Roberto Díaz",
     productor: "Carmen Vega",
     aCargoDe: "Equipo B",
     personal: [
-      { id: "p3", nombre: "Diego Morales", cargo: "Video", telefono: "+57 302 345 6789", notas: "" },
+      { id: "p3", nombre: "Diego Morales", cargo: "Video", telefono: "+57 302 345 6789", tipoPersonal: "BBM", notas: "" },
     ],
     inventario: [
       { id: "i3", nombreMaterial: "Proyector 4K", cantidad: 2, unidad: "unidades", observaciones: "Reservar con anticipación", recibido: false },
@@ -66,9 +76,10 @@ export const mockProjects: Project[] = [
     fechaMontajeFin: "2024-03-26",
     fechaEjecucionInicio: "2024-03-27",
     fechaEjecucionFin: "2024-03-27",
-    estado: "activo",
+    estado: "por_planear",
     administrativoResponsable: "María García",
-    ingresos: 75000,
+    ingresoTotal: 75000,
+    ingresoBruto: 62000,
     ubicacion: "Teatro Municipal",
     jefeOperaciones: "Carlos Ruiz",
     productor: "Ana López",
@@ -86,9 +97,10 @@ export const mockProjects: Project[] = [
     fechaMontajeFin: "2024-04-02",
     fechaEjecucionInicio: "2024-04-03",
     fechaEjecucionFin: "2024-04-03",
-    estado: "pendiente",
+    estado: "por_planear",
     administrativoResponsable: "Pedro Sánchez",
-    ingresos: 35000,
+    ingresoTotal: 35000,
+    ingresoBruto: 28000,
     ubicacion: "Auditorio Principal Universidad",
     jefeOperaciones: "Roberto Díaz",
     productor: "Carmen Vega",
@@ -106,9 +118,10 @@ export const mockProjects: Project[] = [
     fechaMontajeFin: "2024-03-06",
     fechaEjecucionInicio: "2024-03-07",
     fechaEjecucionFin: "2024-03-07",
-    estado: "completado",
+    estado: "facturado",
     administrativoResponsable: "María García",
-    ingresos: 52000,
+    ingresoTotal: 52000,
+    ingresoBruto: 43000,
     ubicacion: "Sede Central Banco",
     jefeOperaciones: "Carlos Ruiz",
     productor: "Ana López",
@@ -172,19 +185,22 @@ export const mockUsers: User[] = [
     email: "admin@produccioneventos.com",
     name: "Administrador Principal",
     role: "administrador",
+    panelsAccess: ["directivo", "general", "operaciones", "proveedores", "constructor", "agentes-ia", "google-calendar"],
   },
   {
     id: "u2",
     email: "operaciones@produccioneventos.com",
     name: "Operativo 1",
     role: "operativo",
+    panelsAccess: ["general", "operaciones", "proveedores"],
   },
   {
     id: "u3",
     email: "visual@produccioneventos.com",
     name: "Usuario Visual",
     role: "visual",
+    panelsAccess: ["general", "directivo", "operaciones"],
   },
 ];
 
-export const currentUser: User = mockUsers[0]; // Default to admin for demo
+export const currentUser: User = mockUsers[0];

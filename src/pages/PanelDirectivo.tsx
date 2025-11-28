@@ -316,7 +316,7 @@ const PanelDirectivo = () => {
               <MatrixTable
                 data={filteredProjects}
                 columns={columns}
-                onRowClick={(p) => navigate(`/proyecto/${p.id}`)}
+                onRowClick={(p) => setHighlightedProjectId(p.id)}
                 highlightedId={highlightedProjectId}
               />
             </div>

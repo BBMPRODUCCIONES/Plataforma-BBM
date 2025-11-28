@@ -1,0 +1,294 @@
+import { Project, PersonalItem, InventarioItem, Proveedor } from "@/types";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
+
+interface PrintOptions {
+  title: string;
+  subtitle?: string;
+  includeAttachments?: boolean;
+  notes?: string;
+}
+
+// Generate printable HTML content
+const generatePrintableHTML = (content: string, options: PrintOptions): string => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${options.title}</title>
+      <style>
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+        body {
+          font-family: Arial, sans-serif;
+          font-size: 12px;
+          line-height: 1.4;
+          color: #333;
+          padding: 20px;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 20px;
+          padding-bottom: 10px;
+          border-bottom: 2px solid #333;
+        }
+        .header h1 {
+          font-size: 18px;
+          margin-bottom: 5px;
+        }
+        .header p {
+          font-size: 12px;
+          color: #666;
+        }
+        .info-section {
+          margin-bottom: 15px;
+          padding: 10px;
+          background: #f5f5f5;
+          border-radius: 4px;
+        }
+        .info-row {
+          display: flex;
+          margin-bottom: 5px;
+        }
+        .info-label {
+          font-weight: bold;
+          width: 150px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 10px;
+        }
+        th, td {
+          border: 1px solid #ddd;
+          padding: 8px;
+          text-align: left;
+        }
+        th {
+          background: #333;
+          color: white;
+          font-weight: bold;
+        }
+        tr:nth-child(even) {
+          background: #f9f9f9;
+        }
+        .notes-section {
+          margin-top: 20px;
+          padding: 10px;
+          border: 1px dashed #999;
+          background: #fff9e6;
+        }
+        .notes-section h3 {
+          margin-bottom: 5px;
+          font-size: 14px;
+        }
+        .footer {
+          margin-top: 30px;
+          text-align: center;
+          font-size: 10px;
+          color: #999;
+        }
+        .badge {
+          display: inline-block;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: bold;
+        }
+        .badge-bbm { background: #dbeafe; color: #1d4ed8; }
+        .badge-externo { background: #ffedd5; color: #c2410c; }
+        .badge-transporte { background: #dcfce7; color: #16a34a; }
+        .checkbox {
+          display: inline-block;
+          width: 14px;
+          height: 14px;
+          border: 1px solid #333;
+          text-align: center;
+          line-height: 12px;
+        }
+        .checkbox.checked::after {
+          content: "✓";
+        }
+        @media print {
+          body { padding: 0; }
+          .no-print { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>${options.title}</h1>
+        ${options.subtitle ? `<p>${options.subtitle}</p>` : ''}
+        <p>Generado: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: es })}</p>
+      </div>
+      ${content}
+      ${options.notes ? `
+        <div class="notes-section">
+          <h3>Notas:</h3>
+          <p>${options.notes}</p>
+        </div>
+      ` : ''}
+      <div class="footer">
+        <p>PRODUCCIÓN DE EVENTOS - Sistema de Gestión</p>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+// Print Personal section
+export const printPersonal = (project: Project, includeNotes: boolean = true) => {
+  const personal = project.personal || [];
+  
+  const tableRows = personal.map(p => `
+    <tr>
+      <td>${p.nombre}</td>
+      <td>${p.cargo}</td>
+      <td>${p.telefono}</td>
+      <td><span class="badge badge-${p.tipoPersonal.toLowerCase()}">${p.tipoPersonal}</span></td>
+      <td>${p.notas || '-'}</td>
+    </tr>
+  `).join('');
+
+  const content = `
+    <div class="info-section">
+      <div class="info-row"><span class="info-label">Proyecto:</span> ${project.evento}</div>
+      <div class="info-row"><span class="info-label">Cliente:</span> ${project.cliente}</div>
+      <div class="info-row"><span class="info-label">Centro de Costos:</span> ${project.centroCostos}</div>
+      <div class="info-row"><span class="info-label">Fecha Ejecución:</span> ${format(parseISO(project.fechaEjecucionInicio), "dd/MM/yyyy", { locale: es })} - ${format(parseISO(project.fechaEjecucionFin), "dd/MM/yyyy", { locale: es })}</div>
+    </div>
+    <h2 style="margin: 15px 0 10px; font-size: 14px;">Personal Asignado (${personal.length})</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Cargo</th>
+          <th>Teléfono</th>
+          <th>Tipo</th>
+          <th>Notas</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows || '<tr><td colspan="5" style="text-align: center;">No hay personal asignado</td></tr>'}
+      </tbody>
+    </table>
+  `;
+
+  const html = generatePrintableHTML(content, {
+    title: 'LISTADO DE PERSONAL',
+    subtitle: project.evento,
+    notes: includeNotes ? project.notas : undefined,
+  });
+
+  openPrintWindow(html);
+};
+
+// Print Inventario section
+export const printInventario = (project: Project, includeNotes: boolean = true) => {
+  const inventario = project.inventario || [];
+  
+  const tableRows = inventario.map(i => `
+    <tr>
+      <td>${i.nombreMaterial}</td>
+      <td>${i.cantidad} ${i.unidad}</td>
+      <td>${i.observaciones || '-'}</td>
+      <td><span class="checkbox ${i.recibido ? 'checked' : ''}"></span></td>
+      <td>${i.notasAdicionales || '-'}</td>
+    </tr>
+  `).join('');
+
+  const content = `
+    <div class="info-section">
+      <div class="info-row"><span class="info-label">Proyecto:</span> ${project.evento}</div>
+      <div class="info-row"><span class="info-label">Cliente:</span> ${project.cliente}</div>
+      <div class="info-row"><span class="info-label">Centro de Costos:</span> ${project.centroCostos}</div>
+      <div class="info-row"><span class="info-label">Fecha Montaje:</span> ${format(parseISO(project.fechaMontajeInicio), "dd/MM/yyyy", { locale: es })} - ${format(parseISO(project.fechaMontajeFin), "dd/MM/yyyy", { locale: es })}</div>
+    </div>
+    <h2 style="margin: 15px 0 10px; font-size: 14px;">Inventario (${inventario.length} items)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Material</th>
+          <th>Cantidad</th>
+          <th>Observaciones</th>
+          <th>Recibido</th>
+          <th>Notas Adicionales</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows || '<tr><td colspan="5" style="text-align: center;">No hay inventario registrado</td></tr>'}
+      </tbody>
+    </table>
+  `;
+
+  const html = generatePrintableHTML(content, {
+    title: 'LISTADO DE INVENTARIO',
+    subtitle: project.evento,
+    notes: includeNotes ? project.notas : undefined,
+  });
+
+  openPrintWindow(html);
+};
+
+// Print Cotizaciones Proveedor section
+export const printCotizaciones = (project: Project, includeNotes: boolean = true) => {
+  const cotizaciones = project.cotizacionesProveedor || [];
+  
+  const tableRows = cotizaciones.map(c => `
+    <tr>
+      <td>${c.name}</td>
+      <td>${c.type}</td>
+      <td>${c.size ? (c.size / 1024).toFixed(2) + ' KB' : '-'}</td>
+      <td>${format(parseISO(c.uploadedAt), "dd/MM/yyyy HH:mm", { locale: es })}</td>
+    </tr>
+  `).join('');
+
+  const content = `
+    <div class="info-section">
+      <div class="info-row"><span class="info-label">Proyecto:</span> ${project.evento}</div>
+      <div class="info-row"><span class="info-label">Cliente:</span> ${project.cliente}</div>
+      <div class="info-row"><span class="info-label">Centro de Costos:</span> ${project.centroCostos}</div>
+    </div>
+    <h2 style="margin: 15px 0 10px; font-size: 14px;">Cotizaciones de Proveedores (${cotizaciones.length})</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Archivo</th>
+          <th>Tipo</th>
+          <th>Tamaño</th>
+          <th>Fecha Subida</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows || '<tr><td colspan="4" style="text-align: center;">No hay cotizaciones adjuntas</td></tr>'}
+      </tbody>
+    </table>
+  `;
+
+  const html = generatePrintableHTML(content, {
+    title: 'COTIZACIONES DE PROVEEDORES',
+    subtitle: project.evento,
+    notes: includeNotes ? project.notas : undefined,
+  });
+
+  openPrintWindow(html);
+};
+
+// Open print window and trigger print
+const openPrintWindow = (html: string) => {
+  const printWindow = window.open('', '_blank', 'width=800,height=600');
+  if (printWindow) {
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    
+    // Wait for content to load then print
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  }
+};

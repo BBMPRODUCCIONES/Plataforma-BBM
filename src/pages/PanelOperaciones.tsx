@@ -27,9 +27,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Users, Package, FileText, MapPin, User, Printer } from "lucide-react";
+import { Search, Users, Package, FileText, MapPin, User, Printer, FileDown } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
+import { printPersonal, printInventario, printCotizaciones } from "@/utils/pdfGenerator";
 
 const PanelOperaciones = () => {
   const navigate = useNavigate();
@@ -76,10 +77,6 @@ const PanelOperaciones = () => {
     setHighlightedProjectId(projectId);
     const tabTrigger = document.querySelector('[value="matriz"]') as HTMLElement;
     if (tabTrigger) tabTrigger.click();
-  };
-
-  const handlePrint = (section: string) => {
-    window.print();
   };
 
   const columns = [
@@ -412,9 +409,9 @@ const PanelOperaciones = () => {
                       <Users className="h-4 w-4" />
                       Personal ({selectedProject.personal?.length || 0})
                     </CardTitle>
-                    <Button variant="outline" size="sm" onClick={() => handlePrint("personal")}>
-                      <Printer className="h-4 w-4 mr-2" />
-                      Imprimir
+                    <Button variant="outline" size="sm" onClick={() => printPersonal(selectedProject)}>
+                      <FileDown className="h-4 w-4 mr-2" />
+                      Generar PDF
                     </Button>
                   </CardHeader>
                   <CardContent className="pt-0">
@@ -436,9 +433,9 @@ const PanelOperaciones = () => {
                       <Package className="h-4 w-4" />
                       Inventario ({selectedProject.inventario?.length || 0})
                     </CardTitle>
-                    <Button variant="outline" size="sm" onClick={() => handlePrint("inventario")}>
-                      <Printer className="h-4 w-4 mr-2" />
-                      Imprimir
+                    <Button variant="outline" size="sm" onClick={() => printInventario(selectedProject)}>
+                      <FileDown className="h-4 w-4 mr-2" />
+                      Generar PDF
                     </Button>
                   </CardHeader>
                   <CardContent className="pt-0">
@@ -460,9 +457,9 @@ const PanelOperaciones = () => {
                       <FileText className="h-4 w-4" />
                       Cotizaciones Proveedor
                     </CardTitle>
-                    <Button variant="outline" size="sm" onClick={() => handlePrint("cotizaciones")}>
-                      <Printer className="h-4 w-4 mr-2" />
-                      Imprimir
+                    <Button variant="outline" size="sm" onClick={() => printCotizaciones(selectedProject)}>
+                      <FileDown className="h-4 w-4 mr-2" />
+                      Generar PDF
                     </Button>
                   </CardHeader>
                   <CardContent className="pt-0">

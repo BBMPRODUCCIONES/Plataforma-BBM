@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { GanttChart } from "@/components/GanttChart";
 import { CalendarFilter } from "@/components/CalendarFilter";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
+import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { mockProjects } from "@/data/mockData";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -125,15 +126,39 @@ const PanelGeneral = () => {
       header: "Montaje",
       width: "130px",
       render: (p: Project) => (
-        <div className="text-xs space-y-0.5">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-sm bg-gantt-montaje" />
-            {format(parseISO(p.fechaMontajeInicio), "dd/MM", { locale: es })}
-          </div>
-          <div className="text-muted-foreground pl-3">
-            → {format(parseISO(p.fechaMontajeFin), "dd/MM", { locale: es })}
-          </div>
-        </div>
+        <DateTimeRangeEditor
+          type="montaje"
+          value={{
+            fechaInicio: p.fechaMontajeInicio,
+            fechaFin: p.fechaMontajeFin,
+            horaInicio: p.horaMontajeInicio,
+            horaFin: p.horaMontajeFin,
+          }}
+          onChange={(value) => {
+            setProjects(projects.map(proj =>
+              proj.id === p.id
+                ? {
+                    ...proj,
+                    fechaMontajeInicio: value.fechaInicio,
+                    fechaMontajeFin: value.fechaFin,
+                    horaMontajeInicio: value.horaInicio,
+                    horaMontajeFin: value.horaFin,
+                  }
+                : proj
+            ));
+          }}
+          displayValue={
+            <div className="text-xs space-y-0.5">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-sm bg-gantt-montaje" />
+                {format(parseISO(p.fechaMontajeInicio), "dd/MM", { locale: es })}
+              </div>
+              <div className="text-muted-foreground pl-3">
+                → {format(parseISO(p.fechaMontajeFin), "dd/MM", { locale: es })}
+              </div>
+            </div>
+          }
+        />
       ),
     },
     {
@@ -141,15 +166,39 @@ const PanelGeneral = () => {
       header: "Ejecución",
       width: "130px",
       render: (p: Project) => (
-        <div className="text-xs space-y-0.5">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-sm bg-gantt-ejecucion" />
-            {format(parseISO(p.fechaEjecucionInicio), "dd/MM", { locale: es })}
-          </div>
-          <div className="text-muted-foreground pl-3">
-            → {format(parseISO(p.fechaEjecucionFin), "dd/MM", { locale: es })}
-          </div>
-        </div>
+        <DateTimeRangeEditor
+          type="ejecucion"
+          value={{
+            fechaInicio: p.fechaEjecucionInicio,
+            fechaFin: p.fechaEjecucionFin,
+            horaInicio: p.horaEjecucionInicio,
+            horaFin: p.horaEjecucionFin,
+          }}
+          onChange={(value) => {
+            setProjects(projects.map(proj =>
+              proj.id === p.id
+                ? {
+                    ...proj,
+                    fechaEjecucionInicio: value.fechaInicio,
+                    fechaEjecucionFin: value.fechaFin,
+                    horaEjecucionInicio: value.horaInicio,
+                    horaEjecucionFin: value.horaFin,
+                  }
+                : proj
+            ));
+          }}
+          displayValue={
+            <div className="text-xs space-y-0.5">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-sm bg-gantt-ejecucion" />
+                {format(parseISO(p.fechaEjecucionInicio), "dd/MM", { locale: es })}
+              </div>
+              <div className="text-muted-foreground pl-3">
+                → {format(parseISO(p.fechaEjecucionFin), "dd/MM", { locale: es })}
+              </div>
+            </div>
+          }
+        />
       ),
     },
     {

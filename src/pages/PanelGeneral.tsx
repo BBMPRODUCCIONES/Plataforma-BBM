@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, ExternalLink } from "lucide-react";
-import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 
 const PanelGeneral = () => {
@@ -33,6 +33,8 @@ const PanelGeneral = () => {
         return { start: startOfWeek(selectedDate, { weekStartsOn: 1 }), end: endOfWeek(selectedDate, { weekStartsOn: 1 }) };
       case "month":
         return { start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) };
+      case "year":
+        return { start: startOfYear(selectedDate), end: endOfYear(selectedDate) };
     }
   };
 

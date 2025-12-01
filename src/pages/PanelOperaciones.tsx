@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Users, Package, FileText, MapPin, User, Printer, FileDown } from "lucide-react";
-import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones } from "@/utils/pdfGenerator";
 
@@ -51,6 +51,8 @@ const PanelOperaciones = () => {
         return { start: startOfWeek(selectedDate, { weekStartsOn: 1 }), end: endOfWeek(selectedDate, { weekStartsOn: 1 }) };
       case "month":
         return { start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) };
+      case "year":
+        return { start: startOfYear(selectedDate), end: endOfYear(selectedDate) };
     }
   };
 

@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Loader2, Check, X } from "lucide-react";
+import { Upload, FileText, Loader2, Check, X, Paperclip, Download, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Attachment } from "@/types";
 
 interface ExtractedData {
   ingresoBruto: number | null;
@@ -24,18 +25,23 @@ interface PurchaseOrderUploadProps {
   onDataExtracted: (ingresoBruto: number | null, ingresoTotal: number | null) => void;
   currentIngresoBruto?: number;
   currentIngresoTotal?: number;
+  attachments?: Attachment[];
+  onAttachmentsChange?: (attachments: Attachment[]) => void;
 }
 
 export function PurchaseOrderUpload({ 
   onDataExtracted, 
   currentIngresoBruto, 
-  currentIngresoTotal 
+  currentIngresoTotal,
+  attachments = [],
+  onAttachmentsChange,
 }: PurchaseOrderUploadProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [editedIngresoBruto, setEditedIngresoBruto] = useState<string>("");
   const [editedIngresoTotal, setEditedIngresoTotal] = useState<string>("");
+  const [pendingAttachment, setPendingAttachment] = useState<Attachment | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const readFileAsBase64 = (file: File): Promise<string> => {
@@ -51,8 +57,6 @@ export function PurchaseOrderUpload({
   };
 
   const readExcelAsText = async (file: File): Promise<string> => {
-    // For Excel files, we'll send the raw content 
-    // The AI will try to interpret it
     const text = await file.text();
     return text;
   };
@@ -98,13 +102,26 @@ export function PurchaseOrderUpload({
     setIsProcessing(true);
 
     try {
+      // Create attachment object
+      const newAttachment: Attachment = {
+        id: crypto.randomUUID(),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        url: URL.createObjectURL(file),
+        uploadedAt: new Date().toISOString(),
+      };
+
+      // Store the pending attachment
+      setPendingAttachment(newAttachment);
+
       let fileContent: string;
       let fileType = file.type;
 
       // Read file content
       if (file.type.includes('excel') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
         fileContent = await readExcelAsText(file);
-        fileType = 'text/plain'; // Treat as text for AI
+        fileType = 'text/plain';
       } else {
         fileContent = await readFileAsBase64(file);
       }
@@ -142,14 +159,18 @@ export function PurchaseOrderUpload({
 
     } catch (error) {
       console.error('Error processing file:', error);
+      // Still add the attachment even if AI processing fails
+      if (pendingAttachment && onAttachmentsChange) {
+        onAttachmentsChange([...attachments, pendingAttachment]);
+        setPendingAttachment(null);
+      }
       toast({
-        title: "Error al procesar",
-        description: error instanceof Error ? error.message : "No se pudo extraer la información",
-        variant: "destructive",
+        title: "Archivo adjuntado",
+        description: "El archivo se guardó pero no se pudieron extraer los datos automáticamente",
+        variant: "default",
       });
     } finally {
       setIsProcessing(false);
-      // Reset input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -160,19 +181,43 @@ export function PurchaseOrderUpload({
     const ingresoBruto = editedIngresoBruto ? parseFloat(editedIngresoBruto) : null;
     const ingresoTotal = editedIngresoTotal ? parseFloat(editedIngresoTotal) : null;
     
+    // Update the values
     onDataExtracted(ingresoBruto, ingresoTotal);
+    
+    // Add the attachment
+    if (pendingAttachment && onAttachmentsChange) {
+      onAttachmentsChange([...attachments, pendingAttachment]);
+    }
+    
     setShowConfirmDialog(false);
     setExtractedData(null);
+    setPendingAttachment(null);
     
     toast({
       title: "Valores actualizados",
-      description: "Los datos se han registrado correctamente",
+      description: "Los datos y el archivo se han registrado correctamente",
     });
   };
 
   const handleCancel = () => {
+    // Still add the attachment even if user cancels the values
+    if (pendingAttachment && onAttachmentsChange) {
+      onAttachmentsChange([...attachments, pendingAttachment]);
+    }
     setShowConfirmDialog(false);
     setExtractedData(null);
+    setPendingAttachment(null);
+    
+    toast({
+      title: "Archivo adjuntado",
+      description: "El archivo se guardó sin actualizar los valores",
+    });
+  };
+
+  const removeAttachment = (attachmentId: string) => {
+    if (onAttachmentsChange) {
+      onAttachmentsChange(attachments.filter(a => a.id !== attachmentId));
+    }
   };
 
   const getConfianzaColor = (confianza: string) => {
@@ -206,6 +251,11 @@ export function PurchaseOrderUpload({
             <>
               <Loader2 className="h-3 w-3 mr-1 animate-spin" />
               Procesando...
+            </>
+          ) : attachments.length > 0 ? (
+            <>
+              <Paperclip className="h-3 w-3 mr-1" />
+              {attachments.length}
             </>
           ) : (
             <>
@@ -274,17 +324,19 @@ export function PurchaseOrderUpload({
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={handleCancel}>
                   <X className="h-4 w-4 mr-1" />
-                  Cancelar
+                  Solo Adjuntar
                 </Button>
                 <Button onClick={handleConfirm}>
                   <Check className="h-4 w-4 mr-1" />
-                  Confirmar
+                  Confirmar Valores
                 </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Attachments list popover could be added here if needed */}
     </>
   );
 }

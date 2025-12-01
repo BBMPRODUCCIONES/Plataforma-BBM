@@ -8,26 +8,46 @@ import { GanttChart } from "@/components/GanttChart";
 import { CalendarFilter } from "@/components/CalendarFilter";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
+import { EditableCell, CellType } from "@/components/EditableCell";
+import { AddColumnDialog } from "@/components/AddColumnDialog";
+import { useUserRole } from "@/hooks/useUserRole";
 import { mockProjects } from "@/data/mockData";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, ExternalLink } from "lucide-react";
+import { Search, ExternalLink, Columns } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 
+interface CustomColumn {
+  key: string;
+  header: string;
+  type: CellType;
+  width: string;
+  options?: string[];
+}
+
 const PanelGeneral = () => {
   const navigate = useNavigate();
+  const { canEditStructure } = useUserRole();
   const [searchTerm, setSearchTerm] = useState("");
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
+  const [addColumnOpen, setAddColumnOpen] = useState(false);
+  const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
   
   // Calendar filter state
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | undefined>();
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
+
+  const updateProject = (projectId: string, field: string, value: any) => {
+    setProjects(projects.map(proj =>
+      proj.id === projectId ? { ...proj, [field]: value } : proj
+    ));
+  };
 
   const getDateRange = () => {
     if (viewMode === "custom" && dateRange) {
@@ -74,15 +94,22 @@ const PanelGeneral = () => {
     if (tabTrigger) tabTrigger.click();
   };
 
-  const columns = [
+  const handleAddColumn = (column: CustomColumn) => {
+    setCustomColumns([...customColumns, column]);
+  };
+
+  const baseColumns = [
     {
       key: "centroCostos",
       header: "Centro de Costos",
       width: "130px",
       render: (p: Project) => (
-        <span className="font-mono text-xs bg-muted px-2 py-1 rounded">
-          {p.centroCostos}
-        </span>
+        <EditableCell
+          value={p.centroCostos}
+          type="text"
+          onChange={(value) => updateProject(p.id, "centroCostos", value)}
+          className="font-mono bg-muted px-2 py-1 rounded"
+        />
       ),
     },
     {
@@ -90,7 +117,12 @@ const PanelGeneral = () => {
       header: "#Factura",
       width: "100px",
       render: (p: Project) => (
-        <span className="font-mono text-xs">{p.numFactura}</span>
+        <EditableCell
+          value={p.numFactura}
+          type="text"
+          onChange={(value) => updateProject(p.id, "numFactura", value)}
+          className="font-mono"
+        />
       ),
     },
     {
@@ -99,7 +131,12 @@ const PanelGeneral = () => {
       width: "200px",
       render: (p: Project) => (
         <div>
-          <span className="font-medium text-xs">{p.cliente}</span>
+          <EditableCell
+            value={p.cliente}
+            type="text"
+            onChange={(value) => updateProject(p.id, "cliente", value)}
+            className="font-medium"
+          />
           <div className="text-[10px] text-muted-foreground truncate max-w-[180px]">
             {p.evento}
           </div>
@@ -113,11 +150,7 @@ const PanelGeneral = () => {
       render: (p: Project) => (
         <AvanzadaSelect
           value={p.avanzada}
-          onChange={(value) => {
-            setProjects(projects.map(proj => 
-              proj.id === p.id ? { ...proj, avanzada: value } : proj
-            ));
-          }}
+          onChange={(value) => updateProject(p.id, "avanzada", value)}
         />
       ),
     },
@@ -207,52 +240,70 @@ const PanelGeneral = () => {
       width: "110px",
       render: (p: Project) => <StatusBadge status={p.estado} />,
     },
-    {
-      key: "acciones",
-      header: "Paneles",
-      width: "180px",
-      render: (p: Project) => (
-        <div className="flex gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-6 px-2 text-[10px]"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/panel-directivo?proyecto=${p.id}`);
-            }}
-          >
-            Directivo
-            <ExternalLink className="h-2.5 w-2.5 ml-1" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-6 px-2 text-[10px]"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/panel-operaciones?proyecto=${p.id}`);
-            }}
-          >
-            Operaciones
-            <ExternalLink className="h-2.5 w-2.5 ml-1" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-6 px-2 text-[10px]"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate("/proveedores");
-            }}
-          >
-            Proveedores
-            <ExternalLink className="h-2.5 w-2.5 ml-1" />
-          </Button>
-        </div>
-      ),
-    },
   ];
+
+  // Add custom columns dynamically
+  const dynamicCustomColumns = customColumns.map((col) => ({
+    key: col.key,
+    header: col.header,
+    width: col.width,
+    render: (p: Project) => (
+      <EditableCell
+        value={(p as any)[col.key]}
+        type={col.type}
+        options={col.options}
+        onChange={(value) => updateProject(p.id, col.key, value)}
+      />
+    ),
+  }));
+
+  const panelColumn = {
+    key: "acciones",
+    header: "Paneles",
+    width: "180px",
+    render: (p: Project) => (
+      <div className="flex gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-6 px-2 text-[10px]"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/panel-directivo?proyecto=${p.id}`);
+          }}
+        >
+          Directivo
+          <ExternalLink className="h-2.5 w-2.5 ml-1" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-6 px-2 text-[10px]"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/panel-operaciones?proyecto=${p.id}`);
+          }}
+        >
+          Operaciones
+          <ExternalLink className="h-2.5 w-2.5 ml-1" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-6 px-2 text-[10px]"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate("/proveedores");
+          }}
+        >
+          Proveedores
+          <ExternalLink className="h-2.5 w-2.5 ml-1" />
+        </Button>
+      </div>
+    ),
+  };
+
+  const columns = [...baseColumns, ...dynamicCustomColumns, panelColumn];
 
   return (
     <Layout>
@@ -264,6 +315,14 @@ const PanelGeneral = () => {
             { label: "Directivo", to: "/panel-directivo" },
             { label: "Operaciones", to: "/panel-operaciones" },
           ]}
+          actions={
+            canEditStructure() && (
+              <Button variant="outline" size="sm" onClick={() => setAddColumnOpen(true)}>
+                <Columns className="h-4 w-4 mr-2" />
+                Agregar Columna
+              </Button>
+            )
+          }
         />
 
         {/* Calendar Filter */}
@@ -317,6 +376,12 @@ const PanelGeneral = () => {
             />
           </TabsContent>
         </Tabs>
+
+        <AddColumnDialog
+          open={addColumnOpen}
+          onOpenChange={setAddColumnOpen}
+          onAddColumn={handleAddColumn}
+        />
       </div>
     </Layout>
   );

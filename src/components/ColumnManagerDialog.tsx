@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Columns, Plus, Pencil, Trash2, GripVertical, Eye, EyeOff } from "lucide-react";
+import { Columns, Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -17,11 +18,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CellType } from "./EditableCell";
 import { cn } from "@/lib/utils";
+
+export interface RoleVisibility {
+  operativo: boolean;
+  visual: boolean;
+}
 
 export interface ColumnConfig {
   key: string;
@@ -32,6 +43,7 @@ export interface ColumnConfig {
   visible: boolean;
   isCustom: boolean;
   order: number;
+  roleVisibility?: RoleVisibility;
 }
 
 interface ColumnManagerDialogProps {
@@ -150,6 +162,22 @@ export function ColumnManagerDialog({
     onColumnsChange(updatedColumns);
   };
 
+  const handleRoleVisibilityChange = (key: string, role: keyof RoleVisibility, value: boolean) => {
+    const updatedColumns = columns.map((col) =>
+      col.key === key
+        ? {
+            ...col,
+            roleVisibility: {
+              operativo: col.roleVisibility?.operativo ?? true,
+              visual: col.roleVisibility?.visual ?? true,
+              [role]: value,
+            },
+          }
+        : col
+    );
+    onColumnsChange(updatedColumns);
+  };
+
   const startEditing = (column: ColumnConfig) => {
     setEditingColumn(column);
     setColumnName(column.header);
@@ -252,19 +280,54 @@ export function ColumnManagerDialog({
                     </div>
 
                     <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleToggleVisibility(column.key)}
-                        title={column.visible ? "Ocultar columna" : "Mostrar columna"}
-                      >
-                        {column.visible ? (
-                          <Eye className="h-4 w-4" />
-                        ) : (
-                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Configurar visibilidad por rol"
+                          >
+                            <Settings2 className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-4" align="end">
+                          <div className="space-y-4">
+                            <div className="font-medium text-sm">Visibilidad por Rol</div>
+                            
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Administrador</span>
+                                <Checkbox checked disabled className="opacity-50" />
+                              </div>
+                              
+                              <div className="flex items-center justify-between text-sm">
+                                <span>Operativo</span>
+                                <Checkbox
+                                  checked={column.roleVisibility?.operativo ?? true}
+                                  onCheckedChange={(checked) =>
+                                    handleRoleVisibilityChange(column.key, "operativo", !!checked)
+                                  }
+                                />
+                              </div>
+                              
+                              <div className="flex items-center justify-between text-sm">
+                                <span>Visual</span>
+                                <Checkbox
+                                  checked={column.roleVisibility?.visual ?? true}
+                                  onCheckedChange={(checked) =>
+                                    handleRoleVisibilityChange(column.key, "visual", !!checked)
+                                  }
+                                />
+                              </div>
+                            </div>
+                            
+                            <p className="text-[11px] text-muted-foreground">
+                              El Administrador siempre puede ver todas las columnas.
+                            </p>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
 
                       <Button
                         variant="ghost"
@@ -294,7 +357,7 @@ export function ColumnManagerDialog({
             </ScrollArea>
 
             <p className="text-xs text-muted-foreground mt-4">
-              Arrastra las columnas para reordenarlas. Las columnas personalizadas pueden eliminarse.
+              Arrastra las columnas para reordenarlas. Usa el ícono de configuración para definir visibilidad por rol. Las columnas personalizadas pueden eliminarse.
             </p>
           </TabsContent>
 

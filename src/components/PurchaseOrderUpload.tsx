@@ -181,6 +181,8 @@ export function PurchaseOrderUpload({
     const ingresoBruto = editedIngresoBruto ? parseFloat(editedIngresoBruto) : null;
     const ingresoTotal = editedIngresoTotal ? parseFloat(editedIngresoTotal) : null;
     
+    console.log('handleConfirm called with:', { ingresoBruto, ingresoTotal });
+    
     // Update the values
     onDataExtracted(ingresoBruto, ingresoTotal);
     

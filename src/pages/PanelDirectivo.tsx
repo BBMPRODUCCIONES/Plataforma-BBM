@@ -314,15 +314,21 @@ const PanelDirectivo = () => {
           currentIngresoBruto={p.ingresoBruto}
           currentIngresoTotal={p.ingresoTotal}
           onDataExtracted={(ingresoBruto, ingresoTotal) => {
-            setProjects(prevProjects => prevProjects.map(proj =>
-              proj.id === p.id
-                ? {
-                    ...proj,
-                    ingresoBruto: ingresoBruto ?? proj.ingresoBruto,
-                    ingresoTotal: ingresoTotal ?? proj.ingresoTotal,
-                  }
-                : proj
-            ));
+            console.log('onDataExtracted called:', { projectId: p.id, ingresoBruto, ingresoTotal });
+            setProjects(prevProjects => {
+              console.log('Updating projects, current count:', prevProjects.length);
+              const updated = prevProjects.map(proj =>
+                proj.id === p.id
+                  ? {
+                      ...proj,
+                      ingresoBruto: ingresoBruto ?? proj.ingresoBruto,
+                      ingresoTotal: ingresoTotal ?? proj.ingresoTotal,
+                    }
+                  : proj
+              );
+              console.log('Updated project:', updated.find(proj => proj.id === p.id));
+              return updated;
+            });
           }}
         />
       ),

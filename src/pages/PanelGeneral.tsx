@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
@@ -11,24 +11,16 @@ import { PurchaseOrderUpload } from "@/components/PurchaseOrderUpload";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
-import { AddColumnDialog } from "@/components/AddColumnDialog";
+import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { useUserRole } from "@/hooks/useUserRole";
 import { mockProjects } from "@/data/mockData";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, ExternalLink, Columns } from "lucide-react";
+import { Search, ExternalLink, Settings } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
-
-interface CustomColumn {
-  key: string;
-  header: string;
-  type: CellType;
-  width: string;
-  options?: string[];
-}
 
 const PanelGeneral = () => {
   const navigate = useNavigate();
@@ -36,8 +28,8 @@ const PanelGeneral = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
-  const [addColumnOpen, setAddColumnOpen] = useState(false);
-  const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
+  const [columnManagerOpen, setColumnManagerOpen] = useState(false);
+  const [managedColumns, setManagedColumns] = useState<ColumnConfig[]>([]);
   
   // Calendar filter state
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
@@ -46,7 +38,7 @@ const PanelGeneral = () => {
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
 
   const updateProject = (projectId: string, field: string, value: any) => {
-    setProjects(projects.map(proj =>
+    setProjects(prevProjects => prevProjects.map(proj =>
       proj.id === projectId ? { ...proj, [field]: value } : proj
     ));
   };
@@ -96,202 +88,192 @@ const PanelGeneral = () => {
     if (tabTrigger) tabTrigger.click();
   };
 
-  const handleAddColumn = (column: CustomColumn) => {
-    setCustomColumns([...customColumns, column]);
+  // Define base columns
+  const baseColumnDefs: ColumnConfig[] = useMemo(() => [
+    { key: "centroCostos", header: "Centro de Costos", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
+    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 1 },
+    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 2 },
+    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 3 },
+    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 4 },
+    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 5 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 6 },
+    { key: "ordenCompra", header: "OC + OCR", type: "file" as CellType, width: "130px", visible: true, isCustom: false, order: 7 },
+  ], []);
+
+  const allColumnConfigs = useMemo(() => {
+    if (managedColumns.length === 0) {
+      return baseColumnDefs;
+    }
+    return managedColumns;
+  }, [baseColumnDefs, managedColumns]);
+
+  const handleColumnsChange = (newColumns: ColumnConfig[]) => {
+    setManagedColumns(newColumns);
   };
 
-  const baseColumns = [
-    {
-      key: "centroCostos",
-      header: "Centro de Costos",
-      width: "130px",
-      render: (p: Project) => (
-        <EditableCell
-          value={p.centroCostos}
-          type="text"
-          onChange={(value) => updateProject(p.id, "centroCostos", value)}
-          className="font-mono bg-muted px-2 py-1 rounded"
-        />
-      ),
-    },
-    {
-      key: "numFactura",
-      header: "#Factura",
-      width: "100px",
-      render: (p: Project) => (
-        <EditableCell
-          value={p.numFactura}
-          type="text"
-          onChange={(value) => updateProject(p.id, "numFactura", value)}
-          className="font-mono"
-        />
-      ),
-    },
-    {
-      key: "cliente",
-      header: "Cliente",
-      width: "200px",
-      render: (p: Project) => (
-        <div>
+  const initializeColumns = () => {
+    if (managedColumns.length === 0) {
+      setManagedColumns(baseColumnDefs);
+    }
+    setColumnManagerOpen(true);
+  };
+
+  const getColumnRender = (colConfig: ColumnConfig) => {
+    switch (colConfig.key) {
+      case "centroCostos":
+        return (p: Project) => (
           <EditableCell
-            value={p.cliente}
+            value={p.centroCostos}
             type="text"
-            onChange={(value) => updateProject(p.id, "cliente", value)}
-            className="font-medium"
+            onChange={(value) => updateProject(p.id, "centroCostos", value)}
+            className="font-mono bg-muted px-2 py-1 rounded"
           />
-          <div className="text-[10px] text-muted-foreground truncate max-w-[180px]">
-            {p.evento}
+        );
+      case "numFactura":
+        return (p: Project) => (
+          <EditableCell
+            value={p.numFactura}
+            type="text"
+            onChange={(value) => updateProject(p.id, "numFactura", value)}
+            className="font-mono"
+          />
+        );
+      case "cliente":
+        return (p: Project) => (
+          <div>
+            <EditableCell
+              value={p.cliente}
+              type="text"
+              onChange={(value) => updateProject(p.id, "cliente", value)}
+              className="font-medium"
+            />
+            <div className="text-[10px] text-muted-foreground truncate max-w-[180px]">
+              {p.evento}
+            </div>
           </div>
-        </div>
-      ),
-    },
-    {
-      key: "avanzada",
-      header: "Avanzada",
-      width: "130px",
-      render: (p: Project) => (
-        <AvanzadaSelect
-          value={p.avanzada}
-          onChange={(value) => updateProject(p.id, "avanzada", value)}
-        />
-      ),
-    },
-    {
-      key: "fechaMontaje",
-      header: "Montaje",
-      width: "130px",
-      render: (p: Project) => (
-        <DateTimeRangeEditor
-          type="montaje"
-          value={{
-            fechaInicio: p.fechaMontajeInicio,
-            fechaFin: p.fechaMontajeFin,
-            horaInicio: p.horaMontajeInicio,
-            horaFin: p.horaMontajeFin,
-          }}
-          onChange={(value) => {
-            setProjects(projects.map(proj =>
-              proj.id === p.id
-                ? {
-                    ...proj,
-                    fechaMontajeInicio: value.fechaInicio,
-                    fechaMontajeFin: value.fechaFin,
-                    horaMontajeInicio: value.horaInicio,
-                    horaMontajeFin: value.horaFin,
-                  }
-                : proj
-            ));
-          }}
-          displayValue={
-            <div className="text-xs space-y-0.5">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-sm bg-gantt-montaje" />
-                {format(parseISO(p.fechaMontajeInicio), "dd/MM", { locale: es })}
-              </div>
-              <div className="text-muted-foreground pl-3">
-                → {format(parseISO(p.fechaMontajeFin), "dd/MM", { locale: es })}
-              </div>
-            </div>
-          }
-        />
-      ),
-    },
-    {
-      key: "fechaEjecucion",
-      header: "Ejecución",
-      width: "130px",
-      render: (p: Project) => (
-        <DateTimeRangeEditor
-          type="ejecucion"
-          value={{
-            fechaInicio: p.fechaEjecucionInicio,
-            fechaFin: p.fechaEjecucionFin,
-            horaInicio: p.horaEjecucionInicio,
-            horaFin: p.horaEjecucionFin,
-          }}
-          onChange={(value) => {
-            setProjects(projects.map(proj =>
-              proj.id === p.id
-                ? {
-                    ...proj,
-                    fechaEjecucionInicio: value.fechaInicio,
-                    fechaEjecucionFin: value.fechaFin,
-                    horaEjecucionInicio: value.horaInicio,
-                    horaEjecucionFin: value.horaFin,
-                  }
-                : proj
-            ));
-          }}
-          displayValue={
-            <div className="text-xs space-y-0.5">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-sm bg-gantt-ejecucion" />
-                {format(parseISO(p.fechaEjecucionInicio), "dd/MM", { locale: es })}
-              </div>
-              <div className="text-muted-foreground pl-3">
-                → {format(parseISO(p.fechaEjecucionFin), "dd/MM", { locale: es })}
-              </div>
-            </div>
-          }
-        />
-      ),
-    },
-    {
-      key: "estado",
-      header: "Estado",
-      width: "130px",
-      render: (p: Project) => (
-        <StatusSelect
-          value={p.estado}
-          onChange={(value) => updateProject(p.id, "estado", value)}
-        />
-      ),
-    },
-    {
-      key: "ordenCompra",
-      header: "OC + OCR",
-      width: "130px",
-      render: (p: Project) => (
-        <div className="flex items-center gap-1">
-          <FileUploadButton
-            attachments={(p as any).ordenesCompra || []}
-            onAttachmentsChange={(attachments) => updateProject(p.id, "ordenesCompra", attachments)}
-            multiple={false}
+        );
+      case "avanzada":
+        return (p: Project) => (
+          <AvanzadaSelect
+            value={p.avanzada}
+            onChange={(value) => updateProject(p.id, "avanzada", value)}
           />
-          <PurchaseOrderUpload
-            currentIngresoBruto={(p as any).ingresoBruto}
-            currentIngresoTotal={(p as any).ingresoTotal}
-            onDataExtracted={(ingresoBruto, ingresoTotal) => {
-              setProjects(projects.map(proj =>
+        );
+      case "fechaMontaje":
+        return (p: Project) => (
+          <DateTimeRangeEditor
+            type="montaje"
+            value={{
+              fechaInicio: p.fechaMontajeInicio,
+              fechaFin: p.fechaMontajeFin,
+              horaInicio: p.horaMontajeInicio,
+              horaFin: p.horaMontajeFin,
+            }}
+            onChange={(value) => {
+              setProjects(prevProjects => prevProjects.map(proj =>
                 proj.id === p.id
                   ? {
                       ...proj,
-                      ingresoBruto: ingresoBruto ?? (proj as any).ingresoBruto,
-                      ingresoTotal: ingresoTotal ?? (proj as any).ingresoTotal,
+                      fechaMontajeInicio: value.fechaInicio,
+                      fechaMontajeFin: value.fechaFin,
+                      horaMontajeInicio: value.horaInicio,
+                      horaMontajeFin: value.horaFin,
                     }
                   : proj
               ));
             }}
+            displayValue={
+              <div className="text-xs space-y-0.5">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-sm bg-gantt-montaje" />
+                  {format(parseISO(p.fechaMontajeInicio), "dd/MM", { locale: es })}
+                </div>
+                <div className="text-muted-foreground pl-3">
+                  → {format(parseISO(p.fechaMontajeFin), "dd/MM", { locale: es })}
+                </div>
+              </div>
+            }
           />
-        </div>
-      ),
-    },
-  ];
-
-  // Add custom columns dynamically
-  const dynamicCustomColumns = customColumns.map((col) => ({
-    key: col.key,
-    header: col.header,
-    width: col.width,
-    render: (p: Project) => (
-      <EditableCell
-        value={(p as any)[col.key]}
-        type={col.type}
-        options={col.options}
-        onChange={(value) => updateProject(p.id, col.key, value)}
-      />
-    ),
-  }));
+        );
+      case "fechaEjecucion":
+        return (p: Project) => (
+          <DateTimeRangeEditor
+            type="ejecucion"
+            value={{
+              fechaInicio: p.fechaEjecucionInicio,
+              fechaFin: p.fechaEjecucionFin,
+              horaInicio: p.horaEjecucionInicio,
+              horaFin: p.horaEjecucionFin,
+            }}
+            onChange={(value) => {
+              setProjects(prevProjects => prevProjects.map(proj =>
+                proj.id === p.id
+                  ? {
+                      ...proj,
+                      fechaEjecucionInicio: value.fechaInicio,
+                      fechaEjecucionFin: value.fechaFin,
+                      horaEjecucionInicio: value.horaInicio,
+                      horaEjecucionFin: value.horaFin,
+                    }
+                  : proj
+              ));
+            }}
+            displayValue={
+              <div className="text-xs space-y-0.5">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-sm bg-gantt-ejecucion" />
+                  {format(parseISO(p.fechaEjecucionInicio), "dd/MM", { locale: es })}
+                </div>
+                <div className="text-muted-foreground pl-3">
+                  → {format(parseISO(p.fechaEjecucionFin), "dd/MM", { locale: es })}
+                </div>
+              </div>
+            }
+          />
+        );
+      case "estado":
+        return (p: Project) => (
+          <StatusSelect
+            value={p.estado}
+            onChange={(value) => updateProject(p.id, "estado", value)}
+          />
+        );
+      case "ordenCompra":
+        return (p: Project) => (
+          <div className="flex items-center gap-1">
+            <FileUploadButton
+              attachments={(p as any).ordenesCompra || []}
+              onAttachmentsChange={(attachments) => updateProject(p.id, "ordenesCompra", attachments)}
+              multiple={false}
+            />
+            <PurchaseOrderUpload
+              currentIngresoBruto={(p as any).ingresoBruto}
+              currentIngresoTotal={(p as any).ingresoTotal}
+              onDataExtracted={(ingresoBruto, ingresoTotal) => {
+                setProjects(prevProjects => prevProjects.map(proj =>
+                  proj.id === p.id
+                    ? {
+                        ...proj,
+                        ingresoBruto: ingresoBruto ?? (proj as any).ingresoBruto,
+                        ingresoTotal: ingresoTotal ?? (proj as any).ingresoTotal,
+                      }
+                    : proj
+                ));
+              }}
+            />
+          </div>
+        );
+      default:
+        return (p: Project) => (
+          <EditableCell
+            value={(p as any)[colConfig.key]}
+            type={colConfig.type}
+            options={colConfig.options}
+            onChange={(value) => updateProject(p.id, colConfig.key, value)}
+          />
+        );
+    }
+  };
 
   const panelColumn = {
     key: "acciones",
@@ -339,7 +321,19 @@ const PanelGeneral = () => {
     ),
   };
 
-  const columns = [...baseColumns, ...dynamicCustomColumns, panelColumn];
+  const columns = useMemo(() => {
+    const visibleColumns = allColumnConfigs
+      .filter(col => col.visible)
+      .sort((a, b) => a.order - b.order)
+      .map(col => ({
+        key: col.key,
+        header: col.header,
+        width: col.width,
+        render: getColumnRender(col),
+      }));
+    
+    return [...visibleColumns, panelColumn];
+  }, [allColumnConfigs]);
 
   return (
     <Layout>
@@ -353,9 +347,9 @@ const PanelGeneral = () => {
           ]}
           actions={
             canEditStructure() && (
-              <Button variant="outline" size="sm" onClick={() => setAddColumnOpen(true)}>
-                <Columns className="h-4 w-4 mr-2" />
-                Agregar Columna
+              <Button variant="outline" size="sm" onClick={initializeColumns}>
+                <Settings className="h-4 w-4 mr-2" />
+                Gestionar Columnas
               </Button>
             )
           }
@@ -413,10 +407,12 @@ const PanelGeneral = () => {
           </TabsContent>
         </Tabs>
 
-        <AddColumnDialog
-          open={addColumnOpen}
-          onOpenChange={setAddColumnOpen}
-          onAddColumn={handleAddColumn}
+        <ColumnManagerDialog
+          open={columnManagerOpen}
+          onOpenChange={setColumnManagerOpen}
+          columns={managedColumns.length > 0 ? managedColumns : baseColumnDefs}
+          onColumnsChange={handleColumnsChange}
+          panelName="Panel General"
         />
       </div>
     </Layout>

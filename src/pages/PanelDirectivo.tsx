@@ -9,6 +9,7 @@ import { DashboardStats } from "@/components/DashboardStats";
 import { CalendarFilter } from "@/components/CalendarFilter";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { FileUploadButton } from "@/components/FileUpload";
+import { PurchaseOrderUpload } from "@/components/PurchaseOrderUpload";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
@@ -305,13 +306,30 @@ const PanelDirectivo = () => {
     {
       key: "ordenCompra",
       header: "Orden Compra",
-      width: "100px",
+      width: "120px",
       render: (p: Project) => (
-        <FileUploadButton
-          attachments={p.ordenesCompra || []}
-          onAttachmentsChange={(attachments) => updateProject(p.id, "ordenesCompra", attachments)}
-          multiple
-        />
+        <div className="flex items-center gap-1">
+          <FileUploadButton
+            attachments={p.ordenesCompra || []}
+            onAttachmentsChange={(attachments) => updateProject(p.id, "ordenesCompra", attachments)}
+            multiple
+          />
+          <PurchaseOrderUpload
+            currentIngresoBruto={p.ingresoBruto}
+            currentIngresoTotal={p.ingresoTotal}
+            onDataExtracted={(ingresoBruto, ingresoTotal) => {
+              setProjects(projects.map(proj =>
+                proj.id === p.id
+                  ? {
+                      ...proj,
+                      ingresoBruto: ingresoBruto ?? proj.ingresoBruto,
+                      ingresoTotal: ingresoTotal ?? proj.ingresoTotal,
+                    }
+                  : proj
+              ));
+            }}
+          />
+        </div>
       ),
     },
     {

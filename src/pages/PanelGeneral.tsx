@@ -6,6 +6,8 @@ import { MatrixTable } from "@/components/MatrixTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import { GanttChart } from "@/components/GanttChart";
 import { CalendarFilter } from "@/components/CalendarFilter";
+import { FileUploadButton } from "@/components/FileUpload";
+import { PurchaseOrderUpload } from "@/components/PurchaseOrderUpload";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
@@ -239,6 +241,35 @@ const PanelGeneral = () => {
       header: "Estado",
       width: "110px",
       render: (p: Project) => <StatusBadge status={p.estado} />,
+    },
+    {
+      key: "ordenCompra",
+      header: "OC + OCR",
+      width: "130px",
+      render: (p: Project) => (
+        <div className="flex items-center gap-1">
+          <FileUploadButton
+            attachments={(p as any).ordenesCompra || []}
+            onAttachmentsChange={(attachments) => updateProject(p.id, "ordenesCompra", attachments)}
+            multiple={false}
+          />
+          <PurchaseOrderUpload
+            currentIngresoBruto={(p as any).ingresoBruto}
+            currentIngresoTotal={(p as any).ingresoTotal}
+            onDataExtracted={(ingresoBruto, ingresoTotal) => {
+              setProjects(projects.map(proj =>
+                proj.id === p.id
+                  ? {
+                      ...proj,
+                      ingresoBruto: ingresoBruto ?? (proj as any).ingresoBruto,
+                      ingresoTotal: ingresoTotal ?? (proj as any).ingresoTotal,
+                    }
+                  : proj
+              ));
+            }}
+          />
+        </div>
+      ),
     },
   ];
 

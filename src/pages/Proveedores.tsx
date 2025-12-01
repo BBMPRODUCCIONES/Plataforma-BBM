@@ -20,16 +20,46 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Phone, Mail, FileText, Tag } from "lucide-react";
+import { Search, Plus, Phone, Mail, FileText, Tag, Columns } from "lucide-react";
+import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
+import { EditableCell } from "@/components/EditableCell";
+import { useUserRole } from "@/hooks/useUserRole";
+
+const baseColumnDefs = [
+  { key: "categoria", header: "CATEGORÍA", width: "120px", type: "text" as const },
+  { key: "nombre", header: "NOMBRE", width: "180px", type: "text" as const },
+  { key: "telefono", header: "TELÉFONO", width: "140px", type: "text" as const },
+  { key: "correo", header: "CORREO", width: "200px", type: "text" as const },
+  { key: "tipoProductoServicio", header: "TIPO DE PRODUCTO O SERVICIO", width: "250px", type: "text" as const },
+  { key: "cotizaciones", header: "COTIZACIONES", width: "120px", type: "file" as const },
+  { key: "notas", header: "NOTAS", width: "200px", type: "text" as const },
+];
 
 const Proveedores = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("todas");
   const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(null);
+  const [columnManagerOpen, setColumnManagerOpen] = useState(false);
+  const [proveedores, setProveedores] = useState(mockProveedores);
+  const { role } = useUserRole();
+  const isAdmin = role?.toLowerCase() === "administrador";
 
-  const categories = [...new Set(mockProveedores.map((p) => p.categoria))];
+  // Initialize managed columns from base definitions
+  const [managedColumns, setManagedColumns] = useState<ColumnConfig[]>(
+    baseColumnDefs.map((col, index) => ({
+      key: col.key,
+      header: col.header,
+      type: col.type,
+      width: col.width,
+      visible: true,
+      isCustom: false,
+      order: index,
+    }))
+  );
 
-  const filteredProveedores = mockProveedores.filter((p) => {
+  const categories = [...new Set(proveedores.map((p) => p.categoria))];
+
+  const filteredProveedores = proveedores.filter((p) => {
     const matchesSearch =
       p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.tipoProductoServicio.toLowerCase().includes(searchTerm.toLowerCase());
@@ -37,80 +67,129 @@ const Proveedores = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const columns = [
-    {
-      key: "categoria",
-      header: "CATEGORÍA",
-      width: "120px",
+  const updateProveedor = (id: string, field: string, value: any) => {
+    setProveedores(prevProveedores =>
+      prevProveedores.map((p) =>
+        p.id === id ? { ...p, [field]: value } : p
+      )
+    );
+  };
+
+  // Build columns dynamically from managed columns
+  const visibleColumns = managedColumns
+    .filter((col) => col.visible)
+    .sort((a, b) => a.order - b.order);
+
+  const columns = visibleColumns.map((colConfig) => {
+    // Special rendering for base columns
+    if (colConfig.key === "categoria" && !colConfig.isCustom) {
+      return {
+        key: colConfig.key,
+        header: colConfig.header,
+        width: colConfig.width,
+        render: (p: Proveedor) => (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary text-xs font-medium">
+            <Tag className="h-3 w-3" />
+            {p.categoria}
+          </span>
+        ),
+      };
+    }
+
+    if (colConfig.key === "nombre" && !colConfig.isCustom) {
+      return {
+        key: colConfig.key,
+        header: colConfig.header,
+        width: colConfig.width,
+        render: (p: Proveedor) => (
+          <span className="font-medium text-sm">{p.nombre}</span>
+        ),
+      };
+    }
+
+    if (colConfig.key === "telefono" && !colConfig.isCustom) {
+      return {
+        key: colConfig.key,
+        header: colConfig.header,
+        width: colConfig.width,
+        render: (p: Proveedor) => (
+          <div className="flex items-center gap-2 text-xs">
+            <Phone className="h-3 w-3 text-muted-foreground" />
+            {p.telefono}
+          </div>
+        ),
+      };
+    }
+
+    if (colConfig.key === "correo" && !colConfig.isCustom) {
+      return {
+        key: colConfig.key,
+        header: colConfig.header,
+        width: colConfig.width,
+        render: (p: Proveedor) => (
+          <div className="flex items-center gap-2 text-xs">
+            <Mail className="h-3 w-3 text-muted-foreground" />
+            <a href={`mailto:${p.correo}`} className="text-primary hover:underline">
+              {p.correo}
+            </a>
+          </div>
+        ),
+      };
+    }
+
+    if (colConfig.key === "tipoProductoServicio" && !colConfig.isCustom) {
+      return {
+        key: colConfig.key,
+        header: colConfig.header,
+        width: colConfig.width,
+        render: (p: Proveedor) => (
+          <span className="text-xs">{p.tipoProductoServicio}</span>
+        ),
+      };
+    }
+
+    if (colConfig.key === "cotizaciones" && !colConfig.isCustom) {
+      return {
+        key: colConfig.key,
+        header: colConfig.header,
+        width: colConfig.width,
+        render: (p: Proveedor) => (
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+            <FileText className="h-3 w-3 mr-1" />
+            {p.cotizacionesAnteriores?.length || 0} archivos
+          </Button>
+        ),
+      };
+    }
+
+    if (colConfig.key === "notas" && !colConfig.isCustom) {
+      return {
+        key: colConfig.key,
+        header: colConfig.header,
+        width: colConfig.width,
+        render: (p: Proveedor) => (
+          <span className="text-xs text-muted-foreground truncate block max-w-[180px]">
+            {p.notas || "-"}
+          </span>
+        ),
+      };
+    }
+
+    // Custom columns - use EditableCell
+    return {
+      key: colConfig.key,
+      header: colConfig.header,
+      width: colConfig.width,
       render: (p: Proveedor) => (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary text-xs font-medium">
-          <Tag className="h-3 w-3" />
-          {p.categoria}
-        </span>
+        <EditableCell
+          value={(p as any)[colConfig.key] || ""}
+          type={colConfig.type}
+          options={colConfig.options}
+          onChange={(value) => updateProveedor(p.id, colConfig.key, value)}
+        />
       ),
-    },
-    {
-      key: "nombre",
-      header: "NOMBRE",
-      width: "180px",
-      render: (p: Proveedor) => (
-        <span className="font-medium text-sm">{p.nombre}</span>
-      ),
-    },
-    {
-      key: "telefono",
-      header: "TELÉFONO",
-      width: "140px",
-      render: (p: Proveedor) => (
-        <div className="flex items-center gap-2 text-xs">
-          <Phone className="h-3 w-3 text-muted-foreground" />
-          {p.telefono}
-        </div>
-      ),
-    },
-    {
-      key: "correo",
-      header: "CORREO",
-      width: "200px",
-      render: (p: Proveedor) => (
-        <div className="flex items-center gap-2 text-xs">
-          <Mail className="h-3 w-3 text-muted-foreground" />
-          <a href={`mailto:${p.correo}`} className="text-primary hover:underline">
-            {p.correo}
-          </a>
-        </div>
-      ),
-    },
-    {
-      key: "tipoProductoServicio",
-      header: "TIPO DE PRODUCTO O SERVICIO",
-      width: "250px",
-      render: (p: Proveedor) => (
-        <span className="text-xs">{p.tipoProductoServicio}</span>
-      ),
-    },
-    {
-      key: "cotizaciones",
-      header: "COTIZACIONES",
-      width: "120px",
-      render: (p: Proveedor) => (
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
-          <FileText className="h-3 w-3 mr-1" />
-          {p.cotizacionesAnteriores?.length || 0} archivos
-        </Button>
-      ),
-    },
-    {
-      key: "notas",
-      header: "NOTAS",
-      width: "200px",
-      render: (p: Proveedor) => (
-        <span className="text-xs text-muted-foreground truncate block max-w-[180px]">
-          {p.notas || "-"}
-        </span>
-      ),
-    },
-  ];
+    };
+  });
 
   return (
     <Layout>
@@ -124,10 +203,22 @@ const Proveedores = () => {
             { label: "Operaciones", to: "/panel-operaciones" },
           ]}
           actions={
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Proveedor
-            </Button>
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setColumnManagerOpen(true)}
+                >
+                  <Columns className="h-4 w-4 mr-2" />
+                  Gestionar Columnas
+                </Button>
+              )}
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Proveedor
+              </Button>
+            </div>
           }
         />
 
@@ -171,7 +262,7 @@ const Proveedores = () => {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {categories.map((cat) => {
-            const count = mockProveedores.filter((p) => p.categoria === cat).length;
+            const count = proveedores.filter((p) => p.categoria === cat).length;
             return (
               <Card
                 key={cat}
@@ -240,6 +331,15 @@ const Proveedores = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Column Manager Dialog */}
+        <ColumnManagerDialog
+          open={columnManagerOpen}
+          onOpenChange={setColumnManagerOpen}
+          columns={managedColumns}
+          onColumnsChange={setManagedColumns}
+          panelName="Proveedores"
+        />
       </div>
     </Layout>
   );

@@ -38,11 +38,18 @@ interface GanttChartProps {
 
 const HOLIDAYS = { ...HOLIDAYS_2024, ...HOLIDAYS_2025 };
 
+// Helper to get Spanish day abbreviations (L, M, Mi, J, V, S, D)
+const getDayAbbreviation = (date: Date): string => {
+  const dayOfWeek = date.getDay();
+  const abbreviations = ['D', 'L', 'M', 'Mi', 'J', 'V', 'S'];
+  return abbreviations[dayOfWeek];
+};
+
 // Dynamic column widths based on view mode
 const VIEW_MODE_CONFIG = {
   day: { dayWidth: 60, showDayNames: true, showHours: true },
   week: { dayWidth: 40, showDayNames: true, showHours: false },
-  month: { dayWidth: 24, showDayNames: false, showHours: false },
+  month: { dayWidth: 24, showDayNames: true, showHours: false },
   year: { dayWidth: 8, showDayNames: false, showHours: false },
 };
 
@@ -330,13 +337,13 @@ export function GanttChart({
                     )}>
                       {day.getDate()}
                     </div>
-                    {config.showDayNames && effectiveDayWidth >= 30 && (
+                    {config.showDayNames && effectiveDayWidth >= 20 && (
                       <div className={cn(
-                        "capitalize leading-tight",
-                        effectiveDayWidth < 40 ? "text-[8px]" : "text-[10px]",
+                        "leading-tight",
+                        effectiveDayWidth < 30 ? "text-[7px]" : effectiveDayWidth < 40 ? "text-[8px]" : "text-[10px]",
                         isHoliday ? "text-orange-400" : "text-muted-foreground"
                       )}>
-                        {format(day, "EEE", { locale: es }).charAt(0)}
+                        {getDayAbbreviation(day)}
                       </div>
                     )}
                   </div>

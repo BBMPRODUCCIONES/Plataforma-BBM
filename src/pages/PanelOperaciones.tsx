@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
@@ -11,7 +11,7 @@ import { PurchaseOrderUpload } from "@/components/PurchaseOrderUpload";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
-import { AddColumnDialog } from "@/components/AddColumnDialog";
+import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { useUserRole } from "@/hooks/useUserRole";
 import { mockProjects } from "@/data/mockData";
 import { Project, PersonalItem, InventarioItem, ProjectStatus, CalendarViewMode } from "@/types";
@@ -26,18 +26,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, MapPin, User, FileDown, Columns } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones } from "@/utils/pdfGenerator";
-
-interface CustomColumn {
-  key: string;
-  header: string;
-  type: CellType;
-  width: string;
-  options?: string[];
-}
 
 const PanelOperaciones = () => {
   const navigate = useNavigate();
@@ -46,8 +38,8 @@ const PanelOperaciones = () => {
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
-  const [addColumnOpen, setAddColumnOpen] = useState(false);
-  const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
+  const [columnManagerOpen, setColumnManagerOpen] = useState(false);
+  const [managedColumns, setManagedColumns] = useState<ColumnConfig[]>([]);
   
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -60,8 +52,8 @@ const PanelOperaciones = () => {
     ));
   };
 
-  const handleAddColumn = (column: CustomColumn) => {
-    setCustomColumns([...customColumns, column]);
+  const handleColumnsChange = (newColumns: ColumnConfig[]) => {
+    setManagedColumns(newColumns);
   };
 
   const getDateRange = () => {
@@ -412,21 +404,7 @@ const PanelOperaciones = () => {
     },
   ];
 
-  const dynamicCustomColumns = customColumns.map((col) => ({
-    key: col.key,
-    header: col.header,
-    width: col.width,
-    render: (p: Project) => (
-      <EditableCell
-        value={(p as any)[col.key]}
-        type={col.type}
-        options={col.options}
-        onChange={(value) => updateProject(p.id, col.key, value)}
-      />
-    ),
-  }));
-
-  const columns = [...baseColumns, ...dynamicCustomColumns];
+  const columns = [...baseColumns];
 
   const personalColumns = [
     { key: "nombre", header: "Nombre", width: "150px" },
@@ -482,9 +460,9 @@ const PanelOperaciones = () => {
           ]}
           actions={
             canEditStructure() && (
-              <Button variant="outline" size="sm" onClick={() => setAddColumnOpen(true)}>
-                <Columns className="h-4 w-4 mr-2" />
-                Agregar Columna
+              <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
+                <Settings className="h-4 w-4 mr-2" />
+                Gestionar Columnas
               </Button>
             )
           }
@@ -657,10 +635,12 @@ const PanelOperaciones = () => {
           </DialogContent>
         </Dialog>
 
-        <AddColumnDialog
-          open={addColumnOpen}
-          onOpenChange={setAddColumnOpen}
-          onAddColumn={handleAddColumn}
+        <ColumnManagerDialog
+          open={columnManagerOpen}
+          onOpenChange={setColumnManagerOpen}
+          columns={managedColumns.length > 0 ? managedColumns : []}
+          onColumnsChange={handleColumnsChange}
+          panelName="Panel Operaciones"
         />
       </div>
     </Layout>

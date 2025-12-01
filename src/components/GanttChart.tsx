@@ -47,10 +47,10 @@ const getDayAbbreviation = (date: Date): string => {
 
 // Dynamic column widths based on view mode
 const VIEW_MODE_CONFIG = {
-  day: { dayWidth: 60, showDayNames: true, showHours: true },
-  week: { dayWidth: 40, showDayNames: true, showHours: false },
-  month: { dayWidth: 24, showDayNames: true, showHours: false },
-  year: { dayWidth: 8, showDayNames: false, showHours: false },
+  day: { dayWidth: 80, showDayNames: true, showHours: true },
+  week: { dayWidth: 50, showDayNames: true, showHours: false },
+  month: { dayWidth: 32, showDayNames: true, showHours: false },
+  year: { dayWidth: 10, showDayNames: false, showHours: false },
 };
 
 export function GanttChart({ 
@@ -312,40 +312,48 @@ export function GanttChart({
 
           {/* Day Headers */}
           <div className="flex border-b border-border sticky top-[41px] z-20 bg-card">
-            <div className="w-48 min-w-48 px-3 py-1 bg-table-header border-r border-border" />
+            <div className="w-48 min-w-48 px-3 py-2 bg-table-header border-r border-border" />
             <div className="flex" style={{ width: totalWidth }}>
               {allDays.map((day, idx) => {
                 const dateStr = format(day, "yyyy-MM-dd");
                 const isHoliday = !!HOLIDAYS[dateStr];
                 const today = isToday(day);
+                const isWeekendDay = isSaturday(day) || isSunday(day);
                 
                 return (
                   <div
                     key={idx}
                     className={cn(
-                      "text-center border-r border-border/50 flex flex-col justify-center",
+                      "text-center border-r border-border/50 flex flex-col justify-center py-1.5",
                       getDayClass(day),
-                      today && "bg-primary/20 ring-1 ring-primary ring-inset"
+                      today && "bg-primary/20 ring-2 ring-primary ring-inset"
                     )}
                     style={{ width: effectiveDayWidth, minWidth: effectiveDayWidth }}
                     title={HOLIDAYS[dateStr] || format(day, "EEEE d MMMM yyyy", { locale: es })}
                   >
-                    <div className={cn(
-                      "font-medium leading-tight",
-                      effectiveDayWidth < 20 ? "text-[8px]" : "text-[10px]",
-                      today && "text-primary font-bold"
-                    )}>
-                      {day.getDate()}
-                    </div>
-                    {config.showDayNames && effectiveDayWidth >= 20 && (
+                    {/* Day abbreviation on top */}
+                    {config.showDayNames && effectiveDayWidth >= 24 && (
                       <div className={cn(
-                        "leading-tight",
-                        effectiveDayWidth < 30 ? "text-[7px]" : effectiveDayWidth < 40 ? "text-[8px]" : "text-[10px]",
-                        isHoliday ? "text-orange-400" : "text-muted-foreground"
+                        "font-semibold leading-none mb-0.5",
+                        effectiveDayWidth < 35 ? "text-[9px]" : "text-xs",
+                        isHoliday ? "text-orange-400" : 
+                        isWeekendDay ? "text-muted-foreground/70" : 
+                        "text-foreground/80"
                       )}>
                         {getDayAbbreviation(day)}
                       </div>
                     )}
+                    {/* Day number below */}
+                    <div className={cn(
+                      "font-bold leading-none",
+                      effectiveDayWidth < 25 ? "text-[10px]" : effectiveDayWidth < 40 ? "text-xs" : "text-sm",
+                      today ? "text-primary" : 
+                      isHoliday ? "text-orange-400" :
+                      isWeekendDay ? "text-muted-foreground/60" : 
+                      "text-foreground"
+                    )}>
+                      {day.getDate()}
+                    </div>
                   </div>
                 );
               })}

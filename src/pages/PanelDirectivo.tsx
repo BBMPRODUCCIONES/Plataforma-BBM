@@ -10,6 +10,7 @@ import { CalendarFilter } from "@/components/CalendarFilter";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { FileUploadButton } from "@/components/FileUpload";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
+import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { mockProjects } from "@/data/mockData";
 import { Project, ProjectStatus, CalendarViewMode, Attachment } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -136,17 +137,41 @@ const PanelDirectivo = () => {
       header: "Fecha Montaje",
       width: "140px",
       render: (p: Project) => (
-        <div className="text-xs">
-          <div>{format(parseISO(p.fechaMontajeInicio), "dd MMM", { locale: es })}</div>
-          <div className="text-muted-foreground">
-            - {format(parseISO(p.fechaMontajeFin), "dd MMM", { locale: es })}
-          </div>
-          {p.horaMontajeInicio && (
-            <div className="text-[10px] text-muted-foreground">
-              {p.horaMontajeInicio} - {p.horaMontajeFin}
+        <DateTimeRangeEditor
+          type="montaje"
+          value={{
+            fechaInicio: p.fechaMontajeInicio,
+            fechaFin: p.fechaMontajeFin,
+            horaInicio: p.horaMontajeInicio,
+            horaFin: p.horaMontajeFin,
+          }}
+          onChange={(value) => {
+            setProjects(projects.map(proj =>
+              proj.id === p.id
+                ? {
+                    ...proj,
+                    fechaMontajeInicio: value.fechaInicio,
+                    fechaMontajeFin: value.fechaFin,
+                    horaMontajeInicio: value.horaInicio,
+                    horaMontajeFin: value.horaFin,
+                  }
+                : proj
+            ));
+          }}
+          displayValue={
+            <div className="text-xs">
+              <div>{format(parseISO(p.fechaMontajeInicio), "dd MMM", { locale: es })}</div>
+              <div className="text-muted-foreground">
+                - {format(parseISO(p.fechaMontajeFin), "dd MMM", { locale: es })}
+              </div>
+              {p.horaMontajeInicio && (
+                <div className="text-[10px] text-muted-foreground">
+                  {p.horaMontajeInicio} - {p.horaMontajeFin}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          }
+        />
       ),
     },
     {
@@ -154,17 +179,41 @@ const PanelDirectivo = () => {
       header: "Fecha Ejecución",
       width: "140px",
       render: (p: Project) => (
-        <div className="text-xs">
-          <div>{format(parseISO(p.fechaEjecucionInicio), "dd MMM", { locale: es })}</div>
-          <div className="text-muted-foreground">
-            - {format(parseISO(p.fechaEjecucionFin), "dd MMM", { locale: es })}
-          </div>
-          {p.horaEjecucionInicio && (
-            <div className="text-[10px] text-muted-foreground">
-              {p.horaEjecucionInicio} - {p.horaEjecucionFin}
+        <DateTimeRangeEditor
+          type="ejecucion"
+          value={{
+            fechaInicio: p.fechaEjecucionInicio,
+            fechaFin: p.fechaEjecucionFin,
+            horaInicio: p.horaEjecucionInicio,
+            horaFin: p.horaEjecucionFin,
+          }}
+          onChange={(value) => {
+            setProjects(projects.map(proj =>
+              proj.id === p.id
+                ? {
+                    ...proj,
+                    fechaEjecucionInicio: value.fechaInicio,
+                    fechaEjecucionFin: value.fechaFin,
+                    horaEjecucionInicio: value.horaInicio,
+                    horaEjecucionFin: value.horaFin,
+                  }
+                : proj
+            ));
+          }}
+          displayValue={
+            <div className="text-xs">
+              <div>{format(parseISO(p.fechaEjecucionInicio), "dd MMM", { locale: es })}</div>
+              <div className="text-muted-foreground">
+                - {format(parseISO(p.fechaEjecucionFin), "dd MMM", { locale: es })}
+              </div>
+              {p.horaEjecucionInicio && (
+                <div className="text-[10px] text-muted-foreground">
+                  {p.horaEjecucionInicio} - {p.horaEjecucionFin}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          }
+        />
       ),
     },
     {

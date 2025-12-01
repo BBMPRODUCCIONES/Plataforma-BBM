@@ -8,6 +8,7 @@ import { GanttChart } from "@/components/GanttChart";
 import { CalendarFilter } from "@/components/CalendarFilter";
 import { FileUploadButton } from "@/components/FileUpload";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
+import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { mockProjects } from "@/data/mockData";
 import { Project, PersonalItem, InventarioItem, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -132,20 +133,73 @@ const PanelOperaciones = () => {
       ),
     },
     {
-      key: "fechas",
-      header: "Fechas",
-      width: "120px",
+      key: "fechaMontaje",
+      header: "Montaje",
+      width: "110px",
       render: (p: Project) => (
-        <div className="text-xs space-y-0.5">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-sm bg-gantt-montaje" />
-            {format(parseISO(p.fechaMontajeInicio), "dd/MM")}
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-sm bg-gantt-ejecucion" />
-            {format(parseISO(p.fechaEjecucionInicio), "dd/MM")}
-          </div>
-        </div>
+        <DateTimeRangeEditor
+          type="montaje"
+          value={{
+            fechaInicio: p.fechaMontajeInicio,
+            fechaFin: p.fechaMontajeFin,
+            horaInicio: p.horaMontajeInicio,
+            horaFin: p.horaMontajeFin,
+          }}
+          onChange={(value) => {
+            setProjects(projects.map(proj =>
+              proj.id === p.id
+                ? {
+                    ...proj,
+                    fechaMontajeInicio: value.fechaInicio,
+                    fechaMontajeFin: value.fechaFin,
+                    horaMontajeInicio: value.horaInicio,
+                    horaMontajeFin: value.horaFin,
+                  }
+                : proj
+            ));
+          }}
+          displayValue={
+            <div className="text-xs flex items-center gap-1">
+              <div className="w-2 h-2 rounded-sm bg-gantt-montaje" />
+              {format(parseISO(p.fechaMontajeInicio), "dd/MM")}
+            </div>
+          }
+        />
+      ),
+    },
+    {
+      key: "fechaEjecucion",
+      header: "Ejecución",
+      width: "110px",
+      render: (p: Project) => (
+        <DateTimeRangeEditor
+          type="ejecucion"
+          value={{
+            fechaInicio: p.fechaEjecucionInicio,
+            fechaFin: p.fechaEjecucionFin,
+            horaInicio: p.horaEjecucionInicio,
+            horaFin: p.horaEjecucionFin,
+          }}
+          onChange={(value) => {
+            setProjects(projects.map(proj =>
+              proj.id === p.id
+                ? {
+                    ...proj,
+                    fechaEjecucionInicio: value.fechaInicio,
+                    fechaEjecucionFin: value.fechaFin,
+                    horaEjecucionInicio: value.horaInicio,
+                    horaEjecucionFin: value.horaFin,
+                  }
+                : proj
+            ));
+          }}
+          displayValue={
+            <div className="text-xs flex items-center gap-1">
+              <div className="w-2 h-2 rounded-sm bg-gantt-ejecucion" />
+              {format(parseISO(p.fechaEjecucionInicio), "dd/MM")}
+            </div>
+          }
+        />
       ),
     },
     {

@@ -1,5 +1,4 @@
 import {
-  LayoutDashboard,
   Briefcase,
   Grid3X3,
   Wrench,
@@ -28,7 +27,6 @@ import {
 import { cn } from "@/lib/utils";
 
 const mainNavItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard, panel: "dashboard" },
   { title: "Panel Directivo", url: "/panel-directivo", icon: Briefcase, panel: "directivo" },
   { title: "Panel General", url: "/panel-general", icon: Grid3X3, panel: "general" },
   { title: "Panel Operaciones", url: "/panel-operaciones", icon: Wrench, panel: "operaciones" },
@@ -68,7 +66,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => {
-                const hasAccess = item.panel === "dashboard" || canAccessPanel(item.panel);
+                const hasAccess = canAccessPanel(item.panel);
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton

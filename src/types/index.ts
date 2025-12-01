@@ -133,7 +133,7 @@ export interface GanttMonth {
 }
 
 // Calendar Filter Types
-export type CalendarViewMode = 'day' | 'week' | 'month';
+export type CalendarViewMode = 'day' | 'week' | 'month' | 'year';
 
 export interface CalendarFilter {
   viewMode: CalendarViewMode;

@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { format, addDays, addWeeks, addMonths, addYears, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarViewMode, ProjectStatus } from "@/types";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,8 @@ export function CalendarFilter({
         return `${format(weekStart, "d MMM", { locale: es })} - ${format(weekEnd, "d MMM yyyy", { locale: es })}`;
       case "month":
         return format(selectedDate, "MMMM yyyy", { locale: es });
+      case "year":
+        return format(selectedDate, "yyyy", { locale: es });
       default:
         return "";
     }
@@ -73,6 +75,9 @@ export function CalendarFilter({
       case "month":
         onDateChange(addMonths(selectedDate, -1));
         break;
+      case "year":
+        onDateChange(addYears(selectedDate, -1));
+        break;
     }
   };
 
@@ -87,6 +92,9 @@ export function CalendarFilter({
       case "month":
         onDateChange(addMonths(selectedDate, 1));
         break;
+      case "year":
+        onDateChange(addYears(selectedDate, 1));
+        break;
     }
   };
 
@@ -98,7 +106,7 @@ export function CalendarFilter({
     <div className="flex flex-wrap items-center gap-3 p-3 bg-card border border-border rounded-lg">
       {/* View Mode Tabs */}
       <div className="flex items-center bg-muted rounded-md p-0.5">
-        {(["day", "week", "month"] as CalendarViewMode[]).map((mode) => (
+        {(["day", "week", "month", "year"] as CalendarViewMode[]).map((mode) => (
           <Button
             key={mode}
             variant="ghost"
@@ -109,7 +117,7 @@ export function CalendarFilter({
             )}
             onClick={() => onViewModeChange(mode)}
           >
-            {mode === "day" ? "Día" : mode === "week" ? "Semana" : "Mes"}
+            {mode === "day" ? "Día" : mode === "week" ? "Semana" : mode === "month" ? "Mes" : "Año"}
           </Button>
         ))}
       </div>

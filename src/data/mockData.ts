@@ -35,7 +35,7 @@ export const mockProjects: Project[] = [
     notas: "Cliente VIP - Atención especial requerida",
     personal: [
       { id: "p1", nombre: "Juan Pérez", cargo: "Técnico Audio", telefono: "+57 300 123 4567", tipoPersonal: "BBM", notas: "Experiencia en conciertos" },
-      { id: "p2", nombre: "Laura Martínez", cargo: "Iluminación", telefono: "+57 301 234 5678", tipoPersonal: "Externo", notas: "" },
+      { id: "p2", nombre: "Laura Martínez", cargo: "Iluminación", telefono: "+57 301 234 5678", tipoPersonal: "Proveedor", notas: "" },
     ],
     inventario: [
       { id: "i1", nombreMaterial: "Parlantes JBL", cantidad: 8, unidad: "unidades", observaciones: "Verificar conexiones", recibido: true },
@@ -101,7 +101,7 @@ export const mockProjects: Project[] = [
     aCargoDe: "Equipo A",
     personal: [
       { id: "p4", nombre: "Sofia Ramirez", cargo: "Coordinador", telefono: "+57 305 111 2222", tipoPersonal: "BBM", notas: "" },
-      { id: "p5", nombre: "Miguel Torres", cargo: "Sonido", telefono: "+57 306 333 4444", tipoPersonal: "Externo", notas: "Freelance" },
+      { id: "p5", nombre: "Miguel Torres", cargo: "Sonido", telefono: "+57 306 333 4444", tipoPersonal: "Proveedor", notas: "Freelance" },
     ],
     inventario: [
       { id: "i4", nombreMaterial: "Consola de Sonido", cantidad: 1, unidad: "unidad", observaciones: "", recibido: true },

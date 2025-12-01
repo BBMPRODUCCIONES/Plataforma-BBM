@@ -52,9 +52,9 @@ export interface PersonalItem {
   nombre: string;
   cargo: string;
   telefono: string;
-  tipoPersonal: 'BBM' | 'Externo' | 'Transporte';
+  tipoPersonal: 'BBM' | 'Proveedor' | 'Transporte';
   notas?: string;
-  extras?: string;
+  rutaTransporte?: string; // Campo para la ruta cuando es Transporte
 }
 
 export interface InventarioItem {

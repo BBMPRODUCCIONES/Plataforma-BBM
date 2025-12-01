@@ -100,7 +100,7 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
           font-weight: bold;
         }
         .badge-bbm { background: #dbeafe; color: #1d4ed8; }
-        .badge-externo { background: #ffedd5; color: #c2410c; }
+        .badge-proveedor { background: #ffedd5; color: #c2410c; }
         .badge-transporte { background: #dcfce7; color: #16a34a; }
         .checkbox {
           display: inline-block;
@@ -140,8 +140,8 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
   `;
 };
 
-// Print Personal section
-export const printPersonal = (project: Project, includeNotes: boolean = true) => {
+// Print Personal section (internal use)
+const generatePersonalSection = (project: Project): string => {
   const personal = project.personal || [];
   
   const tableRows = personal.map(p => `
@@ -151,16 +151,11 @@ export const printPersonal = (project: Project, includeNotes: boolean = true) =>
       <td>${p.telefono}</td>
       <td><span class="badge badge-${p.tipoPersonal.toLowerCase()}">${p.tipoPersonal}</span></td>
       <td>${p.notas || '-'}</td>
+      ${p.tipoPersonal === 'Transporte' ? `<td>${p.rutaTransporte || '-'}</td>` : '<td>-</td>'}
     </tr>
   `).join('');
 
-  const content = `
-    <div class="info-section">
-      <div class="info-row"><span class="info-label">Proyecto:</span> ${project.evento}</div>
-      <div class="info-row"><span class="info-label">Cliente:</span> ${project.cliente}</div>
-      <div class="info-row"><span class="info-label">Centro de Costos:</span> ${project.centroCostos}</div>
-      <div class="info-row"><span class="info-label">Fecha Ejecución:</span> ${format(parseISO(project.fechaEjecucionInicio), "dd/MM/yyyy", { locale: es })} - ${format(parseISO(project.fechaEjecucionFin), "dd/MM/yyyy", { locale: es })}</div>
-    </div>
+  return `
     <h2 style="margin: 15px 0 10px; font-size: 14px;">Personal Asignado (${personal.length})</h2>
     <table>
       <thead>
@@ -170,12 +165,26 @@ export const printPersonal = (project: Project, includeNotes: boolean = true) =>
           <th>Teléfono</th>
           <th>Tipo</th>
           <th>Notas</th>
+          <th>Ruta Transporte</th>
         </tr>
       </thead>
       <tbody>
-        ${tableRows || '<tr><td colspan="5" style="text-align: center;">No hay personal asignado</td></tr>'}
+        ${tableRows || '<tr><td colspan="6" style="text-align: center;">No hay personal asignado</td></tr>'}
       </tbody>
     </table>
+  `;
+};
+
+// Print Personal section (standalone - kept for backward compatibility)
+export const printPersonal = (project: Project, includeNotes: boolean = true) => {
+  const content = `
+    <div class="info-section">
+      <div class="info-row"><span class="info-label">Proyecto:</span> ${project.evento}</div>
+      <div class="info-row"><span class="info-label">Cliente:</span> ${project.cliente}</div>
+      <div class="info-row"><span class="info-label">Centro de Costos:</span> ${project.centroCostos}</div>
+      <div class="info-row"><span class="info-label">Fecha Ejecución:</span> ${format(parseISO(project.fechaEjecucionInicio), "dd/MM/yyyy", { locale: es })} - ${format(parseISO(project.fechaEjecucionFin), "dd/MM/yyyy", { locale: es })}</div>
+    </div>
+    ${generatePersonalSection(project)}
   `;
 
   const html = generatePrintableHTML(content, {
@@ -187,8 +196,8 @@ export const printPersonal = (project: Project, includeNotes: boolean = true) =>
   openPrintWindow(html);
 };
 
-// Print Inventario section
-export const printInventario = (project: Project, includeNotes: boolean = true) => {
+// Generate Inventario section (internal use)
+const generateInventarioSection = (project: Project): string => {
   const inventario = project.inventario || [];
   
   const tableRows = inventario.map(i => `
@@ -201,13 +210,7 @@ export const printInventario = (project: Project, includeNotes: boolean = true) 
     </tr>
   `).join('');
 
-  const content = `
-    <div class="info-section">
-      <div class="info-row"><span class="info-label">Proyecto:</span> ${project.evento}</div>
-      <div class="info-row"><span class="info-label">Cliente:</span> ${project.cliente}</div>
-      <div class="info-row"><span class="info-label">Centro de Costos:</span> ${project.centroCostos}</div>
-      <div class="info-row"><span class="info-label">Fecha Montaje:</span> ${format(parseISO(project.fechaMontajeInicio), "dd/MM/yyyy", { locale: es })} - ${format(parseISO(project.fechaMontajeFin), "dd/MM/yyyy", { locale: es })}</div>
-    </div>
+  return `
     <h2 style="margin: 15px 0 10px; font-size: 14px;">Inventario (${inventario.length} items)</h2>
     <table>
       <thead>
@@ -224,9 +227,46 @@ export const printInventario = (project: Project, includeNotes: boolean = true) 
       </tbody>
     </table>
   `;
+};
+
+// Print Inventario section (standalone - kept for backward compatibility)
+export const printInventario = (project: Project, includeNotes: boolean = true) => {
+  const content = `
+    <div class="info-section">
+      <div class="info-row"><span class="info-label">Proyecto:</span> ${project.evento}</div>
+      <div class="info-row"><span class="info-label">Cliente:</span> ${project.cliente}</div>
+      <div class="info-row"><span class="info-label">Centro de Costos:</span> ${project.centroCostos}</div>
+      <div class="info-row"><span class="info-label">Fecha Montaje:</span> ${format(parseISO(project.fechaMontajeInicio), "dd/MM/yyyy", { locale: es })} - ${format(parseISO(project.fechaMontajeFin), "dd/MM/yyyy", { locale: es })}</div>
+    </div>
+    ${generateInventarioSection(project)}
+  `;
 
   const html = generatePrintableHTML(content, {
     title: 'LISTADO DE INVENTARIO',
+    subtitle: project.evento,
+    notes: includeNotes ? project.notas : undefined,
+  });
+
+  openPrintWindow(html);
+};
+
+// Print unified PDF with Personal + Inventario
+export const printPersonalYInventario = (project: Project, includeNotes: boolean = true) => {
+  const content = `
+    <div class="info-section">
+      <div class="info-row"><span class="info-label">Proyecto:</span> ${project.evento}</div>
+      <div class="info-row"><span class="info-label">Cliente:</span> ${project.cliente}</div>
+      <div class="info-row"><span class="info-label">Centro de Costos:</span> ${project.centroCostos}</div>
+      <div class="info-row"><span class="info-label">Fecha Montaje:</span> ${format(parseISO(project.fechaMontajeInicio), "dd/MM/yyyy", { locale: es })} - ${format(parseISO(project.fechaMontajeFin), "dd/MM/yyyy", { locale: es })}</div>
+      <div class="info-row"><span class="info-label">Fecha Ejecución:</span> ${format(parseISO(project.fechaEjecucionInicio), "dd/MM/yyyy", { locale: es })} - ${format(parseISO(project.fechaEjecucionFin), "dd/MM/yyyy", { locale: es })}</div>
+    </div>
+    ${generatePersonalSection(project)}
+    <div style="margin-top: 30px;"></div>
+    ${generateInventarioSection(project)}
+  `;
+
+  const html = generatePrintableHTML(content, {
+    title: 'PERSONAL E INVENTARIO',
     subtitle: project.evento,
     notes: includeNotes ? project.notas : undefined,
   });

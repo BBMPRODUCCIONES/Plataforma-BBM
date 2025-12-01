@@ -29,7 +29,7 @@ import {
 import { Search, Users, Package, FileText, FileDown, Settings } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
-import { printPersonal, printInventario, printCotizaciones } from "@/utils/pdfGenerator";
+import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario } from "@/utils/pdfGenerator";
 
 const PanelOperaciones = () => {
   const navigate = useNavigate();
@@ -406,46 +406,203 @@ const PanelOperaciones = () => {
 
   const columns = [...baseColumns];
 
-  const personalColumns = [
-    { key: "nombre", header: "Nombre", width: "150px" },
-    { key: "cargo", header: "Cargo", width: "120px" },
-    { key: "telefono", header: "Teléfono", width: "130px" },
-    { 
-      key: "tipoPersonal", 
-      header: "Tipo", 
-      width: "100px",
-      render: (p: PersonalItem) => (
-        <span className={`text-xs px-2 py-0.5 rounded ${
-          p.tipoPersonal === "BBM" ? "bg-blue-500/20 text-blue-600" :
-          p.tipoPersonal === "Externo" ? "bg-orange-500/20 text-orange-600" :
-          "bg-green-500/20 text-green-600"
-        }`}>
-          {p.tipoPersonal}
-        </span>
-      ),
-    },
-    { key: "notas", header: "Notas", width: "200px" },
-  ];
+  const updatePersonalItem = (projectId: string, personalId: string, field: string, value: any) => {
+    setProjects(prevProjects => prevProjects.map(proj => {
+      if (proj.id !== projectId) return proj;
+      const updatedPersonal = (proj.personal || []).map(p => {
+        if (p.id !== personalId) return p;
+        const updated = { ...p, [field]: value };
+        // Si el tipo cambia a Transporte y no hay ruta, agregar placeholder
+        if (field === 'tipoPersonal' && value === 'Transporte' && !p.rutaTransporte) {
+          updated.notas = p.notas || 'Agregar ruta realizada';
+        }
+        return updated;
+      });
+      return { ...proj, personal: updatedPersonal };
+    }));
+  };
 
-  const inventarioColumns = [
-    { key: "nombreMaterial", header: "Material", width: "180px" },
-    {
-      key: "cantidad",
-      header: "Cantidad",
-      width: "80px",
-      render: (i: InventarioItem) => `${i.cantidad} ${i.unidad}`,
-    },
-    { key: "observaciones", header: "Observaciones", width: "200px" },
-    {
-      key: "recibido",
-      header: "Recibido",
-      width: "80px",
-      render: (i: InventarioItem) => (
-        <Checkbox checked={i.recibido} disabled />
-      ),
-    },
-    { key: "notasAdicionales", header: "Notas Adicionales", width: "150px" },
-  ];
+  const updateInventarioItem = (projectId: string, inventarioId: string, field: string, value: any) => {
+    setProjects(prevProjects => prevProjects.map(proj => {
+      if (proj.id !== projectId) return proj;
+      const updatedInventario = (proj.inventario || []).map(i =>
+        i.id === inventarioId ? { ...i, [field]: value } : i
+      );
+      return { ...proj, inventario: updatedInventario };
+    }));
+  };
+
+  // Get current project data from state (not stale selectedProject)
+  const currentProjectData = useMemo(() => {
+    return selectedProject ? projects.find(p => p.id === selectedProject.id) : null;
+  }, [selectedProject, projects]);
+
+  const personalColumns = useMemo(() => {
+    const projectId = selectedProject?.id;
+    const hasTransporte = currentProjectData?.personal?.some(p => p.tipoPersonal === "Transporte");
+    
+    const basePersonalCols = [
+      { 
+        key: "nombre", 
+        header: "Nombre", 
+        width: "150px",
+        render: (p: PersonalItem) => (
+          <EditableCell
+            value={p.nombre}
+            type="text"
+            onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "nombre", value)}
+          />
+        ),
+      },
+      { 
+        key: "cargo", 
+        header: "Cargo", 
+        width: "120px",
+        render: (p: PersonalItem) => (
+          <EditableCell
+            value={p.cargo}
+            type="text"
+            onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "cargo", value)}
+          />
+        ),
+      },
+      { 
+        key: "telefono", 
+        header: "Teléfono", 
+        width: "130px",
+        render: (p: PersonalItem) => (
+          <EditableCell
+            value={p.telefono}
+            type="text"
+            onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "telefono", value)}
+          />
+        ),
+      },
+      { 
+        key: "tipoPersonal", 
+        header: "Tipo", 
+        width: "120px",
+        render: (p: PersonalItem) => (
+          <EditableCell
+            value={p.tipoPersonal}
+            type="select"
+            options={["BBM", "Proveedor", "Transporte"]}
+            onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "tipoPersonal", value)}
+          />
+        ),
+      },
+      { 
+        key: "notas", 
+        header: "Notas", 
+        width: "200px",
+        render: (p: PersonalItem) => (
+          <EditableCell
+            value={p.notas}
+            type="text"
+            placeholder={p.tipoPersonal === "Transporte" ? "Agregar ruta realizada..." : "-"}
+            onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "notas", value)}
+          />
+        ),
+      },
+    ];
+
+    if (hasTransporte) {
+      basePersonalCols.push({
+        key: "rutaTransporte",
+        header: "Ruta Transporte",
+        width: "200px",
+        render: (p: PersonalItem) => (
+          p.tipoPersonal === "Transporte" ? (
+            <EditableCell
+              value={p.rutaTransporte}
+              type="text"
+              placeholder="Agregar ruta realizada..."
+              onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "rutaTransporte", value)}
+            />
+          ) : <span className="text-xs text-muted-foreground">-</span>
+        ),
+      });
+    }
+    
+    return basePersonalCols;
+  }, [selectedProject?.id, currentProjectData?.personal]);
+
+  const inventarioColumns = useMemo(() => {
+    const projectId = selectedProject?.id;
+    
+    return [
+      { 
+        key: "nombreMaterial", 
+        header: "Material", 
+        width: "180px",
+        render: (i: InventarioItem) => (
+          <EditableCell
+            value={i.nombreMaterial}
+            type="text"
+            onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "nombreMaterial", value)}
+          />
+        ),
+      },
+      {
+        key: "cantidad",
+        header: "Cantidad",
+        width: "100px",
+        render: (i: InventarioItem) => (
+          <div className="flex items-center gap-1">
+            <EditableCell
+              value={i.cantidad}
+              type="number"
+              onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "cantidad", value)}
+              className="w-14"
+            />
+            <EditableCell
+              value={i.unidad}
+              type="text"
+              onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "unidad", value)}
+              className="w-16"
+              placeholder="uds"
+            />
+          </div>
+        ),
+      },
+      { 
+        key: "observaciones", 
+        header: "Observaciones", 
+        width: "200px",
+        render: (i: InventarioItem) => (
+          <EditableCell
+            value={i.observaciones}
+            type="text"
+            onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "observaciones", value)}
+          />
+        ),
+      },
+      {
+        key: "recibido",
+        header: "Recibido",
+        width: "80px",
+        render: (i: InventarioItem) => (
+          <EditableCell
+            value={i.recibido}
+            type="boolean"
+            onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "recibido", value)}
+          />
+        ),
+      },
+      { 
+        key: "notasAdicionales", 
+        header: "Notas Adicionales", 
+        width: "180px",
+        render: (i: InventarioItem) => (
+          <EditableCell
+            value={i.notasAdicionales}
+            type="text"
+            onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "notasAdicionales", value)}
+          />
+        ),
+      },
+    ];
+  }, [selectedProject?.id]);
 
   return (
     <Layout>
@@ -535,42 +692,46 @@ const PanelOperaciones = () => {
               </DialogTitle>
             </DialogHeader>
 
-            {selectedProject && (
+            {selectedProject && currentProjectData && (
               <div className="space-y-6 mt-4">
+                {/* Unified PDF Button */}
+                <div className="flex justify-end">
+                  <Button variant="default" onClick={() => printPersonalYInventario(currentProjectData)}>
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Generar PDF (Personal + Inventario)
+                  </Button>
+                </div>
+
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <span className="text-xs text-muted-foreground">Cliente</span>
-                    <p className="text-sm font-medium">{selectedProject.cliente}</p>
+                    <p className="text-sm font-medium">{currentProjectData.cliente}</p>
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground">Centro Costos</span>
-                    <p className="text-sm font-mono">{selectedProject.centroCostos}</p>
+                    <p className="text-sm font-mono">{currentProjectData.centroCostos}</p>
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground">Jefe Operaciones</span>
-                    <p className="text-sm">{selectedProject.jefeOperaciones || "-"}</p>
+                    <p className="text-sm">{currentProjectData.jefeOperaciones || "-"}</p>
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground">Ubicación</span>
-                    <p className="text-sm">{selectedProject.ubicacion || "-"}</p>
+                    <p className="text-sm">{currentProjectData.ubicacion || "-"}</p>
                   </div>
                 </div>
 
                 <Card>
-                  <CardHeader className="py-3 flex flex-row items-center justify-between">
+                  <CardHeader className="py-3">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      Personal ({selectedProject.personal?.length || 0})
+                      Personal ({(currentProjectData.personal || []).length})
                     </CardTitle>
-                    <Button variant="outline" size="sm" onClick={() => printPersonal(selectedProject)}>
-                      <FileDown className="h-4 w-4 mr-2" />
-                      Generar PDF
-                    </Button>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    {selectedProject.personal && selectedProject.personal.length > 0 ? (
+                    {(currentProjectData.personal || []).length > 0 ? (
                       <MatrixTable
-                        data={selectedProject.personal}
+                        data={currentProjectData.personal || []}
                         columns={personalColumns}
                       />
                     ) : (
@@ -580,20 +741,16 @@ const PanelOperaciones = () => {
                 </Card>
 
                 <Card>
-                  <CardHeader className="py-3 flex flex-row items-center justify-between">
+                  <CardHeader className="py-3">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <Package className="h-4 w-4" />
-                      Inventario ({selectedProject.inventario?.length || 0})
+                      Inventario ({(currentProjectData.inventario || []).length})
                     </CardTitle>
-                    <Button variant="outline" size="sm" onClick={() => printInventario(selectedProject)}>
-                      <FileDown className="h-4 w-4 mr-2" />
-                      Generar PDF
-                    </Button>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    {selectedProject.inventario && selectedProject.inventario.length > 0 ? (
+                    {(currentProjectData.inventario || []).length > 0 ? (
                       <MatrixTable
-                        data={selectedProject.inventario}
+                        data={currentProjectData.inventario || []}
                         columns={inventarioColumns}
                       />
                     ) : (
@@ -603,15 +760,11 @@ const PanelOperaciones = () => {
                 </Card>
 
                 <Card>
-                  <CardHeader className="py-3 flex flex-row items-center justify-between">
+                  <CardHeader className="py-3">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <FileText className="h-4 w-4" />
                       Cotizaciones Proveedor
                     </CardTitle>
-                    <Button variant="outline" size="sm" onClick={() => printCotizaciones(selectedProject)}>
-                      <FileDown className="h-4 w-4 mr-2" />
-                      Generar PDF
-                    </Button>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <p className="text-sm text-muted-foreground">
@@ -620,13 +773,13 @@ const PanelOperaciones = () => {
                   </CardContent>
                 </Card>
 
-                {selectedProject.notas && (
+                {currentProjectData.notas && (
                   <Card>
                     <CardHeader className="py-3">
                       <CardTitle className="text-sm">Notas</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <p className="text-sm">{selectedProject.notas}</p>
+                      <p className="text-sm">{currentProjectData.notas}</p>
                     </CardContent>
                   </Card>
                 )}

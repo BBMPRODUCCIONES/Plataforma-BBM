@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusSelect } from "@/components/StatusSelect";
 import { GanttChart } from "@/components/GanttChart";
 import { CalendarFilter } from "@/components/CalendarFilter";
 import { FileUploadButton } from "@/components/FileUpload";
@@ -233,8 +233,13 @@ const PanelOperaciones = () => {
     {
       key: "estado",
       header: "Estado",
-      width: "90px",
-      render: (p: Project) => <StatusBadge status={p.estado} />,
+      width: "130px",
+      render: (p: Project) => (
+        <StatusSelect
+          value={p.estado}
+          onChange={(value) => updateProject(p.id, "estado", value)}
+        />
+      ),
     },
     {
       key: "jefeOperaciones",
@@ -543,7 +548,12 @@ const PanelOperaciones = () => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {selectedProject?.evento}
-                <StatusBadge status={selectedProject?.estado || "por_planear"} />
+                {selectedProject && (
+                  <StatusSelect
+                    value={selectedProject.estado}
+                    onChange={(value) => updateProject(selectedProject.id, "estado", value)}
+                  />
+                )}
               </DialogTitle>
             </DialogHeader>
 

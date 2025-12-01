@@ -6,6 +6,7 @@ import { MatrixTable } from "@/components/MatrixTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import { GanttChart } from "@/components/GanttChart";
 import { CalendarFilter } from "@/components/CalendarFilter";
+import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { mockProjects } from "@/data/mockData";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { es } from "date-fns/locale";
 const PanelGeneral = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   
   // Calendar filter state
@@ -46,7 +48,7 @@ const PanelGeneral = () => {
     }
   };
 
-  const filteredProjects = mockProjects.filter((p) => {
+  const filteredProjects = projects.filter((p) => {
     const matchesSearch =
       p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -106,11 +108,16 @@ const PanelGeneral = () => {
     {
       key: "avanzada",
       header: "Avanzada",
-      width: "100px",
+      width: "130px",
       render: (p: Project) => (
-        <span className="text-xs">
-          {p.avanzada === "SE_HIZO" ? "Se hizo" : p.avanzada === "NO_SE_HIZO" ? "No se hizo" : p.avanzada === "NO_NECESARIA" ? "No necesaria" : "-"}
-        </span>
+        <AvanzadaSelect
+          value={p.avanzada}
+          onChange={(value) => {
+            setProjects(projects.map(proj => 
+              proj.id === p.id ? { ...proj, avanzada: value } : proj
+            ));
+          }}
+        />
       ),
     },
     {

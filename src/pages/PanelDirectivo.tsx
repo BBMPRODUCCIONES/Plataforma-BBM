@@ -9,6 +9,7 @@ import { DashboardStats } from "@/components/DashboardStats";
 import { CalendarFilter } from "@/components/CalendarFilter";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { FileUploadButton } from "@/components/FileUpload";
+import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { mockProjects } from "@/data/mockData";
 import { Project, ProjectStatus, CalendarViewMode, Attachment } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -118,11 +119,16 @@ const PanelDirectivo = () => {
     {
       key: "avanzada",
       header: "Avanzada",
-      width: "100px",
+      width: "130px",
       render: (p: Project) => (
-        <span className="text-xs">
-          {p.avanzada === "SE_HIZO" ? "Se hizo" : p.avanzada === "NO_SE_HIZO" ? "No se hizo" : p.avanzada === "NO_NECESARIA" ? "No necesaria" : "-"}
-        </span>
+        <AvanzadaSelect
+          value={p.avanzada}
+          onChange={(value) => {
+            setProjects(projects.map(proj => 
+              proj.id === p.id ? { ...proj, avanzada: value } : proj
+            ));
+          }}
+        />
       ),
     },
     {

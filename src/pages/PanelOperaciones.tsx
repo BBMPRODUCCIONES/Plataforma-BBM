@@ -9,6 +9,9 @@ import { CalendarFilter } from "@/components/CalendarFilter";
 import { FileUploadButton } from "@/components/FileUpload";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
+import { EditableCell, CellType } from "@/components/EditableCell";
+import { AddColumnDialog } from "@/components/AddColumnDialog";
+import { useUserRole } from "@/hooks/useUserRole";
 import { mockProjects } from "@/data/mockData";
 import { Project, PersonalItem, InventarioItem, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -22,30 +25,43 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search, Users, Package, FileText, MapPin, User, Printer, FileDown } from "lucide-react";
+import { Search, Users, Package, FileText, MapPin, User, FileDown, Columns } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones } from "@/utils/pdfGenerator";
 
+interface CustomColumn {
+  key: string;
+  header: string;
+  type: CellType;
+  width: string;
+  options?: string[];
+}
+
 const PanelOperaciones = () => {
   const navigate = useNavigate();
+  const { canEditStructure } = useUserRole();
   const [searchTerm, setSearchTerm] = useState("");
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
+  const [addColumnOpen, setAddColumnOpen] = useState(false);
+  const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
   
-  // Calendar filter state
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | undefined>();
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
+
+  const updateProject = (projectId: string, field: string, value: any) => {
+    setProjects(projects.map(proj =>
+      proj.id === projectId ? { ...proj, [field]: value } : proj
+    ));
+  };
+
+  const handleAddColumn = (column: CustomColumn) => {
+    setCustomColumns([...customColumns, column]);
+  };
 
   const getDateRange = () => {
     if (viewMode === "custom" && dateRange) {
@@ -92,13 +108,18 @@ const PanelOperaciones = () => {
     if (tabTrigger) tabTrigger.click();
   };
 
-  const columns = [
+  const baseColumns = [
     {
       key: "centroCostos",
       header: "CC",
       width: "100px",
       render: (p: Project) => (
-        <span className="font-mono text-xs">{p.centroCostos}</span>
+        <EditableCell
+          value={p.centroCostos}
+          type="text"
+          onChange={(value) => updateProject(p.id, "centroCostos", value)}
+          className="font-mono"
+        />
       ),
     },
     {
@@ -106,7 +127,12 @@ const PanelOperaciones = () => {
       header: "#Factura",
       width: "80px",
       render: (p: Project) => (
-        <span className="font-mono text-xs">{p.numFactura}</span>
+        <EditableCell
+          value={p.numFactura}
+          type="text"
+          onChange={(value) => updateProject(p.id, "numFactura", value)}
+          className="font-mono"
+        />
       ),
     },
     {
@@ -114,7 +140,12 @@ const PanelOperaciones = () => {
       header: "Cliente",
       width: "150px",
       render: (p: Project) => (
-        <span className="font-medium text-xs">{p.cliente}</span>
+        <EditableCell
+          value={p.cliente}
+          type="text"
+          onChange={(value) => updateProject(p.id, "cliente", value)}
+          className="font-medium"
+        />
       ),
     },
     {
@@ -124,11 +155,7 @@ const PanelOperaciones = () => {
       render: (p: Project) => (
         <AvanzadaSelect
           value={p.avanzada}
-          onChange={(value) => {
-            setProjects(projects.map(proj => 
-              proj.id === p.id ? { ...proj, avanzada: value } : proj
-            ));
-          }}
+          onChange={(value) => updateProject(p.id, "avanzada", value)}
         />
       ),
     },
@@ -210,13 +237,14 @@ const PanelOperaciones = () => {
     },
     {
       key: "jefeOperaciones",
-      header: "Operaciones",
+      header: "Jefe Ops",
       width: "120px",
       render: (p: Project) => (
-        <div className="flex items-center gap-1 text-xs">
-          <User className="h-3 w-3 text-muted-foreground" />
-          {p.jefeOperaciones || "-"}
-        </div>
+        <EditableCell
+          value={p.jefeOperaciones}
+          type="text"
+          onChange={(value) => updateProject(p.id, "jefeOperaciones", value)}
+        />
       ),
     },
     {
@@ -224,7 +252,11 @@ const PanelOperaciones = () => {
       header: "A Cargo",
       width: "100px",
       render: (p: Project) => (
-        <span className="text-xs">{p.aCargoDe || "-"}</span>
+        <EditableCell
+          value={p.aCargoDe}
+          type="text"
+          onChange={(value) => updateProject(p.id, "aCargoDe", value)}
+        />
       ),
     },
     {
@@ -232,7 +264,11 @@ const PanelOperaciones = () => {
       header: "Productor",
       width: "110px",
       render: (p: Project) => (
-        <span className="text-xs">{p.productor || "-"}</span>
+        <EditableCell
+          value={p.productor}
+          type="text"
+          onChange={(value) => updateProject(p.id, "productor", value)}
+        />
       ),
     },
     {
@@ -240,10 +276,11 @@ const PanelOperaciones = () => {
       header: "Ubicación",
       width: "150px",
       render: (p: Project) => (
-        <div className="flex items-center gap-1 text-xs">
-          <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
-          <span className="truncate">{p.ubicacion || "-"}</span>
-        </div>
+        <EditableCell
+          value={p.ubicacion}
+          type="text"
+          onChange={(value) => updateProject(p.id, "ubicacion", value)}
+        />
       ),
     },
     {
@@ -253,7 +290,7 @@ const PanelOperaciones = () => {
       render: (p: Project) => (
         <FileUploadButton
           attachments={p.formatoPreproduccion || []}
-          onAttachmentsChange={() => {}}
+          onAttachmentsChange={(attachments) => updateProject(p.id, "formatoPreproduccion", attachments)}
           multiple
         />
       ),
@@ -284,7 +321,7 @@ const PanelOperaciones = () => {
       render: (p: Project) => (
         <FileUploadButton
           attachments={p.cotizacionesProveedor || []}
-          onAttachmentsChange={() => {}}
+          onAttachmentsChange={(attachments) => updateProject(p.id, "cotizacionesProveedor", attachments)}
           multiple
         />
       ),
@@ -294,9 +331,11 @@ const PanelOperaciones = () => {
       header: "Notas",
       width: "150px",
       render: (p: Project) => (
-        <span className="text-xs text-muted-foreground truncate block max-w-[130px]">
-          {p.notas || "-"}
-        </span>
+        <EditableCell
+          value={p.notas}
+          type="text"
+          onChange={(value) => updateProject(p.id, "notas", value)}
+        />
       ),
     },
     {
@@ -337,6 +376,22 @@ const PanelOperaciones = () => {
       ),
     },
   ];
+
+  const dynamicCustomColumns = customColumns.map((col) => ({
+    key: col.key,
+    header: col.header,
+    width: col.width,
+    render: (p: Project) => (
+      <EditableCell
+        value={(p as any)[col.key]}
+        type={col.type}
+        options={col.options}
+        onChange={(value) => updateProject(p.id, col.key, value)}
+      />
+    ),
+  }));
+
+  const columns = [...baseColumns, ...dynamicCustomColumns];
 
   const personalColumns = [
     { key: "nombre", header: "Nombre", width: "150px" },
@@ -390,9 +445,16 @@ const PanelOperaciones = () => {
             { label: "General", to: "/panel-general" },
             { label: "Proveedores", to: "/proveedores" },
           ]}
+          actions={
+            canEditStructure() && (
+              <Button variant="outline" size="sm" onClick={() => setAddColumnOpen(true)}>
+                <Columns className="h-4 w-4 mr-2" />
+                Agregar Columna
+              </Button>
+            )
+          }
         />
 
-        {/* Calendar Filter */}
         <CalendarFilter
           viewMode={viewMode}
           selectedDate={selectedDate}
@@ -457,7 +519,6 @@ const PanelOperaciones = () => {
 
             {selectedProject && (
               <div className="space-y-6 mt-4">
-                {/* Project Info */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <span className="text-xs text-muted-foreground">Cliente</span>
@@ -477,7 +538,6 @@ const PanelOperaciones = () => {
                   </div>
                 </div>
 
-                {/* Personal Subtemplate */}
                 <Card>
                   <CardHeader className="py-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2">
@@ -501,7 +561,6 @@ const PanelOperaciones = () => {
                   </CardContent>
                 </Card>
 
-                {/* Inventario Subtemplate */}
                 <Card>
                   <CardHeader className="py-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2">
@@ -525,7 +584,6 @@ const PanelOperaciones = () => {
                   </CardContent>
                 </Card>
 
-                {/* Cotizaciones Proveedor */}
                 <Card>
                   <CardHeader className="py-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2">
@@ -544,7 +602,6 @@ const PanelOperaciones = () => {
                   </CardContent>
                 </Card>
 
-                {/* Notas */}
                 {selectedProject.notas && (
                   <Card>
                     <CardHeader className="py-3">
@@ -559,6 +616,12 @@ const PanelOperaciones = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        <AddColumnDialog
+          open={addColumnOpen}
+          onOpenChange={setAddColumnOpen}
+          onAddColumn={handleAddColumn}
+        />
       </div>
     </Layout>
   );

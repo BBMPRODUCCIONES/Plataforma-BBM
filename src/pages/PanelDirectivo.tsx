@@ -314,7 +314,7 @@ const PanelDirectivo = () => {
           currentIngresoBruto={p.ingresoBruto}
           currentIngresoTotal={p.ingresoTotal}
           onDataExtracted={(ingresoBruto, ingresoTotal) => {
-            setProjects(projects.map(proj =>
+            setProjects(prevProjects => prevProjects.map(proj =>
               proj.id === p.id
                 ? {
                     ...proj,

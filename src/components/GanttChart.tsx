@@ -9,6 +9,8 @@ import {
   endOfWeek,
   startOfDay,
   endOfDay,
+  startOfQuarter,
+  endOfQuarter,
   startOfYear,
   endOfYear,
   eachDayOfInterval,
@@ -33,6 +35,7 @@ interface GanttChartProps {
   startDate?: Date;
   monthsToShow?: number;
   viewMode?: CalendarViewMode;
+  customDateRange?: { start: Date; end: Date };
   onProjectClick?: (projectId: string) => void;
 }
 
@@ -46,11 +49,13 @@ const getDayAbbreviation = (date: Date): string => {
 };
 
 // Dynamic column widths based on view mode
-const VIEW_MODE_CONFIG = {
+const VIEW_MODE_CONFIG: Record<string, { dayWidth: number; showDayNames: boolean; showHours: boolean }> = {
   day: { dayWidth: 80, showDayNames: true, showHours: true },
   week: { dayWidth: 50, showDayNames: true, showHours: false },
   month: { dayWidth: 32, showDayNames: true, showHours: false },
+  quarter: { dayWidth: 16, showDayNames: true, showHours: false },
   year: { dayWidth: 10, showDayNames: false, showHours: false },
+  custom: { dayWidth: 32, showDayNames: true, showHours: false },
 };
 
 export function GanttChart({ 
@@ -58,6 +63,7 @@ export function GanttChart({
   startDate = new Date(), 
   monthsToShow = 3,
   viewMode = "month",
+  customDateRange,
   onProjectClick 
 }: GanttChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -66,11 +72,14 @@ export function GanttChart({
   const [scrollLeft, setScrollLeft] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
 
-  const config = VIEW_MODE_CONFIG[viewMode];
+  const config = VIEW_MODE_CONFIG[viewMode] || VIEW_MODE_CONFIG.month;
   const effectiveDayWidth = config.dayWidth * zoomLevel;
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
+    if (viewMode === "custom" && customDateRange) {
+      return customDateRange;
+    }
     switch (viewMode) {
       case "day":
         return { 
@@ -87,6 +96,11 @@ export function GanttChart({
           start: startOfMonth(startDate), 
           end: endOfMonth(addMonths(startDate, monthsToShow - 1)) 
         };
+      case "quarter":
+        return { 
+          start: startOfQuarter(startDate), 
+          end: endOfQuarter(startDate) 
+        };
       case "year":
         return { 
           start: startOfYear(startDate), 
@@ -98,7 +112,7 @@ export function GanttChart({
           end: endOfMonth(addMonths(startDate, monthsToShow - 1)) 
         };
     }
-  }, [startDate, monthsToShow, viewMode]);
+  }, [startDate, monthsToShow, viewMode, customDateRange]);
 
   const { months, allDays } = useMemo(() => {
     const allDays = eachDayOfInterval({ start: dateRange.start, end: dateRange.end });

@@ -133,11 +133,12 @@ export interface GanttMonth {
 }
 
 // Calendar Filter Types
-export type CalendarViewMode = 'day' | 'week' | 'month' | 'year';
+export type CalendarViewMode = 'day' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 
 export interface CalendarFilter {
   viewMode: CalendarViewMode;
   selectedDate: Date;
+  dateRange?: { start: Date; end: Date };
   statusFilter: ProjectStatus | 'todos';
 }
 

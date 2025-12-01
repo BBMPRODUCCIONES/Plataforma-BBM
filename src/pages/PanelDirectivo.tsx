@@ -49,7 +49,7 @@ const PanelDirectivo = () => {
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
 
   const updateProject = (projectId: string, field: string, value: any) => {
-    setProjects(projects.map(proj =>
+    setProjects(prevProjects => prevProjects.map(proj =>
       proj.id === projectId ? { ...proj, [field]: value } : proj
     ));
   };

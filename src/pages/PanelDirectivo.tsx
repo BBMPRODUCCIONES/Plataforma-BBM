@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Plus, ExternalLink } from "lucide-react";
-import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from "date-fns";
+import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 
 const PanelDirectivo = () => {
@@ -28,9 +28,13 @@ const PanelDirectivo = () => {
   // Calendar filter state
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | undefined>();
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
 
   const getDateRange = () => {
+    if (viewMode === "custom" && dateRange) {
+      return dateRange;
+    }
     switch (viewMode) {
       case "day":
         return { start: startOfDay(selectedDate), end: endOfDay(selectedDate) };
@@ -38,8 +42,12 @@ const PanelDirectivo = () => {
         return { start: startOfWeek(selectedDate, { weekStartsOn: 1 }), end: endOfWeek(selectedDate, { weekStartsOn: 1 }) };
       case "month":
         return { start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) };
+      case "quarter":
+        return { start: startOfQuarter(selectedDate), end: endOfQuarter(selectedDate) };
       case "year":
         return { start: startOfYear(selectedDate), end: endOfYear(selectedDate) };
+      default:
+        return { start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) };
     }
   };
 
@@ -289,9 +297,11 @@ const PanelDirectivo = () => {
         <CalendarFilter
           viewMode={viewMode}
           selectedDate={selectedDate}
+          dateRange={dateRange}
           statusFilter={statusFilter}
           onViewModeChange={setViewMode}
           onDateChange={setSelectedDate}
+          onDateRangeChange={setDateRange}
           onStatusChange={setStatusFilter}
         />
 
@@ -328,8 +338,9 @@ const PanelDirectivo = () => {
             <GanttChart
               projects={filteredProjects}
               startDate={selectedDate}
-              monthsToShow={viewMode === "year" ? 12 : viewMode === "month" ? 3 : 1}
+              monthsToShow={viewMode === "year" ? 12 : viewMode === "quarter" ? 3 : viewMode === "month" ? 3 : 1}
               viewMode={viewMode}
+              customDateRange={dateRange}
               onProjectClick={handleGanttProjectClick}
             />
           </TabsContent>

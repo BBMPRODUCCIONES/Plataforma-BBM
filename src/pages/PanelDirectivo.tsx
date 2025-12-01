@@ -308,28 +308,23 @@ const PanelDirectivo = () => {
       header: "Orden Compra",
       width: "120px",
       render: (p: Project) => (
-        <div className="flex items-center gap-1">
-          <FileUploadButton
-            attachments={p.ordenesCompra || []}
-            onAttachmentsChange={(attachments) => updateProject(p.id, "ordenesCompra", attachments)}
-            multiple
-          />
-          <PurchaseOrderUpload
-            currentIngresoBruto={p.ingresoBruto}
-            currentIngresoTotal={p.ingresoTotal}
-            onDataExtracted={(ingresoBruto, ingresoTotal) => {
-              setProjects(projects.map(proj =>
-                proj.id === p.id
-                  ? {
-                      ...proj,
-                      ingresoBruto: ingresoBruto ?? proj.ingresoBruto,
-                      ingresoTotal: ingresoTotal ?? proj.ingresoTotal,
-                    }
-                  : proj
-              ));
-            }}
-          />
-        </div>
+        <PurchaseOrderUpload
+          attachments={p.ordenesCompra || []}
+          onAttachmentsChange={(attachments) => updateProject(p.id, "ordenesCompra", attachments)}
+          currentIngresoBruto={p.ingresoBruto}
+          currentIngresoTotal={p.ingresoTotal}
+          onDataExtracted={(ingresoBruto, ingresoTotal) => {
+            setProjects(projects.map(proj =>
+              proj.id === p.id
+                ? {
+                    ...proj,
+                    ingresoBruto: ingresoBruto ?? proj.ingresoBruto,
+                    ingresoTotal: ingresoTotal ?? proj.ingresoTotal,
+                  }
+                : proj
+            ));
+          }}
+        />
       ),
     },
     {

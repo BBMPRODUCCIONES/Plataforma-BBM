@@ -266,27 +266,26 @@ export function ColumnManagerDialog({
                         )}
                       </Button>
 
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => startEditing(column)}
+                        title="Editar columna"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      
                       {column.isCustom && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => startEditing(column)}
-                            title="Editar columna"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteColumn(column.key)}
-                            title="Eliminar columna"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteColumn(column.key)}
+                          title="Eliminar columna"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -295,7 +294,7 @@ export function ColumnManagerDialog({
             </ScrollArea>
 
             <p className="text-xs text-muted-foreground mt-4">
-              Arrastra las columnas para reordenarlas. Las columnas base solo pueden ocultarse.
+              Arrastra las columnas para reordenarlas. Las columnas personalizadas pueden eliminarse.
             </p>
           </TabsContent>
 

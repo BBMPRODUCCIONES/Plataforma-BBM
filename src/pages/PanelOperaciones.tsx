@@ -20,6 +20,7 @@ import { mockProjects } from "@/data/mockData";
 import { Project, PersonalItem, InventarioItem, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario } from "@/utils/pdfGenerator";
@@ -430,6 +431,7 @@ const PanelOperaciones = () => {
   const personalColumns = useMemo(() => {
     const projectId = selectedProject?.id;
     const hasTransporte = currentProjectData?.personal?.some(p => p.tipoPersonal === "Transporte");
+    const hasProveedorOrTransporte = currentProjectData?.personal?.some(p => p.tipoPersonal === "Proveedor" || p.tipoPersonal === "Transporte");
     
     const basePersonalCols = [
       { 
@@ -518,6 +520,24 @@ const PanelOperaciones = () => {
               placeholder="Ruta obligatoria..."
               onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "rutaTransporte", value)}
               className={!p.rutaTransporte ? "border-destructive/50" : ""}
+            />
+          ) : <span className="text-xs text-muted-foreground">-</span>
+        ),
+      });
+    }
+
+    // Show Adjuntos column for Proveedor or Transporte
+    if (hasProveedorOrTransporte) {
+      basePersonalCols.push({
+        key: "adjuntos",
+        header: "Adjuntos",
+        width: "100px",
+        render: (p: PersonalItem) => (
+          (p.tipoPersonal === "Proveedor" || p.tipoPersonal === "Transporte") ? (
+            <FileUploadButton
+              attachments={p.adjuntos || []}
+              onAttachmentsChange={(attachments) => projectId && updatePersonalItem(projectId, p.id, "adjuntos", attachments)}
+              multiple
             />
           ) : <span className="text-xs text-muted-foreground">-</span>
         ),
@@ -820,16 +840,25 @@ const PanelOperaciones = () => {
                   </CardContent>
                 </Card>
 
-                {currentProjectData.notas && (
-                  <Card>
-                    <CardHeader className="py-3">
-                      <CardTitle className="text-sm">Notas</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <p className="text-sm">{currentProjectData.notas}</p>
-                    </CardContent>
-                  </Card>
-                )}
+                <Card>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <StickyNote className="h-4 w-4" />
+                      Notas Generales
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <Textarea
+                      value={currentProjectData.notas || ""}
+                      onChange={(e) => updateProject(currentProjectData.id, "notas", e.target.value)}
+                      placeholder="Escriba notas generales del evento... (sincronizadas en todos los paneles)"
+                      className="min-h-[80px] text-sm"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      Estas notas están sincronizadas y aparecen en todos los paneles (Directivo, General, Operaciones).
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </DialogContent>

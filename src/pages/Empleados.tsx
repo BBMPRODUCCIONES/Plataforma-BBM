@@ -202,6 +202,9 @@ export default function Empleados() {
     },
   ];
 
+  // Generate a unique key for the table to force re-renders when columns change
+  const tableKey = `table-${allColumnConfigs.map(c => `${c.key}-${c.visible}-${c.order}`).join('_')}`;
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -304,7 +307,7 @@ export default function Empleados() {
             <h3 className="text-sm font-semibold">Listado de Empleados</h3>
             <span className="text-xs text-muted-foreground">{filteredEmpleados.length} empleados registrados</span>
           </div>
-          <MatrixTable data={filteredEmpleados} columns={columns} />
+          <MatrixTable key={tableKey} data={filteredEmpleados} columns={columns} />
         </div>
 
         <div className="p-4 bg-muted/30 rounded-lg border border-border">

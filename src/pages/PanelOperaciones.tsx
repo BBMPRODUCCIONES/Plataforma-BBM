@@ -393,6 +393,9 @@ const PanelOperaciones = () => {
       render: getColumnRender(col),
     }));
 
+  // Generate a unique key for the table to force re-renders when columns change
+  const tableKey = `table-${allColumnConfigs.map(c => `${c.key}-${c.visible}-${c.order}`).join('_')}`;
+
   const updatePersonalItem = (projectId: string, personalId: string, field: string, value: any) => {
     setProjects(prevProjects => prevProjects.map(proj => {
       if (proj.id !== projectId) return proj;
@@ -654,6 +657,7 @@ const PanelOperaciones = () => {
           <TabsContent value="matriz" className="mt-4">
             <div className="panel-card">
               <MatrixTable
+                key={tableKey}
                 data={filteredProjects}
                 columns={columns}
                 onRowClick={(p) => setSelectedProject(p)}

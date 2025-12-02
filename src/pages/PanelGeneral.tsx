@@ -385,6 +385,7 @@ const PanelGeneral = () => {
           <TabsContent value="matriz" className="mt-4">
             <div className="panel-card">
               <MatrixTable
+                key={`table-${allColumnConfigs.map(c => `${c.key}-${c.visible}-${c.order}`).join('_')}`}
                 data={filteredProjects}
                 columns={columns}
                 highlightedId={highlightedProjectId}

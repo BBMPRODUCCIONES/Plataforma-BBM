@@ -85,6 +85,9 @@ const Proveedores = () => {
     .filter((col) => col.visible)
     .sort((a, b) => a.order - b.order);
 
+  // Generate a unique key for the table to force re-renders when columns change
+  const tableKey = `table-${managedColumns.map(c => `${c.key}-${c.visible}-${c.order}`).join('_')}`;
+
   const columns = visibleColumns.map((colConfig) => {
     // Special rendering for base columns
     if (colConfig.key === "categoria" && !colConfig.isCustom) {
@@ -258,6 +261,7 @@ const Proveedores = () => {
         {/* Matrix Table */}
         <div className="panel-card">
           <MatrixTable
+            key={tableKey}
             data={filteredProveedores}
             columns={columns}
             onRowClick={(p) => setSelectedProveedor(p)}

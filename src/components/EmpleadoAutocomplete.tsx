@@ -120,16 +120,20 @@ export function EmpleadoAutocomplete({
         </div>
 
         {isOpen && (
-          <div className="absolute z-50 mt-1 w-full min-w-[200px] bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-            <div className="p-2 border-b border-border">
+          <div 
+            className="absolute z-[9999] mt-1 w-full min-w-[250px] bg-popover border border-border rounded-md shadow-xl max-h-48 overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-2 border-b border-border bg-background">
               <Input
                 ref={inputRef}
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Buscar empleado BBM..."
-                className="h-7 text-xs"
+                className="h-8 text-xs bg-muted"
                 autoFocus
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
             {filteredEmpleados.length > 0 ? (
@@ -137,21 +141,24 @@ export function EmpleadoAutocomplete({
                 {filteredEmpleados.map((empleado) => (
                   <div
                     key={empleado.id}
-                    onClick={() => handleSelectEmpleado(empleado)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectEmpleado(empleado);
+                    }}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors",
-                      value === empleado.nombre && "bg-primary/10"
+                      "flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-primary/10 transition-colors",
+                      value === empleado.nombre && "bg-primary/20"
                     )}
                   >
-                    <User className="h-3 w-3 text-muted-foreground" />
+                    <User className="h-4 w-4 text-primary" />
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium truncate">{empleado.nombre}</div>
-                      <div className="text-[10px] text-muted-foreground truncate">
+                      <div className="text-sm font-medium truncate">{empleado.nombre}</div>
+                      <div className="text-xs text-muted-foreground truncate">
                         {empleado.telefono}
                       </div>
                     </div>
                     {value === empleado.nombre && (
-                      <Check className="h-3 w-3 text-primary flex-shrink-0" />
+                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
                     )}
                   </div>
                 ))}
@@ -186,7 +193,10 @@ export function EmpleadoAutocomplete({
       />
 
       {isOpen && filteredEmpleados.length > 0 && (
-        <div className="absolute z-50 mt-1 w-full min-w-[200px] bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
+        <div 
+          className="absolute z-[9999] mt-1 w-full min-w-[200px] bg-popover border border-border rounded-md shadow-xl max-h-40 overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="px-2 py-1 border-b border-border bg-muted/30">
             <span className="text-[10px] text-muted-foreground">
               Sugerencias (opcional)
@@ -196,10 +206,13 @@ export function EmpleadoAutocomplete({
             {filteredEmpleados.map((empleado) => (
               <div
                 key={empleado.id}
-                onClick={() => handleSelectEmpleado(empleado)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelectEmpleado(empleado);
+                }}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors",
-                  value === empleado.nombre && "bg-primary/10"
+                  "flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-primary/10 transition-colors",
+                  value === empleado.nombre && "bg-primary/20"
                 )}
               >
                 <User className="h-3 w-3 text-muted-foreground" />

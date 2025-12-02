@@ -55,6 +55,7 @@ export interface PersonalItem {
   tipoPersonal: 'BBM' | 'Proveedor' | 'Transporte';
   notas?: string;
   rutaTransporte?: string; // Campo para la ruta cuando es Transporte
+  adjuntos?: Attachment[]; // Archivos adjuntos (solo para Proveedor y Transporte)
 }
 
 export interface InventarioItem {

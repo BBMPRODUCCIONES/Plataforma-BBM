@@ -128,7 +128,7 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
       ${content}
       ${options.notes ? `
         <div class="notes-section">
-          <h3>Notas:</h3>
+          <h3>Notas Generales:</h3>
           <p>${options.notes}</p>
         </div>
       ` : ''}
@@ -250,6 +250,43 @@ export const printInventario = (project: Project, includeNotes: boolean = true) 
   openPrintWindow(html);
 };
 
+// Generate attachments section for PDF
+const generateAdjuntosSection = (project: Project): string => {
+  const personalConAdjuntos = (project.personal || []).filter(
+    p => (p.tipoPersonal === 'Proveedor' || p.tipoPersonal === 'Transporte') && p.adjuntos && p.adjuntos.length > 0
+  );
+
+  if (personalConAdjuntos.length === 0) return '';
+
+  const rows = personalConAdjuntos.flatMap(p => 
+    (p.adjuntos || []).map(adj => `
+      <tr>
+        <td>${p.nombre}</td>
+        <td><span class="badge badge-${p.tipoPersonal.toLowerCase()}">${p.tipoPersonal}</span></td>
+        <td>${adj.name}</td>
+        <td>${adj.type}</td>
+      </tr>
+    `)
+  ).join('');
+
+  return `
+    <h2 style="margin: 25px 0 10px; font-size: 14px;">Archivos Adjuntos</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Personal</th>
+          <th>Tipo</th>
+          <th>Archivo</th>
+          <th>Formato</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  `;
+};
+
 // Print unified PDF with Personal + Inventario
 export const printPersonalYInventario = (project: Project, includeNotes: boolean = true) => {
   const content = `
@@ -263,6 +300,7 @@ export const printPersonalYInventario = (project: Project, includeNotes: boolean
     ${generatePersonalSection(project)}
     <div style="margin-top: 30px;"></div>
     ${generateInventarioSection(project)}
+    ${generateAdjuntosSection(project)}
   `;
 
   const html = generatePrintableHTML(content, {

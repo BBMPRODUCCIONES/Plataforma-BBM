@@ -22,6 +22,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Plus, Phone, Mail, FileText, Tag, Columns } from "lucide-react";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
+import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { EditableCell } from "@/components/EditableCell";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -44,18 +45,17 @@ const Proveedores = () => {
   const { role } = useUserRole();
   const isAdmin = role?.toLowerCase() === "administrador";
 
-  // Initialize managed columns from base definitions
-  const [managedColumns, setManagedColumns] = useState<ColumnConfig[]>(
-    baseColumnDefs.map((col, index) => ({
-      key: col.key,
-      header: col.header,
-      type: col.type,
-      width: col.width,
-      visible: true,
-      isCustom: false,
-      order: index,
-    }))
-  );
+  // Initialize managed columns from base definitions - persisted
+  const defaultColumns: ColumnConfig[] = baseColumnDefs.map((col, index) => ({
+    key: col.key,
+    header: col.header,
+    type: col.type,
+    width: col.width,
+    visible: true,
+    isCustom: false,
+    order: index,
+  }));
+  const [managedColumns, setManagedColumns] = usePersistedColumns("proveedores-columns", defaultColumns);
 
   // Handle column changes - force new array reference
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {

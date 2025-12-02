@@ -14,6 +14,7 @@ import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { EmpleadoAutocomplete } from "@/components/EmpleadoAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
+import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { mockProjects } from "@/data/mockData";
 import { Project, PersonalItem, InventarioItem, ProjectStatus, CalendarViewMode } from "@/types";
@@ -41,7 +42,28 @@ const PanelOperaciones = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
-  const [managedColumns, setManagedColumns] = useState<ColumnConfig[]>([]);
+  // Initialize with base columns - persisted to localStorage
+  const defaultColumns: ColumnConfig[] = [
+    { key: "centroCostos", header: "CC", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 0 },
+    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 1 },
+    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 2 },
+    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 3, options: ["No se hizo", "Se hizo", "No es necesario"] },
+    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "110px", visible: true, isCustom: false, order: 4 },
+    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "110px", visible: true, isCustom: false, order: 5 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 6 },
+    { key: "jefeOperaciones", header: "Jefe Ops", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 7 },
+    { key: "aCargoDe", header: "A Cargo", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 8 },
+    { key: "productor", header: "Productor", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
+    { key: "ubicacion", header: "Ubicación", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 10 },
+    { key: "formatoPreproduccion", header: "Formato", type: "file" as CellType, width: "80px", visible: true, isCustom: false, order: 11 },
+    { key: "personal", header: "Personal", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 12 },
+    { key: "cotizacionProveedor", header: "Cot. Prov", type: "file" as CellType, width: "80px", visible: true, isCustom: false, order: 13 },
+    { key: "ordenCompraOCR", header: "OC + OCR", type: "file" as CellType, width: "120px", visible: true, isCustom: false, order: 14 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 15 },
+    { key: "inventario", header: "Inventario", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 16 },
+    { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 17 },
+  ];
+  const [managedColumns, setManagedColumns] = usePersistedColumns("panel-operaciones-columns", defaultColumns);
   
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -67,38 +89,8 @@ const PanelOperaciones = () => {
   // Debug: Log whenever managedColumns changes
   console.log('[PanelOperaciones] Current managedColumns count:', managedColumns.length);
 
-  // Define base columns with their configurations (same pattern as PanelDirectivo)
-  const baseColumnDefs: ColumnConfig[] = useMemo(() => [
-    { key: "centroCostos", header: "CC", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 0 },
-    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 1 },
-    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 2 },
-    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 3, options: ["No se hizo", "Se hizo", "No es necesario"] },
-    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "110px", visible: true, isCustom: false, order: 4 },
-    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "110px", visible: true, isCustom: false, order: 5 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 6 },
-    { key: "jefeOperaciones", header: "Jefe Ops", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 7 },
-    { key: "aCargoDe", header: "A Cargo", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 8 },
-    { key: "productor", header: "Productor", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
-    { key: "ubicacion", header: "Ubicación", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 10 },
-    { key: "formatoPreproduccion", header: "Formato", type: "file" as CellType, width: "80px", visible: true, isCustom: false, order: 11 },
-    { key: "personal", header: "Personal", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 12 },
-    { key: "cotizacionProveedor", header: "Cot. Prov", type: "file" as CellType, width: "80px", visible: true, isCustom: false, order: 13 },
-    { key: "ordenCompraOCR", header: "OC + OCR", type: "file" as CellType, width: "120px", visible: true, isCustom: false, order: 14 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 15 },
-    { key: "inventario", header: "Inventario", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 16 },
-    { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 17 },
-  ], []);
-
-  // Get all columns (base + managed) - use direct calculation for immediate updates
-  const allColumnConfigs = managedColumns.length > 0 ? managedColumns : baseColumnDefs;
-
-  // Initialize managed columns if empty
-  const initializeColumns = () => {
-    if (managedColumns.length === 0) {
-      setManagedColumns(baseColumnDefs);
-    }
-    setColumnManagerOpen(true);
-  };
+  // Use managed columns directly (already initialized)
+  const allColumnConfigs = managedColumns;
 
   const getDateRange = () => {
     if (viewMode === "custom" && dateRange) {
@@ -624,7 +616,7 @@ const PanelOperaciones = () => {
             { label: "Proveedores", to: "/proveedores" },
           ]}
           actions={
-            <Button variant="outline" size="sm" onClick={initializeColumns}>
+            <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
               <Settings className="h-4 w-4 mr-2" />
               Gestionar Columnas
             </Button>

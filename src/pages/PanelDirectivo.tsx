@@ -15,6 +15,7 @@ import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
+import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { mockProjects } from "@/data/mockData";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
@@ -35,8 +36,23 @@ const PanelDirectivo = () => {
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   
-  // Column management state
-  const [managedColumns, setManagedColumns] = useState<ColumnConfig[]>([]);
+  // Column management state - persisted to localStorage
+  const defaultColumns: ColumnConfig[] = [
+    { key: "centroCostos", header: "Centro de Costos", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
+    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 1 },
+    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 2 },
+    { key: "evento", header: "Evento", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 3 },
+    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 4, options: ["No se hizo", "Se hizo", "No es necesario"] },
+    { key: "fechaMontaje", header: "Fecha de Montaje", type: "date" as CellType, width: "160px", visible: true, isCustom: false, order: 5 },
+    { key: "fechaEjecucion", header: "Fecha de Ejecución", type: "date" as CellType, width: "160px", visible: true, isCustom: false, order: 6 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "140px", visible: true, isCustom: false, order: 7 },
+    { key: "ingresoBruto", header: "Ingreso Bruto", type: "number" as CellType, width: "120px", visible: true, isCustom: false, order: 8 },
+    { key: "ingresoTotal", header: "Ingreso Total", type: "number" as CellType, width: "120px", visible: true, isCustom: false, order: 9 },
+    { key: "ordenCompraOCR", header: "Orden de Compra", type: "file" as CellType, width: "150px", visible: true, isCustom: false, order: 10 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 11 },
+    { key: "panelGeneral", header: "Ver en Panel", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 12 },
+  ];
+  const [managedColumns, setManagedColumns] = usePersistedColumns("panel-directivo-columns", defaultColumns);
   
   // Calendar filter state
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");

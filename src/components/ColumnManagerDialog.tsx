@@ -129,9 +129,18 @@ export function ColumnManagerDialog({
   // Helper to update both local and parent state - ensure new references
   const updateColumns = (newColumns: ColumnConfig[]) => {
     const updatedColumns = newColumns.map(col => ({ ...col })); // Deep copy each column
-    console.log('[ColumnManager] Updating columns:', updatedColumns.length, updatedColumns);
+    console.log('[ColumnManager] Updating columns:', updatedColumns.length);
+    console.log('[ColumnManager] onColumnsChange type:', typeof onColumnsChange);
     setLocalColumns(updatedColumns);
-    onColumnsChange(updatedColumns);
+    
+    // Call parent callback synchronously
+    if (typeof onColumnsChange === 'function') {
+      console.log('[ColumnManager] Calling onColumnsChange...');
+      onColumnsChange(updatedColumns);
+      console.log('[ColumnManager] onColumnsChange called successfully');
+    } else {
+      console.error('[ColumnManager] onColumnsChange is not a function!');
+    }
   };
 
   const handleCreateColumn = () => {
@@ -159,7 +168,8 @@ export function ColumnManagerDialog({
 
     updateColumns([...localColumns, newColumn]);
     resetForm();
-    setActiveTab("list");
+    // Close dialog after create to force parent to update
+    onOpenChange(false);
   };
 
   const handleEditColumn = () => {
@@ -181,7 +191,8 @@ export function ColumnManagerDialog({
 
     updateColumns(updatedColumns);
     resetForm();
-    setActiveTab("list");
+    // Close dialog after edit to force parent to update
+    onOpenChange(false);
   };
 
   const handleDeleteColumn = (column: ColumnConfig) => {
@@ -195,11 +206,8 @@ export function ColumnManagerDialog({
       updateColumns(filteredColumns);
       setColumnToDelete(null);
       setDeleteConfirmOpen(false);
-      // If we were editing this column, go back to list
-      if (editingColumn?.key === columnToDelete.key) {
-        resetForm();
-        setActiveTab("list");
-      }
+      // Close dialog after delete to force parent to update
+      onOpenChange(false);
     }
   };
 

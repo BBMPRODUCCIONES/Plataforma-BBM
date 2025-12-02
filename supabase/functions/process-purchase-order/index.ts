@@ -29,16 +29,28 @@ serve(async (req) => {
       messageContent = [
         {
           type: "text",
-          text: `Analiza esta Orden de Compra o factura y extrae los siguientes valores monetarios:
+          text: `Analiza esta cotización, Orden de Compra o factura y extrae los siguientes valores monetarios:
 
-1. **Ingreso Bruto**: El valor del producto o servicio SIN impuestos (subtotal, valor neto, base gravable)
-2. **Ingreso Total**: El valor TOTAL incluyendo impuestos y todos los cargos adicionales
+1. **Ingreso Bruto**: El valor del producto o servicio SIN impuestos. Busca:
+   - "Total Bruto"
+   - "Subtotal"
+   - "Base"
+   - "Neto"
+   - "Valor antes de IVA"
+   - "Base gravable"
+
+2. **Ingreso Total**: El valor TOTAL incluyendo impuestos y todos los cargos. Busca:
+   - "Total a Pagar"
+   - "Total"
+   - "Gran Total"
+   - "Valor Total"
+   - "Total con IVA"
 
 IMPORTANTE:
-- Busca términos como: "Subtotal", "Base", "Neto", "Valor antes de IVA" para el Ingreso Bruto
-- Busca términos como: "Total", "Total a pagar", "Valor total", "Gran total" para el Ingreso Total
-- Los valores deben ser números sin símbolos de moneda
+- Extrae los números SIN símbolos de moneda (solo el número)
+- Si hay varios valores, usa el que corresponda a "Total Bruto" para ingreso bruto y "Total a Pagar" para ingreso total
 - Si no puedes identificar claramente un valor, devuelve null para ese campo
+- Los valores deben ser números decimales (ejemplo: 1500000.00)
 
 Responde ÚNICAMENTE con un JSON válido en este formato exacto:
 {
@@ -61,19 +73,18 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto:
       messageContent = [
         {
           type: "text",
-          text: `Analiza el siguiente contenido de una Orden de Compra o factura (archivo: ${fileName}) y extrae los valores monetarios:
+          text: `Analiza el siguiente contenido de una cotización, Orden de Compra o factura (archivo: ${fileName}) y extrae los valores monetarios:
 
 ${fileContent}
 
 Extrae:
-1. **Ingreso Bruto**: El valor del producto o servicio SIN impuestos (subtotal, valor neto, base gravable)
-2. **Ingreso Total**: El valor TOTAL incluyendo impuestos y todos los cargos adicionales
+1. **Ingreso Bruto**: El valor del producto o servicio SIN impuestos. Busca: "Total Bruto", "Subtotal", "Base", "Neto", "Valor antes de IVA"
+2. **Ingreso Total**: El valor TOTAL incluyendo impuestos. Busca: "Total a Pagar", "Total", "Gran Total", "Valor Total"
 
 IMPORTANTE:
-- Busca términos como: "Subtotal", "Base", "Neto", "Valor antes de IVA" para el Ingreso Bruto
-- Busca términos como: "Total", "Total a pagar", "Valor total", "Gran total" para el Ingreso Total
 - Los valores deben ser números sin símbolos de moneda
-- Si no puedes identificar claramente un valor, devuelve null para ese campo
+- Si hay varios valores, usa "Total Bruto" para ingreso bruto y "Total a Pagar" para ingreso total
+- Si no puedes identificar claramente un valor, devuelve null
 
 Responde ÚNICAMENTE con un JSON válido en este formato exacto:
 {

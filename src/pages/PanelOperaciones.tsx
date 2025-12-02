@@ -35,7 +35,7 @@ import { printPersonal, printInventario, printCotizaciones, printPersonalYInvent
 
 const PanelOperaciones = () => {
   const navigate = useNavigate();
-  const { canEditStructure } = useUserRole();
+  const { canEditStructure, role } = useUserRole();
   const [searchTerm, setSearchTerm] = useState("");
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -48,6 +48,9 @@ const PanelOperaciones = () => {
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | undefined>();
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
 
+  // Check if user is admin
+  const isAdmin = role?.toLowerCase() === "administrador";
+
   const updateProject = (projectId: string, field: string, value: any) => {
     setProjects(projects.map(proj =>
       proj.id === projectId ? { ...proj, [field]: value } : proj
@@ -56,7 +59,9 @@ const PanelOperaciones = () => {
 
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
     // Create new array to ensure React detects the change
-    setManagedColumns([...newColumns]);
+    console.log('[PanelOperaciones] Received column changes:', newColumns.length, newColumns);
+    const copiedColumns = newColumns.map(col => ({ ...col }));
+    setManagedColumns(copiedColumns);
   };
 
   // Define base columns with their configurations (same pattern as PanelDirectivo)
@@ -616,12 +621,10 @@ const PanelOperaciones = () => {
             { label: "Proveedores", to: "/proveedores" },
           ]}
           actions={
-            canEditStructure() && (
-              <Button variant="outline" size="sm" onClick={initializeColumns}>
-                <Settings className="h-4 w-4 mr-2" />
-                Gestionar Columnas
-              </Button>
-            )
+            <Button variant="outline" size="sm" onClick={initializeColumns}>
+              <Settings className="h-4 w-4 mr-2" />
+              Gestionar Columnas
+            </Button>
           }
         />
 

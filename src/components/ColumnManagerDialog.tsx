@@ -94,13 +94,19 @@ export function ColumnManagerDialog({
   
   // Local state that syncs with props
   const [localColumns, setLocalColumns] = useState<ColumnConfig[]>(columns);
+  const [initialSync, setInitialSync] = useState(false);
   
-  // Sync local state with props when props change or dialog opens
+  // Only sync local state with props when dialog FIRST opens, not on subsequent prop changes
   useEffect(() => {
-    if (open) {
+    if (open && !initialSync) {
+      console.log('[ColumnManager] Dialog opened, syncing columns:', columns.length);
       setLocalColumns([...columns]);
+      setInitialSync(true);
     }
-  }, [columns, open]);
+    if (!open) {
+      setInitialSync(false);
+    }
+  }, [open, initialSync]);
   
   // Form state for create/edit
   const [columnName, setColumnName] = useState("");
@@ -120,10 +126,12 @@ export function ColumnManagerDialog({
     setIsCreating(false);
   };
 
-  // Helper to update both local and parent state
+  // Helper to update both local and parent state - ensure new references
   const updateColumns = (newColumns: ColumnConfig[]) => {
-    setLocalColumns([...newColumns]);
-    onColumnsChange([...newColumns]);
+    const updatedColumns = newColumns.map(col => ({ ...col })); // Deep copy each column
+    console.log('[ColumnManager] Updating columns:', updatedColumns.length, updatedColumns);
+    setLocalColumns(updatedColumns);
+    onColumnsChange(updatedColumns);
   };
 
   const handleCreateColumn = () => {

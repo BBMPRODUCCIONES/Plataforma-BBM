@@ -22,7 +22,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useEmpleados, Empleado } from "@/contexts/EmpleadosContext";
 
 export default function Empleados() {
-  const { canEditStructure } = useUserRole();
+  const { canEditStructure, role } = useUserRole();
+  const isAdmin = role?.toLowerCase() === "administrador";
   const { empleados, addEmpleado, updateEmpleado, deleteEmpleado } = useEmpleados();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEmpleado, setEditingEmpleado] = useState<Empleado | null>(null);
@@ -31,7 +32,9 @@ export default function Empleados() {
   const [managedColumns, setManagedColumns] = useState<ColumnConfig[]>([]);
 
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
-    setManagedColumns([...newColumns]);
+    console.log('[Empleados] Received column changes:', newColumns.length, newColumns);
+    const copiedColumns = newColumns.map(col => ({ ...col }));
+    setManagedColumns(copiedColumns);
   };
   
   const [formData, setFormData] = useState({
@@ -212,7 +215,7 @@ export default function Empleados() {
           title="Creación de Empleados"
           description="Administrar empleados que pueden ser asignados a proyectos"
           actions={
-            canEditStructure() && (
+            isAdmin && (
               <Button variant="outline" size="sm" onClick={initializeColumns}>
                 <Settings className="h-4 w-4 mr-2" />
                 Gestionar Columnas

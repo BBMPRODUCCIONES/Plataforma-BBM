@@ -59,7 +59,9 @@ const Proveedores = () => {
 
   // Handle column changes - force new array reference
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
-    setManagedColumns([...newColumns]);
+    console.log('[Proveedores] Received column changes:', newColumns.length, newColumns);
+    const copiedColumns = newColumns.map(col => ({ ...col }));
+    setManagedColumns(copiedColumns);
   };
 
   const categories = [...new Set(proveedores.map((p) => p.categoria))];

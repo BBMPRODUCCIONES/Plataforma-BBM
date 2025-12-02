@@ -59,10 +59,13 @@ const PanelOperaciones = () => {
 
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
     // Create new array to ensure React detects the change
-    console.log('[PanelOperaciones] Received column changes:', newColumns.length, newColumns);
+    console.log('[PanelOperaciones] handleColumnsChange called with:', newColumns.length, 'columns');
     const copiedColumns = newColumns.map(col => ({ ...col }));
     setManagedColumns(copiedColumns);
   };
+
+  // Debug: Log whenever managedColumns changes
+  console.log('[PanelOperaciones] Current managedColumns count:', managedColumns.length);
 
   // Define base columns with their configurations (same pattern as PanelDirectivo)
   const baseColumnDefs: ColumnConfig[] = useMemo(() => [

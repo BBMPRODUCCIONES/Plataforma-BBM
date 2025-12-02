@@ -395,17 +395,15 @@ export function ColumnManagerDialog({
                         <Pencil className="h-4 w-4" />
                       </Button>
                       
-                      {column.isCustom && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteColumn(column)}
-                          title="Eliminar columna"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteColumn(column)}
+                        title="Eliminar columna"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                       
                       <Button
                         variant="ghost"
@@ -482,7 +480,7 @@ export function ColumnManagerDialog({
             </div>
 
             <DialogFooter className="mt-6">
-              {editingColumn && editingColumn.isCustom && (
+              {editingColumn && (
                 <Button
                   variant="destructive"
                   onClick={() => handleDeleteColumn(editingColumn)}

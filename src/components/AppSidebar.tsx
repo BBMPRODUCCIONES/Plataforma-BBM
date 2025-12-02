@@ -36,6 +36,7 @@ const mainNavItems = [
 const adminNavItems = [
   { title: "Gestión de Usuarios", url: "/usuarios", icon: UserPlus, panel: "usuarios" },
   { title: "Gestión de Clientes", url: "/clientes", icon: Building2, panel: "clientes" },
+  { title: "Creación de Empleados", url: "/empleados", icon: Users, panel: "empleados" },
   { title: "Constructor de Campos", url: "/constructor", icon: Settings, panel: "constructor" },
   { title: "Agentes IA", url: "/agentes-ia", icon: Bot, panel: "agentes" },
   { title: "Google Calendar", url: "/calendar", icon: Calendar, panel: "calendar" },

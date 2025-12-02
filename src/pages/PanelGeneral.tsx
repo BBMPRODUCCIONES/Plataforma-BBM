@@ -13,6 +13,7 @@ import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
+import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { mockProjects } from "@/data/mockData";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
@@ -31,7 +32,23 @@ const PanelGeneral = () => {
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
-  const [managedColumns, setManagedColumns] = useState<ColumnConfig[]>([]);
+  // Initialize with base columns - persisted to localStorage
+  const defaultColumns: ColumnConfig[] = [
+    { key: "centroCostos", header: "Centro de Costos", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
+    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 1 },
+    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 2 },
+    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 3, options: ["No se hizo", "Se hizo", "No es necesario"] },
+    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 4 },
+    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 5 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "140px", visible: true, isCustom: false, order: 6 },
+    { key: "jefeOperaciones", header: "Jefe Operaciones", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 7 },
+    { key: "aCargoDe", header: "A Cargo De", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 8 },
+    { key: "productor", header: "Productor", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 9 },
+    { key: "ubicacion", header: "Ubicación", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 10 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 11 },
+    { key: "panelDirectivo", header: "Panel Directivo", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 12 },
+  ];
+  const [managedColumns, setManagedColumns] = usePersistedColumns("panel-general-columns", defaultColumns);
   
   // Calendar filter state
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");

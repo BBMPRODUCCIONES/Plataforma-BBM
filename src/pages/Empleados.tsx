@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { MatrixTable } from "@/components/MatrixTable";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
+import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { Plus, Trash2, Edit, Users, Search, Settings } from "lucide-react";
 import { toast } from "sonner";
@@ -29,7 +30,15 @@ export default function Empleados() {
   const [editingEmpleado, setEditingEmpleado] = useState<Empleado | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
-  const [managedColumns, setManagedColumns] = useState<ColumnConfig[]>([]);
+  // Initialize with base columns - persisted
+  const defaultColumns: ColumnConfig[] = [
+    { key: "cargo", header: "CARGO", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 0 },
+    { key: "nombre", header: "NOMBRE", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 1 },
+    { key: "telefono", header: "TELÉFONO", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 2 },
+    { key: "correo", header: "CORREO", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 3 },
+    { key: "acciones", header: "ACCIONES", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 4 },
+  ];
+  const [managedColumns, setManagedColumns] = usePersistedColumns("empleados-columns", defaultColumns);
 
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
     console.log('[Empleados] Received column changes:', newColumns.length, newColumns);

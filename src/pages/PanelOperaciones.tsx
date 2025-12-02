@@ -55,7 +55,8 @@ const PanelOperaciones = () => {
   };
 
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
-    setManagedColumns(newColumns);
+    // Create new array to ensure React detects the change
+    setManagedColumns([...newColumns]);
   };
 
   // Define base columns with their configurations (same pattern as PanelDirectivo)
@@ -80,13 +81,8 @@ const PanelOperaciones = () => {
     { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 17 },
   ], []);
 
-  // Get all columns (base + managed)
-  const allColumnConfigs = useMemo(() => {
-    if (managedColumns.length === 0) {
-      return baseColumnDefs;
-    }
-    return managedColumns;
-  }, [baseColumnDefs, managedColumns]);
+  // Get all columns (base + managed) - use direct calculation for immediate updates
+  const allColumnConfigs = managedColumns.length > 0 ? managedColumns : baseColumnDefs;
 
   // Initialize managed columns if empty
   const initializeColumns = () => {
@@ -386,18 +382,16 @@ const PanelOperaciones = () => {
     };
   };
 
-  // Build columns dynamically from allColumnConfigs
-  const columns = useMemo(() => {
-    return allColumnConfigs
-      .filter(col => col.visible !== false)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .map(col => ({
-        key: col.key,
-        header: col.header,
-        width: col.width,
-        render: getColumnRender(col),
-      }));
-  }, [allColumnConfigs, projects]);
+  // Build columns dynamically from allColumnConfigs - direct calculation for immediate updates
+  const columns = allColumnConfigs
+    .filter(col => col.visible !== false)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map(col => ({
+      key: col.key,
+      header: col.header,
+      width: col.width,
+      render: getColumnRender(col),
+    }));
 
   const updatePersonalItem = (projectId: string, personalId: string, field: string, value: any) => {
     setProjects(prevProjects => prevProjects.map(proj => {

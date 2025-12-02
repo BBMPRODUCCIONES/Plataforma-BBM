@@ -1,9 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ColumnConfig } from "@/components/ColumnManagerDialog";
 
 export function usePersistedColumns(storageKey: string, defaultColumns: ColumnConfig[]) {
-  const hasInitialized = useRef(false);
-  
   // Initialize from localStorage, merging missing base columns
   const [columns, setColumns] = useState<ColumnConfig[]>(() => {
     try {

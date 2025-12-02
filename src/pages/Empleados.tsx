@@ -29,6 +29,10 @@ export default function Empleados() {
   const [searchTerm, setSearchTerm] = useState("");
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [managedColumns, setManagedColumns] = useState<ColumnConfig[]>([]);
+
+  const handleColumnsChange = (newColumns: ColumnConfig[]) => {
+    setManagedColumns([...newColumns]);
+  };
   
   const [formData, setFormData] = useState({
     cargo: "",
@@ -316,7 +320,7 @@ export default function Empleados() {
           open={columnManagerOpen}
           onOpenChange={setColumnManagerOpen}
           columns={allColumnConfigs}
-          onColumnsChange={setManagedColumns}
+          onColumnsChange={handleColumnsChange}
           panelName="Creación de Empleados"
         />
       </div>

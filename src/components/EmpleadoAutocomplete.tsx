@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Check, User, ChevronDown } from "lucide-react";
-import { mockEmpleados, Empleado } from "@/pages/Empleados";
+import { useEmpleados, Empleado } from "@/contexts/EmpleadosContext";
 
 interface EmpleadoAutocompleteProps {
   value: string;
@@ -17,6 +17,7 @@ export function EmpleadoAutocomplete({
   tipoPersonal,
   className 
 }: EmpleadoAutocompleteProps) {
+  const { getEmpleadosByCategoria } = useEmpleados();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value || "");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -25,16 +26,19 @@ export function EmpleadoAutocomplete({
   // Determine if this is a BBM-only selector (no manual entry)
   const isBBMRestricted = tipoPersonal === "BBM";
 
-  // Filter empleados by category
+  // Get empleados by category from context
+  const empleadosByCategory = useMemo(() => {
+    return getEmpleadosByCategoria(tipoPersonal);
+  }, [getEmpleadosByCategoria, tipoPersonal]);
+
+  // Filter empleados based on search
   const filteredEmpleados = useMemo(() => {
-    const empleadosByCategory = mockEmpleados.filter(e => e.categoria === tipoPersonal);
-    
     if (!inputValue.trim()) return empleadosByCategory;
     
     return empleadosByCategory.filter(e =>
       e.nombre.toLowerCase().includes(inputValue.toLowerCase())
     );
-  }, [inputValue, tipoPersonal]);
+  }, [inputValue, empleadosByCategory]);
 
   useEffect(() => {
     setInputValue(value || "");
@@ -46,8 +50,8 @@ export function EmpleadoAutocomplete({
         setIsOpen(false);
         // If BBM and value doesn't match any empleado, reset
         if (isBBMRestricted) {
-          const matchedEmpleado = mockEmpleados.find(
-            e => e.categoria === "BBM" && e.nombre === inputValue
+          const matchedEmpleado = empleadosByCategory.find(
+            e => e.nombre === inputValue
           );
           if (!matchedEmpleado && inputValue !== value) {
             setInputValue(value || "");
@@ -58,7 +62,7 @@ export function EmpleadoAutocomplete({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isBBMRestricted, inputValue, value]);
+  }, [isBBMRestricted, inputValue, value, empleadosByCategory]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -91,7 +95,7 @@ export function EmpleadoAutocomplete({
     }
   };
 
-  // For BBM: Show dropdown selector style
+  // For BBM: Show dropdown selector style (MANDATORY selection)
   if (isBBMRestricted) {
     return (
       <div ref={containerRef} className={cn("relative", className)}>

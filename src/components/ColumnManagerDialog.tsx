@@ -395,14 +395,26 @@ export function ColumnManagerDialog({
                         <Pencil className="h-4 w-4" />
                       </Button>
                       
+                      {column.isCustom && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteColumn(column)}
+                          title="Eliminar columna"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDeleteColumn(column)}
-                        title="Eliminar columna"
+                        className="h-8 w-8"
+                        onClick={() => handleToggleVisibility(column.key)}
+                        title={column.visible ? "Ocultar columna" : "Mostrar columna"}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {column.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                       </Button>
                     </div>
                   </div>
@@ -470,7 +482,7 @@ export function ColumnManagerDialog({
             </div>
 
             <DialogFooter className="mt-6">
-              {editingColumn && (
+              {editingColumn && editingColumn.isCustom && (
                 <Button
                   variant="destructive"
                   onClick={() => handleDeleteColumn(editingColumn)}

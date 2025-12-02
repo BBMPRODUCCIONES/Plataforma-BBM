@@ -37,16 +37,17 @@ const PanelGeneral = () => {
     { key: "centroCostos", header: "Centro de Costos", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
     { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 1 },
     { key: "cliente", header: "Cliente", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 2 },
-    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 3, options: ["No se hizo", "Se hizo", "No es necesario"] },
-    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 4 },
-    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 5 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "140px", visible: true, isCustom: false, order: 6 },
-    { key: "jefeOperaciones", header: "Jefe Operaciones", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 7 },
-    { key: "aCargoDe", header: "A Cargo De", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 8 },
-    { key: "productor", header: "Productor", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 9 },
-    { key: "ubicacion", header: "Ubicación", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 10 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 11 },
-    { key: "panelDirectivo", header: "Panel Directivo", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 12 },
+    { key: "evento", header: "Evento", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 3 },
+    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 4, options: ["No se hizo", "Se hizo", "No es necesario"] },
+    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 5 },
+    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 6 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "140px", visible: true, isCustom: false, order: 7 },
+    { key: "jefeOperaciones", header: "Jefe Operaciones", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 8 },
+    { key: "aCargoDe", header: "A Cargo De", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 9 },
+    { key: "productor", header: "Productor", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 10 },
+    { key: "ubicacion", header: "Ubicación", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 11 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 12 },
+    { key: "panelDirectivo", header: "Panel Directivo", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 13 },
   ];
   const [managedColumns, setManagedColumns] = usePersistedColumns("panel-general-columns", defaultColumns);
   
@@ -156,15 +157,19 @@ const PanelGeneral = () => {
         );
       case "cliente":
         return (p: Project) => (
-          <div>
-            <ClienteAutocomplete
-              value={p.cliente}
-              onChange={(value) => updateProject(p.id, "cliente", value)}
-            />
-            <div className="text-[10px] text-muted-foreground truncate max-w-[180px]">
-              {p.evento}
-            </div>
-          </div>
+          <ClienteAutocomplete
+            value={p.cliente}
+            onChange={(value) => updateProject(p.id, "cliente", value)}
+          />
+        );
+      case "evento":
+        return (p: Project) => (
+          <EditableCell
+            value={p.evento}
+            type="text"
+            onChange={(value) => updateProject(p.id, "evento", value)}
+            className="font-medium"
+          />
         );
       case "avanzada":
         return (p: Project) => (

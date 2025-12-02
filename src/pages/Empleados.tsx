@@ -11,46 +11,19 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { MatrixTable } from "@/components/MatrixTable";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { Plus, Trash2, Edit, Users, Search, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
-
-export interface Empleado {
-  id: string;
-  categoria: "BBM" | "Proveedor" | "Transporte";
-  nombre: string;
-  telefono: string;
-  correo: string;
-  createdAt: string;
-  [key: string]: any;
-}
-
-// Mock data for empleados
-const initialEmpleados: Empleado[] = [
-  { id: "e1", categoria: "BBM", nombre: "Juan Pérez", telefono: "+57 300 123 4567", correo: "juan.perez@bbm.com", createdAt: "2024-01-01T00:00:00Z" },
-  { id: "e2", categoria: "BBM", nombre: "Laura Martínez", telefono: "+57 301 234 5678", correo: "laura.martinez@bbm.com", createdAt: "2024-01-05T00:00:00Z" },
-  { id: "e3", categoria: "BBM", nombre: "Carlos Ruiz", telefono: "+57 302 345 6789", correo: "carlos.ruiz@bbm.com", createdAt: "2024-01-10T00:00:00Z" },
-  { id: "e4", categoria: "Proveedor", nombre: "Diego Morales", telefono: "+57 303 456 7890", correo: "diego@proveedor.com", createdAt: "2024-01-15T00:00:00Z" },
-  { id: "e5", categoria: "Transporte", nombre: "Andrés López", telefono: "+57 304 567 8901", correo: "andres@transporte.com", createdAt: "2024-01-20T00:00:00Z" },
-];
-
-// Export for use in other components
-export const mockEmpleados = initialEmpleados;
+import { useEmpleados, Empleado } from "@/contexts/EmpleadosContext";
 
 export default function Empleados() {
   const { canEditStructure } = useUserRole();
-  const [empleados, setEmpleados] = useState<Empleado[]>(initialEmpleados);
+  const { empleados, addEmpleado, updateEmpleado, deleteEmpleado } = useEmpleados();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEmpleado, setEditingEmpleado] = useState<Empleado | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -58,20 +31,20 @@ export default function Empleados() {
   const [managedColumns, setManagedColumns] = useState<ColumnConfig[]>([]);
   
   const [formData, setFormData] = useState({
-    categoria: "BBM" as "BBM" | "Proveedor" | "Transporte",
+    cargo: "",
     nombre: "",
     telefono: "",
     correo: "",
   });
 
   const resetForm = () => {
-    setFormData({ categoria: "BBM", nombre: "", telefono: "", correo: "" });
+    setFormData({ cargo: "", nombre: "", telefono: "", correo: "" });
     setEditingEmpleado(null);
   };
 
   const handleSave = () => {
-    if (!formData.nombre || !formData.categoria) {
-      toast.error("Por favor complete los campos obligatorios (Categoría y Nombre)");
+    if (!formData.nombre) {
+      toast.error("Por favor complete el campo Nombre");
       return;
     }
 
@@ -82,11 +55,7 @@ export default function Empleados() {
     }
 
     if (editingEmpleado) {
-      setEmpleados(empleados.map(e => 
-        e.id === editingEmpleado.id 
-          ? { ...e, ...formData }
-          : e
-      ));
+      updateEmpleado(editingEmpleado.id, formData);
       toast.success("Empleado actualizado exitosamente");
     } else {
       const newEmpleado: Empleado = {
@@ -94,7 +63,7 @@ export default function Empleados() {
         ...formData,
         createdAt: new Date().toISOString(),
       };
-      setEmpleados([...empleados, newEmpleado]);
+      addEmpleado(newEmpleado);
       toast.success("Empleado agregado exitosamente");
     }
 
@@ -105,7 +74,7 @@ export default function Empleados() {
   const handleEdit = (empleado: Empleado) => {
     setEditingEmpleado(empleado);
     setFormData({
-      categoria: empleado.categoria,
+      cargo: empleado.cargo || "",
       nombre: empleado.nombre,
       telefono: empleado.telefono,
       correo: empleado.correo,
@@ -114,24 +83,22 @@ export default function Empleados() {
   };
 
   const handleDelete = (empleadoId: string) => {
-    setEmpleados(empleados.filter(e => e.id !== empleadoId));
+    deleteEmpleado(empleadoId);
     toast.success("Empleado eliminado");
   };
 
-  const updateEmpleado = (empleadoId: string, field: string, value: any) => {
-    setEmpleados(prev => prev.map(e => 
-      e.id === empleadoId ? { ...e, [field]: value } : e
-    ));
+  const handleUpdateEmpleado = (empleadoId: string, field: string, value: any) => {
+    updateEmpleado(empleadoId, { [field]: value });
   };
 
   const filteredEmpleados = empleados.filter(e => 
     e.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
     e.correo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+    (e.cargo && e.cargo.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const baseColumnDefs: ColumnConfig[] = [
-    { key: "categoria", header: "Categoría", type: "select" as CellType, width: "120px", visible: true, isCustom: false, order: 0, options: ["BBM", "Proveedor", "Transporte"] },
+    { key: "cargo", header: "Cargo", type: "text" as CellType, width: "180px", visible: true, isCustom: false, order: 0 },
     { key: "nombre", header: "Nombre", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 1 },
     { key: "telefono", header: "Teléfono", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 2 },
     { key: "correo", header: "Correo Electrónico", type: "text" as CellType, width: "220px", visible: true, isCustom: false, order: 3 },
@@ -150,19 +117,13 @@ export default function Empleados() {
   const getColumnRender = (col: ColumnConfig) => {
     return (e: Empleado) => {
       switch (col.key) {
-        case "categoria":
+        case "cargo":
           return (
-            <div className="flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                e.categoria === "BBM" 
-                  ? "bg-primary/10 text-primary" 
-                  : e.categoria === "Proveedor"
-                  ? "bg-amber-500/10 text-amber-600"
-                  : "bg-blue-500/10 text-blue-600"
-              }`}>
-                {e.categoria}
-              </span>
-            </div>
+            <EditableCell
+              value={e.cargo || ""}
+              type="text"
+              onChange={(value) => handleUpdateEmpleado(e.id, "cargo", value)}
+            />
           );
         case "nombre":
           return (
@@ -173,7 +134,7 @@ export default function Empleados() {
               <EditableCell
                 value={e.nombre}
                 type="text"
-                onChange={(value) => updateEmpleado(e.id, "nombre", value)}
+                onChange={(value) => handleUpdateEmpleado(e.id, "nombre", value)}
               />
             </div>
           );
@@ -182,7 +143,7 @@ export default function Empleados() {
             <EditableCell
               value={e.telefono}
               type="text"
-              onChange={(value) => updateEmpleado(e.id, "telefono", value)}
+              onChange={(value) => handleUpdateEmpleado(e.id, "telefono", value)}
             />
           );
         case "correo":
@@ -190,7 +151,7 @@ export default function Empleados() {
             <EditableCell
               value={e.correo}
               type="text"
-              onChange={(value) => updateEmpleado(e.id, "correo", value)}
+              onChange={(value) => handleUpdateEmpleado(e.id, "correo", value)}
             />
           );
         case "createdAt":
@@ -203,7 +164,7 @@ export default function Empleados() {
               value={value}
               type={col.type || "text"}
               options={col.options}
-              onChange={(newValue) => updateEmpleado(e.id, col.key, newValue)}
+              onChange={(newValue) => handleUpdateEmpleado(e.id, col.key, newValue)}
             />
           );
       }
@@ -257,7 +218,7 @@ export default function Empleados() {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nombre, correo o categoría..."
+              placeholder="Buscar por nombre, correo o cargo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -274,24 +235,20 @@ export default function Empleados() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>{editingEmpleado ? "Editar Empleado" : "Agregar Nuevo Empleado"}</DialogTitle>
+                <DialogDescription>
+                  Complete los datos del empleado. Los empleados creados aquí estarán disponibles para selección en eventos.
+                </DialogDescription>
               </DialogHeader>
               
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="categoria">Categoría *</Label>
-                  <Select
-                    value={formData.categoria}
-                    onValueChange={(value: "BBM" | "Proveedor" | "Transporte") => setFormData({ ...formData, categoria: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BBM">BBM</SelectItem>
-                      <SelectItem value="Proveedor">Proveedor</SelectItem>
-                      <SelectItem value="Transporte">Transporte</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="cargo">Cargo</Label>
+                  <Input
+                    id="cargo"
+                    placeholder="Ej: Coordinador de Logística"
+                    value={formData.cargo}
+                    onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -349,9 +306,9 @@ export default function Empleados() {
         <div className="p-4 bg-muted/30 rounded-lg border border-border">
           <h4 className="text-sm font-medium mb-2">Nota Importante</h4>
           <p className="text-xs text-muted-foreground">
-            Los empleados con categoría <strong>BBM</strong> son la fuente oficial de datos para el personal interno. 
+            Los empleados creados aquí son la fuente oficial de datos para el personal interno. 
             Cuando seleccione "Tipo = BBM" en el módulo de Personal de un evento, <strong>solo podrá seleccionar</strong> empleados 
-            registrados aquí con categoría BBM. No es posible escribir nombres manualmente para personal BBM.
+            registrados en este módulo. No es posible escribir nombres manualmente para personal BBM.
           </p>
         </div>
 

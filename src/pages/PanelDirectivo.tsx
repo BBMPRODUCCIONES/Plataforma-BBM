@@ -13,9 +13,10 @@ import { PurchaseOrderUpload } from "@/components/PurchaseOrderUpload";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
+import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { useUserRole } from "@/hooks/useUserRole";
-import { mockProjects, mockClientes } from "@/data/mockData";
+import { mockProjects } from "@/data/mockData";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -159,12 +160,9 @@ const PanelDirectivo = () => {
         );
       case "cliente":
         return (p: Project) => (
-          <EditableCell
+          <ClienteAutocomplete
             value={p.cliente}
-            type="select"
-            options={mockClientes.map(c => c.nombre)}
             onChange={(value) => updateProject(p.id, "cliente", value)}
-            className="font-medium"
           />
         );
       case "evento":

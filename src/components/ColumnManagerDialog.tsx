@@ -12,6 +12,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -88,6 +98,8 @@ export function ColumnManagerDialog({
   const [columnWidth, setColumnWidth] = useState("120px");
   const [selectOptions, setSelectOptions] = useState("");
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [columnToDelete, setColumnToDelete] = useState<ColumnConfig | null>(null);
 
   const resetForm = () => {
     setColumnName("");
@@ -148,11 +160,22 @@ export function ColumnManagerDialog({
     setActiveTab("list");
   };
 
-  const handleDeleteColumn = (key: string) => {
-    const column = columns.find((c) => c.key === key);
-    if (!column?.isCustom) return;
-    
-    onColumnsChange(columns.filter((col) => col.key !== key));
+  const handleDeleteColumn = (column: ColumnConfig) => {
+    setColumnToDelete(column);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteColumn = () => {
+    if (columnToDelete) {
+      onColumnsChange(columns.filter((col) => col.key !== columnToDelete.key));
+      setColumnToDelete(null);
+      setDeleteConfirmOpen(false);
+      // If we were editing this column, go back to list
+      if (editingColumn?.key === columnToDelete.key) {
+        resetForm();
+        setActiveTab("list");
+      }
+    }
   };
 
   const handleToggleVisibility = (key: string) => {
@@ -339,17 +362,15 @@ export function ColumnManagerDialog({
                         <Pencil className="h-4 w-4" />
                       </Button>
                       
-                      {column.isCustom && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteColumn(column.key)}
-                          title="Eliminar columna"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteColumn(column)}
+                        title="Eliminar columna"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -416,6 +437,16 @@ export function ColumnManagerDialog({
             </div>
 
             <DialogFooter className="mt-6">
+              {editingColumn && (
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDeleteColumn(editingColumn)}
+                  className="mr-auto"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Eliminar
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={() => {
@@ -435,6 +466,27 @@ export function ColumnManagerDialog({
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar columna?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {columnToDelete?.isCustom ? (
+                <>¿Estás seguro de que deseas eliminar la columna "<strong>{columnToDelete?.header}</strong>"? Esta acción no se puede deshacer.</>
+              ) : (
+                <>La columna "<strong>{columnToDelete?.header}</strong>" es una columna base del sistema. ¿Estás seguro de que deseas eliminarla? Esto puede afectar la funcionalidad del panel.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteColumn} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

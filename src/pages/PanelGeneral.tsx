@@ -101,15 +101,12 @@ const PanelGeneral = () => {
     { key: "ordenCompra", header: "OC + OCR", type: "file" as CellType, width: "130px", visible: true, isCustom: false, order: 7 },
   ], []);
 
-  const allColumnConfigs = useMemo(() => {
-    if (managedColumns.length === 0) {
-      return baseColumnDefs;
-    }
-    return managedColumns;
-  }, [baseColumnDefs, managedColumns]);
+  // Get all columns - direct calculation for immediate updates
+  const allColumnConfigs = managedColumns.length > 0 ? managedColumns : baseColumnDefs;
 
+  // Handle columns change - force new array reference
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
-    setManagedColumns(newColumns);
+    setManagedColumns([...newColumns]);
   };
 
   const initializeColumns = () => {
@@ -320,7 +317,8 @@ const PanelGeneral = () => {
     ),
   };
 
-  const columns = useMemo(() => {
+  // Build columns - direct calculation for immediate updates
+  const columns = (() => {
     const visibleColumns = allColumnConfigs
       .filter(col => col.visible)
       .sort((a, b) => a.order - b.order)
@@ -332,7 +330,7 @@ const PanelGeneral = () => {
       }));
     
     return [...visibleColumns, panelColumn];
-  }, [allColumnConfigs]);
+  })();
 
   return (
     <Layout>

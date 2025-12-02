@@ -57,6 +57,11 @@ const Proveedores = () => {
     }))
   );
 
+  // Handle column changes - force new array reference
+  const handleColumnsChange = (newColumns: ColumnConfig[]) => {
+    setManagedColumns([...newColumns]);
+  };
+
   const categories = [...new Set(proveedores.map((p) => p.categoria))];
 
   const filteredProveedores = proveedores.filter((p) => {
@@ -337,7 +342,7 @@ const Proveedores = () => {
           open={columnManagerOpen}
           onOpenChange={setColumnManagerOpen}
           columns={managedColumns}
-          onColumnsChange={setManagedColumns}
+          onColumnsChange={handleColumnsChange}
           panelName="Proveedores"
         />
       </div>

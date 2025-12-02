@@ -115,17 +115,12 @@ const PanelDirectivo = () => {
     { key: "estado", header: "Estado", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 12 },
   ], []);
 
-  // Get all columns (base + managed)
-  const allColumnConfigs = useMemo(() => {
-    if (managedColumns.length === 0) {
-      return baseColumnDefs;
-    }
-    return managedColumns;
-  }, [baseColumnDefs, managedColumns]);
+  // Get all columns (base + managed) - direct calculation for immediate updates
+  const allColumnConfigs = managedColumns.length > 0 ? managedColumns : baseColumnDefs;
 
-  // Handle columns change from manager
+  // Handle columns change from manager - force new array reference
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
-    setManagedColumns(newColumns);
+    setManagedColumns([...newColumns]);
   };
 
   // Initialize managed columns if empty
@@ -375,8 +370,8 @@ const PanelDirectivo = () => {
     ),
   };
 
-  // Build final columns array
-  const columns = useMemo(() => {
+  // Build final columns array - direct calculation for immediate updates
+  const columns = (() => {
     const visibleColumns = allColumnConfigs
       .filter(col => col.visible)
       .sort((a, b) => a.order - b.order)
@@ -388,7 +383,7 @@ const PanelDirectivo = () => {
       }));
     
     return [...visibleColumns, panelColumn];
-  }, [allColumnConfigs]);
+  })();
 
   return (
     <Layout>

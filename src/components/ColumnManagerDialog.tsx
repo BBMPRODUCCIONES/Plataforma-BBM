@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Columns, Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,6 +92,16 @@ export function ColumnManagerDialog({
   const [editingColumn, setEditingColumn] = useState<ColumnConfig | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   
+  // Local state that syncs with props
+  const [localColumns, setLocalColumns] = useState<ColumnConfig[]>(columns);
+  
+  // Sync local state with props when props change or dialog opens
+  useEffect(() => {
+    if (open) {
+      setLocalColumns([...columns]);
+    }
+  }, [columns, open]);
+  
   // Form state for create/edit
   const [columnName, setColumnName] = useState("");
   const [columnType, setColumnType] = useState<CellType>("text");
@@ -108,6 +118,12 @@ export function ColumnManagerDialog({
     setSelectOptions("");
     setEditingColumn(null);
     setIsCreating(false);
+  };
+
+  // Helper to update both local and parent state
+  const updateColumns = (newColumns: ColumnConfig[]) => {
+    setLocalColumns([...newColumns]);
+    onColumnsChange([...newColumns]);
   };
 
   const handleCreateColumn = () => {
@@ -127,13 +143,13 @@ export function ColumnManagerDialog({
       width: columnWidth,
       visible: true,
       isCustom: true,
-      order: columns.length,
+      order: localColumns.length,
       ...(columnType === "select" && selectOptions
         ? { options: selectOptions.split("\n").map((o) => o.trim()).filter(Boolean) }
         : {}),
     };
 
-    onColumnsChange([...columns, newColumn]);
+    updateColumns([...localColumns, newColumn]);
     resetForm();
     setActiveTab("list");
   };
@@ -141,7 +157,7 @@ export function ColumnManagerDialog({
   const handleEditColumn = () => {
     if (!editingColumn || !columnName.trim()) return;
 
-    const updatedColumns = columns.map((col) =>
+    const updatedColumns = localColumns.map((col) =>
       col.key === editingColumn.key
         ? {
             ...col,
@@ -155,7 +171,7 @@ export function ColumnManagerDialog({
         : col
     );
 
-    onColumnsChange(updatedColumns);
+    updateColumns(updatedColumns);
     resetForm();
     setActiveTab("list");
   };
@@ -167,7 +183,8 @@ export function ColumnManagerDialog({
 
   const confirmDeleteColumn = () => {
     if (columnToDelete) {
-      onColumnsChange(columns.filter((col) => col.key !== columnToDelete.key));
+      const filteredColumns = localColumns.filter((col) => col.key !== columnToDelete.key);
+      updateColumns(filteredColumns);
       setColumnToDelete(null);
       setDeleteConfirmOpen(false);
       // If we were editing this column, go back to list
@@ -179,14 +196,14 @@ export function ColumnManagerDialog({
   };
 
   const handleToggleVisibility = (key: string) => {
-    const updatedColumns = columns.map((col) =>
+    const updatedColumns = localColumns.map((col) =>
       col.key === key ? { ...col, visible: !col.visible } : col
     );
-    onColumnsChange(updatedColumns);
+    updateColumns(updatedColumns);
   };
 
   const handleRoleVisibilityChange = (key: string, role: keyof RoleVisibility, value: boolean) => {
-    const updatedColumns = columns.map((col) =>
+    const updatedColumns = localColumns.map((col) =>
       col.key === key
         ? {
             ...col,
@@ -198,7 +215,7 @@ export function ColumnManagerDialog({
           }
         : col
     );
-    onColumnsChange(updatedColumns);
+    updateColumns(updatedColumns);
   };
 
   const startEditing = (column: ColumnConfig) => {
@@ -225,7 +242,7 @@ export function ColumnManagerDialog({
     e.preventDefault();
     if (draggedIndex === null || draggedIndex === index) return;
 
-    const newColumns = [...columns];
+    const newColumns = [...localColumns];
     const draggedColumn = newColumns[draggedIndex];
     newColumns.splice(draggedIndex, 1);
     newColumns.splice(index, 0, draggedColumn);
@@ -235,7 +252,7 @@ export function ColumnManagerDialog({
       col.order = i;
     });
 
-    onColumnsChange(newColumns);
+    updateColumns(newColumns);
     setDraggedIndex(index);
   };
 
@@ -243,7 +260,7 @@ export function ColumnManagerDialog({
     setDraggedIndex(null);
   };
 
-  const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
+  const sortedColumns = [...localColumns].sort((a, b) => a.order - b.order);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

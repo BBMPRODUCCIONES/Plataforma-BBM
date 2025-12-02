@@ -12,6 +12,7 @@ import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
+import { EmpleadoAutocomplete } from "@/components/EmpleadoAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { useUserRole } from "@/hooks/useUserRole";
 import { mockProjects } from "@/data/mockData";
@@ -27,7 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, FileDown, Settings } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario } from "@/utils/pdfGenerator";
@@ -435,13 +436,34 @@ const PanelOperaciones = () => {
     
     const basePersonalCols = [
       { 
-        key: "nombre", 
-        header: "Nombre", 
-        width: "150px",
+        key: "tipoPersonal", 
+        header: "Tipo", 
+        width: "120px",
         render: (p: PersonalItem) => (
           <EditableCell
+            value={p.tipoPersonal}
+            type="select"
+            options={["BBM", "Proveedor", "Transporte"]}
+            onChange={(value) => {
+              if (projectId) {
+                updatePersonalItem(projectId, p.id, "tipoPersonal", value);
+                // Clear nombre when switching to BBM (must select from list)
+                if (value === "BBM") {
+                  updatePersonalItem(projectId, p.id, "nombre", "");
+                }
+              }
+            }}
+          />
+        ),
+      },
+      { 
+        key: "nombre", 
+        header: "Personal", 
+        width: "180px",
+        render: (p: PersonalItem) => (
+          <EmpleadoAutocomplete
             value={p.nombre}
-            type="text"
+            tipoPersonal={p.tipoPersonal || "BBM"}
             onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "nombre", value)}
           />
         ),
@@ -471,19 +493,6 @@ const PanelOperaciones = () => {
         ),
       },
       { 
-        key: "tipoPersonal", 
-        header: "Tipo", 
-        width: "120px",
-        render: (p: PersonalItem) => (
-          <EditableCell
-            value={p.tipoPersonal}
-            type="select"
-            options={["BBM", "Proveedor", "Transporte"]}
-            onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "tipoPersonal", value)}
-          />
-        ),
-      },
-      { 
         key: "notas", 
         header: "Notas", 
         width: "200px",
@@ -491,25 +500,27 @@ const PanelOperaciones = () => {
           <EditableCell
             value={p.notas}
             type="text"
-            placeholder={p.tipoPersonal === "Transporte" ? "Agregar ruta realizada..." : "-"}
+            placeholder="-"
             onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "notas", value)}
           />
         ),
       },
     ];
 
+    // Always show Ruta Transporte column when there's transport personnel
     if (hasTransporte) {
       basePersonalCols.push({
         key: "rutaTransporte",
-        header: "Ruta Transporte",
+        header: "Ruta Realizada *",
         width: "200px",
         render: (p: PersonalItem) => (
           p.tipoPersonal === "Transporte" ? (
             <EditableCell
               value={p.rutaTransporte}
               type="text"
-              placeholder="Agregar ruta realizada..."
+              placeholder="Ruta obligatoria..."
               onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "rutaTransporte", value)}
+              className={!p.rutaTransporte ? "border-destructive/50" : ""}
             />
           ) : <span className="text-xs text-muted-foreground">-</span>
         ),
@@ -714,11 +725,33 @@ const PanelOperaciones = () => {
                 </div>
 
                 <Card>
-                  <CardHeader className="py-3">
+                  <CardHeader className="py-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <Users className="h-4 w-4" />
                       Personal ({(currentProjectData.personal || []).length})
                     </CardTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newPersonal: PersonalItem = {
+                          id: `p${Date.now()}`,
+                          nombre: "",
+                          cargo: "",
+                          telefono: "",
+                          tipoPersonal: "BBM",
+                          notas: "",
+                        };
+                        setProjects(prev => prev.map(proj =>
+                          proj.id === currentProjectData.id
+                            ? { ...proj, personal: [...(proj.personal || []), newPersonal] }
+                            : proj
+                        ));
+                      }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Agregar Personal
+                    </Button>
                   </CardHeader>
                   <CardContent className="pt-0">
                     {(currentProjectData.personal || []).length > 0 ? (
@@ -727,17 +760,43 @@ const PanelOperaciones = () => {
                         columns={personalColumns}
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">No hay personal asignado</p>
+                      <p className="text-sm text-muted-foreground">No hay personal asignado. Haga clic en "Agregar Personal" para comenzar.</p>
                     )}
+                    <div className="mt-3 p-2 bg-muted/30 rounded text-[10px] text-muted-foreground">
+                      <strong>Nota:</strong> Si selecciona Tipo = BBM, solo podrá elegir empleados registrados en el módulo "Creación de Empleados".
+                    </div>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardHeader className="py-3">
+                  <CardHeader className="py-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <Package className="h-4 w-4" />
                       Inventario ({(currentProjectData.inventario || []).length})
                     </CardTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newInventario: InventarioItem = {
+                          id: `i${Date.now()}`,
+                          nombreMaterial: "",
+                          cantidad: 1,
+                          unidad: "unidades",
+                          observaciones: "",
+                          recibido: false,
+                          notasAdicionales: "",
+                        };
+                        setProjects(prev => prev.map(proj =>
+                          proj.id === currentProjectData.id
+                            ? { ...proj, inventario: [...(proj.inventario || []), newInventario] }
+                            : proj
+                        ));
+                      }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Agregar Material
+                    </Button>
                   </CardHeader>
                   <CardContent className="pt-0">
                     {(currentProjectData.inventario || []).length > 0 ? (
@@ -746,7 +805,7 @@ const PanelOperaciones = () => {
                         columns={inventarioColumns}
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">No hay inventario registrado</p>
+                      <p className="text-sm text-muted-foreground">No hay inventario registrado. Haga clic en "Agregar Material" para comenzar.</p>
                     )}
                   </CardContent>
                 </Card>

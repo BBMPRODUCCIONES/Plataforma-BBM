@@ -1,0 +1,218 @@
+import { useState, useRef, useEffect, useMemo } from "react";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { Check, User, ChevronDown } from "lucide-react";
+import { mockEmpleados, Empleado } from "@/pages/Empleados";
+
+interface EmpleadoAutocompleteProps {
+  value: string;
+  onChange: (value: string) => void;
+  tipoPersonal: "BBM" | "Proveedor" | "Transporte";
+  className?: string;
+}
+
+export function EmpleadoAutocomplete({ 
+  value, 
+  onChange, 
+  tipoPersonal,
+  className 
+}: EmpleadoAutocompleteProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(value || "");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Determine if this is a BBM-only selector (no manual entry)
+  const isBBMRestricted = tipoPersonal === "BBM";
+
+  // Filter empleados by category
+  const filteredEmpleados = useMemo(() => {
+    const empleadosByCategory = mockEmpleados.filter(e => e.categoria === tipoPersonal);
+    
+    if (!inputValue.trim()) return empleadosByCategory;
+    
+    return empleadosByCategory.filter(e =>
+      e.nombre.toLowerCase().includes(inputValue.toLowerCase())
+    );
+  }, [inputValue, tipoPersonal]);
+
+  useEffect(() => {
+    setInputValue(value || "");
+  }, [value]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        // If BBM and value doesn't match any empleado, reset
+        if (isBBMRestricted) {
+          const matchedEmpleado = mockEmpleados.find(
+            e => e.categoria === "BBM" && e.nombre === inputValue
+          );
+          if (!matchedEmpleado && inputValue !== value) {
+            setInputValue(value || "");
+          }
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isBBMRestricted, inputValue, value]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    setIsOpen(true);
+
+    // For Proveedor and Transporte, allow free text entry
+    if (!isBBMRestricted) {
+      onChange(newValue);
+    }
+  };
+
+  const handleSelectEmpleado = (empleado: Empleado) => {
+    setInputValue(empleado.nombre);
+    onChange(empleado.nombre);
+    setIsOpen(false);
+  };
+
+  const handleFocus = () => {
+    setIsOpen(true);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      setIsOpen(false);
+    }
+    if (e.key === "Enter" && filteredEmpleados.length > 0 && isBBMRestricted) {
+      e.preventDefault();
+      handleSelectEmpleado(filteredEmpleados[0]);
+    }
+  };
+
+  // For BBM: Show dropdown selector style
+  if (isBBMRestricted) {
+    return (
+      <div ref={containerRef} className={cn("relative", className)}>
+        <div
+          onClick={() => setIsOpen(!isOpen)}
+          className={cn(
+            "flex items-center justify-between px-2 py-1 text-xs cursor-pointer rounded border border-transparent",
+            "hover:bg-muted/50 transition-colors",
+            isOpen && "border-primary/50 bg-muted/30"
+          )}
+        >
+          <div className="flex items-center gap-2 truncate">
+            <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+            <span className={value ? "" : "text-muted-foreground"}>
+              {value || "Seleccionar empleado BBM..."}
+            </span>
+          </div>
+          <ChevronDown className={cn(
+            "h-3 w-3 text-muted-foreground transition-transform",
+            isOpen && "rotate-180"
+          )} />
+        </div>
+
+        {isOpen && (
+          <div className="absolute z-50 mt-1 w-full min-w-[200px] bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+            <div className="p-2 border-b border-border">
+              <Input
+                ref={inputRef}
+                value={inputValue}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Buscar empleado BBM..."
+                className="h-7 text-xs"
+                autoFocus
+              />
+            </div>
+            {filteredEmpleados.length > 0 ? (
+              <div className="py-1">
+                {filteredEmpleados.map((empleado) => (
+                  <div
+                    key={empleado.id}
+                    onClick={() => handleSelectEmpleado(empleado)}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors",
+                      value === empleado.nombre && "bg-primary/10"
+                    )}
+                  >
+                    <User className="h-3 w-3 text-muted-foreground" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium truncate">{empleado.nombre}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {empleado.telefono}
+                      </div>
+                    </div>
+                    {value === empleado.nombre && (
+                      <Check className="h-3 w-3 text-primary flex-shrink-0" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="px-3 py-4 text-center">
+                <p className="text-xs text-muted-foreground">
+                  No hay empleados BBM registrados
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Agregue empleados en el módulo "Creación de Empleados"
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // For Proveedor/Transporte: Allow free text with suggestions
+  return (
+    <div ref={containerRef} className={cn("relative", className)}>
+      <Input
+        ref={inputRef}
+        value={inputValue}
+        onChange={handleInputChange}
+        onFocus={handleFocus}
+        onKeyDown={handleKeyDown}
+        placeholder={tipoPersonal === "Transporte" ? "Nombre del transportista..." : "Nombre del proveedor..."}
+        className="h-7 text-xs"
+      />
+
+      {isOpen && filteredEmpleados.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full min-w-[200px] bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
+          <div className="px-2 py-1 border-b border-border bg-muted/30">
+            <span className="text-[10px] text-muted-foreground">
+              Sugerencias (opcional)
+            </span>
+          </div>
+          <div className="py-1">
+            {filteredEmpleados.map((empleado) => (
+              <div
+                key={empleado.id}
+                onClick={() => handleSelectEmpleado(empleado)}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors",
+                  value === empleado.nombre && "bg-primary/10"
+                )}
+              >
+                <User className="h-3 w-3 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium truncate">{empleado.nombre}</div>
+                  <div className="text-[10px] text-muted-foreground truncate">
+                    {empleado.telefono}
+                  </div>
+                </div>
+                {value === empleado.nombre && (
+                  <Check className="h-3 w-3 text-primary flex-shrink-0" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

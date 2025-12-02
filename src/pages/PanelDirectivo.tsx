@@ -285,10 +285,17 @@ const PanelDirectivo = () => {
         );
       case "cotizaciones":
         return (p: Project) => (
-          <FileUploadButton
+          <PurchaseOrderUpload
             attachments={p.cotizaciones || []}
             onAttachmentsChange={(attachments) => updateProject(p.id, "cotizaciones", attachments)}
-            multiple
+            currentIngresoBruto={p.ingresoBruto}
+            currentIngresoTotal={p.ingresoTotal}
+            onDataExtracted={(ingresoBruto, ingresoTotal) => {
+              updateProjectMultiple(p.id, {
+                ingresoBruto: ingresoBruto ?? undefined,
+                ingresoTotal: ingresoTotal ?? undefined,
+              });
+            }}
           />
         );
       case "ordenCompra":

@@ -140,308 +140,263 @@ const PanelOperaciones = () => {
     if (tabTrigger) tabTrigger.click();
   };
 
-  const baseColumns = [
-    {
-      key: "centroCostos",
-      header: "CC",
-      width: "100px",
-      render: (p: Project) => (
-        <EditableCell
-          value={p.centroCostos}
-          type="text"
-          onChange={(value) => updateProject(p.id, "centroCostos", value)}
-          className="font-mono"
-        />
-      ),
-    },
-    {
-      key: "numFactura",
-      header: "#Factura",
-      width: "80px",
-      render: (p: Project) => (
-        <EditableCell
-          value={p.numFactura}
-          type="text"
-          onChange={(value) => updateProject(p.id, "numFactura", value)}
-          className="font-mono"
-        />
-      ),
-    },
-    {
-      key: "cliente",
-      header: "Cliente",
-      width: "180px",
-      render: (p: Project) => (
-        <ClienteAutocomplete
-          value={p.cliente}
-          onChange={(value) => updateProject(p.id, "cliente", value)}
-        />
-      ),
-    },
-    {
-      key: "avanzada",
-      header: "Avanzada",
-      width: "130px",
-      render: (p: Project) => (
-        <AvanzadaSelect
-          value={p.avanzada}
-          onChange={(value) => updateProject(p.id, "avanzada", value)}
-        />
-      ),
-    },
-    {
-      key: "fechaMontaje",
-      header: "Montaje",
-      width: "110px",
-      render: (p: Project) => (
-        <DateTimeRangeEditor
-          type="montaje"
-          value={{
-            fechaInicio: p.fechaMontajeInicio,
-            fechaFin: p.fechaMontajeFin,
-            horaInicio: p.horaMontajeInicio,
-            horaFin: p.horaMontajeFin,
-          }}
-          onChange={(value) => {
-            setProjects(projects.map(proj =>
-              proj.id === p.id
-                ? {
-                    ...proj,
-                    fechaMontajeInicio: value.fechaInicio,
-                    fechaMontajeFin: value.fechaFin,
-                    horaMontajeInicio: value.horaInicio,
-                    horaMontajeFin: value.horaFin,
-                  }
-                : proj
-            ));
-          }}
-          displayValue={
-            <div className="text-xs flex items-center gap-1">
-              <div className="w-2 h-2 rounded-sm bg-gantt-montaje" />
-              {format(parseISO(p.fechaMontajeInicio), "dd/MM")}
+  // Function to get render for each column type
+  const getColumnRender = (col: ColumnConfig) => {
+    return (p: Project) => {
+      switch (col.key) {
+        case "centroCostos":
+          return (
+            <EditableCell
+              value={p.centroCostos}
+              type="text"
+              onChange={(value) => updateProject(p.id, "centroCostos", value)}
+              className="font-mono"
+            />
+          );
+        case "numFactura":
+          return (
+            <EditableCell
+              value={p.numFactura}
+              type="text"
+              onChange={(value) => updateProject(p.id, "numFactura", value)}
+              className="font-mono"
+            />
+          );
+        case "cliente":
+          return (
+            <ClienteAutocomplete
+              value={p.cliente}
+              onChange={(value) => updateProject(p.id, "cliente", value)}
+            />
+          );
+        case "avanzada":
+          return (
+            <AvanzadaSelect
+              value={p.avanzada}
+              onChange={(value) => updateProject(p.id, "avanzada", value)}
+            />
+          );
+        case "fechaMontaje":
+          return (
+            <DateTimeRangeEditor
+              type="montaje"
+              value={{
+                fechaInicio: p.fechaMontajeInicio,
+                fechaFin: p.fechaMontajeFin,
+                horaInicio: p.horaMontajeInicio,
+                horaFin: p.horaMontajeFin,
+              }}
+              onChange={(value) => {
+                setProjects(prev => prev.map(proj =>
+                  proj.id === p.id
+                    ? {
+                        ...proj,
+                        fechaMontajeInicio: value.fechaInicio,
+                        fechaMontajeFin: value.fechaFin,
+                        horaMontajeInicio: value.horaInicio,
+                        horaMontajeFin: value.horaFin,
+                      }
+                    : proj
+                ));
+              }}
+              displayValue={
+                <div className="text-xs flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-sm bg-gantt-montaje" />
+                  {format(parseISO(p.fechaMontajeInicio), "dd/MM")}
+                </div>
+              }
+            />
+          );
+        case "fechaEjecucion":
+          return (
+            <DateTimeRangeEditor
+              type="ejecucion"
+              value={{
+                fechaInicio: p.fechaEjecucionInicio,
+                fechaFin: p.fechaEjecucionFin,
+                horaInicio: p.horaEjecucionInicio,
+                horaFin: p.horaEjecucionFin,
+              }}
+              onChange={(value) => {
+                setProjects(prev => prev.map(proj =>
+                  proj.id === p.id
+                    ? {
+                        ...proj,
+                        fechaEjecucionInicio: value.fechaInicio,
+                        fechaEjecucionFin: value.fechaFin,
+                        horaEjecucionInicio: value.horaInicio,
+                        horaEjecucionFin: value.horaFin,
+                      }
+                    : proj
+                ));
+              }}
+              displayValue={
+                <div className="text-xs flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-sm bg-gantt-ejecucion" />
+                  {format(parseISO(p.fechaEjecucionInicio), "dd/MM")}
+                </div>
+              }
+            />
+          );
+        case "estado":
+          return (
+            <StatusSelect
+              value={p.estado}
+              onChange={(value) => updateProject(p.id, "estado", value)}
+            />
+          );
+        case "jefeOperaciones":
+          return (
+            <EditableCell
+              value={p.jefeOperaciones}
+              type="text"
+              onChange={(value) => updateProject(p.id, "jefeOperaciones", value)}
+            />
+          );
+        case "aCargoDe":
+          return (
+            <EditableCell
+              value={p.aCargoDe}
+              type="text"
+              onChange={(value) => updateProject(p.id, "aCargoDe", value)}
+            />
+          );
+        case "productor":
+          return (
+            <EditableCell
+              value={p.productor}
+              type="text"
+              onChange={(value) => updateProject(p.id, "productor", value)}
+            />
+          );
+        case "ubicacion":
+          return (
+            <EditableCell
+              value={p.ubicacion}
+              type="text"
+              onChange={(value) => updateProject(p.id, "ubicacion", value)}
+            />
+          );
+        case "formatoPreproduccion":
+          return (
+            <FileUploadButton
+              attachments={p.formatoPreproduccion || []}
+              onAttachmentsChange={(attachments) => updateProject(p.id, "formatoPreproduccion", attachments)}
+              multiple
+            />
+          );
+        case "personal":
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedProject(p);
+              }}
+            >
+              <Users className="h-3 w-3 mr-1" />
+              {p.personal?.length || 0}
+            </Button>
+          );
+        case "cotizacionProveedor":
+          return (
+            <FileUploadButton
+              attachments={p.cotizacionesProveedor || []}
+              onAttachmentsChange={(attachments) => updateProject(p.id, "cotizacionesProveedor", attachments)}
+              multiple
+            />
+          );
+        case "ordenCompraOCR":
+          return (
+            <div className="flex items-center gap-1">
+              <FileUploadButton
+                attachments={(p as any).ordenesCompra || []}
+                onAttachmentsChange={(attachments) => updateProject(p.id, "ordenesCompra", attachments)}
+                multiple={false}
+              />
+              <PurchaseOrderUpload
+                currentIngresoBruto={p.ingresoBruto}
+                currentIngresoTotal={p.ingresoTotal}
+                onDataExtracted={(ingresoBruto, ingresoTotal) => {
+                  setProjects(prev => prev.map(proj =>
+                    proj.id === p.id
+                      ? {
+                          ...proj,
+                          ingresoBruto: ingresoBruto ?? proj.ingresoBruto,
+                          ingresoTotal: ingresoTotal ?? proj.ingresoTotal,
+                        }
+                      : proj
+                  ));
+                }}
+              />
             </div>
-          }
-        />
-      ),
-    },
-    {
-      key: "fechaEjecucion",
-      header: "Ejecución",
-      width: "110px",
-      render: (p: Project) => (
-        <DateTimeRangeEditor
-          type="ejecucion"
-          value={{
-            fechaInicio: p.fechaEjecucionInicio,
-            fechaFin: p.fechaEjecucionFin,
-            horaInicio: p.horaEjecucionInicio,
-            horaFin: p.horaEjecucionFin,
-          }}
-          onChange={(value) => {
-            setProjects(projects.map(proj =>
-              proj.id === p.id
-                ? {
-                    ...proj,
-                    fechaEjecucionInicio: value.fechaInicio,
-                    fechaEjecucionFin: value.fechaFin,
-                    horaEjecucionInicio: value.horaInicio,
-                    horaEjecucionFin: value.horaFin,
-                  }
-                : proj
-            ));
-          }}
-          displayValue={
-            <div className="text-xs flex items-center gap-1">
-              <div className="w-2 h-2 rounded-sm bg-gantt-ejecucion" />
-              {format(parseISO(p.fechaEjecucionInicio), "dd/MM")}
-            </div>
-          }
-        />
-      ),
-    },
-    {
-      key: "estado",
-      header: "Estado",
-      width: "130px",
-      render: (p: Project) => (
-        <StatusSelect
-          value={p.estado}
-          onChange={(value) => updateProject(p.id, "estado", value)}
-        />
-      ),
-    },
-    {
-      key: "jefeOperaciones",
-      header: "Jefe Ops",
-      width: "120px",
-      render: (p: Project) => (
-        <EditableCell
-          value={p.jefeOperaciones}
-          type="text"
-          onChange={(value) => updateProject(p.id, "jefeOperaciones", value)}
-        />
-      ),
-    },
-    {
-      key: "aCargoDe",
-      header: "A Cargo",
-      width: "100px",
-      render: (p: Project) => (
-        <EditableCell
-          value={p.aCargoDe}
-          type="text"
-          onChange={(value) => updateProject(p.id, "aCargoDe", value)}
-        />
-      ),
-    },
-    {
-      key: "productor",
-      header: "Productor",
-      width: "110px",
-      render: (p: Project) => (
-        <EditableCell
-          value={p.productor}
-          type="text"
-          onChange={(value) => updateProject(p.id, "productor", value)}
-        />
-      ),
-    },
-    {
-      key: "ubicacion",
-      header: "Ubicación",
-      width: "150px",
-      render: (p: Project) => (
-        <EditableCell
-          value={p.ubicacion}
-          type="text"
-          onChange={(value) => updateProject(p.id, "ubicacion", value)}
-        />
-      ),
-    },
-    {
-      key: "formatoPreproduccion",
-      header: "Formato",
-      width: "80px",
-      render: (p: Project) => (
-        <FileUploadButton
-          attachments={p.formatoPreproduccion || []}
-          onAttachmentsChange={(attachments) => updateProject(p.id, "formatoPreproduccion", attachments)}
-          multiple
-        />
-      ),
-    },
-    {
-      key: "personal",
-      header: "Personal",
-      width: "80px",
-      render: (p: Project) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs"
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedProject(p);
-          }}
-        >
-          <Users className="h-3 w-3 mr-1" />
-          {p.personal?.length || 0}
-        </Button>
-      ),
-    },
-    {
-      key: "cotizacionProveedor",
-      header: "Cot. Prov",
-      width: "80px",
-      render: (p: Project) => (
-        <FileUploadButton
-          attachments={p.cotizacionesProveedor || []}
-          onAttachmentsChange={(attachments) => updateProject(p.id, "cotizacionesProveedor", attachments)}
-          multiple
-        />
-      ),
-    },
-    {
-      key: "ordenCompraOCR",
-      header: "OC + OCR",
-      width: "120px",
-      render: (p: Project) => (
-        <div className="flex items-center gap-1">
-          <FileUploadButton
-            attachments={(p as any).ordenesCompra || []}
-            onAttachmentsChange={(attachments) => updateProject(p.id, "ordenesCompra", attachments)}
-            multiple={false}
-          />
-          <PurchaseOrderUpload
-            currentIngresoBruto={p.ingresoBruto}
-            currentIngresoTotal={p.ingresoTotal}
-            onDataExtracted={(ingresoBruto, ingresoTotal) => {
-              setProjects(projects.map(proj =>
-                proj.id === p.id
-                  ? {
-                      ...proj,
-                      ingresoBruto: ingresoBruto ?? proj.ingresoBruto,
-                      ingresoTotal: ingresoTotal ?? proj.ingresoTotal,
-                    }
-                  : proj
-              ));
-            }}
-          />
-        </div>
-      ),
-    },
-    {
-      key: "notas",
-      header: "Notas",
-      width: "150px",
-      render: (p: Project) => (
-        <EditableCell
-          value={p.notas}
-          type="text"
-          onChange={(value) => updateProject(p.id, "notas", value)}
-        />
-      ),
-    },
-    {
-      key: "inventario",
-      header: "Inventario",
-      width: "80px",
-      render: (p: Project) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs"
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedProject(p);
-          }}
-        >
-          <Package className="h-3 w-3 mr-1" />
-          {p.inventario?.length || 0}
-        </Button>
-      ),
-    },
-    {
-      key: "panelGeneral",
-      header: "Panel",
-      width: "80px",
-      render: (p: Project) => (
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-6 px-2 text-[10px]"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/panel-general?proyecto=${p.id}`);
-          }}
-        >
-          General
-        </Button>
-      ),
-    },
-  ];
+          );
+        case "notas":
+          return (
+            <EditableCell
+              value={p.notas}
+              type="text"
+              onChange={(value) => updateProject(p.id, "notas", value)}
+            />
+          );
+        case "inventario":
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedProject(p);
+              }}
+            >
+              <Package className="h-3 w-3 mr-1" />
+              {p.inventario?.length || 0}
+            </Button>
+          );
+        case "panelGeneral":
+          return (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 px-2 text-[10px]"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/panel-general?proyecto=${p.id}`);
+              }}
+            >
+              General
+            </Button>
+          );
+        default:
+          // Custom columns - use EditableCell with appropriate type
+          const value = (p as any)[col.key];
+          return (
+            <EditableCell
+              value={value}
+              type={col.type || "text"}
+              options={col.options}
+              onChange={(newValue) => updateProject(p.id, col.key, newValue)}
+            />
+          );
+      }
+    };
+  };
 
-  const columns = [...baseColumns];
+  // Build columns dynamically from allColumnConfigs
+  const columns = useMemo(() => {
+    return allColumnConfigs
+      .filter(col => col.visible !== false)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map(col => ({
+        key: col.key,
+        header: col.header,
+        width: col.width,
+        render: getColumnRender(col),
+      }));
+  }, [allColumnConfigs, projects]);
 
   const updatePersonalItem = (projectId: string, personalId: string, field: string, value: any) => {
     setProjects(prevProjects => prevProjects.map(proj => {

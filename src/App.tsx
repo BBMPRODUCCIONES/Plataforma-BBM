@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { EmpleadosProvider } from "@/contexts/EmpleadosContext";
+import { ProjectsProvider } from "@/contexts/ProjectsContext";
 import Index from "./pages/Index";
 import PanelDirectivo from "./pages/PanelDirectivo";
 import PanelGeneral from "./pages/PanelGeneral";
@@ -22,26 +23,28 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <EmpleadosProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/panel-directivo" element={<PanelDirectivo />} />
-            <Route path="/panel-general" element={<PanelGeneral />} />
-            <Route path="/panel-operaciones" element={<PanelOperaciones />} />
-            <Route path="/proveedores" element={<Proveedores />} />
-            <Route path="/constructor" element={<Constructor />} />
-            <Route path="/agentes-ia" element={<AgentesIA />} />
-            <Route path="/calendar" element={<GoogleCalendar />} />
-            <Route path="/usuarios" element={<Usuarios />} />
-            <Route path="/clientes" element={<Clientes />} />
-            <Route path="/empleados" element={<Empleados />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </EmpleadosProvider>
+      <ProjectsProvider>
+        <EmpleadosProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/panel-directivo" element={<PanelDirectivo />} />
+              <Route path="/panel-general" element={<PanelGeneral />} />
+              <Route path="/panel-operaciones" element={<PanelOperaciones />} />
+              <Route path="/proveedores" element={<Proveedores />} />
+              <Route path="/constructor" element={<Constructor />} />
+              <Route path="/agentes-ia" element={<AgentesIA />} />
+              <Route path="/calendar" element={<GoogleCalendar />} />
+              <Route path="/usuarios" element={<Usuarios />} />
+              <Route path="/clientes" element={<Clientes />} />
+              <Route path="/empleados" element={<Empleados />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </EmpleadosProvider>
+      </ProjectsProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

@@ -17,7 +17,7 @@ import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
-import { mockProjects } from "@/data/mockData";
+import { useProjects } from "@/contexts/ProjectsContext";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,9 +29,9 @@ import { es } from "date-fns/locale";
 const PanelDirectivo = () => {
   const navigate = useNavigate();
   const { canEditStructure, role } = useUserRole();
+  const { projects, updateProject: contextUpdateProject, updateProjectMultiple, addProject } = useProjects();
   const isAdmin = role?.toLowerCase() === "administrador";
   const [searchTerm, setSearchTerm] = useState("");
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
@@ -61,9 +61,7 @@ const PanelDirectivo = () => {
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
 
   const updateProject = (projectId: string, field: string, value: any) => {
-    setProjects(prevProjects => prevProjects.map(proj =>
-      proj.id === projectId ? { ...proj, [field]: value } : proj
-    ));
+    contextUpdateProject(projectId, field, value);
   };
 
   const getDateRange = () => {
@@ -106,7 +104,7 @@ const PanelDirectivo = () => {
   });
 
   const handleProjectCreate = (newProject: Partial<Project>) => {
-    setProjects([...projects, newProject as Project]);
+    addProject(newProject);
   };
 
   const handleGanttProjectClick = (projectId: string) => {
@@ -205,17 +203,12 @@ const PanelDirectivo = () => {
               horaFin: p.horaMontajeFin,
             }}
             onChange={(value) => {
-              setProjects(prevProjects => prevProjects.map(proj =>
-                proj.id === p.id
-                  ? {
-                      ...proj,
-                      fechaMontajeInicio: value.fechaInicio,
-                      fechaMontajeFin: value.fechaFin,
-                      horaMontajeInicio: value.horaInicio,
-                      horaMontajeFin: value.horaFin,
-                    }
-                  : proj
-              ));
+              updateProjectMultiple(p.id, {
+                fechaMontajeInicio: value.fechaInicio,
+                fechaMontajeFin: value.fechaFin,
+                horaMontajeInicio: value.horaInicio,
+                horaMontajeFin: value.horaFin,
+              });
             }}
             displayValue={
               <div className="text-xs">
@@ -243,17 +236,12 @@ const PanelDirectivo = () => {
               horaFin: p.horaEjecucionFin,
             }}
             onChange={(value) => {
-              setProjects(prevProjects => prevProjects.map(proj =>
-                proj.id === p.id
-                  ? {
-                      ...proj,
-                      fechaEjecucionInicio: value.fechaInicio,
-                      fechaEjecucionFin: value.fechaFin,
-                      horaEjecucionInicio: value.horaInicio,
-                      horaEjecucionFin: value.horaFin,
-                    }
-                  : proj
-              ));
+              updateProjectMultiple(p.id, {
+                fechaEjecucionInicio: value.fechaInicio,
+                fechaEjecucionFin: value.fechaFin,
+                horaEjecucionInicio: value.horaInicio,
+                horaEjecucionFin: value.horaFin,
+              });
             }}
             displayValue={
               <div className="text-xs">
@@ -311,15 +299,10 @@ const PanelDirectivo = () => {
             currentIngresoBruto={p.ingresoBruto}
             currentIngresoTotal={p.ingresoTotal}
             onDataExtracted={(ingresoBruto, ingresoTotal) => {
-              setProjects(prevProjects => prevProjects.map(proj =>
-                proj.id === p.id
-                  ? {
-                      ...proj,
-                      ingresoBruto: ingresoBruto ?? proj.ingresoBruto,
-                      ingresoTotal: ingresoTotal ?? proj.ingresoTotal,
-                    }
-                  : proj
-              ));
+              updateProjectMultiple(p.id, {
+                ingresoBruto: ingresoBruto ?? undefined,
+                ingresoTotal: ingresoTotal ?? undefined,
+              });
             }}
           />
         );

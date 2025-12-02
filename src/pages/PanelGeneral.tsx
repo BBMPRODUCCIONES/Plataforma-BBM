@@ -15,7 +15,7 @@ import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
-import { mockProjects } from "@/data/mockData";
+import { useProjects } from "@/contexts/ProjectsContext";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,9 +27,9 @@ import { es } from "date-fns/locale";
 const PanelGeneral = () => {
   const navigate = useNavigate();
   const { canEditStructure, role } = useUserRole();
+  const { projects, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const isAdmin = role?.toLowerCase() === "administrador";
   const [searchTerm, setSearchTerm] = useState("");
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   // Initialize with base columns - persisted to localStorage
@@ -57,9 +57,7 @@ const PanelGeneral = () => {
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
 
   const updateProject = (projectId: string, field: string, value: any) => {
-    setProjects(prevProjects => prevProjects.map(proj =>
-      proj.id === projectId ? { ...proj, [field]: value } : proj
-    ));
+    contextUpdateProject(projectId, field, value);
   };
 
   const getDateRange = () => {
@@ -186,17 +184,12 @@ const PanelGeneral = () => {
               horaFin: p.horaMontajeFin,
             }}
             onChange={(value) => {
-              setProjects(prevProjects => prevProjects.map(proj =>
-                proj.id === p.id
-                  ? {
-                      ...proj,
-                      fechaMontajeInicio: value.fechaInicio,
-                      fechaMontajeFin: value.fechaFin,
-                      horaMontajeInicio: value.horaInicio,
-                      horaMontajeFin: value.horaFin,
-                    }
-                  : proj
-              ));
+              updateProjectMultiple(p.id, {
+                fechaMontajeInicio: value.fechaInicio,
+                fechaMontajeFin: value.fechaFin,
+                horaMontajeInicio: value.horaInicio,
+                horaMontajeFin: value.horaFin,
+              });
             }}
             displayValue={
               <div className="text-xs space-y-0.5">
@@ -222,17 +215,12 @@ const PanelGeneral = () => {
               horaFin: p.horaEjecucionFin,
             }}
             onChange={(value) => {
-              setProjects(prevProjects => prevProjects.map(proj =>
-                proj.id === p.id
-                  ? {
-                      ...proj,
-                      fechaEjecucionInicio: value.fechaInicio,
-                      fechaEjecucionFin: value.fechaFin,
-                      horaEjecucionInicio: value.horaInicio,
-                      horaEjecucionFin: value.horaFin,
-                    }
-                  : proj
-              ));
+              updateProjectMultiple(p.id, {
+                fechaEjecucionInicio: value.fechaInicio,
+                fechaEjecucionFin: value.fechaFin,
+                horaEjecucionInicio: value.horaInicio,
+                horaEjecucionFin: value.horaFin,
+              });
             }}
             displayValue={
               <div className="text-xs space-y-0.5">
@@ -266,15 +254,10 @@ const PanelGeneral = () => {
               currentIngresoBruto={(p as any).ingresoBruto}
               currentIngresoTotal={(p as any).ingresoTotal}
               onDataExtracted={(ingresoBruto, ingresoTotal) => {
-                setProjects(prevProjects => prevProjects.map(proj =>
-                  proj.id === p.id
-                    ? {
-                        ...proj,
-                        ingresoBruto: ingresoBruto ?? (proj as any).ingresoBruto,
-                        ingresoTotal: ingresoTotal ?? (proj as any).ingresoTotal,
-                      }
-                    : proj
-                ));
+                updateProjectMultiple(p.id, {
+                  ingresoBruto: ingresoBruto ?? undefined,
+                  ingresoTotal: ingresoTotal ?? undefined,
+                });
               }}
             />
           </div>

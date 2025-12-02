@@ -16,7 +16,7 @@ import { EmpleadoAutocomplete } from "@/components/EmpleadoAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
-import { mockProjects } from "@/data/mockData";
+import { useProjects } from "@/contexts/ProjectsContext";
 import { Project, PersonalItem, InventarioItem, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,8 +38,8 @@ import { printPersonal, printInventario, printCotizaciones, printPersonalYInvent
 const PanelOperaciones = () => {
   const navigate = useNavigate();
   const { canEditStructure, role } = useUserRole();
+  const { projects, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const [searchTerm, setSearchTerm] = useState("");
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
@@ -75,9 +75,7 @@ const PanelOperaciones = () => {
   const isAdmin = role?.toLowerCase() === "administrador";
 
   const updateProject = (projectId: string, field: string, value: any) => {
-    setProjects(projects.map(proj =>
-      proj.id === projectId ? { ...proj, [field]: value } : proj
-    ));
+    contextUpdateProject(projectId, field, value);
   };
 
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
@@ -185,17 +183,12 @@ const PanelOperaciones = () => {
                 horaFin: p.horaMontajeFin,
               }}
               onChange={(value) => {
-                setProjects(prev => prev.map(proj =>
-                  proj.id === p.id
-                    ? {
-                        ...proj,
-                        fechaMontajeInicio: value.fechaInicio,
-                        fechaMontajeFin: value.fechaFin,
-                        horaMontajeInicio: value.horaInicio,
-                        horaMontajeFin: value.horaFin,
-                      }
-                    : proj
-                ));
+                updateProjectMultiple(p.id, {
+                  fechaMontajeInicio: value.fechaInicio,
+                  fechaMontajeFin: value.fechaFin,
+                  horaMontajeInicio: value.horaInicio,
+                  horaMontajeFin: value.horaFin,
+                });
               }}
               displayValue={
                 <div className="text-xs flex items-center gap-1">
@@ -216,17 +209,12 @@ const PanelOperaciones = () => {
                 horaFin: p.horaEjecucionFin,
               }}
               onChange={(value) => {
-                setProjects(prev => prev.map(proj =>
-                  proj.id === p.id
-                    ? {
-                        ...proj,
-                        fechaEjecucionInicio: value.fechaInicio,
-                        fechaEjecucionFin: value.fechaFin,
-                        horaEjecucionInicio: value.horaInicio,
-                        horaEjecucionFin: value.horaFin,
-                      }
-                    : proj
-                ));
+                updateProjectMultiple(p.id, {
+                  fechaEjecucionInicio: value.fechaInicio,
+                  fechaEjecucionFin: value.fechaFin,
+                  horaEjecucionInicio: value.horaInicio,
+                  horaEjecucionFin: value.horaFin,
+                });
               }}
               displayValue={
                 <div className="text-xs flex items-center gap-1">
@@ -318,15 +306,10 @@ const PanelOperaciones = () => {
                 currentIngresoBruto={p.ingresoBruto}
                 currentIngresoTotal={p.ingresoTotal}
                 onDataExtracted={(ingresoBruto, ingresoTotal) => {
-                  setProjects(prev => prev.map(proj =>
-                    proj.id === p.id
-                      ? {
-                          ...proj,
-                          ingresoBruto: ingresoBruto ?? proj.ingresoBruto,
-                          ingresoTotal: ingresoTotal ?? proj.ingresoTotal,
-                        }
-                      : proj
-                  ));
+                  updateProjectMultiple(p.id, {
+                    ingresoBruto: ingresoBruto ?? undefined,
+                    ingresoTotal: ingresoTotal ?? undefined,
+                  });
                 }}
               />
             </div>
@@ -398,29 +381,26 @@ const PanelOperaciones = () => {
   const tableKey = `table-${allColumnConfigs.map(c => `${c.key}-${c.visible}-${c.order}`).join('_')}`;
 
   const updatePersonalItem = (projectId: string, personalId: string, field: string, value: any) => {
-    setProjects(prevProjects => prevProjects.map(proj => {
-      if (proj.id !== projectId) return proj;
-      const updatedPersonal = (proj.personal || []).map(p => {
-        if (p.id !== personalId) return p;
-        const updated = { ...p, [field]: value };
-        // Si el tipo cambia a Transporte y no hay ruta, agregar placeholder
-        if (field === 'tipoPersonal' && value === 'Transporte' && !p.rutaTransporte) {
-          updated.notas = p.notas || 'Agregar ruta realizada';
-        }
-        return updated;
-      });
-      return { ...proj, personal: updatedPersonal };
-    }));
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const updatedPersonal = (project.personal || []).map(p => {
+      if (p.id !== personalId) return p;
+      const updated = { ...p, [field]: value };
+      if (field === 'tipoPersonal' && value === 'Transporte' && !p.rutaTransporte) {
+        updated.notas = p.notas || 'Agregar ruta realizada';
+      }
+      return updated;
+    });
+    contextUpdateProject(projectId, 'personal', updatedPersonal);
   };
 
   const updateInventarioItem = (projectId: string, inventarioId: string, field: string, value: any) => {
-    setProjects(prevProjects => prevProjects.map(proj => {
-      if (proj.id !== projectId) return proj;
-      const updatedInventario = (proj.inventario || []).map(i =>
-        i.id === inventarioId ? { ...i, [field]: value } : i
-      );
-      return { ...proj, inventario: updatedInventario };
-    }));
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const updatedInventario = (project.inventario || []).map(i =>
+      i.id === inventarioId ? { ...i, [field]: value } : i
+    );
+    contextUpdateProject(projectId, 'inventario', updatedInventario);
   };
 
   // Get current project data from state (not stale selectedProject)
@@ -758,11 +738,7 @@ const PanelOperaciones = () => {
                           tipoPersonal: "BBM",
                           notas: "",
                         };
-                        setProjects(prev => prev.map(proj =>
-                          proj.id === currentProjectData.id
-                            ? { ...proj, personal: [...(proj.personal || []), newPersonal] }
-                            : proj
-                        ));
+                        contextUpdateProject(currentProjectData.id, 'personal', [...(currentProjectData.personal || []), newPersonal]);
                       }}
                     >
                       <Plus className="h-3 w-3 mr-1" />
@@ -803,11 +779,7 @@ const PanelOperaciones = () => {
                           recibido: false,
                           notasAdicionales: "",
                         };
-                        setProjects(prev => prev.map(proj =>
-                          proj.id === currentProjectData.id
-                            ? { ...proj, inventario: [...(proj.inventario || []), newInventario] }
-                            : proj
-                        ));
+                        contextUpdateProject(currentProjectData.id, 'inventario', [...(currentProjectData.inventario || []), newInventario]);
                       }}
                     >
                       <Plus className="h-3 w-3 mr-1" />

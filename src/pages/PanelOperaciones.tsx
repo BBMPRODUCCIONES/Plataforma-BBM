@@ -13,7 +13,7 @@ import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { useUserRole } from "@/hooks/useUserRole";
-import { mockProjects } from "@/data/mockData";
+import { mockProjects, mockClientes } from "@/data/mockData";
 import { Project, PersonalItem, InventarioItem, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,7 +173,8 @@ const PanelOperaciones = () => {
       render: (p: Project) => (
         <EditableCell
           value={p.cliente}
-          type="text"
+          type="select"
+          options={mockClientes.map(c => c.nombre)}
           onChange={(value) => updateProject(p.id, "cliente", value)}
           className="font-medium"
         />

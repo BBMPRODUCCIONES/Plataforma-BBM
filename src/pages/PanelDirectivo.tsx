@@ -27,7 +27,8 @@ import { es } from "date-fns/locale";
 
 const PanelDirectivo = () => {
   const navigate = useNavigate();
-  const { canEditStructure } = useUserRole();
+  const { canEditStructure, role } = useUserRole();
+  const isAdmin = role?.toLowerCase() === "administrador";
   const [searchTerm, setSearchTerm] = useState("");
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -120,7 +121,9 @@ const PanelDirectivo = () => {
 
   // Handle columns change from manager - force new array reference
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
-    setManagedColumns([...newColumns]);
+    console.log('[PanelDirectivo] Received column changes:', newColumns.length, newColumns);
+    const copiedColumns = newColumns.map(col => ({ ...col }));
+    setManagedColumns(copiedColumns);
   };
 
   // Initialize managed columns if empty
@@ -398,7 +401,7 @@ const PanelDirectivo = () => {
           ]}
           actions={
             <div className="flex gap-2">
-              {canEditStructure() && (
+              {isAdmin && (
                 <Button variant="outline" size="sm" onClick={initializeColumns}>
                   <Settings className="h-4 w-4 mr-2" />
                   Gestionar Columnas

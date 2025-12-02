@@ -25,7 +25,8 @@ import { es } from "date-fns/locale";
 
 const PanelGeneral = () => {
   const navigate = useNavigate();
-  const { canEditStructure } = useUserRole();
+  const { canEditStructure, role } = useUserRole();
+  const isAdmin = role?.toLowerCase() === "administrador";
   const [searchTerm, setSearchTerm] = useState("");
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
@@ -106,7 +107,9 @@ const PanelGeneral = () => {
 
   // Handle columns change - force new array reference
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
-    setManagedColumns([...newColumns]);
+    console.log('[PanelGeneral] Received column changes:', newColumns.length, newColumns);
+    const copiedColumns = newColumns.map(col => ({ ...col }));
+    setManagedColumns(copiedColumns);
   };
 
   const initializeColumns = () => {
@@ -343,7 +346,7 @@ const PanelGeneral = () => {
             { label: "Operaciones", to: "/panel-operaciones" },
           ]}
           actions={
-            canEditStructure() && (
+            isAdmin && (
               <Button variant="outline" size="sm" onClick={initializeColumns}>
                 <Settings className="h-4 w-4 mr-2" />
                 Gestionar Columnas

@@ -1,339 +1,432 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
+import { MatrixTable } from "@/components/MatrixTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { mockUsers } from "@/data/mockData";
-import { User, UserRole } from "@/types";
-import { MatrixTable } from "@/components/MatrixTable";
-import { Plus, Eye, Trash2, Edit } from "lucide-react";
-import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { UserPlus, Mail, Clock, CheckCircle, AlertCircle, Loader2, Copy } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
 
-const PANELS = [
-  { id: "directivo", label: "Panel Directivo" },
-  { id: "general", label: "Panel General" },
-  { id: "operaciones", label: "Panel Operaciones" },
-  { id: "proveedores", label: "Proveedores" },
-  { id: "constructor", label: "Constructor de Campos" },
-  { id: "agentes-ia", label: "Agentes IA" },
-  { id: "google-calendar", label: "Google Calendar" },
-];
+type AppRole = Database["public"]["Enums"]["app_role"];
 
-const ROLES: { value: UserRole; label: string }[] = [
-  { value: "administrador", label: "Administrador" },
-  { value: "operativo", label: "Operativo" },
-  { value: "visual", label: "Visual (Solo lectura)" },
-];
+interface Invitation {
+  id: string;
+  email: string;
+  role: AppRole;
+  created_at: string | null;
+  expires_at: string;
+  accepted_at: string | null;
+  token: string;
+}
 
-export default function Usuarios() {
-  const [users, setUsers] = useState<User[]>(mockUsers);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+interface UserWithRole {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: AppRole;
+  created_at: string | null;
+}
+
+const roleLabels: Record<AppRole, string> = {
+  administrador: "Administrador",
+  operativo: "Operativo",
+  visual: "Visual",
+};
+
+const Usuarios = () => {
+  const { role: currentUserRole } = useAuth();
+  const { toast } = useToast();
   
-  const [formData, setFormData] = useState({
-    email: "",
-    name: "",
-    role: "operativo" as UserRole,
-    panelsAccess: [] as string[],
-  });
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [newEmail, setNewEmail] = useState("");
+  const [newRole, setNewRole] = useState<AppRole>("operativo");
+  const [generatedLink, setGeneratedLink] = useState("");
 
-  const resetForm = () => {
-    setFormData({
-      email: "",
-      name: "",
-      role: "operativo",
-      panelsAccess: [],
-    });
-    setEditingUser(null);
-  };
+  const fetchData = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Fetch invitations
+      const { data: invitationsData, error: invitationsError } = await supabase
+        .from("invitations")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-  const handleRoleChange = (role: UserRole) => {
-    let panels: string[] = [];
-    if (role === "administrador") {
-      panels = PANELS.map(p => p.id);
-    } else if (role === "operativo") {
-      panels = ["general", "operaciones", "proveedores"];
-    } else if (role === "visual") {
-      panels = ["general", "directivo", "operaciones"];
+      if (invitationsError) throw invitationsError;
+      setInvitations(invitationsData || []);
+
+      // Fetch users with roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role");
+
+      if (rolesError) throw rolesError;
+
+      // Fetch profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, created_at");
+
+      if (profilesError) throw profilesError;
+
+      // Combine data
+      const usersWithRoles: UserWithRole[] = (rolesData || []).map((roleRecord) => {
+        const profile = profilesData?.find((p) => p.id === roleRecord.user_id);
+        const invitation = invitationsData?.find((i) => i.accepted_at && i.role === roleRecord.role);
+        
+        return {
+          id: roleRecord.user_id,
+          email: invitation?.email || "Usuario",
+          full_name: profile?.full_name || null,
+          role: roleRecord.role,
+          created_at: profile?.created_at || null,
+        };
+      });
+
+      setUsers(usersWithRoles);
+    } catch (error: any) {
+      console.error("Error fetching data:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-    setFormData({ ...formData, role, panelsAccess: panels });
   };
 
-  const handlePanelToggle = (panelId: string) => {
-    const current = formData.panelsAccess;
-    if (current.includes(panelId)) {
-      setFormData({ ...formData, panelsAccess: current.filter(p => p !== panelId) });
-    } else {
-      setFormData({ ...formData, panelsAccess: [...current, panelId] });
-    }
-  };
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const handleSave = () => {
-    if (!formData.email || !formData.name) {
-      toast.error("Por favor complete todos los campos requeridos");
+  const handleCreateInvitation = async () => {
+    if (!newEmail.trim()) {
+      toast({
+        title: "Error",
+        description: "Por favor ingresa un email",
+        variant: "destructive",
+      });
       return;
     }
 
-    if (editingUser) {
-      setUsers(users.map(u => 
-        u.id === editingUser.id 
-          ? { ...u, ...formData }
-          : u
-      ));
-      toast.success("Usuario actualizado exitosamente");
-    } else {
-      const newUser: User = {
-        id: `u${Date.now()}`,
-        ...formData,
-      };
-      setUsers([...users, newUser]);
-      toast.success("Usuario agregado exitosamente");
+    setIsSubmitting(true);
+    setGeneratedLink("");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-invitation", {
+        body: { email: newEmail.trim(), role: newRole },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      const invitationLink = `${window.location.origin}/crear-cuenta?token=${data.invitation.token}`;
+      setGeneratedLink(invitationLink);
+
+      toast({
+        title: "Invitación creada",
+        description: `Se ha creado una invitación para ${newEmail}`,
+      });
+
+      fetchData();
+    } catch (error: any) {
+      console.error("Error creating invitation:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo crear la invitación",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setDialogOpen(false);
-    resetForm();
   };
 
-  const handleEdit = (user: User) => {
-    setEditingUser(user);
-    setFormData({
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      panelsAccess: user.panelsAccess,
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(generatedLink);
+    toast({
+      title: "Copiado",
+      description: "Link de invitación copiado al portapapeles",
     });
-    setDialogOpen(true);
   };
 
-  const handleDelete = (userId: string) => {
-    setUsers(users.filter(u => u.id !== userId));
-    toast.success("Usuario eliminado");
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setNewEmail("");
+    setNewRole("operativo");
+    setGeneratedLink("");
   };
 
-  const columns = [
-    { key: "name", header: "Nombre", width: "200px", render: (u: User) => <span className="font-medium">{u.name}</span> },
-    { key: "email", header: "Correo", width: "250px" },
-    { key: "role", header: "Rol", width: "150px", render: (u: User) => (
-      <Badge variant={u.role === "administrador" ? "default" : "secondary"} className="capitalize">
-        {u.role}
-      </Badge>
-    )},
-    { key: "panelsAccess", header: "Acceso a Paneles", width: "300px", render: (u: User) => (
-      <div className="flex flex-wrap gap-1">
-        {u.panelsAccess.slice(0, 3).map(p => (
-          <Badge key={p} variant="outline" className="text-xs">{p}</Badge>
-        ))}
-        {u.panelsAccess.length > 3 && (
-          <Badge variant="outline" className="text-xs">+{u.panelsAccess.length - 3}</Badge>
-        )}
-      </div>
-    )},
-    { key: "actions", header: "Acciones", width: "150px", render: (u: User) => (
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(u); }}>
-          <Edit className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingUser(u); setPreviewOpen(true); }}>
-          <Eye className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleDelete(u.id); }}>
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
-      </div>
-    )},
+  const pendingInvitations = invitations.filter((i) => !i.accepted_at);
+
+  const invitationColumns = [
+    {
+      id: "email",
+      header: "Email",
+      accessorKey: "email",
+      width: 250,
+    },
+    {
+      id: "role",
+      header: "Rol",
+      accessorKey: "role",
+      width: 120,
+      cell: (value: AppRole) => (
+        <Badge variant="outline">{roleLabels[value]}</Badge>
+      ),
+    },
+    {
+      id: "status",
+      header: "Estado",
+      accessorKey: "accepted_at",
+      width: 120,
+      cell: (value: string | null, row: Invitation) => {
+        const isExpired = new Date(row.expires_at) < new Date();
+        if (value) {
+          return (
+            <Badge className="bg-green-500/20 text-green-500">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Aceptada
+            </Badge>
+          );
+        }
+        if (isExpired) {
+          return (
+            <Badge variant="destructive">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              Expirada
+            </Badge>
+          );
+        }
+        return (
+          <Badge variant="secondary">
+            <Clock className="h-3 w-3 mr-1" />
+            Pendiente
+          </Badge>
+        );
+      },
+    },
+    {
+      id: "created_at",
+      header: "Creada",
+      accessorKey: "created_at",
+      width: 150,
+      cell: (value: string | null) =>
+        value ? new Date(value).toLocaleDateString("es-ES") : "-",
+    },
+    {
+      id: "expires_at",
+      header: "Expira",
+      accessorKey: "expires_at",
+      width: 150,
+      cell: (value: string) => new Date(value).toLocaleDateString("es-ES"),
+    },
   ];
+
+  const userColumns = [
+    {
+      id: "email",
+      header: "Email",
+      accessorKey: "email",
+      width: 250,
+    },
+    {
+      id: "full_name",
+      header: "Nombre",
+      accessorKey: "full_name",
+      width: 200,
+      cell: (value: string | null) => value || "-",
+    },
+    {
+      id: "role",
+      header: "Rol",
+      accessorKey: "role",
+      width: 120,
+      cell: (value: AppRole) => (
+        <Badge variant="outline">{roleLabels[value]}</Badge>
+      ),
+    },
+    {
+      id: "created_at",
+      header: "Registrado",
+      accessorKey: "created_at",
+      width: 150,
+      cell: (value: string | null) =>
+        value ? new Date(value).toLocaleDateString("es-ES") : "-",
+    },
+  ];
+
+  if (currentUserRole !== "administrador") {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+            <h2 className="text-xl font-semibold">Acceso Denegado</h2>
+            <p className="text-muted-foreground">
+              Solo los administradores pueden acceder a esta sección.
+            </p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="space-y-6">
         <PanelHeader
           title="Gestión de Usuarios"
-          description="Agregar y administrar usuarios del sistema"
+          description="Administra usuarios e invitaciones del sistema"
         />
 
         <div className="flex justify-end">
-          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Usuario
+                <UserPlus className="mr-2 h-4 w-4" />
+                Nueva Invitación
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editingUser ? "Editar Usuario" : "Agregar Nuevo Usuario"}</DialogTitle>
+                <DialogTitle>Enviar Invitación</DialogTitle>
+                <DialogDescription>
+                  Crea una invitación para un nuevo usuario. Recibirá un link para crear su cuenta.
+                </DialogDescription>
               </DialogHeader>
-              
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Correo Electrónico *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="usuario@ejemplo.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nombre Completo *</Label>
-                  <Input
-                    id="name"
-                    placeholder="Nombre del usuario"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="role">Rol</Label>
-                  <Select value={formData.role} onValueChange={(v) => handleRoleChange(v as UserRole)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar rol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROLES.map(role => (
-                        <SelectItem key={role.value} value={role.value}>
-                          {role.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Acceso a Paneles</Label>
-                  <div className="grid grid-cols-2 gap-2 p-3 border rounded-md bg-muted/30">
-                    {PANELS.map(panel => (
-                      <div key={panel.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={panel.id}
-                          checked={formData.panelsAccess.includes(panel.id)}
-                          onCheckedChange={() => handlePanelToggle(panel.id)}
-                          disabled={formData.role === "administrador"}
-                        />
-                        <label htmlFor={panel.id} className="text-sm cursor-pointer">
-                          {panel.label}
-                        </label>
-                      </div>
-                    ))}
+              {!generatedLink ? (
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="usuario@email.com"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      disabled={isSubmitting}
+                    />
                   </div>
-                  {formData.role === "administrador" && (
-                    <p className="text-xs text-muted-foreground">Los administradores tienen acceso a todos los paneles</p>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Rol</Label>
+                    <Select
+                      value={newRole}
+                      onValueChange={(value) => setNewRole(value as AppRole)}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="administrador">Administrador</SelectItem>
+                        <SelectItem value="operativo">Operativo</SelectItem>
+                        <SelectItem value="visual">Visual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4 py-4">
+                  <div className="p-4 bg-muted rounded-lg space-y-2">
+                    <p className="text-sm font-medium">Link de invitación:</p>
+                    <div className="flex items-center gap-2">
+                      <Input value={generatedLink} readOnly className="text-xs" />
+                      <Button size="icon" variant="outline" onClick={handleCopyLink}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Este link expira en 72 horas. Compártelo con el usuario invitado.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleSave}>
-                  {editingUser ? "Guardar Cambios" : "Agregar Usuario"}
-                </Button>
+                {!generatedLink ? (
+                  <>
+                    <Button variant="outline" onClick={handleCloseDialog}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleCreateInvitation} disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creando...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="mr-2 h-4 w-4" />
+                          Crear Invitación
+                        </>
+                      )}
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={handleCloseDialog}>Cerrar</Button>
+                )}
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
 
-        <div className="panel-card">
-          <MatrixTable data={users} columns={columns} />
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {/* Pending Invitations */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Invitaciones Pendientes ({pendingInvitations.length})
+              </h3>
+              {pendingInvitations.length > 0 ? (
+                <MatrixTable
+                  columns={invitationColumns}
+                  data={pendingInvitations}
+                />
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  No hay invitaciones pendientes
+                </p>
+              )}
+            </div>
 
-        {/* Preview Dialog */}
-        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Vista Previa del Usuario</DialogTitle>
-            </DialogHeader>
-            {editingUser && (
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Información del Usuario</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Nombre:</span>
-                      <span className="font-medium">{editingUser.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Email:</span>
-                      <span>{editingUser.email}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Rol:</span>
-                      <Badge className="capitalize">{editingUser.role}</Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Paneles Accesibles</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-2">
-                      {PANELS.map(panel => {
-                        const hasAccess = editingUser.panelsAccess.includes(panel.id);
-                        return (
-                          <div
-                            key={panel.id}
-                            className={`p-2 rounded-md text-sm ${hasAccess ? 'bg-primary/10 text-primary' : 'bg-muted/50 text-muted-foreground line-through'}`}
-                          >
-                            {panel.label}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Permisos</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${editingUser.role === 'administrador' ? 'bg-green-500' : 'bg-muted'}`} />
-                      <span>Editar estructura de campos</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${editingUser.role !== 'visual' ? 'bg-green-500' : 'bg-muted'}`} />
-                      <span>Editar contenido de proyectos</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
-                      <span>Ver proyectos (según paneles)</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+            {/* Registered Users */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <CheckCircle className="h-5 w-5" />
+                Usuarios Registrados ({users.length})
+              </h3>
+              {users.length > 0 ? (
+                <MatrixTable columns={userColumns} data={users} />
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  No hay usuarios registrados
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
-}
+};
+
+export default Usuarios;

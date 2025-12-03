@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface Empleado {
   id: string;
@@ -12,42 +14,152 @@ export interface Empleado {
 
 interface EmpleadosContextType {
   empleados: Empleado[];
-  addEmpleado: (empleado: Empleado) => void;
-  updateEmpleado: (id: string, data: Partial<Empleado>) => void;
-  deleteEmpleado: (id: string) => void;
+  loading: boolean;
+  addEmpleado: (empleado: Omit<Empleado, "id" | "createdAt">) => Promise<Empleado | null>;
+  updateEmpleado: (id: string, data: Partial<Empleado>) => Promise<void>;
+  deleteEmpleado: (id: string) => Promise<void>;
+  refetch: () => Promise<void>;
 }
-
-const initialEmpleados: Empleado[] = [
-  { id: "e1", cargo: "Coordinador de Logística", nombre: "Juan Pérez", telefono: "+57 300 123 4567", correo: "juan.perez@bbm.com", createdAt: "2024-01-01T00:00:00Z" },
-  { id: "e2", cargo: "Gerente de Operaciones", nombre: "Laura Martínez", telefono: "+57 301 234 5678", correo: "laura.martinez@bbm.com", createdAt: "2024-01-05T00:00:00Z" },
-  { id: "e3", cargo: "Técnico de Montaje", nombre: "Carlos Ruiz", telefono: "+57 302 345 6789", correo: "carlos.ruiz@bbm.com", createdAt: "2024-01-10T00:00:00Z" },
-];
 
 const EmpleadosContext = createContext<EmpleadosContextType | undefined>(undefined);
 
+// Convert database row to Empleado type
+function dbRowToEmpleado(row: any): Empleado {
+  return {
+    id: row.id,
+    cargo: row.cargo || "",
+    nombre: row.nombre || "",
+    telefono: row.telefono || "",
+    correo: row.correo || "",
+    createdAt: row.created_at,
+  };
+}
+
 export function EmpleadosProvider({ children }: { children: ReactNode }) {
-  const [empleados, setEmpleados] = useState<Empleado[]>(initialEmpleados);
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const addEmpleado = (empleado: Empleado) => {
-    setEmpleados(prev => [...prev, empleado]);
-  };
+  const fetchEmpleados = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-  const updateEmpleado = (id: string, data: Partial<Empleado>) => {
-    setEmpleados(prev => prev.map(e => 
-      e.id === id ? { ...e, ...data } : e
-    ));
-  };
+      if (error) {
+        console.error("[EmpleadosContext] Error fetching employees:", error);
+        toast.error("Error al cargar empleados");
+        return;
+      }
 
-  const deleteEmpleado = (id: string) => {
-    setEmpleados(prev => prev.filter(e => e.id !== id));
-  };
+      const empleadosList = (data || []).map(dbRowToEmpleado);
+      setEmpleados(empleadosList);
+      console.log("[EmpleadosContext] Loaded", empleadosList.length, "employees from database");
+    } catch (err) {
+      console.error("[EmpleadosContext] Unexpected error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initial fetch and realtime subscription
+  useEffect(() => {
+    fetchEmpleados();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel("employees-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "employees" },
+        (payload) => {
+          console.log("[EmpleadosContext] Realtime event:", payload.eventType);
+          
+          if (payload.eventType === "INSERT") {
+            const newEmpleado = dbRowToEmpleado(payload.new);
+            setEmpleados(prev => [newEmpleado, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            const updatedEmpleado = dbRowToEmpleado(payload.new);
+            setEmpleados(prev => prev.map(e => e.id === updatedEmpleado.id ? updatedEmpleado : e));
+          } else if (payload.eventType === "DELETE") {
+            const deletedId = payload.old.id;
+            setEmpleados(prev => prev.filter(e => e.id !== deletedId));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchEmpleados]);
+
+  const addEmpleado = useCallback(async (empleadoData: Omit<Empleado, "id" | "createdAt">): Promise<Empleado | null> => {
+    const { data, error } = await supabase
+      .from("employees")
+      .insert({
+        cargo: empleadoData.cargo,
+        nombre: empleadoData.nombre,
+        telefono: empleadoData.telefono,
+        correo: empleadoData.correo,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("[EmpleadosContext] Error creating employee:", error);
+      toast.error("Error al crear el empleado");
+      return null;
+    }
+
+    console.log("[EmpleadosContext] Created new employee:", data.id);
+    return dbRowToEmpleado(data);
+  }, []);
+
+  const updateEmpleado = useCallback(async (id: string, data: Partial<Empleado>) => {
+    const updateData: Record<string, any> = {};
+    if (data.cargo !== undefined) updateData.cargo = data.cargo;
+    if (data.nombre !== undefined) updateData.nombre = data.nombre;
+    if (data.telefono !== undefined) updateData.telefono = data.telefono;
+    if (data.correo !== undefined) updateData.correo = data.correo;
+
+    const { error } = await supabase
+      .from("employees")
+      .update(updateData)
+      .eq("id", id);
+
+    if (error) {
+      console.error("[EmpleadosContext] Error updating employee:", error);
+      toast.error("Error al actualizar el empleado");
+      return;
+    }
+
+    console.log("[EmpleadosContext] Updated employee:", id);
+  }, []);
+
+  const deleteEmpleado = useCallback(async (id: string) => {
+    const { error } = await supabase
+      .from("employees")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("[EmpleadosContext] Error deleting employee:", error);
+      toast.error("Error al eliminar el empleado");
+      return;
+    }
+
+    console.log("[EmpleadosContext] Deleted employee:", id);
+  }, []);
 
   return (
     <EmpleadosContext.Provider value={{ 
       empleados, 
+      loading,
       addEmpleado, 
       updateEmpleado, 
       deleteEmpleado,
+      refetch: fetchEmpleados,
     }}>
       {children}
     </EmpleadosContext.Provider>

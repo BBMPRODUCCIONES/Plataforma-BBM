@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { EmpleadosProvider } from "@/contexts/EmpleadosContext";
 import { ProjectsProvider } from "@/contexts/ProjectsContext";
+import { ClientesProvider } from "@/contexts/ClientesContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CrearCuenta from "./pages/CrearCuenta";
@@ -29,8 +30,9 @@ const App = () => (
       <AuthProvider>
         <ProjectsProvider>
           <EmpleadosProvider>
-            <Toaster />
-            <Sonner />
+            <ClientesProvider>
+              <Toaster />
+              <Sonner />
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Index />} />
@@ -48,7 +50,8 @@ const App = () => (
                 <Route path="/empleados" element={<Empleados />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
+              </BrowserRouter>
+            </ClientesProvider>
           </EmpleadosProvider>
         </ProjectsProvider>
       </AuthProvider>

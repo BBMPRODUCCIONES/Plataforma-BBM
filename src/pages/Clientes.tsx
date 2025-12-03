@@ -12,17 +12,18 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { mockClientes } from "@/data/mockData";
+import { useClientes } from "@/contexts/ClientesContext";
 import { Cliente } from "@/types";
 import { MatrixTable } from "@/components/MatrixTable";
-import { Plus, Trash2, Edit, Building2, Search } from "lucide-react";
+import { Plus, Trash2, Edit, Building2, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Clientes() {
-  const [clientes, setClientes] = useState<Cliente[]>(mockClientes);
+  const { clientes, loading, addCliente, updateCliente, deleteCliente } = useClientes();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [saving, setSaving] = useState(false);
   
   const [formData, setFormData] = useState({
     nombre: "",
@@ -34,7 +35,7 @@ export default function Clientes() {
     setEditingCliente(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.nombre || !formData.nit) {
       toast.error("Por favor complete todos los campos");
       return;
@@ -53,26 +54,31 @@ export default function Clientes() {
       return;
     }
 
-    if (editingCliente) {
-      setClientes(clientes.map(c => 
-        c.id === editingCliente.id 
-          ? { ...c, nombre: formData.nombre, nit: formData.nit }
-          : c
-      ));
-      toast.success("Cliente actualizado exitosamente");
-    } else {
-      const newCliente: Cliente = {
-        id: `c${Date.now()}`,
-        nombre: formData.nombre,
-        nit: formData.nit,
-        createdAt: new Date().toISOString(),
-      };
-      setClientes([...clientes, newCliente]);
-      toast.success("Cliente agregado exitosamente");
-    }
+    setSaving(true);
+    try {
+      if (editingCliente) {
+        await updateCliente(editingCliente.id, {
+          nombre: formData.nombre,
+          nit: formData.nit,
+        });
+        toast.success("Cliente actualizado exitosamente");
+      } else {
+        const result = await addCliente({
+          nombre: formData.nombre,
+          nit: formData.nit,
+        });
+        if (result) {
+          toast.success("Cliente agregado exitosamente");
+        }
+      }
 
-    setDialogOpen(false);
-    resetForm();
+      setDialogOpen(false);
+      resetForm();
+    } catch (err) {
+      console.error("Error saving client:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = (cliente: Cliente) => {
@@ -84,8 +90,8 @@ export default function Clientes() {
     setDialogOpen(true);
   };
 
-  const handleDelete = (clienteId: string) => {
-    setClientes(clientes.filter(c => c.id !== clienteId));
+  const handleDelete = async (clienteId: string) => {
+    await deleteCliente(clienteId);
     toast.success("Cliente eliminado");
   };
 
@@ -131,6 +137,16 @@ export default function Clientes() {
       )
     },
   ];
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -192,7 +208,8 @@ export default function Clientes() {
                 <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
                   Cancelar
                 </Button>
-                <Button onClick={handleSave}>
+                <Button onClick={handleSave} disabled={saving}>
+                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {editingCliente ? "Guardar Cambios" : "Agregar Cliente"}
                 </Button>
               </DialogFooter>

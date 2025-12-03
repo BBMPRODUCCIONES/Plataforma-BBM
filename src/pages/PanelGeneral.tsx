@@ -20,14 +20,14 @@ import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, ExternalLink, Settings } from "lucide-react";
+import { Search, ExternalLink, Settings, Loader2 } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 
 const PanelGeneral = () => {
   const navigate = useNavigate();
   const { canEditStructure, role } = useUserRole();
-  const { projects, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
+  const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const isAdmin = role?.toLowerCase() === "administrador";
   const [searchTerm, setSearchTerm] = useState("");
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
@@ -339,6 +339,16 @@ const PanelGeneral = () => {
     
     return [...visibleColumns, panelColumn];
   })();
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

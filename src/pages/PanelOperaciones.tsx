@@ -30,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2 } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario } from "@/utils/pdfGenerator";
@@ -38,7 +38,7 @@ import { printPersonal, printInventario, printCotizaciones, printPersonalYInvent
 const PanelOperaciones = () => {
   const navigate = useNavigate();
   const { canEditStructure, role } = useUserRole();
-  const { projects, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
+  const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
@@ -615,8 +615,18 @@ const PanelOperaciones = () => {
           />
         ),
       },
-    ];
+  ];
   }, [currentProjectData?.id, currentProjectData?.inventario]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

@@ -22,14 +22,14 @@ import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus, ExternalLink, Settings } from "lucide-react";
+import { Search, Plus, ExternalLink, Settings, Loader2 } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 
 const PanelDirectivo = () => {
   const navigate = useNavigate();
   const { canEditStructure, role } = useUserRole();
-  const { projects, updateProject: contextUpdateProject, updateProjectMultiple, addProject } = useProjects();
+  const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple, addProject } = useProjects();
   const isAdmin = role?.toLowerCase() === "administrador";
   const [searchTerm, setSearchTerm] = useState("");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -103,8 +103,8 @@ const PanelDirectivo = () => {
     return matchesSearch && matchesStatus && matchesDate;
   });
 
-  const handleProjectCreate = (newProject: Partial<Project>) => {
-    addProject(newProject);
+  const handleProjectCreate = async (newProject: Partial<Project>) => {
+    await addProject(newProject);
   };
 
   const handleGanttProjectClick = (projectId: string) => {
@@ -392,6 +392,16 @@ const PanelDirectivo = () => {
     
     return [...visibleColumns, panelColumn];
   })();
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

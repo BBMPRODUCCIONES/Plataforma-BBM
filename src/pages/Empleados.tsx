@@ -17,7 +17,7 @@ import { MatrixTable } from "@/components/MatrixTable";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { EditableCell, CellType } from "@/components/EditableCell";
-import { Plus, Trash2, Edit, Users, Search, Settings } from "lucide-react";
+import { Plus, Trash2, Edit, Users, Search, Settings, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEmpleados, Empleado } from "@/contexts/EmpleadosContext";
@@ -25,11 +25,12 @@ import { useEmpleados, Empleado } from "@/contexts/EmpleadosContext";
 export default function Empleados() {
   const { canEditStructure, role } = useUserRole();
   const isAdmin = role?.toLowerCase() === "administrador";
-  const { empleados, addEmpleado, updateEmpleado, deleteEmpleado } = useEmpleados();
+  const { empleados, loading, addEmpleado, updateEmpleado, deleteEmpleado } = useEmpleados();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEmpleado, setEditingEmpleado] = useState<Empleado | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   // Initialize with base columns - persisted
   const defaultColumns: ColumnConfig[] = [
     { key: "cargo", header: "CARGO", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 0 },
@@ -58,7 +59,7 @@ export default function Empleados() {
     setEditingEmpleado(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.nombre) {
       toast.error("Por favor complete el campo Nombre");
       return;
@@ -70,21 +71,25 @@ export default function Empleados() {
       return;
     }
 
-    if (editingEmpleado) {
-      updateEmpleado(editingEmpleado.id, formData);
-      toast.success("Empleado actualizado exitosamente");
-    } else {
-      const newEmpleado: Empleado = {
-        id: `e${Date.now()}`,
-        ...formData,
-        createdAt: new Date().toISOString(),
-      };
-      addEmpleado(newEmpleado);
-      toast.success("Empleado agregado exitosamente");
-    }
+    setSaving(true);
+    try {
+      if (editingEmpleado) {
+        await updateEmpleado(editingEmpleado.id, formData);
+        toast.success("Empleado actualizado exitosamente");
+      } else {
+        const result = await addEmpleado(formData);
+        if (result) {
+          toast.success("Empleado agregado exitosamente");
+        }
+      }
 
-    setDialogOpen(false);
-    resetForm();
+      setDialogOpen(false);
+      resetForm();
+    } catch (err) {
+      console.error("Error saving employee:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = (empleado: Empleado) => {
@@ -98,13 +103,13 @@ export default function Empleados() {
     setDialogOpen(true);
   };
 
-  const handleDelete = (empleadoId: string) => {
-    deleteEmpleado(empleadoId);
+  const handleDelete = async (empleadoId: string) => {
+    await deleteEmpleado(empleadoId);
     toast.success("Empleado eliminado");
   };
 
-  const handleUpdateEmpleado = (empleadoId: string, field: string, value: any) => {
-    updateEmpleado(empleadoId, { [field]: value });
+  const handleUpdateEmpleado = async (empleadoId: string, field: string, value: any) => {
+    await updateEmpleado(empleadoId, { [field]: value });
   };
 
   const filteredEmpleados = empleados.filter(e => 
@@ -217,6 +222,16 @@ export default function Empleados() {
   // Generate a unique key for the table to force re-renders when columns change
   const tableKey = `table-${allColumnConfigs.map(c => `${c.key}-${c.visible}-${c.order}`).join('_')}`;
 
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -306,7 +321,8 @@ export default function Empleados() {
                 <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
                   Cancelar
                 </Button>
-                <Button onClick={handleSave}>
+                <Button onClick={handleSave} disabled={saving}>
+                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {editingEmpleado ? "Guardar Cambios" : "Agregar Empleado"}
                 </Button>
               </DialogFooter>

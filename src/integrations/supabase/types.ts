@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      clients: {
+        Row: {
+          created_at: string
+          id: string
+          nit: string
+          nombre: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nit?: string
+          nombre?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nit?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          cargo: string
+          correo: string
+          created_at: string
+          id: string
+          nombre: string
+          telefono: string
+        }
+        Insert: {
+          cargo?: string
+          correo?: string
+          created_at?: string
+          id?: string
+          nombre?: string
+          telefono?: string
+        }
+        Update: {
+          cargo?: string
+          correo?: string
+          created_at?: string
+          id?: string
+          nombre?: string
+          telefono?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           accepted_at: string | null
@@ -62,6 +110,102 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          a_cargo_de: string
+          administrativo_responsable: string
+          avanzada: string
+          centro_costos: string
+          cliente: string
+          cotizaciones: Json
+          created_at: string
+          estado: string
+          evento: string
+          fecha_ejecucion_fin: string
+          fecha_ejecucion_inicio: string
+          fecha_montaje_fin: string
+          fecha_montaje_inicio: string
+          hora_ejecucion_fin: string
+          hora_ejecucion_inicio: string
+          hora_montaje_fin: string
+          hora_montaje_inicio: string
+          id: string
+          ingreso_bruto: number
+          ingreso_total: number
+          inventario: Json
+          jefe_operaciones: string
+          notas: string
+          num_factura: string
+          ordenes_compra: Json
+          personal: Json
+          productor: string
+          ubicacion: string
+          updated_at: string
+        }
+        Insert: {
+          a_cargo_de?: string
+          administrativo_responsable?: string
+          avanzada?: string
+          centro_costos?: string
+          cliente?: string
+          cotizaciones?: Json
+          created_at?: string
+          estado?: string
+          evento?: string
+          fecha_ejecucion_fin?: string
+          fecha_ejecucion_inicio?: string
+          fecha_montaje_fin?: string
+          fecha_montaje_inicio?: string
+          hora_ejecucion_fin?: string
+          hora_ejecucion_inicio?: string
+          hora_montaje_fin?: string
+          hora_montaje_inicio?: string
+          id?: string
+          ingreso_bruto?: number
+          ingreso_total?: number
+          inventario?: Json
+          jefe_operaciones?: string
+          notas?: string
+          num_factura?: string
+          ordenes_compra?: Json
+          personal?: Json
+          productor?: string
+          ubicacion?: string
+          updated_at?: string
+        }
+        Update: {
+          a_cargo_de?: string
+          administrativo_responsable?: string
+          avanzada?: string
+          centro_costos?: string
+          cliente?: string
+          cotizaciones?: Json
+          created_at?: string
+          estado?: string
+          evento?: string
+          fecha_ejecucion_fin?: string
+          fecha_ejecucion_inicio?: string
+          fecha_montaje_fin?: string
+          fecha_montaje_inicio?: string
+          hora_ejecucion_fin?: string
+          hora_ejecucion_inicio?: string
+          hora_montaje_fin?: string
+          hora_montaje_inicio?: string
+          id?: string
+          ingreso_bruto?: number
+          ingreso_total?: number
+          inventario?: Json
+          jefe_operaciones?: string
+          notas?: string
+          num_factura?: string
+          ordenes_compra?: Json
+          personal?: Json
+          productor?: string
+          ubicacion?: string
+          updated_at?: string
         }
         Relationships: []
       }

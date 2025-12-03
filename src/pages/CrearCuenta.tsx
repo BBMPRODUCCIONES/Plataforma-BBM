@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import PasswordStrengthIndicator, { isPasswordValid } from "@/components/PasswordStrengthIndicator";
 
 const roleLabels: Record<string, string> = {
   administrador: "Administrador",
@@ -82,10 +83,10 @@ const CrearCuenta = () => {
       return;
     }
 
-    if (password.length < 6) {
+    if (!isPasswordValid(password)) {
       toast({
         title: "Error",
-        description: "La contraseña debe tener al menos 6 caracteres",
+        description: "La contraseña no cumple con los requisitos de seguridad",
         variant: "destructive",
       });
       return;
@@ -136,6 +137,9 @@ const CrearCuenta = () => {
       setIsSubmitting(false);
     }
   };
+
+  const passwordsMatch = password && confirmPassword && password === confirmPassword;
+  const passwordsDontMatch = password && confirmPassword && password !== confirmPassword;
 
   if (isValidating) {
     return (
@@ -216,11 +220,12 @@ const CrearCuenta = () => {
               <Input
                 id="password"
                 type="password"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Ingresa una contraseña segura"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isSubmitting}
               />
+              <PasswordStrengthIndicator password={password} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
@@ -231,9 +236,20 @@ const CrearCuenta = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={isSubmitting}
+                className={passwordsDontMatch ? "border-destructive" : passwordsMatch ? "border-green-500" : ""}
               />
+              {passwordsDontMatch && (
+                <p className="text-xs text-destructive">Las contraseñas no coinciden</p>
+              )}
+              {passwordsMatch && (
+                <p className="text-xs text-green-500">Las contraseñas coinciden</p>
+              )}
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isSubmitting || !isPasswordValid(password) || !passwordsMatch}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

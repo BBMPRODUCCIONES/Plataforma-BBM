@@ -173,28 +173,26 @@ const Usuarios = () => {
 
   const invitationColumns = [
     {
-      id: "email",
+      key: "email",
       header: "Email",
-      accessorKey: "email",
-      width: 250,
+      width: "250px",
+      render: (item: Invitation) => item.email,
     },
     {
-      id: "role",
+      key: "role",
       header: "Rol",
-      accessorKey: "role",
-      width: 120,
-      cell: (value: AppRole) => (
-        <Badge variant="outline">{roleLabels[value]}</Badge>
+      width: "120px",
+      render: (item: Invitation) => (
+        <Badge variant="outline">{roleLabels[item.role]}</Badge>
       ),
     },
     {
-      id: "status",
+      key: "status",
       header: "Estado",
-      accessorKey: "accepted_at",
-      width: 120,
-      cell: (value: string | null, row: Invitation) => {
-        const isExpired = new Date(row.expires_at) < new Date();
-        if (value) {
+      width: "120px",
+      render: (item: Invitation) => {
+        const isExpired = new Date(item.expires_at) < new Date();
+        if (item.accepted_at) {
           return (
             <Badge className="bg-green-500/20 text-green-500">
               <CheckCircle className="h-3 w-3 mr-1" />
@@ -219,52 +217,47 @@ const Usuarios = () => {
       },
     },
     {
-      id: "created_at",
+      key: "created_at",
       header: "Creada",
-      accessorKey: "created_at",
-      width: 150,
-      cell: (value: string | null) =>
-        value ? new Date(value).toLocaleDateString("es-ES") : "-",
+      width: "150px",
+      render: (item: Invitation) =>
+        item.created_at ? new Date(item.created_at).toLocaleDateString("es-ES") : "-",
     },
     {
-      id: "expires_at",
+      key: "expires_at",
       header: "Expira",
-      accessorKey: "expires_at",
-      width: 150,
-      cell: (value: string) => new Date(value).toLocaleDateString("es-ES"),
+      width: "150px",
+      render: (item: Invitation) => new Date(item.expires_at).toLocaleDateString("es-ES"),
     },
   ];
 
   const userColumns = [
     {
-      id: "email",
+      key: "email",
       header: "Email",
-      accessorKey: "email",
-      width: 250,
+      width: "250px",
+      render: (item: UserWithRole) => item.email,
     },
     {
-      id: "full_name",
+      key: "full_name",
       header: "Nombre",
-      accessorKey: "full_name",
-      width: 200,
-      cell: (value: string | null) => value || "-",
+      width: "200px",
+      render: (item: UserWithRole) => item.full_name || "-",
     },
     {
-      id: "role",
+      key: "role",
       header: "Rol",
-      accessorKey: "role",
-      width: 120,
-      cell: (value: AppRole) => (
-        <Badge variant="outline">{roleLabels[value]}</Badge>
+      width: "120px",
+      render: (item: UserWithRole) => (
+        <Badge variant="outline">{roleLabels[item.role]}</Badge>
       ),
     },
     {
-      id: "created_at",
+      key: "created_at",
       header: "Registrado",
-      accessorKey: "created_at",
-      width: 150,
-      cell: (value: string | null) =>
-        value ? new Date(value).toLocaleDateString("es-ES") : "-",
+      width: "150px",
+      render: (item: UserWithRole) =>
+        item.created_at ? new Date(item.created_at).toLocaleDateString("es-ES") : "-",
     },
   ];
 

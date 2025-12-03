@@ -29,6 +29,7 @@ export interface Project {
   formatoPreproduccion?: Attachment[];
   personal?: PersonalItem[];
   cotizacionesProveedor?: Attachment[];
+  notasCotizacionProveedor?: string;
   notas?: string;
   inventario?: InventarioItem[];
   createdAt: string;

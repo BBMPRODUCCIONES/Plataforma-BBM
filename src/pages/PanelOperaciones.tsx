@@ -538,7 +538,8 @@ const PanelOperaciones = () => {
   }, [selectedProject?.id, currentProjectData?.personal]);
 
   const inventarioColumns = useMemo(() => {
-    const projectId = selectedProject?.id;
+    // Use currentProjectData?.id to get fresh project ID
+    const projectId = currentProjectData?.id;
     
     return [
       { 
@@ -549,6 +550,7 @@ const PanelOperaciones = () => {
           <EditableCell
             value={i.nombreMaterial}
             type="text"
+            placeholder="Nombre del material..."
             onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "nombreMaterial", value)}
           />
         ),
@@ -583,6 +585,7 @@ const PanelOperaciones = () => {
           <EditableCell
             value={i.observaciones}
             type="text"
+            placeholder="Observaciones..."
             onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "observaciones", value)}
           />
         ),
@@ -607,12 +610,13 @@ const PanelOperaciones = () => {
           <EditableCell
             value={i.notasAdicionales}
             type="text"
+            placeholder="Notas adicionales..."
             onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "notasAdicionales", value)}
           />
         ),
       },
     ];
-  }, [selectedProject?.id]);
+  }, [currentProjectData?.id, currentProjectData?.inventario]);
 
   return (
     <Layout>
@@ -815,10 +819,73 @@ const PanelOperaciones = () => {
                       Cotizaciones Proveedor
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-0">
-                    <p className="text-sm text-muted-foreground">
-                      No hay cotizaciones adjuntas
-                    </p>
+                  <CardContent className="pt-0 space-y-4">
+                    {/* Notas del proveedor */}
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Notas del Proveedor</label>
+                      <Textarea
+                        value={currentProjectData.notasCotizacionProveedor || ""}
+                        onChange={(e) => updateProject(currentProjectData.id, "notasCotizacionProveedor", e.target.value)}
+                        placeholder="Escriba notas específicas de la cotización del proveedor..."
+                        className="min-h-[60px] text-sm"
+                      />
+                    </div>
+                    
+                    {/* Archivos adjuntos múltiples */}
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-2 block">Documentos Adjuntos</label>
+                      <FileUploadButton
+                        attachments={currentProjectData.cotizacionesProveedor || []}
+                        onAttachmentsChange={(attachments) => updateProject(currentProjectData.id, "cotizacionesProveedor", attachments)}
+                        multiple
+                      />
+                      {(currentProjectData.cotizacionesProveedor || []).length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {(currentProjectData.cotizacionesProveedor || []).map((file) => (
+                            <div key={file.id} className="flex items-center justify-between p-2 bg-muted/30 rounded text-xs">
+                              <span className="truncate max-w-[200px]">{file.name}</span>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2"
+                                  onClick={() => window.open(file.url, '_blank')}
+                                >
+                                  Ver
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2"
+                                  onClick={() => {
+                                    const link = document.createElement('a');
+                                    link.href = file.url;
+                                    link.download = file.name;
+                                    link.click();
+                                  }}
+                                >
+                                  Descargar
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-destructive hover:text-destructive"
+                                  onClick={() => {
+                                    const updated = (currentProjectData.cotizacionesProveedor || []).filter(f => f.id !== file.id);
+                                    updateProject(currentProjectData.id, "cotizacionesProveedor", updated);
+                                  }}
+                                >
+                                  Eliminar
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-[10px] text-muted-foreground mt-2">
+                        Puede adjuntar múltiples archivos: PDF, imágenes, Word, Excel, etc.
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
 

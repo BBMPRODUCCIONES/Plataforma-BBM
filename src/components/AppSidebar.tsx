@@ -9,9 +9,13 @@ import {
   ChevronRight,
   UserPlus,
   Building2,
+  LogOut,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -44,6 +48,13 @@ const adminNavItems = [
 
 export function AppSidebar() {
   const { canAccessPanel, canEditStructure, role } = useUserRole();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <Sidebar className="border-r border-sidebar-border">
@@ -118,7 +129,7 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
+      <SidebarFooter className="p-4 border-t border-sidebar-border space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
             <span className="text-xs font-medium text-primary">
@@ -130,6 +141,15 @@ export function AppSidebar() {
             <span className="text-xs text-muted-foreground">Usuario activo</span>
           </div>
         </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="w-full justify-start text-muted-foreground hover:text-foreground"
+          onClick={handleLogout}
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Cerrar sesión
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );

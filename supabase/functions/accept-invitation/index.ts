@@ -112,12 +112,26 @@ serve(async (req) => {
       // Don't fail the whole operation, profile can be created later
     }
 
-    // Assign role
+    // Determine allowed panels - use invitation's panels or defaults based on role
+    const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores'];
+    let allowedPanels: string[];
+    
+    if (invitation.role === 'administrador') {
+      allowedPanels = ALL_PANELS;
+    } else if (invitation.allowed_panels && Array.isArray(invitation.allowed_panels)) {
+      allowedPanels = invitation.allowed_panels;
+    } else {
+      // Default panels for non-admin
+      allowedPanels = ['general', 'operaciones'];
+    }
+
+    // Assign role with allowed_panels
     const { error: roleError } = await supabase
       .from('user_roles')
       .insert({
         user_id: userId,
-        role: invitation.role
+        role: invitation.role,
+        allowed_panels: allowedPanels
       });
 
     if (roleError) {
@@ -144,6 +158,7 @@ serve(async (req) => {
     console.log('==========================================');
     console.log(`Email: ${invitation.email}`);
     console.log(`Rol: ${invitation.role}`);
+    console.log(`Paneles: ${allowedPanels.join(', ')}`);
     console.log(`User ID: ${userId}`);
     console.log('==========================================');
 
@@ -153,7 +168,8 @@ serve(async (req) => {
         user: {
           id: userId,
           email: authData.user.email,
-          role: invitation.role
+          role: invitation.role,
+          allowed_panels: allowedPanels
         },
         message: 'Cuenta creada exitosamente. Ya puedes iniciar sesión.'
       }),

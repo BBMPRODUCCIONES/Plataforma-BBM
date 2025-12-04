@@ -65,6 +65,7 @@ export type Database = {
       invitations: {
         Row: {
           accepted_at: string | null
+          allowed_panels: string[] | null
           created_at: string | null
           created_by_admin_id: string | null
           email: string
@@ -75,6 +76,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          allowed_panels?: string[] | null
           created_at?: string | null
           created_by_admin_id?: string | null
           email: string
@@ -85,6 +87,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          allowed_panels?: string[] | null
           created_at?: string | null
           created_by_admin_id?: string | null
           email?: string

@@ -50,6 +50,7 @@ export interface Attachment {
 
 export interface PersonalItem {
   id: string;
+  empleadoId?: string; // ID del empleado vinculado (solo para tipo BBM)
   nombre: string;
   cargo: string;
   telefono: string;

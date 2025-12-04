@@ -11,7 +11,7 @@ serve(async (req) => {
     console.log('Callback received - code:', !!code, 'state:', state, 'error:', error);
 
     // Get the frontend URL for redirects
-    const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://qbcwvrtiedzvsurndizd.lovableproject.com';
+    const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://projectmatrix-hub.lovable.app';
 
     if (error) {
       console.error('OAuth error:', error);
@@ -99,7 +99,7 @@ serve(async (req) => {
     return Response.redirect(`${frontendUrl}/google-calendar?success=true`, 302);
   } catch (error) {
     console.error('Error in google-calendar-callback:', error);
-    const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://qbcwvrtiedzvsurndizd.lovableproject.com';
+    const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://projectmatrix-hub.lovable.app';
     return Response.redirect(`${frontendUrl}/google-calendar?error=server_error`, 302);
   }
 });

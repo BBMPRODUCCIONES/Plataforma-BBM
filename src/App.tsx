@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { EmpleadosProvider } from "@/contexts/EmpleadosContext";
 import { ProjectsProvider } from "@/contexts/ProjectsContext";
 import { ClientesProvider } from "@/contexts/ClientesContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CrearCuenta from "./pages/CrearCuenta";
@@ -33,23 +34,71 @@ const App = () => (
             <ClientesProvider>
               <Toaster />
               <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/crear-cuenta" element={<CrearCuenta />} />
-                <Route path="/panel-directivo" element={<PanelDirectivo />} />
-                <Route path="/panel-general" element={<PanelGeneral />} />
-                <Route path="/panel-operaciones" element={<PanelOperaciones />} />
-                <Route path="/proveedores" element={<Proveedores />} />
-                <Route path="/constructor" element={<Constructor />} />
-                <Route path="/agentes-ia" element={<AgentesIA />} />
-                <Route path="/calendar" element={<GoogleCalendar />} />
-                <Route path="/usuarios" element={<Usuarios />} />
-                <Route path="/clientes" element={<Clientes />} />
-                <Route path="/empleados" element={<Empleados />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <BrowserRouter>
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/crear-cuenta" element={<CrearCuenta />} />
+
+                  {/* Panel routes with access control */}
+                  <Route path="/panel-directivo" element={
+                    <ProtectedRoute requiredPanel="directivo" adminOnly>
+                      <PanelDirectivo />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/panel-general" element={
+                    <ProtectedRoute requiredPanel="general">
+                      <PanelGeneral />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/panel-operaciones" element={
+                    <ProtectedRoute requiredPanel="operaciones">
+                      <PanelOperaciones />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/proveedores" element={
+                    <ProtectedRoute requiredPanel="proveedores">
+                      <Proveedores />
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Admin-only routes */}
+                  <Route path="/usuarios" element={
+                    <ProtectedRoute adminOnly>
+                      <Usuarios />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/clientes" element={
+                    <ProtectedRoute adminOnly>
+                      <Clientes />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/empleados" element={
+                    <ProtectedRoute adminOnly>
+                      <Empleados />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/constructor" element={
+                    <ProtectedRoute adminOnly>
+                      <Constructor />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/agentes-ia" element={
+                    <ProtectedRoute adminOnly>
+                      <AgentesIA />
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Google Calendar - accessible to all authenticated users */}
+                  <Route path="/calendar" element={
+                    <ProtectedRoute requiredPanel="calendar">
+                      <GoogleCalendar />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
               </BrowserRouter>
             </ClientesProvider>
           </EmpleadosProvider>

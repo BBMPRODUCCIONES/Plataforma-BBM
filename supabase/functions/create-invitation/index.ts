@@ -59,7 +59,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { email, role } = await req.json();
+    const { email, role, allowed_panels } = await req.json();
 
     if (!email || !role) {
       return new Response(
@@ -75,6 +75,21 @@ serve(async (req) => {
         JSON.stringify({ error: 'Rol inválido. Debe ser: administrador, operativo o visual' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Determine allowed panels based on role
+    const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores'];
+    let finalAllowedPanels: string[];
+    
+    if (role === 'administrador') {
+      // Admin always gets all panels
+      finalAllowedPanels = ALL_PANELS;
+    } else if (allowed_panels && Array.isArray(allowed_panels)) {
+      // Use provided panels but exclude directivo for non-admins
+      finalAllowedPanels = allowed_panels.filter((p: string) => p !== 'directivo');
+    } else {
+      // Default panels for non-admin roles
+      finalAllowedPanels = ['general', 'operaciones'];
     }
 
     // Check if email already exists in auth.users
@@ -104,12 +119,13 @@ serve(async (req) => {
       );
     }
 
-    // Create invitation
+    // Create invitation with allowed_panels
     const { data: invitation, error: invitationError } = await supabaseAdmin
       .from('invitations')
       .insert({
         email,
         role,
+        allowed_panels: finalAllowedPanels,
         created_by_admin_id: user.id
       })
       .select()
@@ -133,6 +149,7 @@ serve(async (req) => {
     console.log('==========================================');
     console.log(`Email: ${email}`);
     console.log(`Rol: ${role}`);
+    console.log(`Paneles: ${finalAllowedPanels.join(', ')}`);
     console.log(`Token: ${invitation.token}`);
     console.log(`Link de invitación: ${invitationLink}`);
     console.log(`Expira: ${invitation.expires_at}`);
@@ -145,6 +162,7 @@ serve(async (req) => {
           id: invitation.id,
           email: invitation.email,
           role: invitation.role,
+          allowed_panels: finalAllowedPanels,
           token: invitation.token,
           expires_at: invitation.expires_at,
           created_at: invitation.created_at

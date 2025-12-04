@@ -2,7 +2,7 @@ import { useState } from "react";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
-import { mockProveedores } from "@/data/mockData";
+import { useProveedores } from "@/contexts/ProveedoresContext";
 import { Proveedor } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +18,16 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Phone, Mail, FileText, Tag, Columns } from "lucide-react";
+import { Search, Plus, Phone, Mail, FileText, Tag, Columns, Loader2 } from "lucide-react";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { EditableCell } from "@/components/EditableCell";
 import { useUserRole } from "@/hooks/useUserRole";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 const baseColumnDefs = [
   { key: "categoria", header: "CATEGORÍA", width: "120px", type: "text" as const },
@@ -37,11 +40,21 @@ const baseColumnDefs = [
 ];
 
 const Proveedores = () => {
+  const { proveedores, loading, addProveedor, updateProveedor } = useProveedores();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("todas");
   const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
-  const [proveedores, setProveedores] = useState(mockProveedores);
+  const [newProveedorOpen, setNewProveedorOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [newProveedor, setNewProveedor] = useState({
+    categoria: "",
+    nombre: "",
+    telefono: "",
+    correo: "",
+    tipoProductoServicio: "",
+    notas: "",
+  });
   const { role } = useUserRole();
   const isAdmin = role?.toLowerCase() === "administrador";
 
@@ -64,7 +77,7 @@ const Proveedores = () => {
     setManagedColumns(copiedColumns);
   };
 
-  const categories = [...new Set(proveedores.map((p) => p.categoria))];
+  const categories = [...new Set(proveedores.map((p) => p.categoria).filter(Boolean))];
 
   const filteredProveedores = proveedores.filter((p) => {
     const matchesSearch =
@@ -74,12 +87,42 @@ const Proveedores = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const updateProveedor = (id: string, field: string, value: any) => {
-    setProveedores(prevProveedores =>
-      prevProveedores.map((p) =>
-        p.id === id ? { ...p, [field]: value } : p
-      )
-    );
+  const handleUpdateProveedor = async (id: string, field: string, value: any) => {
+    try {
+      await updateProveedor(id, field, value);
+    } catch (err) {
+      toast.error("Error al actualizar proveedor");
+    }
+  };
+
+  const handleCreateProveedor = async () => {
+    if (!newProveedor.nombre.trim()) {
+      toast.error("El nombre es requerido");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await addProveedor({
+        ...newProveedor,
+        cotizacionesAnteriores: [],
+      });
+      toast.success("Proveedor creado exitosamente");
+      setNewProveedorOpen(false);
+      setNewProveedor({
+        categoria: "",
+        nombre: "",
+        telefono: "",
+        correo: "",
+        tipoProductoServicio: "",
+        notas: "",
+      });
+    } catch (err) {
+      console.error('[Proveedores] Error creating proveedor:', err);
+      toast.error("Error al crear proveedor");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Build columns dynamically from managed columns
@@ -98,10 +141,11 @@ const Proveedores = () => {
         header: colConfig.header,
         width: colConfig.width,
         render: (p: Proveedor) => (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary text-xs font-medium">
-            <Tag className="h-3 w-3" />
-            {p.categoria}
-          </span>
+          <EditableCell
+            value={p.categoria || ""}
+            type="text"
+            onChange={(value) => handleUpdateProveedor(p.id, "categoria", value)}
+          />
         ),
       };
     }
@@ -112,7 +156,11 @@ const Proveedores = () => {
         header: colConfig.header,
         width: colConfig.width,
         render: (p: Proveedor) => (
-          <span className="font-medium text-sm">{p.nombre}</span>
+          <EditableCell
+            value={p.nombre || ""}
+            type="text"
+            onChange={(value) => handleUpdateProveedor(p.id, "nombre", value)}
+          />
         ),
       };
     }
@@ -124,8 +172,12 @@ const Proveedores = () => {
         width: colConfig.width,
         render: (p: Proveedor) => (
           <div className="flex items-center gap-2 text-xs">
-            <Phone className="h-3 w-3 text-muted-foreground" />
-            {p.telefono}
+            <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
+            <EditableCell
+              value={p.telefono || ""}
+              type="text"
+              onChange={(value) => handleUpdateProveedor(p.id, "telefono", value)}
+            />
           </div>
         ),
       };
@@ -138,10 +190,12 @@ const Proveedores = () => {
         width: colConfig.width,
         render: (p: Proveedor) => (
           <div className="flex items-center gap-2 text-xs">
-            <Mail className="h-3 w-3 text-muted-foreground" />
-            <a href={`mailto:${p.correo}`} className="text-primary hover:underline">
-              {p.correo}
-            </a>
+            <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
+            <EditableCell
+              value={p.correo || ""}
+              type="text"
+              onChange={(value) => handleUpdateProveedor(p.id, "correo", value)}
+            />
           </div>
         ),
       };
@@ -153,7 +207,11 @@ const Proveedores = () => {
         header: colConfig.header,
         width: colConfig.width,
         render: (p: Proveedor) => (
-          <span className="text-xs">{p.tipoProductoServicio}</span>
+          <EditableCell
+            value={p.tipoProductoServicio || ""}
+            type="text"
+            onChange={(value) => handleUpdateProveedor(p.id, "tipoProductoServicio", value)}
+          />
         ),
       };
     }
@@ -178,9 +236,11 @@ const Proveedores = () => {
         header: colConfig.header,
         width: colConfig.width,
         render: (p: Proveedor) => (
-          <span className="text-xs text-muted-foreground truncate block max-w-[180px]">
-            {p.notas || "-"}
-          </span>
+          <EditableCell
+            value={p.notas || ""}
+            type="text"
+            onChange={(value) => handleUpdateProveedor(p.id, "notas", value)}
+          />
         ),
       };
     }
@@ -195,11 +255,21 @@ const Proveedores = () => {
           value={(p as any)[colConfig.key] || ""}
           type={colConfig.type}
           options={colConfig.options}
-          onChange={(value) => updateProveedor(p.id, colConfig.key, value)}
+          onChange={(value) => handleUpdateProveedor(p.id, colConfig.key, value)}
         />
       ),
     };
   });
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -224,7 +294,7 @@ const Proveedores = () => {
                   Gestionar Columnas
                 </Button>
               )}
-              <Button size="sm">
+              <Button size="sm" onClick={() => setNewProveedorOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nuevo Proveedor
               </Button>
@@ -271,26 +341,105 @@ const Proveedores = () => {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {categories.map((cat) => {
-            const count = proveedores.filter((p) => p.categoria === cat).length;
-            return (
-              <Card
-                key={cat}
-                className="cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => setCategoryFilter(cat)}
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs text-muted-foreground">{cat}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <span className="text-2xl font-bold">{count}</span>
-                  <span className="text-xs text-muted-foreground ml-2">proveedores</span>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        {categories.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {categories.map((cat) => {
+              const count = proveedores.filter((p) => p.categoria === cat).length;
+              return (
+                <Card
+                  key={cat}
+                  className="cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => setCategoryFilter(cat)}
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-muted-foreground">{cat}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <span className="text-2xl font-bold">{count}</span>
+                    <span className="text-xs text-muted-foreground ml-2">proveedores</span>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {/* New Proveedor Dialog */}
+        <Dialog open={newProveedorOpen} onOpenChange={setNewProveedorOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Nuevo Proveedor</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Nombre *</Label>
+                <Input
+                  value={newProveedor.nombre}
+                  onChange={(e) => setNewProveedor(prev => ({ ...prev, nombre: e.target.value }))}
+                  placeholder="Nombre del proveedor"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Categoría</Label>
+                <Input
+                  value={newProveedor.categoria}
+                  onChange={(e) => setNewProveedor(prev => ({ ...prev, categoria: e.target.value }))}
+                  placeholder="Ej: Transporte, Equipos, Catering..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Teléfono</Label>
+                  <Input
+                    value={newProveedor.telefono}
+                    onChange={(e) => setNewProveedor(prev => ({ ...prev, telefono: e.target.value }))}
+                    placeholder="Teléfono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Correo</Label>
+                  <Input
+                    type="email"
+                    value={newProveedor.correo}
+                    onChange={(e) => setNewProveedor(prev => ({ ...prev, correo: e.target.value }))}
+                    placeholder="correo@ejemplo.com"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tipo de Producto o Servicio</Label>
+                <Input
+                  value={newProveedor.tipoProductoServicio}
+                  onChange={(e) => setNewProveedor(prev => ({ ...prev, tipoProductoServicio: e.target.value }))}
+                  placeholder="Descripción del producto/servicio"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Notas</Label>
+                <Input
+                  value={newProveedor.notas}
+                  onChange={(e) => setNewProveedor(prev => ({ ...prev, notas: e.target.value }))}
+                  placeholder="Notas adicionales"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="mt-6">
+              <Button variant="outline" onClick={() => setNewProveedorOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleCreateProveedor} disabled={saving}>
+                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Guardar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Proveedor Detail Dialog */}
         <Dialog open={!!selectedProveedor} onOpenChange={() => setSelectedProveedor(null)}>
@@ -304,24 +453,28 @@ const Proveedores = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-xs text-muted-foreground">Categoría</span>
-                    <p className="text-sm font-medium">{selectedProveedor.categoria}</p>
+                    <p className="text-sm font-medium">{selectedProveedor.categoria || "-"}</p>
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground">Tipo</span>
-                    <p className="text-sm">{selectedProveedor.tipoProductoServicio}</p>
+                    <p className="text-sm">{selectedProveedor.tipoProductoServicio || "-"}</p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{selectedProveedor.telefono}</span>
+                    <span className="text-sm">{selectedProveedor.telefono || "-"}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <a href={`mailto:${selectedProveedor.correo}`} className="text-sm text-primary hover:underline">
-                      {selectedProveedor.correo}
-                    </a>
+                    {selectedProveedor.correo ? (
+                      <a href={`mailto:${selectedProveedor.correo}`} className="text-sm text-primary hover:underline">
+                        {selectedProveedor.correo}
+                      </a>
+                    ) : (
+                      <span className="text-sm">-</span>
+                    )}
                   </div>
                 </div>
 

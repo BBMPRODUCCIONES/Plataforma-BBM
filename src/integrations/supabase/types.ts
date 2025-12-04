@@ -212,6 +212,45 @@ export type Database = {
         }
         Relationships: []
       }
+      suppliers: {
+        Row: {
+          categoria: string
+          correo: string
+          cotizaciones: Json
+          created_at: string
+          id: string
+          nombre: string
+          notas: string
+          telefono: string
+          tipo_producto_servicio: string
+          updated_at: string
+        }
+        Insert: {
+          categoria?: string
+          correo?: string
+          cotizaciones?: Json
+          created_at?: string
+          id?: string
+          nombre?: string
+          notas?: string
+          telefono?: string
+          tipo_producto_servicio?: string
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          correo?: string
+          cotizaciones?: Json
+          created_at?: string
+          id?: string
+          nombre?: string
+          notas?: string
+          telefono?: string
+          tipo_producto_servicio?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           allowed_panels: string[] | null

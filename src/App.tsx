@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { EmpleadosProvider } from "@/contexts/EmpleadosContext";
 import { ProjectsProvider } from "@/contexts/ProjectsContext";
 import { ClientesProvider } from "@/contexts/ClientesContext";
+import { ProveedoresProvider } from "@/contexts/ProveedoresContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -31,7 +32,8 @@ const App = () => (
       <AuthProvider>
         <ProjectsProvider>
           <EmpleadosProvider>
-            <ClientesProvider>
+          <ClientesProvider>
+            <ProveedoresProvider>
               <Toaster />
               <Sonner />
               <BrowserRouter>
@@ -100,6 +102,7 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
+            </ProveedoresProvider>
             </ClientesProvider>
           </EmpleadosProvider>
         </ProjectsProvider>

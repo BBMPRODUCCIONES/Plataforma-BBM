@@ -436,9 +436,14 @@ const PanelOperaciones = () => {
             onChange={(value) => {
               if (projectId) {
                 updatePersonalItem(projectId, p.id, "tipoPersonal", value);
-                // Clear nombre when switching to BBM (must select from list)
+                // Clear nombre and empleadoId when switching to BBM (must select from list)
                 if (value === "BBM") {
                   updatePersonalItem(projectId, p.id, "nombre", "");
+                  updatePersonalItem(projectId, p.id, "empleadoId", undefined);
+                }
+                // Clear empleadoId when switching away from BBM
+                if (value !== "BBM" && p.empleadoId) {
+                  updatePersonalItem(projectId, p.id, "empleadoId", undefined);
                 }
               }
             }}
@@ -448,12 +453,20 @@ const PanelOperaciones = () => {
       { 
         key: "nombre", 
         header: "Personal", 
-        width: "180px",
+        width: "200px",
         render: (p: PersonalItem) => (
           <EmpleadoAutocomplete
             value={p.nombre}
             tipoPersonal={p.tipoPersonal || "BBM"}
-            onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "nombre", value)}
+            onChange={(value, empleadoId) => {
+              if (projectId) {
+                updatePersonalItem(projectId, p.id, "nombre", value);
+                // Save empleadoId when selecting BBM employee
+                if (empleadoId && p.tipoPersonal === "BBM") {
+                  updatePersonalItem(projectId, p.id, "empleadoId", empleadoId);
+                }
+              }
+            }}
           />
         ),
       },

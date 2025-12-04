@@ -3,7 +3,7 @@ import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
 import { useProveedores } from "@/contexts/ProveedoresContext";
-import { Proveedor } from "@/types";
+import { Proveedor, Attachment } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,6 +28,7 @@ import { EditableCell } from "@/components/EditableCell";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { CotizacionesDialog } from "@/components/CotizacionesDialog";
 
 const baseColumnDefs = [
   { key: "categoria", header: "CATEGORÍA", width: "120px", type: "text" as const },
@@ -46,6 +47,7 @@ const Proveedores = () => {
   const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [newProveedorOpen, setNewProveedorOpen] = useState(false);
+  const [cotizacionesProveedor, setCotizacionesProveedor] = useState<Proveedor | null>(null);
   const [saving, setSaving] = useState(false);
   const [newProveedor, setNewProveedor] = useState({
     categoria: "",
@@ -222,7 +224,15 @@ const Proveedores = () => {
         header: colConfig.header,
         width: colConfig.width,
         render: (p: Proveedor) => (
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 px-2 text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCotizacionesProveedor(p);
+            }}
+          >
             <FileText className="h-3 w-3 mr-1" />
             {p.cotizacionesAnteriores?.length || 0} archivos
           </Button>
@@ -504,6 +514,21 @@ const Proveedores = () => {
           onColumnsChange={handleColumnsChange}
           panelName="Proveedores"
         />
+
+        {/* Cotizaciones Dialog */}
+        {cotizacionesProveedor && (
+          <CotizacionesDialog
+            open={!!cotizacionesProveedor}
+            onOpenChange={(open) => !open && setCotizacionesProveedor(null)}
+            proveedorId={cotizacionesProveedor.id}
+            proveedorNombre={cotizacionesProveedor.nombre}
+            cotizaciones={cotizacionesProveedor.cotizacionesAnteriores || []}
+            onCotizacionesChange={(cotizaciones) => {
+              handleUpdateProveedor(cotizacionesProveedor.id, 'cotizacionesAnteriores', cotizaciones);
+              setCotizacionesProveedor(prev => prev ? { ...prev, cotizacionesAnteriores: cotizaciones } : null);
+            }}
+          />
+        )}
       </div>
     </Layout>
   );

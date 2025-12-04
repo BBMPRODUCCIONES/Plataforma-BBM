@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { mockClientes } from "@/data/mockData";
+import { useClientes } from "@/contexts/ClientesContext";
 import { cn } from "@/lib/utils";
-import { Check, Search } from "lucide-react";
+import { Check, Search, Loader2 } from "lucide-react";
 
 interface ClienteAutocompleteProps {
   value: string;
@@ -15,9 +15,11 @@ export function ClienteAutocomplete({ value, onChange, className }: ClienteAutoc
   const [search, setSearch] = useState(value || "");
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  const { clientes, loading } = useClientes();
 
   // Filter clients based on search
-  const filteredClientes = mockClientes.filter((cliente) =>
+  const filteredClientes = clientes.filter((cliente) =>
     cliente.nombre.toLowerCase().includes(search.toLowerCase()) ||
     cliente.nit.includes(search)
   );
@@ -27,8 +29,8 @@ export function ClienteAutocomplete({ value, onChange, className }: ClienteAutoc
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        // Reset search to current value if user clicks away without selecting
-        if (!mockClientes.some(c => c.nombre === search)) {
+        // Reset search to current value if user clicks away without selecting a valid client
+        if (!clientes.some(c => c.nombre === search)) {
           setSearch(value || "");
         }
       }
@@ -36,7 +38,7 @@ export function ClienteAutocomplete({ value, onChange, className }: ClienteAutoc
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [search, value]);
+  }, [search, value, clientes]);
 
   // Update search when value changes externally
   useEffect(() => {
@@ -59,9 +61,17 @@ export function ClienteAutocomplete({ value, onChange, className }: ClienteAutoc
   };
 
   return (
-    <div ref={containerRef} className="relative">
+    <div 
+      ref={containerRef} 
+      className="relative"
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="relative">
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+        {loading ? (
+          <Loader2 className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground animate-spin" />
+        ) : (
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+        )}
         <Input
           ref={inputRef}
           value={search}
@@ -69,15 +79,19 @@ export function ClienteAutocomplete({ value, onChange, className }: ClienteAutoc
           onFocus={handleFocus}
           placeholder="Buscar cliente..."
           className={cn("h-8 pl-7 pr-2 text-sm", className)}
+          disabled={loading}
         />
       </div>
       
-      {isOpen && (
+      {isOpen && !loading && (
         <div className="absolute z-50 mt-1 w-full min-w-[200px] rounded-md border bg-popover shadow-lg">
           <div className="max-h-[200px] overflow-y-auto">
             {filteredClientes.length === 0 ? (
               <div className="px-3 py-2 text-sm text-muted-foreground">
-                No se encontraron clientes
+                {clientes.length === 0 
+                  ? "No hay clientes registrados. Créelos en Gestión de Clientes."
+                  : "No se encontraron clientes"
+                }
               </div>
             ) : (
               filteredClientes.map((cliente) => (

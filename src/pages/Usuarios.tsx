@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Mail, Clock, CheckCircle, AlertCircle, Loader2, Copy } from "lucide-react";
+import { UserPlus, Mail, Clock, CheckCircle, AlertCircle, Loader2, Copy, Settings, Save } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -31,6 +32,7 @@ interface UserWithRole {
   email: string;
   full_name: string | null;
   role: AppRole;
+  allowed_panels: string[];
   created_at: string | null;
 }
 
@@ -38,6 +40,15 @@ const roleLabels: Record<AppRole, string> = {
   administrador: "Administrador",
   operativo: "Operativo",
   visual: "Visual",
+};
+
+const ALL_PANELS = ["directivo", "general", "operaciones", "proveedores"];
+
+const panelLabels: Record<string, string> = {
+  directivo: "Panel Directivo",
+  general: "Panel General",
+  operaciones: "Panel Operaciones",
+  proveedores: "Proveedores",
 };
 
 const Usuarios = () => {
@@ -52,7 +63,14 @@ const Usuarios = () => {
   
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState<AppRole>("operativo");
+  const [newPanels, setNewPanels] = useState<string[]>(["general", "operaciones"]);
   const [generatedLink, setGeneratedLink] = useState("");
+
+  // Edit user state
+  const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
+  const [editRole, setEditRole] = useState<AppRole>("operativo");
+  const [editPanels, setEditPanels] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -67,10 +85,10 @@ const Usuarios = () => {
       if (invitationsError) throw invitationsError;
       setInvitations(invitationsData || []);
 
-      // Fetch users with roles
+      // Fetch users with roles and panels
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role");
+        .select("user_id, role, allowed_panels");
 
       if (rolesError) throw rolesError;
 
@@ -84,13 +102,20 @@ const Usuarios = () => {
       // Combine data
       const usersWithRoles: UserWithRole[] = (rolesData || []).map((roleRecord) => {
         const profile = profilesData?.find((p) => p.id === roleRecord.user_id);
-        const invitation = invitationsData?.find((i) => i.accepted_at && i.role === roleRecord.role);
+        const invitation = invitationsData?.find((i) => i.accepted_at);
+        
+        // Find the invitation that matches this user (by checking accepted invitations)
+        const userInvitation = invitationsData?.find((i) => 
+          i.accepted_at && 
+          profilesData?.some(p => p.id === roleRecord.user_id)
+        );
         
         return {
           id: roleRecord.user_id,
-          email: invitation?.email || "Usuario",
+          email: userInvitation?.email || "Usuario",
           full_name: profile?.full_name || null,
           role: roleRecord.role,
+          allowed_panels: roleRecord.allowed_panels || [],
           created_at: profile?.created_at || null,
         };
       });
@@ -127,7 +152,13 @@ const Usuarios = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke("create-invitation", {
-        body: { email: newEmail.trim(), role: newRole },
+        body: { 
+          email: newEmail.trim(), 
+          role: newRole,
+          allowed_panels: newRole === "administrador" 
+            ? ALL_PANELS 
+            : newPanels
+        },
       });
 
       if (error) throw error;
@@ -166,7 +197,65 @@ const Usuarios = () => {
     setIsDialogOpen(false);
     setNewEmail("");
     setNewRole("operativo");
+    setNewPanels(["general", "operaciones"]);
     setGeneratedLink("");
+  };
+
+  const handleEditUser = (user: UserWithRole) => {
+    setEditingUser(user);
+    setEditRole(user.role);
+    setEditPanels(user.allowed_panels);
+  };
+
+  const handleSaveUser = async () => {
+    if (!editingUser) return;
+
+    setIsSaving(true);
+    try {
+      // Determine panels based on role
+      const finalPanels = editRole === "administrador" 
+        ? ALL_PANELS 
+        : editPanels;
+
+      const { error } = await supabase
+        .from("user_roles")
+        .update({ 
+          role: editRole,
+          allowed_panels: finalPanels
+        })
+        .eq("user_id", editingUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Usuario actualizado",
+        description: "Los permisos del usuario han sido actualizados",
+      });
+
+      setEditingUser(null);
+      fetchData();
+    } catch (error: any) {
+      console.error("Error updating user:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo actualizar el usuario",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePanelToggle = (panel: string, checked: boolean, isNew: boolean = false) => {
+    if (isNew) {
+      setNewPanels(prev => 
+        checked ? [...prev, panel] : prev.filter(p => p !== panel)
+      );
+    } else {
+      setEditPanels(prev => 
+        checked ? [...prev, panel] : prev.filter(p => p !== panel)
+      );
+    }
   };
 
   const pendingInvitations = invitations.filter((i) => !i.accepted_at);
@@ -235,13 +324,13 @@ const Usuarios = () => {
     {
       key: "email",
       header: "Email",
-      width: "250px",
+      width: "200px",
       render: (item: UserWithRole) => item.email,
     },
     {
       key: "full_name",
       header: "Nombre",
-      width: "200px",
+      width: "150px",
       render: (item: UserWithRole) => item.full_name || "-",
     },
     {
@@ -253,11 +342,39 @@ const Usuarios = () => {
       ),
     },
     {
+      key: "panels",
+      header: "Paneles",
+      width: "250px",
+      render: (item: UserWithRole) => (
+        <div className="flex flex-wrap gap-1">
+          {item.allowed_panels.map((panel) => (
+            <Badge key={panel} variant="secondary" className="text-xs">
+              {panelLabels[panel] || panel}
+            </Badge>
+          ))}
+        </div>
+      ),
+    },
+    {
       key: "created_at",
       header: "Registrado",
-      width: "150px",
+      width: "120px",
       render: (item: UserWithRole) =>
         item.created_at ? new Date(item.created_at).toLocaleDateString("es-ES") : "-",
+    },
+    {
+      key: "actions",
+      header: "Acciones",
+      width: "100px",
+      render: (item: UserWithRole) => (
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => handleEditUser(item)}
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+      ),
     },
   ];
 
@@ -282,7 +399,7 @@ const Usuarios = () => {
       <div className="space-y-6">
         <PanelHeader
           title="Gestión de Usuarios"
-          description="Administra usuarios e invitaciones del sistema"
+          description="Administra usuarios, roles y permisos del sistema"
         />
 
         <div className="flex justify-end">
@@ -293,7 +410,7 @@ const Usuarios = () => {
                 Nueva Invitación
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Enviar Invitación</DialogTitle>
                 <DialogDescription>
@@ -318,7 +435,13 @@ const Usuarios = () => {
                     <Label htmlFor="role">Rol</Label>
                     <Select
                       value={newRole}
-                      onValueChange={(value) => setNewRole(value as AppRole)}
+                      onValueChange={(value) => {
+                        setNewRole(value as AppRole);
+                        // Auto-select all panels for admin
+                        if (value === "administrador") {
+                          setNewPanels(ALL_PANELS);
+                        }
+                      }}
                       disabled={isSubmitting}
                     >
                       <SelectTrigger>
@@ -331,6 +454,36 @@ const Usuarios = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  {/* Panel access selection - only for non-admin roles */}
+                  {newRole !== "administrador" && (
+                    <div className="space-y-2">
+                      <Label>Acceso a Paneles</Label>
+                      <div className="space-y-2 p-3 border rounded-md bg-muted/20">
+                        {ALL_PANELS.filter(p => p !== "directivo").map((panel) => (
+                          <div key={panel} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`new-panel-${panel}`}
+                              checked={newPanels.includes(panel)}
+                              onCheckedChange={(checked) => 
+                                handlePanelToggle(panel, checked as boolean, true)
+                              }
+                              disabled={isSubmitting}
+                            />
+                            <Label 
+                              htmlFor={`new-panel-${panel}`}
+                              className="text-sm font-normal cursor-pointer"
+                            >
+                              {panelLabels[panel]}
+                            </Label>
+                          </div>
+                        ))}
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Nota: Panel Directivo solo está disponible para Administradores.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4 py-4">
@@ -376,6 +529,103 @@ const Usuarios = () => {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Edit User Dialog */}
+        <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Editar Usuario</DialogTitle>
+              <DialogDescription>
+                Modifica el rol y los permisos de acceso para {editingUser?.email}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input value={editingUser?.email || ""} disabled />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Rol</Label>
+                <Select
+                  value={editRole}
+                  onValueChange={(value) => {
+                    setEditRole(value as AppRole);
+                    if (value === "administrador") {
+                      setEditPanels(ALL_PANELS);
+                    }
+                  }}
+                  disabled={isSaving}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="administrador">Administrador</SelectItem>
+                    <SelectItem value="operativo">Operativo</SelectItem>
+                    <SelectItem value="visual">Visual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Panel access - only editable for non-admin */}
+              {editRole !== "administrador" && (
+                <div className="space-y-2">
+                  <Label>Acceso a Paneles</Label>
+                  <div className="space-y-2 p-3 border rounded-md bg-muted/20">
+                    {ALL_PANELS.filter(p => p !== "directivo").map((panel) => (
+                      <div key={panel} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`edit-panel-${panel}`}
+                          checked={editPanels.includes(panel)}
+                          onCheckedChange={(checked) => 
+                            handlePanelToggle(panel, checked as boolean, false)
+                          }
+                          disabled={isSaving}
+                        />
+                        <Label 
+                          htmlFor={`edit-panel-${panel}`}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {panelLabels[panel]}
+                        </Label>
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Panel Directivo solo está disponible para Administradores.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {editRole === "administrador" && (
+                <p className="text-sm text-muted-foreground p-3 bg-muted/20 rounded-md">
+                  Los administradores tienen acceso completo a todos los paneles y funciones administrativas.
+                </p>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingUser(null)} disabled={isSaving}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveUser} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Guardar
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {isLoading ? (
           <div className="flex items-center justify-center h-40">

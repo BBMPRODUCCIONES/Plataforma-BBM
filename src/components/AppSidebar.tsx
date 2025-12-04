@@ -43,7 +43,6 @@ const adminNavItems = [
   { title: "Creación de Empleados", url: "/empleados", icon: Users, panel: "empleados" },
   { title: "Constructor de Campos", url: "/constructor", icon: Settings, panel: "constructor" },
   { title: "Agentes IA", url: "/agentes-ia", icon: Bot, panel: "agentes" },
-  { title: "Google Calendar", url: "/calendar", icon: Calendar, panel: "calendar" },
 ];
 
 export function AppSidebar() {
@@ -79,12 +78,12 @@ export function AppSidebar() {
             <SidebarMenu>
               {mainNavItems.map((item) => {
                 const hasAccess = canAccessPanel(item.panel);
+                // Don't render items user doesn't have access to
+                if (!hasAccess) return null;
+                
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      className={cn(!hasAccess && "opacity-40 pointer-events-none")}
-                    >
+                    <SidebarMenuButton asChild>
                       <NavLink
                         to={item.url}
                         className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-sidebar-accent"
@@ -102,6 +101,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Admin sections - only visible for administrators */}
         {canEditStructure() && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2">
@@ -127,6 +127,29 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+
+        {/* Google Calendar - accessible to all roles */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2">
+            Herramientas
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/calendar"
+                    className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-sidebar-accent"
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span className="text-sm">Google Calendar</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-sidebar-border space-y-3">

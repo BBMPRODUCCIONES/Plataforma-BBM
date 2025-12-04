@@ -5,13 +5,20 @@ import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
+interface UserRoleData {
+  role: AppRole;
+  allowedPanels: string[];
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   role: AppRole | null;
+  allowedPanels: string[];
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  refreshUserRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,20 +27,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [allowedPanels, setAllowedPanels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserRole = async (userId: string) => {
+  const fetchUserRole = async (userId: string): Promise<UserRoleData | null> => {
     const { data, error } = await supabase
       .from("user_roles")
-      .select("role")
+      .select("role, allowed_panels")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching user role:", error);
       return null;
     }
-    return data?.role ?? null;
+    
+    if (!data) return null;
+    
+    return {
+      role: data.role,
+      allowedPanels: data.allowed_panels || []
+    };
+  };
+
+  const refreshUserRole = async () => {
+    if (user) {
+      const roleData = await fetchUserRole(user.id);
+      if (roleData) {
+        setRole(roleData.role);
+        setAllowedPanels(roleData.allowedPanels);
+      }
+    }
   };
 
   useEffect(() => {
@@ -46,10 +70,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Defer role fetch with setTimeout to avoid deadlock
         if (session?.user) {
           setTimeout(() => {
-            fetchUserRole(session.user.id).then(setRole);
+            fetchUserRole(session.user.id).then((data) => {
+              if (data) {
+                setRole(data.role);
+                setAllowedPanels(data.allowedPanels);
+              }
+            });
           }, 0);
         } else {
           setRole(null);
+          setAllowedPanels([]);
         }
         
         setLoading(false);
@@ -62,7 +92,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserRole(session.user.id).then(setRole);
+        fetchUserRole(session.user.id).then((data) => {
+          if (data) {
+            setRole(data.role);
+            setAllowedPanels(data.allowedPanels);
+          }
+        });
       }
       
       setLoading(false);
@@ -84,10 +119,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setSession(null);
     setRole(null);
+    setAllowedPanels([]);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      role, 
+      allowedPanels,
+      loading, 
+      signIn, 
+      signOut,
+      refreshUserRole 
+    }}>
       {children}
     </AuthContext.Provider>
   );

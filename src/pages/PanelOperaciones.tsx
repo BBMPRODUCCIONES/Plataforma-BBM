@@ -34,6 +34,7 @@ import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote,
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario } from "@/utils/pdfGenerator";
+import { toast } from "sonner";
 
 const PanelOperaciones = () => {
   const navigate = useNavigate();
@@ -766,7 +767,8 @@ const PanelOperaciones = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
+                        console.log('[PanelOperaciones] Adding personal item to project:', currentProjectData.id);
                         const newPersonal: PersonalItem = {
                           id: `p${Date.now()}`,
                           nombre: "",
@@ -775,7 +777,13 @@ const PanelOperaciones = () => {
                           tipoPersonal: "BBM",
                           notas: "",
                         };
-                        contextUpdateProject(currentProjectData.id, 'personal', [...(currentProjectData.personal || []), newPersonal]);
+                        try {
+                          await contextUpdateProject(currentProjectData.id, 'personal', [...(currentProjectData.personal || []), newPersonal]);
+                          toast.success("Personal agregado");
+                        } catch (err) {
+                          console.error('[PanelOperaciones] Error adding personal:', err);
+                          toast.error("Error al agregar personal");
+                        }
                       }}
                     >
                       <Plus className="h-3 w-3 mr-1" />
@@ -806,7 +814,8 @@ const PanelOperaciones = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
+                        console.log('[PanelOperaciones] Adding inventario item to project:', currentProjectData.id);
                         const newInventario: InventarioItem = {
                           id: `i${Date.now()}`,
                           nombreMaterial: "",
@@ -816,7 +825,13 @@ const PanelOperaciones = () => {
                           recibido: false,
                           notasAdicionales: "",
                         };
-                        contextUpdateProject(currentProjectData.id, 'inventario', [...(currentProjectData.inventario || []), newInventario]);
+                        try {
+                          await contextUpdateProject(currentProjectData.id, 'inventario', [...(currentProjectData.inventario || []), newInventario]);
+                          toast.success("Material agregado");
+                        } catch (err) {
+                          console.error('[PanelOperaciones] Error adding inventario:', err);
+                          toast.error("Error al agregar material");
+                        }
                       }}
                     >
                       <Plus className="h-3 w-3 mr-1" />

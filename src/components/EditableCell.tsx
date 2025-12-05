@@ -171,7 +171,7 @@ export function EditableCell({
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent className="bg-popover border-border z-50">
+        <SelectContent className="bg-popover border-border z-[9999]">
           {options.map((option) => (
             <SelectItem key={option} value={option} className="text-xs">
               {option}

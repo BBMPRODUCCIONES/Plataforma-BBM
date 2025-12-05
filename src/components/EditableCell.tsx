@@ -168,10 +168,16 @@ export function EditableCell({
         <SelectTrigger
           className="h-7 text-xs w-full bg-transparent border-0 hover:bg-muted/50"
           onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent className="bg-popover border-border z-[9999]">
+        <SelectContent 
+          className="bg-popover border-border z-[9999]"
+          position="popper"
+          sideOffset={4}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
           {options.map((option) => (
             <SelectItem key={option} value={option} className="text-xs">
               {option}

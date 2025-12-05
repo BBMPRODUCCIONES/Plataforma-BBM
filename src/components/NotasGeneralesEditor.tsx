@@ -34,41 +34,75 @@ export const NotasGeneralesEditor: React.FC<NotasGeneralesEditorProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handlePaste = async (e: React.ClipboardEvent) => {
+    console.log("[NotasGeneralesEditor] Paste event triggered");
     const items = e.clipboardData?.items;
-    if (!items) return;
+    if (!items) {
+      console.log("[NotasGeneralesEditor] No clipboard items found");
+      return;
+    }
 
+    console.log("[NotasGeneralesEditor] Clipboard items count:", items.length);
     for (const item of items) {
+      console.log("[NotasGeneralesEditor] Item type:", item.type);
       if (item.type.startsWith("image/")) {
         e.preventDefault();
         const file = item.getAsFile();
         if (file) {
+          console.log("[NotasGeneralesEditor] Image file detected:", file.name, file.type, file.size);
           await uploadImage(file);
+        } else {
+          console.log("[NotasGeneralesEditor] Could not get file from clipboard item");
         }
         return;
       }
     }
+    console.log("[NotasGeneralesEditor] No image found in clipboard items");
   };
 
   const uploadImage = async (file: File) => {
+    console.log("[NotasGeneralesEditor] Starting upload for:", file.name, file.type, file.size);
+    
+    // Verificar autenticación primero
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error("[NotasGeneralesEditor] Session error:", sessionError);
+      toast.error("Error de sesión. Por favor recargue la página.");
+      return;
+    }
+    
+    if (!session) {
+      console.error("[NotasGeneralesEditor] User not authenticated");
+      toast.error("Debe iniciar sesión para subir imágenes");
+      return;
+    }
+    
+    console.log("[NotasGeneralesEditor] User authenticated:", session.user.id);
+    
     setIsUploading(true);
     try {
       const fileExt = file.name.split(".").pop() || "png";
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `notes/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
+      console.log("[NotasGeneralesEditor] Uploading to path:", filePath);
+
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from("notes-images")
         .upload(filePath, file);
 
       if (uploadError) {
-        console.error("Upload error:", uploadError);
-        toast.error("Error al subir la imagen");
+        console.error("[NotasGeneralesEditor] Upload error:", uploadError);
+        toast.error(`Error al subir: ${uploadError.message}`);
         return;
       }
+
+      console.log("[NotasGeneralesEditor] Upload successful:", uploadData);
 
       const { data: urlData } = supabase.storage
         .from("notes-images")
         .getPublicUrl(filePath);
+
+      console.log("[NotasGeneralesEditor] Public URL:", urlData.publicUrl);
 
       const newImage: NotasImage = {
         id: crypto.randomUUID(),
@@ -79,7 +113,7 @@ export const NotasGeneralesEditor: React.FC<NotasGeneralesEditorProps> = ({
       onImagesChange([...images, newImage]);
       toast.success("Imagen pegada correctamente");
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("[NotasGeneralesEditor] Error uploading image:", error);
       toast.error("Error al subir la imagen");
     } finally {
       setIsUploading(false);

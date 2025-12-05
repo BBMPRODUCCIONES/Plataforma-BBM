@@ -93,6 +93,22 @@ export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const addProveedor = async (proveedor: Omit<Proveedor, 'id'>): Promise<Proveedor | null> => {
+    // Create optimistic proveedor with temporary ID
+    const tempId = `temp-${Date.now()}`;
+    const optimisticProveedor: Proveedor = {
+      id: tempId,
+      categoria: proveedor.categoria || '',
+      nombre: proveedor.nombre || '',
+      telefono: proveedor.telefono || '',
+      correo: proveedor.correo || '',
+      tipoProductoServicio: proveedor.tipoProductoServicio || '',
+      notas: proveedor.notas || '',
+      cotizacionesAnteriores: proveedor.cotizacionesAnteriores || [],
+    };
+
+    // Optimistic update - add immediately
+    setProveedores(prev => [...prev, optimisticProveedor]);
+
     try {
       const dbRow = proveedorToDbRow(proveedor);
       const { data, error } = await supabase
@@ -103,12 +119,15 @@ export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('[ProveedoresContext] Error adding proveedor:', error);
+        // Revert optimistic update
+        setProveedores(prev => prev.filter(p => p.id !== tempId));
         throw error;
       }
 
-      const newProveedor = dbRowToProveedor(data);
-      setProveedores(prev => [...prev, newProveedor]);
-      return newProveedor;
+      // Replace temp proveedor with real one
+      const realProveedor = dbRowToProveedor(data);
+      setProveedores(prev => prev.map(p => p.id === tempId ? realProveedor : p));
+      return realProveedor;
     } catch (err) {
       console.error('[ProveedoresContext] Exception adding proveedor:', err);
       throw err;
@@ -140,6 +159,12 @@ export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteProveedor = async (id: string): Promise<void> => {
+    // Save for potential rollback
+    const proveedorToDelete = proveedores.find(p => p.id === id);
+    
+    // Optimistic update - remove immediately
+    setProveedores(prev => prev.filter(p => p.id !== id));
+
     try {
       const { error } = await supabase
         .from('suppliers')
@@ -148,10 +173,12 @@ export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('[ProveedoresContext] Error deleting proveedor:', error);
+        // Revert optimistic update
+        if (proveedorToDelete) {
+          setProveedores(prev => [...prev, proveedorToDelete]);
+        }
         throw error;
       }
-
-      setProveedores(prev => prev.filter(p => p.id !== id));
     } catch (err) {
       console.error('[ProveedoresContext] Exception deleting proveedor:', err);
       throw err;

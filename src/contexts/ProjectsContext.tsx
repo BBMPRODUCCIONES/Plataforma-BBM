@@ -42,6 +42,7 @@ function dbRowToProject(row: any): Project {
     productor: row.productor || "",
     aCargoDe: row.a_cargo_de || "",
     notas: row.notas || "",
+    notasImagenes: row.notas_imagenes || [],
     personal: row.personal || [],
     inventario: row.inventario || [],
     cotizaciones: row.cotizaciones || [],
@@ -79,6 +80,7 @@ function projectToDbRow(project: Partial<Project>): Record<string, any> {
   if (project.productor !== undefined) row.productor = project.productor;
   if (project.aCargoDe !== undefined) row.a_cargo_de = project.aCargoDe;
   if (project.notas !== undefined) row.notas = project.notas;
+  if (project.notasImagenes !== undefined) row.notas_imagenes = project.notasImagenes;
   if (project.personal !== undefined) row.personal = project.personal;
   if (project.inventario !== undefined) row.inventario = project.inventario;
   if (project.cotizaciones !== undefined) row.cotizaciones = project.cotizaciones;
@@ -110,6 +112,7 @@ function fieldToColumn(field: string): string {
     ordenesCompra: "ordenes_compra",
     notasCotizacionProveedor: "notas_cotizacion_proveedor",
     cotizacionesProveedor: "cotizaciones_proveedor",
+    notasImagenes: "notas_imagenes",
   };
   return mapping[field] || field;
 }

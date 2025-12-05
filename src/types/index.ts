@@ -31,9 +31,16 @@ export interface Project {
   cotizacionesProveedor?: Attachment[];
   notasCotizacionProveedor?: string;
   notas?: string;
+  notasImagenes?: NotasImage[];
   inventario?: InventarioItem[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface NotasImage {
+  id: string;
+  url: string;
+  name: string;
 }
 
 // Updated status according to requirements

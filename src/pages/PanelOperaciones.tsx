@@ -14,6 +14,7 @@ import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { EmpleadoAutocomplete } from "@/components/EmpleadoAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
+import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjects } from "@/contexts/ProjectsContext";
@@ -76,6 +77,7 @@ const PanelOperaciones = () => {
   // Local state for textareas to prevent "erasing" while typing
   const [localNotas, setLocalNotas] = useState("");
   const [localNotasProveedor, setLocalNotasProveedor] = useState("");
+  const [localNotasImagenes, setLocalNotasImagenes] = useState<Array<{id: string; url: string; name: string}>>([]);
 
   // Sync local textarea state when project changes (not on every keystroke)
   useEffect(() => {
@@ -84,6 +86,7 @@ const PanelOperaciones = () => {
       if (project) {
         setLocalNotas(project.notas || "");
         setLocalNotasProveedor((project as any).notasCotizacionProveedor || "");
+        setLocalNotasImagenes((project as any).notasImagenes || []);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -740,6 +743,11 @@ const PanelOperaciones = () => {
             if (localNotas !== (currentProjectData.notas || "")) {
               updateProject(currentProjectData.id, "notas", localNotas);
             }
+            // Save images if changed
+            const currentImages = (currentProjectData as any).notasImagenes || [];
+            if (JSON.stringify(localNotasImagenes) !== JSON.stringify(currentImages)) {
+              updateProject(currentProjectData.id, "notasImagenes", localNotasImagenes);
+            }
           }
           setSelectedProject(null);
         }}>
@@ -967,20 +975,22 @@ const PanelOperaciones = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <Textarea
+                    <NotasGeneralesEditor
                       value={localNotas}
-                      onChange={(e) => setLocalNotas(e.target.value)}
+                      images={localNotasImagenes}
+                      onChange={setLocalNotas}
+                      onImagesChange={(images) => {
+                        setLocalNotasImagenes(images);
+                        // Save images immediately when changed
+                        updateProject(currentProjectData.id, "notasImagenes", images);
+                      }}
                       onBlur={() => {
                         if (localNotas !== (currentProjectData.notas || "")) {
                           updateProject(currentProjectData.id, "notas", localNotas);
                         }
                       }}
-                      placeholder="Escriba notas generales del evento... (sincronizadas en todos los paneles)"
-                      className="min-h-[80px] text-sm"
+                      placeholder="Escriba notas generales del evento... (Ctrl+V para pegar imágenes)"
                     />
-                    <p className="text-[10px] text-muted-foreground mt-2">
-                      Estas notas están sincronizadas y aparecen en todos los paneles (Directivo, General, Operaciones).
-                    </p>
                   </CardContent>
                 </Card>
               </div>

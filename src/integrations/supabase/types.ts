@@ -176,6 +176,7 @@ export type Database = {
           jefe_operaciones: string
           notas: string
           notas_cotizacion_proveedor: string
+          notas_imagenes: Json | null
           num_factura: string
           ordenes_compra: Json
           personal: Json
@@ -209,6 +210,7 @@ export type Database = {
           jefe_operaciones?: string
           notas?: string
           notas_cotizacion_proveedor?: string
+          notas_imagenes?: Json | null
           num_factura?: string
           ordenes_compra?: Json
           personal?: Json
@@ -242,6 +244,7 @@ export type Database = {
           jefe_operaciones?: string
           notas?: string
           notas_cotizacion_proveedor?: string
+          notas_imagenes?: Json | null
           num_factura?: string
           ordenes_compra?: Json
           personal?: Json

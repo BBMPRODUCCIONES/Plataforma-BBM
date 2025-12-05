@@ -323,6 +323,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_invitation_by_token: {
+        Args: { _token: string }
+        Returns: {
+          allowed_panels: string[]
+          email: string
+          role: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
     }
     Enums: {
       app_role: "administrador" | "operativo" | "visual"

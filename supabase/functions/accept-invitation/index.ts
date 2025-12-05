@@ -1,10 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Password validation schema with strong requirements
+const passwordSchema = z.string()
+  .min(8, "La contraseña debe tener mínimo 8 caracteres")
+  .regex(/[A-Z]/, "La contraseña debe contener una letra mayúscula")
+  .regex(/[a-z]/, "La contraseña debe contener una letra minúscula")
+  .regex(/[0-9]/, "La contraseña debe contener un número")
+  .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, "La contraseña debe contener un carácter especial");
+
+// Schema validation for accept invitation
+const acceptInvitationSchema = z.object({
+  token: z.string().uuid({ message: "Token debe ser un UUID válido" }),
+  password: passwordSchema,
+  full_name: z.string().max(255, "Nombre muy largo").optional().nullable(),
+});
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -16,40 +32,28 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // Parse request body
-    const { token, password, full_name } = await req.json();
-
-    if (!token || !password) {
+    // Parse and validate request body
+    let body;
+    try {
+      body = await req.json();
+    } catch {
       return new Response(
-        JSON.stringify({ error: 'Token y contraseña son requeridos' }),
+        JSON.stringify({ error: 'Body de la petición inválido' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Strong password validation
-    const passwordErrors: string[] = [];
-    if (password.length < 8) {
-      passwordErrors.push('mínimo 8 caracteres');
-    }
-    if (!/[A-Z]/.test(password)) {
-      passwordErrors.push('una letra mayúscula');
-    }
-    if (!/[a-z]/.test(password)) {
-      passwordErrors.push('una letra minúscula');
-    }
-    if (!/[0-9]/.test(password)) {
-      passwordErrors.push('un número');
-    }
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-      passwordErrors.push('un carácter especial');
-    }
-
-    if (passwordErrors.length > 0) {
+    // Validate with zod schema
+    const validationResult = acceptInvitationSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors.map(e => e.message).join(', ');
       return new Response(
-        JSON.stringify({ error: `La contraseña debe contener: ${passwordErrors.join(', ')}` }),
+        JSON.stringify({ error: errorMessage }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const { token, password, full_name } = validationResult.data;
 
     // Create service role client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

@@ -117,6 +117,11 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateEmpleado = useCallback(async (id: string, data: Partial<Empleado>) => {
+    // Optimistic update - update local state immediately
+    setEmpleados(prev => prev.map(e => 
+      e.id === id ? { ...e, ...data } : e
+    ));
+
     const updateData: Record<string, any> = {};
     if (data.cargo !== undefined) updateData.cargo = data.cargo;
     if (data.nombre !== undefined) updateData.nombre = data.nombre;
@@ -131,11 +136,12 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("[EmpleadosContext] Error updating employee:", error);
       toast.error("Error al actualizar el empleado");
+      await fetchEmpleados(); // Revert on error
       return;
     }
 
     console.log("[EmpleadosContext] Updated employee:", id);
-  }, []);
+  }, [fetchEmpleados]);
 
   const deleteEmpleado = useCallback(async (id: string) => {
     const { error } = await supabase

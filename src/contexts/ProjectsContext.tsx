@@ -214,8 +214,12 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateProject = useCallback(async (projectId: string, field: string, value: any) => {
+    // Optimistic update - update local state immediately
+    setProjects(prev => prev.map(p => 
+      p.id === projectId ? { ...p, [field]: value } : p
+    ));
+
     const columnName = fieldToColumn(field);
-    
     const { error } = await supabase
       .from("projects")
       .update({ [columnName]: value })
@@ -224,15 +228,20 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("[ProjectsContext] Error updating project:", error);
       toast.error("Error al actualizar el proyecto");
+      await fetchProjects(); // Revert on error
       return;
     }
 
     console.log("[ProjectsContext] Updated project", projectId, "field:", field);
-  }, []);
+  }, [fetchProjects]);
 
   const updateProjectMultiple = useCallback(async (projectId: string, updates: Partial<Project>) => {
-    const dbUpdates = projectToDbRow(updates);
+    // Optimistic update - update local state immediately
+    setProjects(prev => prev.map(p => 
+      p.id === projectId ? { ...p, ...updates } : p
+    ));
 
+    const dbUpdates = projectToDbRow(updates);
     const { error } = await supabase
       .from("projects")
       .update(dbUpdates)
@@ -241,11 +250,12 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("[ProjectsContext] Error updating project:", error);
       toast.error("Error al actualizar el proyecto");
+      await fetchProjects(); // Revert on error
       return;
     }
 
     console.log("[ProjectsContext] Updated project", projectId, "with multiple fields");
-  }, []);
+  }, [fetchProjects]);
 
   const deleteProject = useCallback(async (projectId: string) => {
     const { error } = await supabase

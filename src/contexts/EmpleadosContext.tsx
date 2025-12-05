@@ -41,20 +41,32 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
 
   const fetchEmpleados = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("*")
-        .order("created_at", { ascending: false });
+      // Use the secure function that filters based on user role
+      // Admin gets full access, operativo gets limited access (no contact info)
+      const { data, error } = await supabase.rpc('get_employees_for_role');
 
       if (error) {
         console.error("[EmpleadosContext] Error fetching employees:", error);
-        toast.error("Error al cargar empleados");
+        // Fallback to direct table access (will work for admin, fail for others due to RLS)
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("employees")
+          .select("*")
+          .order("created_at", { ascending: false });
+        
+        if (fallbackError) {
+          console.error("[EmpleadosContext] Fallback also failed:", fallbackError);
+          toast.error("Error al cargar empleados");
+          return;
+        }
+        
+        const empleadosList = (fallbackData || []).map(dbRowToEmpleado);
+        setEmpleados(empleadosList);
         return;
       }
 
       const empleadosList = (data || []).map(dbRowToEmpleado);
       setEmpleados(empleadosList);
-      console.log("[EmpleadosContext] Loaded", empleadosList.length, "employees from database");
+      console.log("[EmpleadosContext] Loaded", empleadosList.length, "employees via secure function");
     } catch (err) {
       console.error("[EmpleadosContext] Unexpected error:", err);
     } finally {
@@ -74,17 +86,8 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
         { event: "*", schema: "public", table: "employees" },
         (payload) => {
           console.log("[EmpleadosContext] Realtime event:", payload.eventType);
-          
-          if (payload.eventType === "INSERT") {
-            const newEmpleado = dbRowToEmpleado(payload.new);
-            setEmpleados(prev => [newEmpleado, ...prev]);
-          } else if (payload.eventType === "UPDATE") {
-            const updatedEmpleado = dbRowToEmpleado(payload.new);
-            setEmpleados(prev => prev.map(e => e.id === updatedEmpleado.id ? updatedEmpleado : e));
-          } else if (payload.eventType === "DELETE") {
-            const deletedId = payload.old.id;
-            setEmpleados(prev => prev.filter(e => e.id !== deletedId));
-          }
+          // Refetch to get role-filtered data
+          fetchEmpleados();
         }
       )
       .subscribe();

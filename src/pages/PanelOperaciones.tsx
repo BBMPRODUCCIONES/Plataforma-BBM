@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
@@ -72,6 +72,21 @@ const PanelOperaciones = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | undefined>();
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
+
+  // Local state for textareas to prevent "erasing" while typing
+  const [localNotas, setLocalNotas] = useState("");
+  const [localNotasProveedor, setLocalNotasProveedor] = useState("");
+
+  // Sync local textarea state when project changes (not on every keystroke)
+  useEffect(() => {
+    if (selectedProject) {
+      const project = projects.find(p => p.id === selectedProject.id);
+      if (project) {
+        setLocalNotas(project.notas || "");
+        setLocalNotasProveedor((project as any).notasCotizacionProveedor || "");
+      }
+    }
+  }, [selectedProject?.id, projects]);
 
   // Check if user is admin
   const isAdmin = role?.toLowerCase() === "administrador";
@@ -862,8 +877,13 @@ const PanelOperaciones = () => {
                     <div>
                       <label className="text-xs text-muted-foreground mb-1 block">Notas del Proveedor</label>
                       <Textarea
-                        value={currentProjectData.notasCotizacionProveedor || ""}
-                        onChange={(e) => updateProject(currentProjectData.id, "notasCotizacionProveedor", e.target.value)}
+                        value={localNotasProveedor}
+                        onChange={(e) => setLocalNotasProveedor(e.target.value)}
+                        onBlur={() => {
+                          if (localNotasProveedor !== (currentProjectData.notasCotizacionProveedor || "")) {
+                            updateProject(currentProjectData.id, "notasCotizacionProveedor", localNotasProveedor);
+                          }
+                        }}
                         placeholder="Escriba notas específicas de la cotización del proveedor..."
                         className="min-h-[60px] text-sm"
                       />
@@ -936,8 +956,13 @@ const PanelOperaciones = () => {
                   </CardHeader>
                   <CardContent className="pt-0">
                     <Textarea
-                      value={currentProjectData.notas || ""}
-                      onChange={(e) => updateProject(currentProjectData.id, "notas", e.target.value)}
+                      value={localNotas}
+                      onChange={(e) => setLocalNotas(e.target.value)}
+                      onBlur={() => {
+                        if (localNotas !== (currentProjectData.notas || "")) {
+                          updateProject(currentProjectData.id, "notas", localNotas);
+                        }
+                      }}
                       placeholder="Escriba notas generales del evento... (sincronizadas en todos los paneles)"
                       className="min-h-[80px] text-sm"
                     />

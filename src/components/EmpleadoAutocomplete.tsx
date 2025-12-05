@@ -37,12 +37,8 @@ export function EmpleadoAutocomplete({
     (e.cargo && e.cargo.toLowerCase().includes((tipoPersonal === "BBM" ? inputValue : value).toLowerCase()))
   );
 
-  // Sync inputValue with external value for free text mode
-  useEffect(() => {
-    if (tipoPersonal !== "BBM") {
-      setInputValue(value || "");
-    }
-  }, [value, tipoPersonal]);
+  // NOTE: Removed useEffect that synced inputValue with value - it caused input to "erase" while typing
+  // For free text mode (Proveedor/Transporte), we use local state and sync only on blur
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -70,9 +66,15 @@ export function EmpleadoAutocomplete({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
-    if (tipoPersonal !== "BBM") {
-      onChange(newValue); // Free text - just pass the value
+    // Don't call onChange on every keystroke for free text - only on blur
+  };
+
+  const handleBlur = () => {
+    if (tipoPersonal !== "BBM" && inputValue !== value) {
+      onChange(inputValue);
     }
+    // Small delay before closing to allow click on suggestions
+    setTimeout(() => setIsOpen(false), 150);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -197,6 +199,7 @@ export function EmpleadoAutocomplete({
         value={inputValue}
         onChange={handleInputChange}
         onFocus={() => setIsOpen(true)}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className="h-9 text-sm"

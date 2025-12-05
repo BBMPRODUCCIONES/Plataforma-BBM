@@ -731,7 +731,18 @@ const PanelOperaciones = () => {
         </Tabs>
 
         {/* Project Detail Dialog */}
-        <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
+        <Dialog open={!!selectedProject} onOpenChange={(open) => {
+          if (!open && selectedProject && currentProjectData) {
+            // Save pending notes before closing
+            if (localNotasProveedor !== (currentProjectData.notasCotizacionProveedor || "")) {
+              updateProject(currentProjectData.id, "notasCotizacionProveedor", localNotasProveedor);
+            }
+            if (localNotas !== (currentProjectData.notas || "")) {
+              updateProject(currentProjectData.id, "notas", localNotas);
+            }
+          }
+          setSelectedProject(null);
+        }}>
           <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">

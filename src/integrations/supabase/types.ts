@@ -157,6 +157,7 @@ export type Database = {
           centro_costos: string
           cliente: string
           cotizaciones: Json
+          cotizaciones_proveedor: Json
           created_at: string
           estado: string
           evento: string
@@ -174,6 +175,7 @@ export type Database = {
           inventario: Json
           jefe_operaciones: string
           notas: string
+          notas_cotizacion_proveedor: string
           num_factura: string
           ordenes_compra: Json
           personal: Json
@@ -188,6 +190,7 @@ export type Database = {
           centro_costos?: string
           cliente?: string
           cotizaciones?: Json
+          cotizaciones_proveedor?: Json
           created_at?: string
           estado?: string
           evento?: string
@@ -205,6 +208,7 @@ export type Database = {
           inventario?: Json
           jefe_operaciones?: string
           notas?: string
+          notas_cotizacion_proveedor?: string
           num_factura?: string
           ordenes_compra?: Json
           personal?: Json
@@ -219,6 +223,7 @@ export type Database = {
           centro_costos?: string
           cliente?: string
           cotizaciones?: Json
+          cotizaciones_proveedor?: Json
           created_at?: string
           estado?: string
           evento?: string
@@ -236,6 +241,7 @@ export type Database = {
           inventario?: Json
           jefe_operaciones?: string
           notas?: string
+          notas_cotizacion_proveedor?: string
           num_factura?: string
           ordenes_compra?: Json
           personal?: Json

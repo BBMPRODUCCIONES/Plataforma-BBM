@@ -17,10 +17,11 @@ import { MatrixTable } from "@/components/MatrixTable";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { EditableCell, CellType } from "@/components/EditableCell";
-import { Plus, Trash2, Edit, Users, Search, Settings, Loader2 } from "lucide-react";
+import { Plus, Trash2, Edit, Users, Search, Settings, Loader2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEmpleados, Empleado } from "@/contexts/EmpleadosContext";
+import { Navigate } from "react-router-dom";
 
 export default function Empleados() {
   const { canEditStructure, role } = useUserRole();
@@ -31,6 +32,13 @@ export default function Empleados() {
   const [searchTerm, setSearchTerm] = useState("");
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // SECURITY: Only admin can access this page
+  // This page displays sensitive contact information (telefono, correo)
+  if (!isAdmin) {
+    return <Navigate to="/general" replace />;
+  }
+
   // Initialize with base columns - persisted
   const defaultColumns: ColumnConfig[] = [
     { key: "cargo", header: "CARGO", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 0 },
@@ -247,6 +255,14 @@ export default function Empleados() {
             )
           }
         />
+
+        {/* Security Notice */}
+        <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
+          <ShieldAlert className="h-4 w-4 text-primary" />
+          <span className="text-xs text-muted-foreground">
+            Esta página contiene información de contacto sensible y solo es accesible para administradores.
+          </span>
+        </div>
 
         <div className="flex items-center justify-between gap-4">
           <div className="relative flex-1 max-w-sm">

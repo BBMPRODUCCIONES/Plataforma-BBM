@@ -25,16 +25,15 @@ export function EmpleadoAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // For BBM: Filter only employees with cargo containing "BBM" (case insensitive)
+  // For BBM: Show ALL employees from "Creación de Empleados"
   // For others: Show all employees as suggestions
-  const empleadosFiltradosPorTipo = tipoPersonal === "BBM"
-    ? empleados.filter(e => e.cargo?.toLowerCase().includes("bbm"))
-    : empleados;
+  const empleadosFiltradosPorTipo = empleados;
 
   // Filter by search input
+  const searchTerm = tipoPersonal === "BBM" ? inputValue : value;
   const filteredEmpleados = empleadosFiltradosPorTipo.filter(e =>
-    e.nombre.toLowerCase().includes((tipoPersonal === "BBM" ? inputValue : value).toLowerCase()) ||
-    (e.cargo && e.cargo.toLowerCase().includes((tipoPersonal === "BBM" ? inputValue : value).toLowerCase()))
+    e.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (e.cargo && e.cargo.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // NOTE: Removed useEffect that synced inputValue with value - it caused input to "erase" while typing
@@ -123,7 +122,7 @@ export function EmpleadoAutocomplete({
                   value={inputValue}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder="Buscar empleado BBM..."
+                  placeholder="Buscar empleado..."
                   className="h-9 text-sm bg-muted pl-10 pr-3"
                   autoFocus
                   onClick={(e) => e.stopPropagation()}
@@ -131,12 +130,12 @@ export function EmpleadoAutocomplete({
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
-                Solo empleados con cargo BBM
+                Empleados de "Creación de Empleados"
               </p>
             </div>
 
-            {/* Results list */}
-            <div className="overflow-y-auto max-h-52">
+            {/* Results list - show at least 5-6 items */}
+            <div className="overflow-y-auto max-h-80 min-h-[120px]">
               {filteredEmpleados.length > 0 ? (
                 <div className="py-1">
                   {filteredEmpleados.map((empleado) => (
@@ -177,10 +176,10 @@ export function EmpleadoAutocomplete({
                   <p className="text-sm text-muted-foreground font-medium">
                     {inputValue 
                       ? "No se encontraron coincidencias" 
-                      : "No hay empleados BBM registrados"}
+                      : "No hay empleados registrados"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Cree empleados en "Creación de Empleados" con cargo BBM
+                    Cree empleados en el módulo "Creación de Empleados"
                   </p>
                 </div>
               )}
@@ -218,7 +217,7 @@ export function EmpleadoAutocomplete({
           </div>
 
           {/* Results */}
-          <div className="overflow-y-auto max-h-44">
+          <div className="overflow-y-auto max-h-64 min-h-[100px]">
             {filteredEmpleados.length > 0 ? (
               <div className="py-1">
                 {filteredEmpleados.map((empleado) => (

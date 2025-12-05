@@ -6,7 +6,7 @@ import { MatrixTable } from "@/components/MatrixTable";
 import { StatusSelect } from "@/components/StatusSelect";
 import { GanttChart } from "@/components/GanttChart";
 import { CalendarFilter } from "@/components/CalendarFilter";
-import { FileUploadButton } from "@/components/FileUpload";
+import { AttachmentButton } from "@/components/AttachmentManager";
 import { PurchaseOrderUpload } from "@/components/PurchaseOrderUpload";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
@@ -250,14 +250,17 @@ const PanelGeneral = () => {
       case "ordenCompra":
         return (p: Project) => (
           <div className="flex items-center gap-1">
-            <FileUploadButton
+            <AttachmentButton
               attachments={(p as any).ordenesCompra || []}
               onAttachmentsChange={(attachments) => updateProject(p.id, "ordenesCompra", attachments)}
               multiple={false}
+              projectId={p.id}
+              fieldName="ordenesCompra"
             />
             <PurchaseOrderUpload
               currentIngresoBruto={(p as any).ingresoBruto}
               currentIngresoTotal={(p as any).ingresoTotal}
+              projectId={p.id}
               onDataExtracted={(ingresoBruto, ingresoTotal) => {
                 updateProjectMultiple(p.id, {
                   ingresoBruto: ingresoBruto ?? undefined,

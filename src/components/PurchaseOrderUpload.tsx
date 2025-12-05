@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Loader2, Check, X, Paperclip, Download, Trash2 } from "lucide-react";
+import { Upload, FileText, Loader2, Check, X, Paperclip } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -12,6 +12,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Attachment } from "@/types";
+
+const BUCKET_NAME = "project-attachments";
 
 interface ExtractedData {
   ingresoBruto: number | null;
@@ -27,6 +29,7 @@ interface PurchaseOrderUploadProps {
   currentIngresoTotal?: number;
   attachments?: Attachment[];
   onAttachmentsChange?: (attachments: Attachment[]) => void;
+  projectId?: string;
 }
 
 export function PurchaseOrderUpload({ 
@@ -35,6 +38,7 @@ export function PurchaseOrderUpload({
   currentIngresoTotal,
   attachments = [],
   onAttachmentsChange,
+  projectId = "general",
 }: PurchaseOrderUploadProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -102,14 +106,36 @@ export function PurchaseOrderUpload({
     setIsProcessing(true);
 
     try {
-      // Create attachment object
+      // Upload file to Supabase Storage first
+      const fileExt = file.name.split(".").pop() || "bin";
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `${projectId}/cotizaciones/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        toast({
+          title: "Error al subir archivo",
+          description: uploadError.message,
+          variant: "destructive",
+        });
+        setIsProcessing(false);
+        return;
+      }
+
+      // Create attachment object with storage path
       const newAttachment: Attachment = {
         id: crypto.randomUUID(),
         name: file.name,
         size: file.size,
         type: file.type,
-        url: URL.createObjectURL(file),
+        url: "", // Will be populated with signed URL when viewing
         uploadedAt: new Date().toISOString(),
+        filePath: filePath,
+        bucket: BUCKET_NAME,
       };
 
       // Store the pending attachment

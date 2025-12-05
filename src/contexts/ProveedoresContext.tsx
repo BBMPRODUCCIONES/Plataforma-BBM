@@ -116,6 +116,11 @@ export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateProveedor = async (id: string, field: string, value: any): Promise<void> => {
+    // Optimistic update - update local state immediately
+    setProveedores(prev =>
+      prev.map(p => (p.id === id ? { ...p, [field]: value } : p))
+    );
+
     try {
       const column = fieldToColumn(field);
       const { error } = await supabase
@@ -125,12 +130,9 @@ export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('[ProveedoresContext] Error updating proveedor:', error);
+        await fetchProveedores(); // Revert on error
         throw error;
       }
-
-      setProveedores(prev =>
-        prev.map(p => (p.id === id ? { ...p, [field]: value } : p))
-      );
     } catch (err) {
       console.error('[ProveedoresContext] Exception updating proveedor:', err);
       throw err;

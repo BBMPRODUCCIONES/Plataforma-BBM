@@ -104,6 +104,11 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateCliente = useCallback(async (id: string, data: Partial<Cliente>) => {
+    // Optimistic update - update local state immediately
+    setClientes(prev => prev.map(c => 
+      c.id === id ? { ...c, ...data } : c
+    ));
+
     const updateData: Record<string, any> = {};
     if (data.nombre !== undefined) updateData.nombre = data.nombre;
     if (data.nit !== undefined) updateData.nit = data.nit;
@@ -116,11 +121,12 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("[ClientesContext] Error updating client:", error);
       toast.error("Error al actualizar el cliente");
+      await fetchClientes(); // Revert on error
       return;
     }
 
     console.log("[ClientesContext] Updated client:", id);
-  }, []);
+  }, [fetchClientes]);
 
   const deleteCliente = useCallback(async (id: string) => {
     const { error } = await supabase

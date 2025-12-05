@@ -48,8 +48,11 @@ export function EditableCell({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
+    // Only sync when not actively editing to prevent input from being "erased"
+    if (!isEditing) {
+      setLocalValue(value);
+    }
+  }, [value, isEditing]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {

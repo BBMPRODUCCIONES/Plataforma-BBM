@@ -1,10 +1,27 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Valid roles enum
+const validRoles = ['administrador', 'operativo', 'visual'] as const;
+const validPanels = ['directivo', 'general', 'operaciones', 'proveedores'] as const;
+
+// Schema validation for create invitation
+const createInvitationSchema = z.object({
+  email: z.string()
+    .email({ message: "Email inválido" })
+    .max(255, "Email muy largo")
+    .transform(val => val.toLowerCase().trim()),
+  role: z.enum(validRoles, { 
+    errorMap: () => ({ message: "Rol inválido. Debe ser: administrador, operativo o visual" })
+  }),
+  allowed_panels: z.array(z.enum(validPanels)).optional(),
+});
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -58,24 +75,28 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body
-    const { email, role, allowed_panels } = await req.json();
-
-    if (!email || !role) {
+    // Parse and validate request body
+    let body;
+    try {
+      body = await req.json();
+    } catch {
       return new Response(
-        JSON.stringify({ error: 'Email y rol son requeridos' }),
+        JSON.stringify({ error: 'Body de la petición inválido' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate role
-    const validRoles = ['administrador', 'operativo', 'visual'];
-    if (!validRoles.includes(role)) {
+    // Validate with zod schema
+    const validationResult = createInvitationSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors.map(e => e.message).join(', ');
       return new Response(
-        JSON.stringify({ error: 'Rol inválido. Debe ser: administrador, operativo o visual' }),
+        JSON.stringify({ error: errorMessage }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const { email, role, allowed_panels } = validationResult.data;
 
     // Determine allowed panels based on role
     const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores'];
@@ -84,7 +105,7 @@ serve(async (req) => {
     if (role === 'administrador') {
       // Admin always gets all panels
       finalAllowedPanels = ALL_PANELS;
-    } else if (allowed_panels && Array.isArray(allowed_panels)) {
+    } else if (allowed_panels && allowed_panels.length > 0) {
       // Use provided panels but exclude directivo for non-admins
       finalAllowedPanels = allowed_panels.filter((p: string) => p !== 'directivo');
     } else {

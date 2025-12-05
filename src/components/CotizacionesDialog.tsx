@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Download, Trash2, X, File, Loader2 } from "lucide-react";
+import { Upload, Download, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Attachment } from "@/types";
@@ -25,7 +25,69 @@ export function CotizacionesDialog({
 }: CotizacionesDialogProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Get signed URLs for all attachments when dialog opens
+  useEffect(() => {
+    if (open && cotizaciones.length > 0) {
+      loadSignedUrls();
+    }
+  }, [open, cotizaciones]);
+
+  const loadSignedUrls = async () => {
+    const newSignedUrls: Record<string, string> = {};
+    
+    for (const attachment of cotizaciones) {
+      try {
+        // Extract file path from stored URL or use the path directly
+        const filePath = extractFilePath(attachment.url);
+        if (filePath) {
+          const signedUrl = await getSignedUrl(filePath);
+          if (signedUrl) {
+            newSignedUrls[attachment.id] = signedUrl;
+          }
+        }
+      } catch (error) {
+        console.error('Error getting signed URL for:', attachment.name, error);
+      }
+    }
+    
+    setSignedUrls(newSignedUrls);
+  };
+
+  const extractFilePath = (url: string): string | null => {
+    // If it's already a path (not a full URL), return it
+    if (!url.startsWith('http')) {
+      return url;
+    }
+    
+    // Extract path from public URL format
+    const match = url.match(/supplier-cotizaciones\/(.+)$/);
+    return match ? decodeURIComponent(match[1]) : null;
+  };
+
+  const getSignedUrl = async (filePath: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-signed-url', {
+        body: {
+          bucket: 'supplier-cotizaciones',
+          path: filePath,
+          expiresIn: 3600 // 1 hour
+        }
+      });
+
+      if (error) {
+        console.error('Error getting signed URL:', error);
+        return null;
+      }
+
+      return data?.signedUrl || null;
+    } catch (error) {
+      console.error('Error invoking get-signed-url:', error);
+      return null;
+    }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -73,14 +135,11 @@ export function CotizacionesDialog({
           continue;
         }
 
-        const { data: urlData } = supabase.storage
-          .from('supplier-cotizaciones')
-          .getPublicUrl(filePath);
-
+        // Store the file path, not the public URL (bucket is now private)
         newAttachments.push({
           id: `${timestamp}-${Math.random().toString(36).substr(2, 9)}`,
           name: file.name,
-          url: urlData.publicUrl,
+          url: filePath, // Store path instead of public URL
           type: file.type,
           size: file.size,
           uploadedAt: new Date().toISOString(),
@@ -90,6 +149,15 @@ export function CotizacionesDialog({
       if (newAttachments.length > 0) {
         const updatedCotizaciones = [...cotizaciones, ...newAttachments];
         onCotizacionesChange(updatedCotizaciones);
+        
+        // Load signed URLs for new attachments
+        for (const attachment of newAttachments) {
+          const signedUrl = await getSignedUrl(attachment.url);
+          if (signedUrl) {
+            setSignedUrls(prev => ({ ...prev, [attachment.id]: signedUrl }));
+          }
+        }
+        
         toast.success(`${newAttachments.length} archivo(s) subido(s) correctamente`);
       }
     } catch (error) {
@@ -105,19 +173,42 @@ export function CotizacionesDialog({
 
   const handleDelete = async (attachment: Attachment) => {
     try {
-      // Extract file path from URL
-      const urlParts = attachment.url.split('/supplier-cotizaciones/');
-      if (urlParts.length > 1) {
-        const filePath = decodeURIComponent(urlParts[1]);
-        await supabase.storage.from('supplier-cotizaciones').remove([filePath]);
-      }
+      // Extract file path
+      const filePath = extractFilePath(attachment.url) || attachment.url;
+      
+      await supabase.storage.from('supplier-cotizaciones').remove([filePath]);
 
       const updatedCotizaciones = cotizaciones.filter(c => c.id !== attachment.id);
       onCotizacionesChange(updatedCotizaciones);
+      
+      // Remove from signed URLs cache
+      setSignedUrls(prev => {
+        const newUrls = { ...prev };
+        delete newUrls[attachment.id];
+        return newUrls;
+      });
+      
       toast.success('Archivo eliminado');
     } catch (error) {
       console.error('Error deleting file:', error);
       toast.error('Error al eliminar archivo');
+    }
+  };
+
+  const handleDownload = async (attachment: Attachment) => {
+    const signedUrl = signedUrls[attachment.id];
+    if (signedUrl) {
+      window.open(signedUrl, '_blank');
+    } else {
+      // Try to get a new signed URL
+      const filePath = extractFilePath(attachment.url) || attachment.url;
+      const newSignedUrl = await getSignedUrl(filePath);
+      if (newSignedUrl) {
+        setSignedUrls(prev => ({ ...prev, [attachment.id]: newSignedUrl }));
+        window.open(newSignedUrl, '_blank');
+      } else {
+        toast.error('Error al obtener acceso al archivo');
+      }
     }
   };
 
@@ -208,7 +299,7 @@ export function CotizacionesDialog({
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => window.open(attachment.url, '_blank')}
+                        onClick={() => handleDownload(attachment)}
                       >
                         <Download className="h-4 w-4" />
                       </Button>

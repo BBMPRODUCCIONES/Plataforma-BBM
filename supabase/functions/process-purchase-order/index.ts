@@ -1,10 +1,38 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Allowed MIME types for file processing
+const allowedFileTypes = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+] as const;
+
+// Schema validation for purchase order processing
+const purchaseOrderSchema = z.object({
+  fileContent: z.string()
+    .min(1, "Contenido del archivo es requerido")
+    .max(10 * 1024 * 1024, "El archivo es demasiado grande (máximo 10MB)"), // Base64 ~10MB max
+  fileType: z.string()
+    .refine(
+      (val) => allowedFileTypes.some(t => val.startsWith(t.split('/')[0]) || val === t),
+      { message: "Tipo de archivo no permitido. Use: imagen, PDF o Excel" }
+    ),
+  fileName: z.string()
+    .min(1, "Nombre del archivo es requerido")
+    .max(255, "Nombre del archivo muy largo")
+    .regex(/^[a-zA-Z0-9._\- ]+$/, "Nombre de archivo contiene caracteres inválidos"),
+});
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -43,7 +71,28 @@ serve(async (req) => {
 
     console.log(`Authenticated user: ${user.email}`);
 
-    const { fileContent, fileType, fileName } = await req.json();
+    // Parse and validate request body
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Body de la petición inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate with zod schema
+    const validationResult = purchaseOrderSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors.map(e => e.message).join(', ');
+      return new Response(
+        JSON.stringify({ success: false, error: errorMessage }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { fileContent, fileType, fileName } = validationResult.data;
     
     console.log(`Processing file: ${fileName}, type: ${fileType}`);
 
@@ -154,6 +203,7 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto:
       
       if (response.status === 429) {
         return new Response(JSON.stringify({ 
+          success: false,
           error: 'Límite de solicitudes excedido. Intenta de nuevo en unos minutos.' 
         }), {
           status: 429,
@@ -162,6 +212,7 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto:
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ 
+          success: false,
           error: 'Créditos insuficientes. Agrega créditos en Configuración.' 
         }), {
           status: 402,

@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Loader2, Check, X, Paperclip } from "lucide-react";
+import { Upload, FileText, Loader2, Check, X, Paperclip, Eye, Download, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -42,11 +42,85 @@ export function PurchaseOrderUpload({
 }: PurchaseOrderUploadProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showViewDialog, setShowViewDialog] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [editedIngresoBruto, setEditedIngresoBruto] = useState<string>("");
   const [editedIngresoTotal, setEditedIngresoTotal] = useState<string>("");
   const [pendingAttachment, setPendingAttachment] = useState<Attachment | null>(null);
+  const [loadingUrls, setLoadingUrls] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const getSignedUrl = async (attachment: Attachment): Promise<string | null> => {
+    if (!attachment.filePath || !attachment.bucket) {
+      return attachment.url || null;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("get-signed-url", {
+        body: { bucket: attachment.bucket, path: attachment.filePath, expiresIn: 3600 },
+      });
+      if (error || !data?.signedUrl) {
+        console.error("Error getting signed URL:", error);
+        return null;
+      }
+      return data.signedUrl;
+    } catch (err) {
+      console.error("Error invoking get-signed-url:", err);
+      return null;
+    }
+  };
+
+  const viewAttachment = async (attachment: Attachment) => {
+    setLoadingUrls((prev) => ({ ...prev, [attachment.id]: true }));
+    const url = await getSignedUrl(attachment);
+    setLoadingUrls((prev) => ({ ...prev, [attachment.id]: false }));
+    if (url) {
+      window.open(url, "_blank");
+    } else {
+      toast({
+        title: "Error",
+        description: "No se pudo obtener el archivo",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadAttachment = async (attachment: Attachment) => {
+    setLoadingUrls((prev) => ({ ...prev, [attachment.id]: true }));
+    const url = await getSignedUrl(attachment);
+    setLoadingUrls((prev) => ({ ...prev, [attachment.id]: false }));
+    if (url) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = attachment.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      toast({
+        title: "Error",
+        description: "No se pudo descargar el archivo",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteAttachment = async (attachment: Attachment) => {
+    if (attachment.filePath && attachment.bucket) {
+      const { error } = await supabase.storage
+        .from(attachment.bucket)
+        .remove([attachment.filePath]);
+      if (error) {
+        console.error("Error deleting file:", error);
+      }
+    }
+    if (onAttachmentsChange) {
+      onAttachmentsChange(attachments.filter((a) => a.id !== attachment.id));
+    }
+    toast({
+      title: "Archivo eliminado",
+      description: attachment.name,
+    });
+  };
 
   const readFileAsBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -69,7 +143,6 @@ export function PurchaseOrderUpload({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     const allowedTypes = [
       'application/pdf',
       'image/jpeg',
@@ -93,7 +166,6 @@ export function PurchaseOrderUpload({
       return;
     }
 
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "Archivo muy grande",
@@ -106,7 +178,6 @@ export function PurchaseOrderUpload({
     setIsProcessing(true);
 
     try {
-      // Upload file to Supabase Storage first
       const fileExt = file.name.split(".").pop() || "bin";
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `${projectId}/cotizaciones/${fileName}`;
@@ -126,25 +197,22 @@ export function PurchaseOrderUpload({
         return;
       }
 
-      // Create attachment object with storage path
       const newAttachment: Attachment = {
         id: crypto.randomUUID(),
         name: file.name,
         size: file.size,
         type: file.type,
-        url: "", // Will be populated with signed URL when viewing
+        url: "",
         uploadedAt: new Date().toISOString(),
         filePath: filePath,
         bucket: BUCKET_NAME,
       };
 
-      // Store the pending attachment
       setPendingAttachment(newAttachment);
 
       let fileContent: string;
       let fileType = file.type;
 
-      // Read file content
       if (file.type.includes('excel') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
         fileContent = await readExcelAsText(file);
         fileType = 'text/plain';
@@ -154,7 +222,6 @@ export function PurchaseOrderUpload({
 
       console.log('Sending file to process:', file.name, fileType);
 
-      // Call edge function
       const { data, error } = await supabase.functions.invoke('process-purchase-order', {
         body: {
           fileContent,
@@ -185,7 +252,6 @@ export function PurchaseOrderUpload({
 
     } catch (error) {
       console.error('Error processing file:', error);
-      // Still add the attachment even if AI processing fails
       if (pendingAttachment && onAttachmentsChange) {
         onAttachmentsChange([...attachments, pendingAttachment]);
         setPendingAttachment(null);
@@ -207,12 +273,8 @@ export function PurchaseOrderUpload({
     const ingresoBruto = editedIngresoBruto ? parseFloat(editedIngresoBruto) : null;
     const ingresoTotal = editedIngresoTotal ? parseFloat(editedIngresoTotal) : null;
     
-    console.log('handleConfirm called with:', { ingresoBruto, ingresoTotal });
-    
-    // Update the values
     onDataExtracted(ingresoBruto, ingresoTotal);
     
-    // Add the attachment
     if (pendingAttachment && onAttachmentsChange) {
       onAttachmentsChange([...attachments, pendingAttachment]);
     }
@@ -228,7 +290,6 @@ export function PurchaseOrderUpload({
   };
 
   const handleCancel = () => {
-    // Still add the attachment even if user cancels the values
     if (pendingAttachment && onAttachmentsChange) {
       onAttachmentsChange([...attachments, pendingAttachment]);
     }
@@ -242,12 +303,6 @@ export function PurchaseOrderUpload({
     });
   };
 
-  const removeAttachment = (attachmentId: string) => {
-    if (onAttachmentsChange) {
-      onAttachmentsChange(attachments.filter(a => a.id !== attachmentId));
-    }
-  };
-
   const getConfianzaColor = (confianza: string) => {
     switch (confianza.toLowerCase()) {
       case 'alta': return 'text-green-500';
@@ -255,6 +310,12 @@ export function PurchaseOrderUpload({
       case 'baja': return 'text-red-500';
       default: return 'text-muted-foreground';
     }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
   return (
@@ -272,7 +333,13 @@ export function PurchaseOrderUpload({
           variant="ghost"
           size="sm"
           className="h-7 px-2 text-xs"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => {
+            if (attachments.length > 0) {
+              setShowViewDialog(true);
+            } else {
+              fileInputRef.current?.click();
+            }
+          }}
           disabled={isProcessing}
         >
           {isProcessing ? (
@@ -294,6 +361,80 @@ export function PurchaseOrderUpload({
         </Button>
       </div>
 
+      {/* View Attachments Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Paperclip className="h-5 w-5" />
+              Archivos Adjuntos ({attachments.length})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {attachments.map((attachment) => (
+              <div
+                key={attachment.id}
+                className="flex items-center justify-between p-2 bg-muted/50 rounded-lg"
+              >
+                <div className="flex-1 min-w-0 mr-2">
+                  <p className="text-sm font-medium truncate">{attachment.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatFileSize(attachment.size)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => viewAttachment(attachment)}
+                    disabled={loadingUrls[attachment.id]}
+                  >
+                    {loadingUrls[attachment.id] ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Eye className="h-3 w-3" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => downloadAttachment(attachment)}
+                    disabled={loadingUrls[attachment.id]}
+                  >
+                    <Download className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                    onClick={() => deleteAttachment(attachment)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between pt-2 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isProcessing}
+            >
+              <Upload className="h-3 w-3 mr-1" />
+              Agregar más
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowViewDialog(false)}>
+              Cerrar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* OCR Confirmation Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -363,8 +504,6 @@ export function PurchaseOrderUpload({
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Attachments list popover could be added here if needed */}
     </>
   );
 }

@@ -313,9 +313,40 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      employees_limited: {
+        Row: {
+          cargo: string | null
+          created_at: string | null
+          id: string | null
+          nombre: string | null
+        }
+        Insert: {
+          cargo?: string | null
+          created_at?: string | null
+          id?: string | null
+          nombre?: string | null
+        }
+        Update: {
+          cargo?: string | null
+          created_at?: string | null
+          id?: string | null
+          nombre?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      get_employees_for_role: {
+        Args: never
+        Returns: {
+          cargo: string
+          correo: string
+          created_at: string
+          id: string
+          nombre: string
+          telefono: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

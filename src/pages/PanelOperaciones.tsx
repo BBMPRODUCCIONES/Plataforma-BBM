@@ -86,7 +86,8 @@ const PanelOperaciones = () => {
         setLocalNotasProveedor((project as any).notasCotizacionProveedor || "");
       }
     }
-  }, [selectedProject?.id, projects]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProject?.id]);
 
   // Check if user is admin
   const isAdmin = role?.toLowerCase() === "administrador";

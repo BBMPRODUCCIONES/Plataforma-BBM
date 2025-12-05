@@ -29,6 +29,7 @@ function dbRowToEmpleado(row: any): Empleado {
     id: row.id,
     cargo: row.cargo || "",
     nombre: row.nombre || "",
+    // These fields will be empty strings for non-admin users (filtered by the secure function)
     telefono: row.telefono || "",
     correo: row.correo || "",
     createdAt: row.created_at,
@@ -41,26 +42,18 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
 
   const fetchEmpleados = useCallback(async () => {
     try {
-      // Use the secure function that filters based on user role
-      // Admin gets full access, operativo gets limited access (no contact info)
+      // SECURITY: Always use the secure function that filters based on user role
+      // Admin gets full access (nombre, cargo, telefono, correo)
+      // Operativo gets limited access (nombre, cargo only - telefono/correo are empty strings)
+      // Visual gets no access (empty result)
       const { data, error } = await supabase.rpc('get_employees_for_role');
 
       if (error) {
         console.error("[EmpleadosContext] Error fetching employees:", error);
-        // Fallback to direct table access (will work for admin, fail for others due to RLS)
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from("employees")
-          .select("*")
-          .order("created_at", { ascending: false });
-        
-        if (fallbackError) {
-          console.error("[EmpleadosContext] Fallback also failed:", fallbackError);
-          toast.error("Error al cargar empleados");
-          return;
-        }
-        
-        const empleadosList = (fallbackData || []).map(dbRowToEmpleado);
-        setEmpleados(empleadosList);
+        // Do NOT fallback to direct table access - this would bypass security
+        // If the function fails, we show an error and return empty list
+        toast.error("Error al cargar empleados. Verifique sus permisos.");
+        setEmpleados([]);
         return;
       }
 
@@ -69,6 +62,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       console.log("[EmpleadosContext] Loaded", empleadosList.length, "employees via secure function");
     } catch (err) {
       console.error("[EmpleadosContext] Unexpected error:", err);
+      setEmpleados([]);
     } finally {
       setLoading(false);
     }
@@ -86,7 +80,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
         { event: "*", schema: "public", table: "employees" },
         (payload) => {
           console.log("[EmpleadosContext] Realtime event:", payload.eventType);
-          // Refetch to get role-filtered data
+          // Refetch to get role-filtered data (secure function will filter appropriately)
           fetchEmpleados();
         }
       )
@@ -98,7 +92,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
   }, [fetchEmpleados]);
 
   const addEmpleado = useCallback(async (empleadoData: Omit<Empleado, "id" | "createdAt">): Promise<Empleado | null> => {
-    // Create optimistic empleado with temporary ID
+    // Note: INSERT is protected by RLS - only admin can insert
     const tempId = `temp-${Date.now()}`;
     const optimisticEmpleado: Empleado = {
       id: tempId,
@@ -109,7 +103,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     };
 
-    // Optimistic update - add immediately
+    // Optimistic update
     setEmpleados(prev => [optimisticEmpleado, ...prev]);
 
     const { data, error } = await supabase
@@ -125,7 +119,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error("[EmpleadosContext] Error creating employee:", error);
-      toast.error("Error al crear el empleado");
+      toast.error("Error al crear el empleado. Solo administradores pueden crear empleados.");
       // Revert optimistic update
       setEmpleados(prev => prev.filter(e => e.id !== tempId));
       return null;
@@ -139,7 +133,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateEmpleado = useCallback(async (id: string, data: Partial<Empleado>) => {
-    // Optimistic update - update local state immediately
+    // Note: UPDATE is protected by RLS - only admin can update
     setEmpleados(prev => prev.map(e => 
       e.id === id ? { ...e, ...data } : e
     ));
@@ -157,7 +151,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error("[EmpleadosContext] Error updating employee:", error);
-      toast.error("Error al actualizar el empleado");
+      toast.error("Error al actualizar el empleado. Solo administradores pueden editar.");
       await fetchEmpleados(); // Revert on error
       return;
     }
@@ -166,10 +160,10 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
   }, [fetchEmpleados]);
 
   const deleteEmpleado = useCallback(async (id: string) => {
-    // Save for potential rollback
+    // Note: DELETE is protected by RLS - only admin can delete
     const empleadoToDelete = empleados.find(e => e.id === id);
     
-    // Optimistic update - remove immediately
+    // Optimistic update
     setEmpleados(prev => prev.filter(e => e.id !== id));
 
     const { error } = await supabase
@@ -179,7 +173,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error("[EmpleadosContext] Error deleting employee:", error);
-      toast.error("Error al eliminar el empleado");
+      toast.error("Error al eliminar el empleado. Solo administradores pueden eliminar.");
       // Revert optimistic update
       if (empleadoToDelete) {
         setEmpleados(prev => [empleadoToDelete, ...prev]);

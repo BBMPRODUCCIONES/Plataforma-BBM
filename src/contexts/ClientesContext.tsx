@@ -84,6 +84,18 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
   }, [fetchClientes]);
 
   const addCliente = useCallback(async (clienteData: Omit<Cliente, "id" | "createdAt">): Promise<Cliente | null> => {
+    // Create optimistic cliente with temporary ID
+    const tempId = `temp-${Date.now()}`;
+    const optimisticCliente: Cliente = {
+      id: tempId,
+      nombre: clienteData.nombre || "",
+      nit: clienteData.nit || "",
+      createdAt: new Date().toISOString(),
+    };
+
+    // Optimistic update - add immediately
+    setClientes(prev => [optimisticCliente, ...prev]);
+
     const { data, error } = await supabase
       .from("clients")
       .insert({
@@ -96,11 +108,16 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("[ClientesContext] Error creating client:", error);
       toast.error("Error al crear el cliente");
+      // Revert optimistic update
+      setClientes(prev => prev.filter(c => c.id !== tempId));
       return null;
     }
 
+    // Replace temp cliente with real one
+    const realCliente = dbRowToCliente(data);
+    setClientes(prev => prev.map(c => c.id === tempId ? realCliente : c));
     console.log("[ClientesContext] Created new client:", data.id);
-    return dbRowToCliente(data);
+    return realCliente;
   }, []);
 
   const updateCliente = useCallback(async (id: string, data: Partial<Cliente>) => {
@@ -129,6 +146,12 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
   }, [fetchClientes]);
 
   const deleteCliente = useCallback(async (id: string) => {
+    // Save for potential rollback
+    const clienteToDelete = clientes.find(c => c.id === id);
+    
+    // Optimistic update - remove immediately
+    setClientes(prev => prev.filter(c => c.id !== id));
+
     const { error } = await supabase
       .from("clients")
       .delete()
@@ -137,11 +160,15 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("[ClientesContext] Error deleting client:", error);
       toast.error("Error al eliminar el cliente");
+      // Revert optimistic update
+      if (clienteToDelete) {
+        setClientes(prev => [clienteToDelete, ...prev]);
+      }
       return;
     }
 
     console.log("[ClientesContext] Deleted client:", id);
-  }, []);
+  }, [clientes]);
 
   return (
     <ClientesContext.Provider value={{ 

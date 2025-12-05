@@ -95,6 +95,20 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
   }, [fetchEmpleados]);
 
   const addEmpleado = useCallback(async (empleadoData: Omit<Empleado, "id" | "createdAt">): Promise<Empleado | null> => {
+    // Create optimistic empleado with temporary ID
+    const tempId = `temp-${Date.now()}`;
+    const optimisticEmpleado: Empleado = {
+      id: tempId,
+      cargo: empleadoData.cargo || "",
+      nombre: empleadoData.nombre || "",
+      telefono: empleadoData.telefono || "",
+      correo: empleadoData.correo || "",
+      createdAt: new Date().toISOString(),
+    };
+
+    // Optimistic update - add immediately
+    setEmpleados(prev => [optimisticEmpleado, ...prev]);
+
     const { data, error } = await supabase
       .from("employees")
       .insert({
@@ -109,11 +123,16 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("[EmpleadosContext] Error creating employee:", error);
       toast.error("Error al crear el empleado");
+      // Revert optimistic update
+      setEmpleados(prev => prev.filter(e => e.id !== tempId));
       return null;
     }
 
+    // Replace temp empleado with real one
+    const realEmpleado = dbRowToEmpleado(data);
+    setEmpleados(prev => prev.map(e => e.id === tempId ? realEmpleado : e));
     console.log("[EmpleadosContext] Created new employee:", data.id);
-    return dbRowToEmpleado(data);
+    return realEmpleado;
   }, []);
 
   const updateEmpleado = useCallback(async (id: string, data: Partial<Empleado>) => {
@@ -144,6 +163,12 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
   }, [fetchEmpleados]);
 
   const deleteEmpleado = useCallback(async (id: string) => {
+    // Save for potential rollback
+    const empleadoToDelete = empleados.find(e => e.id === id);
+    
+    // Optimistic update - remove immediately
+    setEmpleados(prev => prev.filter(e => e.id !== id));
+
     const { error } = await supabase
       .from("employees")
       .delete()
@@ -152,11 +177,15 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("[EmpleadosContext] Error deleting employee:", error);
       toast.error("Error al eliminar el empleado");
+      // Revert optimistic update
+      if (empleadoToDelete) {
+        setEmpleados(prev => [empleadoToDelete, ...prev]);
+      }
       return;
     }
 
     console.log("[EmpleadosContext] Deleted employee:", id);
-  }, []);
+  }, [empleados]);
 
   return (
     <EmpleadosContext.Provider value={{ 

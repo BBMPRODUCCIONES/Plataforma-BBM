@@ -168,33 +168,70 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   }, [fetchProjects]);
 
   const addProject = useCallback(async (projectData: Partial<Project>): Promise<Project | null> => {
-    const newProjectData = {
-      centro_costos: projectData.centroCostos || "",
-      num_factura: projectData.numFactura || "",
+    // Create optimistic project with temporary ID
+    const tempId = `temp-${Date.now()}`;
+    const optimisticProject: Project = {
+      id: tempId,
+      centroCostos: projectData.centroCostos || "",
+      numFactura: projectData.numFactura || "",
       cliente: projectData.cliente || "",
       evento: projectData.evento || "",
       avanzada: projectData.avanzada || "NO_SE_HIZO",
-      fecha_montaje_inicio: projectData.fechaMontajeInicio || new Date().toISOString().split("T")[0],
-      fecha_montaje_fin: projectData.fechaMontajeFin || new Date().toISOString().split("T")[0],
-      hora_montaje_inicio: projectData.horaMontajeInicio || "08:00",
-      hora_montaje_fin: projectData.horaMontajeFin || "18:00",
-      fecha_ejecucion_inicio: projectData.fechaEjecucionInicio || new Date().toISOString().split("T")[0],
-      fecha_ejecucion_fin: projectData.fechaEjecucionFin || new Date().toISOString().split("T")[0],
-      hora_ejecucion_inicio: projectData.horaEjecucionInicio || "09:00",
-      hora_ejecucion_fin: projectData.horaEjecucionFin || "22:00",
+      fechaMontajeInicio: projectData.fechaMontajeInicio || new Date().toISOString().split("T")[0],
+      fechaMontajeFin: projectData.fechaMontajeFin || new Date().toISOString().split("T")[0],
+      horaMontajeInicio: projectData.horaMontajeInicio || "08:00",
+      horaMontajeFin: projectData.horaMontajeFin || "18:00",
+      fechaEjecucionInicio: projectData.fechaEjecucionInicio || new Date().toISOString().split("T")[0],
+      fechaEjecucionFin: projectData.fechaEjecucionFin || new Date().toISOString().split("T")[0],
+      horaEjecucionInicio: projectData.horaEjecucionInicio || "09:00",
+      horaEjecucionFin: projectData.horaEjecucionFin || "22:00",
       estado: projectData.estado || "por_planear",
-      administrativo_responsable: projectData.administrativoResponsable || "",
-      ingreso_total: projectData.ingresoTotal || 0,
-      ingreso_bruto: projectData.ingresoBruto || 0,
+      administrativoResponsable: projectData.administrativoResponsable || "",
+      ingresoTotal: projectData.ingresoTotal || 0,
+      ingresoBruto: projectData.ingresoBruto || 0,
       ubicacion: projectData.ubicacion || "",
-      jefe_operaciones: projectData.jefeOperaciones || "",
+      jefeOperaciones: projectData.jefeOperaciones || "",
       productor: projectData.productor || "",
-      a_cargo_de: projectData.aCargoDe || "",
+      aCargoDe: projectData.aCargoDe || "",
       notas: projectData.notas || "",
-      personal: JSON.parse(JSON.stringify(projectData.personal || [])),
-      inventario: JSON.parse(JSON.stringify(projectData.inventario || [])),
-      cotizaciones: JSON.parse(JSON.stringify(projectData.cotizaciones || [])),
-      ordenes_compra: JSON.parse(JSON.stringify(projectData.ordenesCompra || [])),
+      personal: projectData.personal || [],
+      inventario: projectData.inventario || [],
+      cotizaciones: projectData.cotizaciones || [],
+      ordenesCompra: projectData.ordenesCompra || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Optimistic update - add immediately
+    setProjects(prev => [optimisticProject, ...prev]);
+
+    const newProjectData = {
+      centro_costos: optimisticProject.centroCostos,
+      num_factura: optimisticProject.numFactura,
+      cliente: optimisticProject.cliente,
+      evento: optimisticProject.evento,
+      avanzada: optimisticProject.avanzada,
+      fecha_montaje_inicio: optimisticProject.fechaMontajeInicio,
+      fecha_montaje_fin: optimisticProject.fechaMontajeFin,
+      hora_montaje_inicio: optimisticProject.horaMontajeInicio,
+      hora_montaje_fin: optimisticProject.horaMontajeFin,
+      fecha_ejecucion_inicio: optimisticProject.fechaEjecucionInicio,
+      fecha_ejecucion_fin: optimisticProject.fechaEjecucionFin,
+      hora_ejecucion_inicio: optimisticProject.horaEjecucionInicio,
+      hora_ejecucion_fin: optimisticProject.horaEjecucionFin,
+      estado: optimisticProject.estado,
+      administrativo_responsable: optimisticProject.administrativoResponsable,
+      ingreso_total: optimisticProject.ingresoTotal,
+      ingreso_bruto: optimisticProject.ingresoBruto,
+      ubicacion: optimisticProject.ubicacion,
+      jefe_operaciones: optimisticProject.jefeOperaciones,
+      productor: optimisticProject.productor,
+      a_cargo_de: optimisticProject.aCargoDe,
+      notas: optimisticProject.notas,
+      personal: JSON.parse(JSON.stringify(optimisticProject.personal)),
+      inventario: JSON.parse(JSON.stringify(optimisticProject.inventario)),
+      cotizaciones: JSON.parse(JSON.stringify(optimisticProject.cotizaciones)),
+      ordenes_compra: JSON.parse(JSON.stringify(optimisticProject.ordenesCompra)),
     };
 
     const { data, error } = await supabase
@@ -206,11 +243,16 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("[ProjectsContext] Error creating project:", error);
       toast.error("Error al crear el proyecto");
+      // Revert optimistic update
+      setProjects(prev => prev.filter(p => p.id !== tempId));
       return null;
     }
 
+    // Replace temp project with real one
+    const realProject = dbRowToProject(data);
+    setProjects(prev => prev.map(p => p.id === tempId ? realProject : p));
     console.log("[ProjectsContext] Created new project:", data.id);
-    return dbRowToProject(data);
+    return realProject;
   }, []);
 
   const updateProject = useCallback(async (projectId: string, field: string, value: any) => {
@@ -258,6 +300,12 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   }, [fetchProjects]);
 
   const deleteProject = useCallback(async (projectId: string) => {
+    // Save for potential rollback
+    const projectToDelete = projects.find(p => p.id === projectId);
+    
+    // Optimistic update - remove immediately
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+
     const { error } = await supabase
       .from("projects")
       .delete()
@@ -266,11 +314,15 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("[ProjectsContext] Error deleting project:", error);
       toast.error("Error al eliminar el proyecto");
+      // Revert optimistic update
+      if (projectToDelete) {
+        setProjects(prev => [projectToDelete, ...prev]);
+      }
       return;
     }
 
     console.log("[ProjectsContext] Deleted project:", projectId);
-  }, []);
+  }, [projects]);
 
   const getProject = useCallback((projectId: string) => {
     return projects.find(p => p.id === projectId);

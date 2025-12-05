@@ -313,27 +313,7 @@ export type Database = {
       }
     }
     Views: {
-      employees_limited: {
-        Row: {
-          cargo: string | null
-          created_at: string | null
-          id: string | null
-          nombre: string | null
-        }
-        Insert: {
-          cargo?: string | null
-          created_at?: string | null
-          id?: string | null
-          nombre?: string | null
-        }
-        Update: {
-          cargo?: string | null
-          created_at?: string | null
-          id?: string | null
-          nombre?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       get_employees_for_role: {

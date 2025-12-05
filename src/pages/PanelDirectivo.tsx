@@ -8,7 +8,7 @@ import { GanttChart } from "@/components/GanttChart";
 import { DashboardStats } from "@/components/DashboardStats";
 import { CalendarFilter } from "@/components/CalendarFilter";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
-import { FileUploadButton } from "@/components/FileUpload";
+import { AttachmentButton } from "@/components/AttachmentManager";
 import { PurchaseOrderUpload } from "@/components/PurchaseOrderUpload";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
@@ -289,6 +289,7 @@ const PanelDirectivo = () => {
             onAttachmentsChange={(attachments) => updateProject(p.id, "cotizaciones", attachments)}
             currentIngresoBruto={p.ingresoBruto}
             currentIngresoTotal={p.ingresoTotal}
+            projectId={p.id}
             onDataExtracted={(ingresoBruto, ingresoTotal) => {
               updateProjectMultiple(p.id, {
                 ingresoBruto: ingresoBruto ?? undefined,
@@ -304,6 +305,7 @@ const PanelDirectivo = () => {
             onAttachmentsChange={(attachments) => updateProject(p.id, "ordenesCompra", attachments)}
             currentIngresoBruto={p.ingresoBruto}
             currentIngresoTotal={p.ingresoTotal}
+            projectId={p.id}
             onDataExtracted={(ingresoBruto, ingresoTotal) => {
               updateProjectMultiple(p.id, {
                 ingresoBruto: ingresoBruto ?? undefined,

@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileUploadButton } from "@/components/FileUpload";
+import { AttachmentButton } from "@/components/AttachmentManager";
 import { Attachment } from "@/types";
 
 export type CellType = "text" | "number" | "date" | "select" | "file" | "boolean";
@@ -198,7 +198,7 @@ export function EditableCell({
   // File cell
   if (type === "file") {
     return (
-      <FileUploadButton
+      <AttachmentButton
         attachments={(value as Attachment[]) || []}
         onAttachmentsChange={onChange}
         multiple

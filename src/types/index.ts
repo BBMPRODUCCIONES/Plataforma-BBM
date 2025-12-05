@@ -53,6 +53,8 @@ export interface Attachment {
   type: string;
   size?: number;
   uploadedAt: string;
+  filePath?: string; // Path in Supabase Storage for persistent files
+  bucket?: string; // Storage bucket name
 }
 
 export interface PersonalItem {

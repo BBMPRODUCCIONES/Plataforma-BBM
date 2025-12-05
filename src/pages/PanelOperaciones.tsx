@@ -6,7 +6,7 @@ import { MatrixTable } from "@/components/MatrixTable";
 import { StatusSelect } from "@/components/StatusSelect";
 import { GanttChart } from "@/components/GanttChart";
 import { CalendarFilter } from "@/components/CalendarFilter";
-import { FileUploadButton } from "@/components/FileUpload";
+import { AttachmentButton, AttachmentManager } from "@/components/AttachmentManager";
 import { PurchaseOrderUpload } from "@/components/PurchaseOrderUpload";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
@@ -295,10 +295,12 @@ const PanelOperaciones = () => {
           );
         case "formatoPreproduccion":
           return (
-            <FileUploadButton
+            <AttachmentButton
               attachments={p.formatoPreproduccion || []}
               onAttachmentsChange={(attachments) => updateProject(p.id, "formatoPreproduccion", attachments)}
               multiple
+              projectId={p.id}
+              fieldName="formatoPreproduccion"
             />
           );
         case "personal":
@@ -318,19 +320,23 @@ const PanelOperaciones = () => {
           );
         case "cotizacionProveedor":
           return (
-            <FileUploadButton
+            <AttachmentButton
               attachments={p.cotizacionesProveedor || []}
               onAttachmentsChange={(attachments) => updateProject(p.id, "cotizacionesProveedor", attachments)}
               multiple
+              projectId={p.id}
+              fieldName="cotizacionesProveedor"
             />
           );
         case "ordenCompraOCR":
           return (
             <div className="flex items-center gap-1">
-              <FileUploadButton
+              <AttachmentButton
                 attachments={(p as any).ordenesCompra || []}
                 onAttachmentsChange={(attachments) => updateProject(p.id, "ordenesCompra", attachments)}
                 multiple={false}
+                projectId={p.id}
+                fieldName="ordenesCompra"
               />
               <PurchaseOrderUpload
                 currentIngresoBruto={p.ingresoBruto}
@@ -557,10 +563,12 @@ const PanelOperaciones = () => {
         width: "100px",
         render: (p: PersonalItem) => (
           (p.tipoPersonal === "Proveedor" || p.tipoPersonal === "Transporte") ? (
-            <FileUploadButton
+            <AttachmentButton
               attachments={p.adjuntos || []}
               onAttachmentsChange={(attachments) => projectId && updatePersonalItem(projectId, p.id, "adjuntos", attachments)}
               multiple
+              projectId={projectId || "general"}
+              fieldName={`personal-${p.id}-adjuntos`}
             />
           ) : <span className="text-xs text-muted-foreground">-</span>
         ),
@@ -912,54 +920,13 @@ const PanelOperaciones = () => {
                     {/* Archivos adjuntos múltiples */}
                     <div>
                       <label className="text-xs text-muted-foreground mb-2 block">Documentos Adjuntos</label>
-                      <FileUploadButton
+                      <AttachmentManager
                         attachments={currentProjectData.cotizacionesProveedor || []}
                         onAttachmentsChange={(attachments) => updateProject(currentProjectData.id, "cotizacionesProveedor", attachments)}
                         multiple
+                        projectId={currentProjectData.id}
+                        fieldName="cotizacionesProveedor"
                       />
-                      {(currentProjectData.cotizacionesProveedor || []).length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {(currentProjectData.cotizacionesProveedor || []).map((file) => (
-                            <div key={file.id} className="flex items-center justify-between p-2 bg-muted/30 rounded text-xs">
-                              <span className="truncate max-w-[200px]">{file.name}</span>
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 px-2"
-                                  onClick={() => window.open(file.url, '_blank')}
-                                >
-                                  Ver
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 px-2"
-                                  onClick={() => {
-                                    const link = document.createElement('a');
-                                    link.href = file.url;
-                                    link.download = file.name;
-                                    link.click();
-                                  }}
-                                >
-                                  Descargar
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 px-2 text-destructive hover:text-destructive"
-                                  onClick={() => {
-                                    const updated = (currentProjectData.cotizacionesProveedor || []).filter(f => f.id !== file.id);
-                                    updateProject(currentProjectData.id, "cotizacionesProveedor", updated);
-                                  }}
-                                >
-                                  Eliminar
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                       <p className="text-[10px] text-muted-foreground mt-2">
                         Puede adjuntar múltiples archivos: PDF, imágenes, Word, Excel, etc.
                       </p>

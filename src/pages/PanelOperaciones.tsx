@@ -430,6 +430,21 @@ const PanelOperaciones = () => {
     contextUpdateProject(projectId, 'personal', updatedPersonal);
   };
 
+  // Atomic update for multiple fields - prevents stale closure issues
+  const updatePersonalItemMultiple = (projectId: string, personalId: string, updates: Partial<PersonalItem>) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const updatedPersonal = (project.personal || []).map(p => {
+      if (p.id !== personalId) return p;
+      const updated = { ...p, ...updates };
+      if (updates.tipoPersonal === 'Transporte' && !p.rutaTransporte) {
+        updated.notas = p.notas || 'Agregar ruta realizada';
+      }
+      return updated;
+    });
+    contextUpdateProject(projectId, 'personal', updatedPersonal);
+  };
+
   const updateInventarioItem = (projectId: string, inventarioId: string, field: string, value: any) => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
@@ -461,15 +476,20 @@ const PanelOperaciones = () => {
             options={["BBM", "Proveedor", "Transporte"]}
             onChange={(value) => {
               if (projectId) {
-                updatePersonalItem(projectId, p.id, "tipoPersonal", value);
-                // Clear nombre and empleadoId when switching to BBM (must select from list)
+                // Use atomic update to prevent stale closure issues
                 if (value === "BBM") {
-                  updatePersonalItem(projectId, p.id, "nombre", "");
-                  updatePersonalItem(projectId, p.id, "empleadoId", undefined);
-                }
-                // Clear empleadoId when switching away from BBM
-                if (value !== "BBM" && p.empleadoId) {
-                  updatePersonalItem(projectId, p.id, "empleadoId", undefined);
+                  updatePersonalItemMultiple(projectId, p.id, {
+                    tipoPersonal: value,
+                    nombre: "",
+                    empleadoId: undefined
+                  });
+                } else if (value !== "BBM" && p.empleadoId) {
+                  updatePersonalItemMultiple(projectId, p.id, {
+                    tipoPersonal: value,
+                    empleadoId: undefined
+                  });
+                } else {
+                  updatePersonalItem(projectId, p.id, "tipoPersonal", value);
                 }
               }
             }}
@@ -486,10 +506,14 @@ const PanelOperaciones = () => {
             tipoPersonal={p.tipoPersonal || "BBM"}
             onChange={(value, empleadoId) => {
               if (projectId) {
-                updatePersonalItem(projectId, p.id, "nombre", value);
-                // Save empleadoId when selecting BBM employee
+                // Use atomic update for BBM employees
                 if (empleadoId && p.tipoPersonal === "BBM") {
-                  updatePersonalItem(projectId, p.id, "empleadoId", empleadoId);
+                  updatePersonalItemMultiple(projectId, p.id, {
+                    nombre: value,
+                    empleadoId: empleadoId
+                  });
+                } else {
+                  updatePersonalItem(projectId, p.id, "nombre", value);
                 }
               }
             }}

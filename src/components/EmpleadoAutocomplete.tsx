@@ -86,7 +86,10 @@ export function EmpleadoAutocomplete({
 
   useEffect(() => {
     if (isOpen && inputRef.current && tipoPersonal === "BBM") {
-      inputRef.current.focus();
+      // Use setTimeout to ensure focus happens after Dialog's focus trap
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
     }
   }, [isOpen, tipoPersonal]);
 
@@ -147,6 +150,11 @@ export function EmpleadoAutocomplete({
               placeholder="Buscar empleado..."
               className="h-9 text-sm bg-muted pl-10 pr-3"
               autoFocus
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                // Force focus after a microtask to beat the Dialog's focus trap
+                setTimeout(() => inputRef.current?.focus(), 0);
+              }}
               onClick={(e) => e.stopPropagation()}
             />
           </div>

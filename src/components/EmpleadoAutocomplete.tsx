@@ -123,6 +123,7 @@ export function EmpleadoAutocomplete({
     return createPortal(
       <div
         id="empleado-dropdown-portal"
+        data-radix-portal=""
         className="fixed z-[9999] bg-popover border border-border rounded-lg shadow-2xl overflow-hidden"
         style={{
           top: dropdownPosition.openUpward ? "auto" : dropdownPosition.top,
@@ -131,6 +132,7 @@ export function EmpleadoAutocomplete({
           width: dropdownPosition.width,
           maxHeight: 320,
         }}
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search header */}
@@ -216,6 +218,7 @@ export function EmpleadoAutocomplete({
     return createPortal(
       <div
         id="empleado-dropdown-portal"
+        data-radix-portal=""
         className="fixed z-[9999] bg-popover border border-border rounded-lg shadow-2xl overflow-hidden"
         style={{
           top: dropdownPosition.openUpward ? "auto" : dropdownPosition.top,
@@ -224,6 +227,7 @@ export function EmpleadoAutocomplete({
           width: dropdownPosition.width,
           maxHeight: 280,
         }}
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -284,9 +288,11 @@ export function EmpleadoAutocomplete({
     return (
       <div ref={containerRef} className={cn("relative", className)}>
         <div
-          onClick={(e) => {
+          onPointerDown={(e) => {
+            e.preventDefault();
             e.stopPropagation();
-            setIsOpen(!isOpen);
+            // Use setTimeout to avoid Dialog's focus trap interference
+            setTimeout(() => setIsOpen(!isOpen), 0);
           }}
           className={cn(
             "flex items-center justify-between h-9 px-3 text-sm bg-muted border border-border rounded-md cursor-pointer hover:bg-muted/80 transition-colors",

@@ -783,7 +783,23 @@ const PanelOperaciones = () => {
           }
           setSelectedProject(null);
         }}>
-          <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogContent 
+            className="max-w-4xl max-h-[85vh] overflow-y-auto"
+            onPointerDownOutside={(e) => {
+              // Prevent closing if clicking on our portal dropdowns
+              const target = e.target as HTMLElement;
+              if (target.closest('#empleado-dropdown-portal')) {
+                e.preventDefault();
+              }
+            }}
+            onInteractOutside={(e) => {
+              // Prevent interaction blocking for our portal dropdowns
+              const target = e.target as HTMLElement;
+              if (target.closest('#empleado-dropdown-portal')) {
+                e.preventDefault();
+              }
+            }}
+          >
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {selectedProject?.evento}

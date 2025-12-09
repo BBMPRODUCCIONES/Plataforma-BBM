@@ -854,7 +854,7 @@ const PanelOperaciones = () => {
           setSelectedProject(null);
         }}>
           <DialogContent 
-            className="w-[95vw] max-w-[1400px] max-h-[90vh] overflow-y-auto p-6"
+            className="w-[95vw] max-w-[1400px] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6"
             onOpenAutoFocus={(e) => e.preventDefault()}
             onPointerDownOutside={(e) => {
               const target = e.target as HTMLElement;
@@ -888,7 +888,7 @@ const PanelOperaciones = () => {
             </DialogHeader>
 
             {selectedProject && currentProjectData && (
-              <div className="space-y-6 mt-4">
+              <div className="space-y-6 mt-4 overflow-x-hidden">
                 {/* Unified PDF Button */}
                 <div className="flex justify-end">
                   <Button variant="default" onClick={() => printPersonalYInventario(currentProjectData)}>
@@ -916,7 +916,7 @@ const PanelOperaciones = () => {
                   </div>
                 </div>
 
-                <Card>
+                <Card className="overflow-hidden">
                   <CardHeader className="py-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <Users className="h-4 w-4" />
@@ -964,7 +964,7 @@ const PanelOperaciones = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="overflow-hidden">
                   <CardHeader className="py-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <Package className="h-4 w-4" />

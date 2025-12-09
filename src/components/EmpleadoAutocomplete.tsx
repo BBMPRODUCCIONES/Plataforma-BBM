@@ -86,21 +86,29 @@ export function EmpleadoAutocomplete({
 
   // Aggressive focus management for BBM input inside Dialog
   const forceFocus = useCallback(() => {
-    if (inputRef.current && tipoPersonal === "BBM") {
+    if (inputRef.current) {
+      // Remove focus from any other element first
+      const activeElement = document.activeElement as HTMLElement;
+      if (activeElement && activeElement !== inputRef.current) {
+        activeElement.blur();
+      }
+      // Force focus
       inputRef.current.focus();
-      // Also set selection to end of input
+      // Set selection to end
       const len = inputRef.current.value.length;
       inputRef.current.setSelectionRange(len, len);
     }
-  }, [tipoPersonal]);
+  }, []);
 
   useEffect(() => {
     if (isOpen && tipoPersonal === "BBM") {
-      // Use requestAnimationFrame to focus after Dialog's focus trap runs
-      const rafId = requestAnimationFrame(() => {
-        requestAnimationFrame(forceFocus);
-      });
-      return () => cancelAnimationFrame(rafId);
+      // Multiple attempts with increasing delays to ensure focus
+      const timeouts = [
+        setTimeout(forceFocus, 0),
+        setTimeout(forceFocus, 50),
+        setTimeout(forceFocus, 100),
+      ];
+      return () => timeouts.forEach(clearTimeout);
     }
   }, [isOpen, tipoPersonal, forceFocus]);
 
@@ -172,6 +180,17 @@ export function EmpleadoAutocomplete({
               autoCapitalize="off"
               spellCheck={false}
               tabIndex={-1}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                setTimeout(() => inputRef.current?.focus(), 0);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                inputRef.current?.focus();
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+              }}
             />
           </div>
           <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">

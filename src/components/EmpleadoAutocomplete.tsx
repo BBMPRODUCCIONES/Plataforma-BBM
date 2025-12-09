@@ -96,12 +96,11 @@ export function EmpleadoAutocomplete({
 
   useEffect(() => {
     if (isOpen && tipoPersonal === "BBM") {
-      // Multiple attempts to ensure focus
-      const attempts = [0, 50, 100, 200];
-      const timeouts = attempts.map(delay => 
-        setTimeout(forceFocus, delay)
-      );
-      return () => timeouts.forEach(clearTimeout);
+      // Use requestAnimationFrame to focus after Dialog's focus trap runs
+      const rafId = requestAnimationFrame(() => {
+        requestAnimationFrame(forceFocus);
+      });
+      return () => cancelAnimationFrame(rafId);
     }
   }, [isOpen, tipoPersonal, forceFocus]);
 
@@ -167,36 +166,12 @@ export function EmpleadoAutocomplete({
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Buscar empleado..."
-              className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 pl-10 pr-3"
-              autoFocus
+              className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-10 pr-3"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                // Prevent Radix from stealing focus
-                setTimeout(forceFocus, 0);
-              }}
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                setTimeout(forceFocus, 0);
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                forceFocus();
-              }}
-              onFocus={(e) => {
-                e.stopPropagation();
-              }}
-              onBlur={(e) => {
-                // Prevent blur if clicking inside the portal
-                const relatedTarget = e.relatedTarget as HTMLElement;
-                if (relatedTarget?.closest('#empleado-dropdown-portal')) {
-                  e.preventDefault();
-                  setTimeout(forceFocus, 0);
-                }
-              }}
+              tabIndex={-1}
             />
           </div>
           <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">

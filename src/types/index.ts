@@ -33,6 +33,9 @@ export interface Project {
   notas?: string;
   notasImagenes?: NotasImage[];
   inventario?: InventarioItem[];
+  // Feedback section
+  feedback?: string;
+  feedbackAdjuntos?: Attachment[];
   createdAt: string;
   updatedAt: string;
 }

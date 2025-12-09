@@ -27,7 +27,7 @@ import { CalendarIcon, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Project, ProjectStatus } from "@/types";
-import { mockClientes } from "@/data/mockData";
+import { useClientes } from "@/contexts/ClientesContext";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -37,11 +37,20 @@ interface NewProjectDialogProps {
   onProjectCreate: (project: Partial<Project>) => void;
 }
 
+interface ValidationErrors {
+  cliente?: string;
+  evento?: string;
+  montajeStart?: string;
+  ejecucionStart?: string;
+  ubicacion?: string;
+}
+
 export function NewProjectDialog({
   open,
   onOpenChange,
   onProjectCreate,
 }: NewProjectDialogProps) {
+  const { clientes } = useClientes();
   const [formData, setFormData] = useState<Partial<Project>>({
     estado: "por_planear",
   });
@@ -49,9 +58,33 @@ export function NewProjectDialog({
   const [montajeEnd, setMontajeEnd] = useState<Date>();
   const [ejecucionStart, setEjecucionStart] = useState<Date>();
   const [ejecucionEnd, setEjecucionEnd] = useState<Date>();
+  const [errors, setErrors] = useState<ValidationErrors>({});
+
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {};
+    
+    if (!formData.cliente) {
+      newErrors.cliente = "Este campo es obligatorio";
+    }
+    if (!formData.evento?.trim()) {
+      newErrors.evento = "Este campo es obligatorio";
+    }
+    if (!montajeStart) {
+      newErrors.montajeStart = "Este campo es obligatorio";
+    }
+    if (!ejecucionStart) {
+      newErrors.ejecucionStart = "Este campo es obligatorio";
+    }
+    if (!formData.ubicacion?.trim()) {
+      newErrors.ubicacion = "Este campo es obligatorio";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = () => {
-    if (!formData.centroCostos || !formData.numFactura || !formData.cliente || !formData.evento) {
+    if (!validateForm()) {
       toast({
         title: "Campos requeridos",
         description: "Por favor complete todos los campos obligatorios",
@@ -60,22 +93,13 @@ export function NewProjectDialog({
       return;
     }
 
-    if (!montajeStart || !montajeEnd || !ejecucionStart || !ejecucionEnd) {
-      toast({
-        title: "Fechas requeridas",
-        description: "Por favor seleccione todas las fechas",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const newProject: Partial<Project> = {
       ...formData,
       id: `proj-${Date.now()}`,
-      fechaMontajeInicio: format(montajeStart, "yyyy-MM-dd"),
-      fechaMontajeFin: format(montajeEnd, "yyyy-MM-dd"),
-      fechaEjecucionInicio: format(ejecucionStart, "yyyy-MM-dd"),
-      fechaEjecucionFin: format(ejecucionEnd, "yyyy-MM-dd"),
+      fechaMontajeInicio: montajeStart ? format(montajeStart, "yyyy-MM-dd") : "",
+      fechaMontajeFin: montajeEnd ? format(montajeEnd, "yyyy-MM-dd") : "",
+      fechaEjecucionInicio: ejecucionStart ? format(ejecucionStart, "yyyy-MM-dd") : "",
+      fechaEjecucionFin: ejecucionEnd ? format(ejecucionEnd, "yyyy-MM-dd") : "",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -88,6 +112,7 @@ export function NewProjectDialog({
     setMontajeEnd(undefined);
     setEjecucionStart(undefined);
     setEjecucionEnd(undefined);
+    setErrors({});
     
     onOpenChange(false);
 
@@ -97,8 +122,15 @@ export function NewProjectDialog({
     });
   };
 
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setErrors({});
+    }
+    onOpenChange(isOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -110,7 +142,7 @@ export function NewProjectDialog({
         <div className="grid grid-cols-2 gap-4 py-4">
           {/* Centro de Costos */}
           <div className="space-y-2">
-            <Label htmlFor="centroCostos">Centro de Costos *</Label>
+            <Label htmlFor="centroCostos">Centro de Costos</Label>
             <Input
               id="centroCostos"
               placeholder="Ej: 1-0006"
@@ -121,7 +153,7 @@ export function NewProjectDialog({
 
           {/* # Factura */}
           <div className="space-y-2">
-            <Label htmlFor="numFactura"># Factura *</Label>
+            <Label htmlFor="numFactura"># Factura</Label>
             <Input
               id="numFactura"
               placeholder="Ej: C-7014"
@@ -135,19 +167,23 @@ export function NewProjectDialog({
             <Label htmlFor="cliente">Cliente *</Label>
             <Select
               value={formData.cliente || ""}
-              onValueChange={(value) => setFormData({ ...formData, cliente: value })}
+              onValueChange={(value) => {
+                setFormData({ ...formData, cliente: value });
+                if (errors.cliente) setErrors({ ...errors, cliente: undefined });
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger className={cn(errors.cliente && "border-destructive")}>
                 <SelectValue placeholder="Seleccionar cliente" />
               </SelectTrigger>
               <SelectContent>
-                {mockClientes.map((cliente) => (
+                {clientes.map((cliente) => (
                   <SelectItem key={cliente.id} value={cliente.nombre}>
                     {cliente.nombre}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {errors.cliente && <p className="text-sm text-destructive">{errors.cliente}</p>}
           </div>
 
           {/* Evento */}
@@ -157,8 +193,13 @@ export function NewProjectDialog({
               id="evento"
               placeholder="Nombre del evento"
               value={formData.evento || ""}
-              onChange={(e) => setFormData({ ...formData, evento: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, evento: e.target.value });
+                if (errors.evento) setErrors({ ...errors, evento: undefined });
+              }}
+              className={cn(errors.evento && "border-destructive")}
             />
+            {errors.evento && <p className="text-sm text-destructive">{errors.evento}</p>}
           </div>
 
           {/* Avanzada */}
@@ -181,7 +222,7 @@ export function NewProjectDialog({
 
           {/* Estado */}
           <div className="space-y-2">
-            <Label htmlFor="estado">Estado *</Label>
+            <Label htmlFor="estado">Estado</Label>
             <Select
               value={formData.estado || "por_planear"}
               onValueChange={(value) => setFormData({ ...formData, estado: value as ProjectStatus })}
@@ -204,20 +245,37 @@ export function NewProjectDialog({
             <Label>Fecha Montaje Inicio *</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !montajeStart && "text-muted-foreground")}>
+                <Button 
+                  variant="outline" 
+                  className={cn(
+                    "w-full justify-start text-left font-normal", 
+                    !montajeStart && "text-muted-foreground",
+                    errors.montajeStart && "border-destructive"
+                  )}
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {montajeStart ? format(montajeStart, "PPP", { locale: es }) : "Seleccionar"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={montajeStart} onSelect={setMontajeStart} locale={es} className="pointer-events-auto" />
+                <Calendar 
+                  mode="single" 
+                  selected={montajeStart} 
+                  onSelect={(date) => {
+                    setMontajeStart(date);
+                    if (errors.montajeStart) setErrors({ ...errors, montajeStart: undefined });
+                  }} 
+                  locale={es} 
+                  className="pointer-events-auto" 
+                />
               </PopoverContent>
             </Popover>
+            {errors.montajeStart && <p className="text-sm text-destructive">{errors.montajeStart}</p>}
           </div>
 
           {/* Fecha Montaje Fin */}
           <div className="space-y-2">
-            <Label>Fecha Montaje Fin *</Label>
+            <Label>Fecha Montaje Fin</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !montajeEnd && "text-muted-foreground")}>
@@ -254,20 +312,37 @@ export function NewProjectDialog({
             <Label>Fecha Ejecución Inicio *</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !ejecucionStart && "text-muted-foreground")}>
+                <Button 
+                  variant="outline" 
+                  className={cn(
+                    "w-full justify-start text-left font-normal", 
+                    !ejecucionStart && "text-muted-foreground",
+                    errors.ejecucionStart && "border-destructive"
+                  )}
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {ejecucionStart ? format(ejecucionStart, "PPP", { locale: es }) : "Seleccionar"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={ejecucionStart} onSelect={setEjecucionStart} locale={es} className="pointer-events-auto" />
+                <Calendar 
+                  mode="single" 
+                  selected={ejecucionStart} 
+                  onSelect={(date) => {
+                    setEjecucionStart(date);
+                    if (errors.ejecucionStart) setErrors({ ...errors, ejecucionStart: undefined });
+                  }} 
+                  locale={es} 
+                  className="pointer-events-auto" 
+                />
               </PopoverContent>
             </Popover>
+            {errors.ejecucionStart && <p className="text-sm text-destructive">{errors.ejecucionStart}</p>}
           </div>
 
           {/* Fecha Ejecucion Fin */}
           <div className="space-y-2">
-            <Label>Fecha Ejecución Fin *</Label>
+            <Label>Fecha Ejecución Fin</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !ejecucionEnd && "text-muted-foreground")}>
@@ -312,13 +387,18 @@ export function NewProjectDialog({
 
           {/* Ubicación */}
           <div className="space-y-2">
-            <Label htmlFor="ubicacion">Ubicación</Label>
+            <Label htmlFor="ubicacion">Ubicación *</Label>
             <Input
               id="ubicacion"
               placeholder="Lugar del evento"
               value={formData.ubicacion || ""}
-              onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, ubicacion: e.target.value });
+                if (errors.ubicacion) setErrors({ ...errors, ubicacion: undefined });
+              }}
+              className={cn(errors.ubicacion && "border-destructive")}
             />
+            {errors.ubicacion && <p className="text-sm text-destructive">{errors.ubicacion}</p>}
           </div>
 
           {/* Notas */}
@@ -334,7 +414,7 @@ export function NewProjectDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Cancelar
           </Button>
           <Button onClick={handleSubmit}>

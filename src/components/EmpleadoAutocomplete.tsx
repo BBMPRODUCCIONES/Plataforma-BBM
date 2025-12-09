@@ -109,9 +109,9 @@ export function EmpleadoAutocomplete({
           />
         </div>
 
-        {/* Dropdown - relative positioning (same pattern as ClienteAutocomplete) */}
+        {/* Dropdown - opens UPWARD to stay visible in modals */}
         {isOpen && (
-          <div className="absolute z-50 mt-1 w-full min-w-[280px] rounded-md border bg-popover shadow-lg">
+          <div className="absolute z-50 bottom-full mb-1 w-full min-w-[280px] rounded-md border bg-popover shadow-lg">
             <div className="px-3 py-2 border-b border-border">
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
@@ -183,9 +183,9 @@ export function EmpleadoAutocomplete({
         className="h-9 text-sm"
       />
 
-      {/* Suggestions dropdown - relative positioning */}
+      {/* Suggestions dropdown - opens UPWARD to stay visible in modals */}
       {isOpen && filteredEmpleados.length > 0 && (
-        <div className="absolute z-50 mt-1 w-full min-w-[250px] rounded-md border bg-popover shadow-lg">
+        <div className="absolute z-50 bottom-full mb-1 w-full min-w-[250px] rounded-md border bg-popover shadow-lg">
           <div className="px-3 py-1.5 border-b border-border">
             <span className="text-[10px] text-muted-foreground">
               Sugerencias (opcional)

@@ -854,7 +854,7 @@ const PanelOperaciones = () => {
           setSelectedProject(null);
         }}>
           <DialogContent 
-            className="w-[95vw] max-w-[1400px] max-h-[90vh] overflow-y-auto overflow-x-hidden p-6"
+            className="w-[95vw] max-w-[1400px] max-h-[90vh] p-0"
             onOpenAutoFocus={(e) => e.preventDefault()}
             onPointerDownOutside={(e) => {
               const target = e.target as HTMLElement;
@@ -875,20 +875,21 @@ const PanelOperaciones = () => {
               }
             }}
           >
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                {selectedProject?.evento}
-                {selectedProject && (
-                  <StatusSelect
-                    value={selectedProject.estado}
-                    onChange={(value) => updateProject(selectedProject.id, "estado", value)}
-                  />
-                )}
-              </DialogTitle>
-            </DialogHeader>
+            <div className="overflow-y-auto overflow-x-hidden max-h-[calc(90vh-2rem)] p-6">
+              <DialogHeader className="mb-4">
+                <DialogTitle className="flex items-center gap-2">
+                  {selectedProject?.evento}
+                  {selectedProject && (
+                    <StatusSelect
+                      value={selectedProject.estado}
+                      onChange={(value) => updateProject(selectedProject.id, "estado", value)}
+                    />
+                  )}
+                </DialogTitle>
+              </DialogHeader>
 
-            {selectedProject && currentProjectData && (
-              <div className="space-y-6 mt-4 overflow-x-hidden">
+              {selectedProject && currentProjectData && (
+                <div className="space-y-6">
                 {/* Unified PDF Button */}
                 <div className="flex justify-end">
                   <Button variant="default" onClick={() => printPersonalYInventario(currentProjectData)}>
@@ -1079,6 +1080,7 @@ const PanelOperaciones = () => {
                 </Card>
               </div>
             )}
+            </div>
           </DialogContent>
         </Dialog>
 

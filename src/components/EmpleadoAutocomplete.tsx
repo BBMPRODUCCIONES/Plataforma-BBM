@@ -275,11 +275,11 @@ export function EmpleadoAutocomplete({
     return (
       <div 
         ref={containerRef} 
-        className={cn("relative", className)}
+        className={cn("relative w-full", className)}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search input */}
-        <div className="relative">
+        <div className="relative w-full">
           {loading ? (
             <Loader2 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
           ) : (
@@ -292,7 +292,7 @@ export function EmpleadoAutocomplete({
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             placeholder={value || placeholder}
-            className="h-9 pl-9 pr-3 text-sm"
+            className="h-9 pl-9 pr-3 text-sm w-full"
           />
         </div>
 
@@ -306,7 +306,7 @@ export function EmpleadoAutocomplete({
   return (
     <div 
       ref={containerRef} 
-      className={cn("relative", className)}
+      className={cn("relative w-full", className)}
       onClick={(e) => e.stopPropagation()}
     >
       <Input
@@ -317,7 +317,7 @@ export function EmpleadoAutocomplete({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="h-9 text-sm"
+        className="h-9 text-sm w-full"
       />
 
       {/* Fixed position dropdown */}

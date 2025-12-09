@@ -948,7 +948,7 @@ const PanelOperaciones = () => {
                       Agregar Personal
                     </Button>
                   </CardHeader>
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0 overflow-hidden">
                     {(currentProjectData.personal || []).length > 0 ? (
                       <MatrixTable
                         data={currentProjectData.personal || []}
@@ -997,7 +997,7 @@ const PanelOperaciones = () => {
                       Agregar Material
                     </Button>
                   </CardHeader>
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0 overflow-hidden">
                     {(currentProjectData.inventario || []).length > 0 ? (
                       <MatrixTable
                         data={currentProjectData.inventario || []}

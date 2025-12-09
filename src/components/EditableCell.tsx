@@ -91,7 +91,7 @@ export function EditableCell({
             onChange={(e) => setLocalValue(type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
-            className="h-7 text-xs min-w-[80px]"
+            className="h-7 text-xs w-full"
           />
         </div>
       );
@@ -104,18 +104,20 @@ export function EditableCell({
           if (!disabled) setIsEditing(true);
         }}
         className={cn(
-          "text-xs cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 min-h-[24px] flex items-center",
+          "text-xs cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 min-h-[24px] flex items-center truncate",
           type === "number" && "font-mono",
           !value && "text-muted-foreground",
           disabled && "cursor-default",
           className
         )}
       >
-        {type === "number" && value !== undefined && value !== null
-          ? typeof value === "number"
-            ? value.toLocaleString()
-            : value
-          : value || placeholder}
+        <span className="truncate">
+          {type === "number" && value !== undefined && value !== null
+            ? typeof value === "number"
+              ? value.toLocaleString()
+              : value
+            : value || placeholder}
+        </span>
       </div>
     );
   }

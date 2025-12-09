@@ -67,12 +67,14 @@ export function MatrixTable<T extends { id: string }>({
                   key={col.key} 
                   className={cn(
                     col.className,
-                    noHorizontalScroll && "overflow-hidden"
+                    noHorizontalScroll && "overflow-hidden max-w-0 truncate"
                   )}
                 >
-                  {col.render
-                    ? col.render(item, idx)
-                    : (item as Record<string, unknown>)[col.key]?.toString() || "-"}
+                  <div className={cn(noHorizontalScroll && "truncate")}>
+                    {col.render
+                      ? col.render(item, idx)
+                      : (item as Record<string, unknown>)[col.key]?.toString() || "-"}
+                  </div>
                 </td>
               ))}
             </tr>

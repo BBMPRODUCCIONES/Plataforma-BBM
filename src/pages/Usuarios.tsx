@@ -70,6 +70,7 @@ const Usuarios = () => {
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [editRole, setEditRole] = useState<AppRole>("operativo");
   const [editPanels, setEditPanels] = useState<string[]>([]);
+  const [editName, setEditName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchData = async () => {
@@ -99,20 +100,26 @@ const Usuarios = () => {
 
       if (profilesError) throw profilesError;
 
-      // Combine data
+      // Get all accepted invitations indexed by email for quick lookup
+      const acceptedInvitations = (invitationsData || []).filter(i => i.accepted_at);
+      
+      // Combine data - we need to match users to their invitations
       const usersWithRoles: UserWithRole[] = (rolesData || []).map((roleRecord) => {
         const profile = profilesData?.find((p) => p.id === roleRecord.user_id);
-        const invitation = invitationsData?.find((i) => i.accepted_at);
         
-        // Find the invitation that matches this user (by checking accepted invitations)
-        const userInvitation = invitationsData?.find((i) => 
-          i.accepted_at && 
-          profilesData?.some(p => p.id === roleRecord.user_id)
-        );
+        // Find invitation that matches this user by looking for accepted invitations
+        // Since we can't directly link, use the profile created_at time to match
+        const userInvitation = acceptedInvitations.find((inv) => {
+          if (!inv.accepted_at || !profile?.created_at) return false;
+          // Match by comparing acceptance time to profile creation (within 1 minute window)
+          const acceptedTime = new Date(inv.accepted_at).getTime();
+          const profileTime = new Date(profile.created_at).getTime();
+          return Math.abs(acceptedTime - profileTime) < 60000;
+        });
         
         return {
           id: roleRecord.user_id,
-          email: userInvitation?.email || "Usuario",
+          email: userInvitation?.email || profile?.full_name || "Usuario sin email",
           full_name: profile?.full_name || null,
           role: roleRecord.role,
           allowed_panels: roleRecord.allowed_panels || [],
@@ -205,6 +212,7 @@ const Usuarios = () => {
     setEditingUser(user);
     setEditRole(user.role);
     setEditPanels(user.allowed_panels);
+    setEditName(user.full_name || "");
   };
 
   const handleSaveUser = async () => {
@@ -217,7 +225,8 @@ const Usuarios = () => {
         ? ALL_PANELS 
         : editPanels;
 
-      const { error } = await supabase
+      // Update user roles
+      const { error: roleError } = await supabase
         .from("user_roles")
         .update({ 
           role: editRole,
@@ -225,11 +234,21 @@ const Usuarios = () => {
         })
         .eq("user_id", editingUser.id);
 
-      if (error) throw error;
+      if (roleError) throw roleError;
+
+      // Update profile name if changed
+      if (editName !== editingUser.full_name) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ full_name: editName || null })
+          .eq("id", editingUser.id);
+
+        if (profileError) throw profileError;
+      }
 
       toast({
         title: "Usuario actualizado",
-        description: "Los permisos del usuario han sido actualizados",
+        description: "Los datos del usuario han sido actualizados",
       });
 
       setEditingUser(null);
@@ -324,19 +343,27 @@ const Usuarios = () => {
     {
       key: "email",
       header: "Email",
-      width: "200px",
-      render: (item: UserWithRole) => item.email,
+      width: "minmax(280px, 1fr)",
+      render: (item: UserWithRole) => (
+        <span className="truncate block" title={item.email}>
+          {item.email}
+        </span>
+      ),
     },
     {
       key: "full_name",
       header: "Nombre",
-      width: "150px",
-      render: (item: UserWithRole) => item.full_name || "-",
+      width: "minmax(180px, 1fr)",
+      render: (item: UserWithRole) => (
+        <span className="truncate block" title={item.full_name || "-"}>
+          {item.full_name || "-"}
+        </span>
+      ),
     },
     {
       key: "role",
       header: "Rol",
-      width: "120px",
+      width: "130px",
       render: (item: UserWithRole) => (
         <Badge variant="outline">{roleLabels[item.role]}</Badge>
       ),
@@ -344,7 +371,7 @@ const Usuarios = () => {
     {
       key: "panels",
       header: "Paneles",
-      width: "250px",
+      width: "minmax(280px, 1fr)",
       render: (item: UserWithRole) => (
         <div className="flex flex-wrap gap-1">
           {item.allowed_panels.map((panel) => (
@@ -371,6 +398,7 @@ const Usuarios = () => {
           variant="ghost" 
           size="sm"
           onClick={() => handleEditUser(item)}
+          title="Editar usuario"
         >
           <Settings className="h-4 w-4" />
         </Button>
@@ -543,7 +571,18 @@ const Usuarios = () => {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Email</Label>
-                <Input value={editingUser?.email || ""} disabled />
+                <Input value={editingUser?.email || ""} disabled className="bg-muted/50" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Nombre Completo</Label>
+                <Input 
+                  id="edit-name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Nombre del usuario"
+                  disabled={isSaving}
+                />
               </div>
               
               <div className="space-y-2">

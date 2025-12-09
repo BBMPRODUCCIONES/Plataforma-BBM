@@ -854,7 +854,7 @@ const PanelOperaciones = () => {
           setSelectedProject(null);
         }}>
           <DialogContent 
-            className="max-w-4xl max-h-[85vh] overflow-y-auto"
+            className="w-[95vw] max-w-[1400px] max-h-[90vh] overflow-y-auto p-6"
             onOpenAutoFocus={(e) => e.preventDefault()}
             onPointerDownOutside={(e) => {
               const target = e.target as HTMLElement;

@@ -100,26 +100,44 @@ const Usuarios = () => {
 
       if (profilesError) throw profilesError;
 
-      // Get all accepted invitations indexed by email for quick lookup
-      const acceptedInvitations = (invitationsData || []).filter(i => i.accepted_at);
+      // Get all accepted invitations sorted by accepted_at
+      const acceptedInvitations = (invitationsData || [])
+        .filter(i => i.accepted_at)
+        .sort((a, b) => new Date(a.accepted_at!).getTime() - new Date(b.accepted_at!).getTime());
       
-      // Combine data - we need to match users to their invitations
+      // Get profiles sorted by created_at
+      const sortedProfiles = (profilesData || [])
+        .filter(p => p.created_at)
+        .sort((a, b) => new Date(a.created_at!).getTime() - new Date(b.created_at!).getTime());
+      
+      // Create a map from user_id to email by matching profiles to invitations by order
+      // Each profile is created when an invitation is accepted, so they should match in chronological order
+      const userEmailMap: Record<string, string> = {};
+      
+      sortedProfiles.forEach((profile, index) => {
+        const profileTime = new Date(profile.created_at!).getTime();
+        
+        // Find the invitation with closest accepted_at time (within 5 seconds)
+        const matchingInvitation = acceptedInvitations.find((inv) => {
+          if (!inv.accepted_at) return false;
+          const acceptedTime = new Date(inv.accepted_at).getTime();
+          // Profile is created slightly before invitation is marked as accepted
+          // Use a 5-second window to match
+          return Math.abs(acceptedTime - profileTime) < 5000;
+        });
+        
+        if (matchingInvitation) {
+          userEmailMap[profile.id] = matchingInvitation.email;
+        }
+      });
+      
+      // Combine data
       const usersWithRoles: UserWithRole[] = (rolesData || []).map((roleRecord) => {
         const profile = profilesData?.find((p) => p.id === roleRecord.user_id);
         
-        // Find invitation that matches this user by looking for accepted invitations
-        // Since we can't directly link, use the profile created_at time to match
-        const userInvitation = acceptedInvitations.find((inv) => {
-          if (!inv.accepted_at || !profile?.created_at) return false;
-          // Match by comparing acceptance time to profile creation (within 1 minute window)
-          const acceptedTime = new Date(inv.accepted_at).getTime();
-          const profileTime = new Date(profile.created_at).getTime();
-          return Math.abs(acceptedTime - profileTime) < 60000;
-        });
-        
         return {
           id: roleRecord.user_id,
-          email: userInvitation?.email || profile?.full_name || "Usuario sin email",
+          email: userEmailMap[roleRecord.user_id] || "Usuario sin email",
           full_name: profile?.full_name || null,
           role: roleRecord.role,
           allowed_panels: roleRecord.allowed_panels || [],

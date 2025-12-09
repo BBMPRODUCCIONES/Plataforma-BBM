@@ -145,6 +145,22 @@
     @apply bg-table-row-hover;
   }
 
+  /* Table without horizontal scroll - force content to fit */
+  .matrix-table.table-fixed td {
+    @apply overflow-hidden;
+    max-width: 0;
+  }
+
+  .matrix-table.table-fixed td > * {
+    @apply w-full max-w-full overflow-hidden;
+  }
+
+  .matrix-table.table-fixed td input,
+  .matrix-table.table-fixed td select,
+  .matrix-table.table-fixed td button {
+    @apply max-w-full;
+  }
+
   .gantt-bar {
     @apply h-6 rounded-sm transition-all duration-200;
   }

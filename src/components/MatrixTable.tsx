@@ -29,12 +29,12 @@ export function MatrixTable<T extends { id: string }>({
 }: MatrixTableProps<T>) {
   return (
     <div className={cn(
-      noHorizontalScroll ? "overflow-hidden" : "overflow-x-auto scrollbar-thin", 
+      noHorizontalScroll ? "overflow-hidden w-full" : "overflow-x-auto scrollbar-thin", 
       className
     )}>
       <table className={cn(
         "matrix-table",
-        noHorizontalScroll ? "w-full table-fixed" : "min-w-full"
+        noHorizontalScroll && "w-full table-fixed"
       )}>
         <thead>
           <tr>
@@ -42,10 +42,7 @@ export function MatrixTable<T extends { id: string }>({
               <th
                 key={col.key}
                 style={noHorizontalScroll ? undefined : { width: col.width, minWidth: col.width }}
-                className={cn(
-                  col.className,
-                  noHorizontalScroll && "truncate"
-                )}
+                className={cn(col.className)}
               >
                 {col.header}
               </th>
@@ -63,18 +60,10 @@ export function MatrixTable<T extends { id: string }>({
               )}
             >
               {columns.map((col) => (
-                <td 
-                  key={col.key} 
-                  className={cn(
-                    col.className,
-                    noHorizontalScroll && "overflow-hidden max-w-0 truncate"
-                  )}
-                >
-                  <div className={cn(noHorizontalScroll && "truncate")}>
-                    {col.render
-                      ? col.render(item, idx)
-                      : (item as Record<string, unknown>)[col.key]?.toString() || "-"}
-                  </div>
+                <td key={col.key} className={cn(col.className)}>
+                  {col.render
+                    ? col.render(item, idx)
+                    : (item as Record<string, unknown>)[col.key]?.toString() || "-"}
                 </td>
               ))}
             </tr>

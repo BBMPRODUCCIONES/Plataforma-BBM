@@ -63,6 +63,16 @@ export function NewProjectDialog({
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
     
+    // Debug logging
+    console.log("[NewProjectDialog] Validating form:", {
+      cliente: formData.cliente,
+      evento: formData.evento,
+      montajeStart,
+      ejecucionStart,
+      ubicacion: formData.ubicacion,
+      clientesDisponibles: clientes.length
+    });
+    
     if (!formData.cliente) {
       newErrors.cliente = "Este campo es obligatorio";
     }
@@ -79,15 +89,24 @@ export function NewProjectDialog({
       newErrors.ubicacion = "Este campo es obligatorio";
     }
 
+    console.log("[NewProjectDialog] Validation errors:", newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = () => {
     if (!validateForm()) {
+      // Build list of missing fields for better feedback
+      const missingFields = [];
+      if (!formData.cliente) missingFields.push("Cliente");
+      if (!formData.evento?.trim()) missingFields.push("Evento");
+      if (!montajeStart) missingFields.push("Fecha Montaje Inicio");
+      if (!ejecucionStart) missingFields.push("Fecha Ejecución Inicio");
+      if (!formData.ubicacion?.trim()) missingFields.push("Ubicación");
+      
       toast({
         title: "Campos requeridos",
-        description: "Por favor complete todos los campos obligatorios",
+        description: `Faltan: ${missingFields.join(", ")}`,
         variant: "destructive",
       });
       return;
@@ -176,11 +195,17 @@ export function NewProjectDialog({
                 <SelectValue placeholder="Seleccionar cliente" />
               </SelectTrigger>
               <SelectContent>
-                {clientes.map((cliente) => (
-                  <SelectItem key={cliente.id} value={cliente.nombre}>
-                    {cliente.nombre}
-                  </SelectItem>
-                ))}
+                {clientes.length === 0 ? (
+                  <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                    No hay clientes. Créalos primero en Gestión de Clientes.
+                  </div>
+                ) : (
+                  clientes.map((cliente) => (
+                    <SelectItem key={cliente.id} value={cliente.nombre}>
+                      {cliente.nombre}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             {errors.cliente && <p className="text-sm text-destructive">{errors.cliente}</p>}

@@ -785,6 +785,7 @@ const PanelOperaciones = () => {
         }}>
           <DialogContent 
             className="max-w-4xl max-h-[85vh] overflow-y-auto"
+            onOpenAutoFocus={(e) => e.preventDefault()}
             onPointerDownOutside={(e) => {
               const target = e.target as HTMLElement;
               if (target.closest('#empleado-dropdown-portal')) {

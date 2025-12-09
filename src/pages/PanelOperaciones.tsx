@@ -31,7 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2 } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario } from "@/utils/pdfGenerator";
@@ -77,6 +77,7 @@ const PanelOperaciones = () => {
   // Local state for textareas to prevent "erasing" while typing
   const [localNotas, setLocalNotas] = useState("");
   const [localNotasProveedor, setLocalNotasProveedor] = useState("");
+  const [localFeedback, setLocalFeedback] = useState("");
   const [localNotasImagenes, setLocalNotasImagenes] = useState<Array<{id: string; url: string; name: string}>>([]);
 
   // Sync local textarea state when project changes (not on every keystroke)
@@ -87,6 +88,7 @@ const PanelOperaciones = () => {
         setLocalNotas(project.notas || "");
         setLocalNotasProveedor((project as any).notasCotizacionProveedor || "");
         setLocalNotasImagenes((project as any).notasImagenes || []);
+        setLocalFeedback((project as any).feedback || "");
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -845,6 +847,10 @@ const PanelOperaciones = () => {
             if (localNotas !== (currentProjectData.notas || "")) {
               updateProject(currentProjectData.id, "notas", localNotas);
             }
+            // Save feedback if changed
+            if (localFeedback !== ((currentProjectData as any).feedback || "")) {
+              updateProject(currentProjectData.id, "feedback", localFeedback);
+            }
             // Save images if changed
             const currentImages = (currentProjectData as any).notasImagenes || [];
             if (JSON.stringify(localNotasImagenes) !== JSON.stringify(currentImages)) {
@@ -1008,6 +1014,48 @@ const PanelOperaciones = () => {
                     ) : (
                       <p className="text-sm text-muted-foreground">No hay inventario registrado. Haga clic en "Agregar Material" para comenzar.</p>
                     )}
+                  </CardContent>
+                </Card>
+
+                {/* Feedback Section */}
+                <Card>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Feedback
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-4">
+                    {/* Texto libre de feedback */}
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Comentarios y retroalimentación</label>
+                      <Textarea
+                        value={localFeedback}
+                        onChange={(e) => setLocalFeedback(e.target.value)}
+                        onBlur={() => {
+                          if (localFeedback !== ((currentProjectData as any).feedback || "")) {
+                            updateProject(currentProjectData.id, "feedback", localFeedback);
+                          }
+                        }}
+                        placeholder="Escriba comentarios del evento, retroalimentación del equipo, observaciones del cliente, notas internas..."
+                        className="min-h-[120px] text-sm"
+                      />
+                    </div>
+                    
+                    {/* Archivos adjuntos de feedback */}
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-2 block">Documentos Adjuntos</label>
+                      <AttachmentManager
+                        attachments={(currentProjectData as any).feedbackAdjuntos || []}
+                        onAttachmentsChange={(attachments) => updateProject(currentProjectData.id, "feedbackAdjuntos", attachments)}
+                        multiple
+                        projectId={currentProjectData.id}
+                        fieldName="feedbackAdjuntos"
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-2">
+                        Puede adjuntar imágenes (JPG, PNG), documentos (PDF, Word) y otros archivos relacionados.
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
 

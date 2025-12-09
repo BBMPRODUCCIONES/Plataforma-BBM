@@ -39,7 +39,7 @@ import { toast } from "sonner";
 
 const PanelOperaciones = () => {
   const navigate = useNavigate();
-  const { canEditStructure, role } = useUserRole();
+  const { canEditStructure, role, canViewFeedback, canEditFeedback } = useUserRole();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -1017,47 +1017,60 @@ const PanelOperaciones = () => {
                   </CardContent>
                 </Card>
 
-                {/* Feedback Section */}
-                <Card>
-                  <CardHeader className="py-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      Feedback
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0 space-y-4">
-                    {/* Texto libre de feedback */}
-                    <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Comentarios y retroalimentación</label>
-                      <Textarea
-                        value={localFeedback}
-                        onChange={(e) => setLocalFeedback(e.target.value)}
-                        onBlur={() => {
-                          if (localFeedback !== ((currentProjectData as any).feedback || "")) {
-                            updateProject(currentProjectData.id, "feedback", localFeedback);
-                          }
-                        }}
-                        placeholder="Escriba comentarios del evento, retroalimentación del equipo, observaciones del cliente, notas internas..."
-                        className="min-h-[120px] text-sm"
-                      />
-                    </div>
-                    
-                    {/* Archivos adjuntos de feedback */}
-                    <div>
-                      <label className="text-xs text-muted-foreground mb-2 block">Documentos Adjuntos</label>
-                      <AttachmentManager
-                        attachments={(currentProjectData as any).feedbackAdjuntos || []}
-                        onAttachmentsChange={(attachments) => updateProject(currentProjectData.id, "feedbackAdjuntos", attachments)}
-                        multiple
-                        projectId={currentProjectData.id}
-                        fieldName="feedbackAdjuntos"
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-2">
-                        Puede adjuntar imágenes (JPG, PNG), documentos (PDF, Word) y otros archivos relacionados.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Feedback Section - Only visible if user has permission */}
+                {canViewFeedback() && (
+                  <Card>
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4" />
+                        Feedback
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0 space-y-4">
+                      {/* Texto libre de feedback */}
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">Comentarios y retroalimentación</label>
+                        <Textarea
+                          value={localFeedback}
+                          onChange={(e) => setLocalFeedback(e.target.value)}
+                          onBlur={() => {
+                            if (localFeedback !== ((currentProjectData as any).feedback || "")) {
+                              updateProject(currentProjectData.id, "feedback", localFeedback);
+                            }
+                          }}
+                          placeholder="Escriba comentarios del evento, retroalimentación del equipo, observaciones del cliente, notas internas..."
+                          className="min-h-[120px] text-sm"
+                          disabled={!canEditFeedback()}
+                        />
+                      </div>
+                      
+                      {/* Archivos adjuntos de feedback */}
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-2 block">Documentos Adjuntos</label>
+                        {canEditFeedback() ? (
+                          <AttachmentManager
+                            attachments={(currentProjectData as any).feedbackAdjuntos || []}
+                            onAttachmentsChange={(attachments) => updateProject(currentProjectData.id, "feedbackAdjuntos", attachments)}
+                            multiple
+                            projectId={currentProjectData.id}
+                            fieldName="feedbackAdjuntos"
+                          />
+                        ) : (
+                          <div className="text-sm text-muted-foreground">
+                            {((currentProjectData as any).feedbackAdjuntos || []).length > 0 
+                              ? `${((currentProjectData as any).feedbackAdjuntos || []).length} archivo(s) adjunto(s)` 
+                              : "Sin archivos adjuntos"}
+                          </div>
+                        )}
+                        <p className="text-[10px] text-muted-foreground mt-2">
+                          {canEditFeedback() 
+                            ? "Puede adjuntar imágenes (JPG, PNG), documentos (PDF, Word) y otros archivos relacionados."
+                            : "Solo lectura - no puede modificar archivos adjuntos."}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <Card>
                   <CardHeader className="py-3">

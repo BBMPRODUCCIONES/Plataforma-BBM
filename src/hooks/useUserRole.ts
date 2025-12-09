@@ -9,6 +9,8 @@ interface UseUserRoleReturn {
   canEdit: () => boolean;
   canEditStructure: () => boolean;
   isAdminOnly: (section: string) => boolean;
+  canViewFeedback: () => boolean;
+  canEditFeedback: () => boolean;
 }
 
 // Admin-only sections that require administrador role
@@ -22,7 +24,7 @@ const ADMIN_ONLY_SECTIONS = [
 ];
 
 export function useUserRole(): UseUserRoleReturn {
-  const { role, allowedPanels, loading } = useAuth();
+  const { role, allowedPanels, loading, feedbackPermissions } = useAuth();
 
   const canAccessPanel = (panel: string): boolean => {
     if (!role) return false;
@@ -65,6 +67,22 @@ export function useUserRole(): UseUserRoleReturn {
     return ADMIN_ONLY_SECTIONS.includes(section.toLowerCase());
   };
 
+  const canViewFeedback = (): boolean => {
+    if (!role) return false;
+    // Administrador always has access
+    if (role.toLowerCase() === "administrador") return true;
+    // For other roles, check specific permission
+    return feedbackPermissions?.puedeVerFeedback ?? false;
+  };
+
+  const canEditFeedback = (): boolean => {
+    if (!role) return false;
+    // Administrador always has full access
+    if (role.toLowerCase() === "administrador") return true;
+    // For other roles, check specific permission
+    return feedbackPermissions?.puedeEditarFeedback ?? false;
+  };
+
   return {
     role: role as UserRole | null,
     loading,
@@ -73,5 +91,7 @@ export function useUserRole(): UseUserRoleReturn {
     canEdit,
     canEditStructure,
     isAdminOnly,
+    canViewFeedback,
+    canEditFeedback,
   };
 }

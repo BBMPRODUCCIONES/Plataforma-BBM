@@ -33,6 +33,8 @@ interface UserWithRole {
   full_name: string | null;
   role: AppRole;
   allowed_panels: string[];
+  puede_ver_feedback: boolean;
+  puede_editar_feedback: boolean;
   created_at: string | null;
 }
 
@@ -71,6 +73,8 @@ const Usuarios = () => {
   const [editRole, setEditRole] = useState<AppRole>("operativo");
   const [editPanels, setEditPanels] = useState<string[]>([]);
   const [editName, setEditName] = useState("");
+  const [editPuedeVerFeedback, setEditPuedeVerFeedback] = useState(false);
+  const [editPuedeEditarFeedback, setEditPuedeEditarFeedback] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchData = async () => {
@@ -86,10 +90,10 @@ const Usuarios = () => {
       if (invitationsError) throw invitationsError;
       setInvitations(invitationsData || []);
 
-      // Fetch users with roles and panels (now includes email)
+      // Fetch users with roles and panels (now includes email and feedback permissions)
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role, allowed_panels, email");
+        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback");
 
       if (rolesError) throw rolesError;
 
@@ -110,6 +114,8 @@ const Usuarios = () => {
           full_name: profile?.full_name || null,
           role: roleRecord.role,
           allowed_panels: roleRecord.allowed_panels || [],
+          puede_ver_feedback: roleRecord.puede_ver_feedback ?? false,
+          puede_editar_feedback: roleRecord.puede_editar_feedback ?? false,
           created_at: profile?.created_at || null,
         };
       });
@@ -200,6 +206,14 @@ const Usuarios = () => {
     setEditRole(user.role);
     setEditPanels(user.allowed_panels);
     setEditName(user.full_name || "");
+    // For admin, always show true; for others, use stored values
+    if (user.role === "administrador") {
+      setEditPuedeVerFeedback(true);
+      setEditPuedeEditarFeedback(true);
+    } else {
+      setEditPuedeVerFeedback(user.puede_ver_feedback);
+      setEditPuedeEditarFeedback(user.puede_editar_feedback);
+    }
   };
 
   const handleSaveUser = async () => {
@@ -212,12 +226,18 @@ const Usuarios = () => {
         ? ALL_PANELS 
         : editPanels;
 
-      // Update user roles
+      // Determine feedback permissions based on role
+      const finalPuedeVerFeedback = editRole === "administrador" ? true : editPuedeVerFeedback;
+      const finalPuedeEditarFeedback = editRole === "administrador" ? true : editPuedeEditarFeedback;
+
+      // Update user roles with feedback permissions
       const { error: roleError } = await supabase
         .from("user_roles")
         .update({ 
           role: editRole,
-          allowed_panels: finalPanels
+          allowed_panels: finalPanels,
+          puede_ver_feedback: finalPuedeVerFeedback,
+          puede_editar_feedback: finalPuedeEditarFeedback
         })
         .eq("user_id", editingUser.id);
 
@@ -627,8 +647,60 @@ const Usuarios = () => {
 
               {editRole === "administrador" && (
                 <p className="text-sm text-muted-foreground p-3 bg-muted/20 rounded-md">
-                  Los administradores tienen acceso completo a todos los paneles y funciones administrativas.
+                  Los administradores tienen acceso completo a todos los paneles y funciones, incluyendo Feedback.
                 </p>
+              )}
+
+              {/* Feedback Permissions - only for non-admin roles */}
+              {editRole !== "administrador" && (
+                <div className="space-y-2">
+                  <Label>Permisos de Feedback</Label>
+                  <div className="space-y-2 p-3 border rounded-md bg-muted/20">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-ver-feedback"
+                        checked={editPuedeVerFeedback}
+                        onCheckedChange={(checked) => {
+                          setEditPuedeVerFeedback(checked as boolean);
+                          // If removing view permission, also remove edit permission
+                          if (!checked) {
+                            setEditPuedeEditarFeedback(false);
+                          }
+                        }}
+                        disabled={isSaving}
+                      />
+                      <Label 
+                        htmlFor="edit-puede-ver-feedback"
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        Puede ver Feedback
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-editar-feedback"
+                        checked={editPuedeEditarFeedback}
+                        onCheckedChange={(checked) => {
+                          setEditPuedeEditarFeedback(checked as boolean);
+                          // If enabling edit permission, also enable view permission
+                          if (checked) {
+                            setEditPuedeVerFeedback(true);
+                          }
+                        }}
+                        disabled={isSaving || !editPuedeVerFeedback}
+                      />
+                      <Label 
+                        htmlFor="edit-puede-editar-feedback"
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        Puede editar Feedback
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Activa estos permisos para dar acceso a la sección Feedback en proyectos.
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
 

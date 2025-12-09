@@ -15,6 +15,8 @@ interface MatrixTableProps<T extends { id: string }> {
   onRowClick?: (item: T) => void;
   className?: string;
   highlightedId?: string;
+  /** If true, table will not scroll horizontally and columns will flex */
+  noHorizontalScroll?: boolean;
 }
 
 export function MatrixTable<T extends { id: string }>({
@@ -23,17 +25,27 @@ export function MatrixTable<T extends { id: string }>({
   onRowClick,
   className,
   highlightedId,
+  noHorizontalScroll = false,
 }: MatrixTableProps<T>) {
   return (
-    <div className={cn("overflow-x-auto scrollbar-thin", className)}>
-      <table className="matrix-table min-w-full">
+    <div className={cn(
+      noHorizontalScroll ? "overflow-hidden" : "overflow-x-auto scrollbar-thin", 
+      className
+    )}>
+      <table className={cn(
+        "matrix-table",
+        noHorizontalScroll ? "w-full table-fixed" : "min-w-full"
+      )}>
         <thead>
           <tr>
             {columns.map((col) => (
               <th
                 key={col.key}
-                style={{ width: col.width, minWidth: col.width }}
-                className={col.className}
+                style={noHorizontalScroll ? undefined : { width: col.width, minWidth: col.width }}
+                className={cn(
+                  col.className,
+                  noHorizontalScroll && "truncate"
+                )}
               >
                 {col.header}
               </th>
@@ -51,7 +63,13 @@ export function MatrixTable<T extends { id: string }>({
               )}
             >
               {columns.map((col) => (
-                <td key={col.key} className={col.className}>
+                <td 
+                  key={col.key} 
+                  className={cn(
+                    col.className,
+                    noHorizontalScroll && "overflow-hidden"
+                  )}
+                >
                   {col.render
                     ? col.render(item, idx)
                     : (item as Record<string, unknown>)[col.key]?.toString() || "-"}

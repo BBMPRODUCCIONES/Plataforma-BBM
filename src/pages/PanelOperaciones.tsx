@@ -953,6 +953,7 @@ const PanelOperaciones = () => {
                       <MatrixTable
                         data={currentProjectData.personal || []}
                         columns={personalColumns}
+                        noHorizontalScroll
                       />
                     ) : (
                       <p className="text-sm text-muted-foreground">No hay personal asignado. Haga clic en "Agregar Personal" para comenzar.</p>
@@ -1001,6 +1002,7 @@ const PanelOperaciones = () => {
                       <MatrixTable
                         data={currentProjectData.inventario || []}
                         columns={inventarioColumns}
+                        noHorizontalScroll
                       />
                     ) : (
                       <p className="text-sm text-muted-foreground">No hay inventario registrado. Haga clic en "Agregar Material" para comenzar.</p>

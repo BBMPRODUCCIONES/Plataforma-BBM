@@ -31,7 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2 } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2 } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario } from "@/utils/pdfGenerator";
@@ -454,6 +454,33 @@ const PanelOperaciones = () => {
     contextUpdateProject(projectId, 'inventario', updatedInventario);
   };
 
+  // Delete functions for Personal and Inventario
+  const deletePersonalItem = async (projectId: string, personalId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const updatedPersonal = (project.personal || []).filter(p => p.id !== personalId);
+    try {
+      await contextUpdateProject(projectId, 'personal', updatedPersonal);
+      toast.success("Personal eliminado");
+    } catch (err) {
+      console.error('[PanelOperaciones] Error deleting personal:', err);
+      toast.error("Error al eliminar personal");
+    }
+  };
+
+  const deleteInventarioItem = async (projectId: string, inventarioId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const updatedInventario = (project.inventario || []).filter(i => i.id !== inventarioId);
+    try {
+      await contextUpdateProject(projectId, 'inventario', updatedInventario);
+      toast.success("Material eliminado");
+    } catch (err) {
+      console.error('[PanelOperaciones] Error deleting inventario:', err);
+      toast.error("Error al eliminar material");
+    }
+  };
+
   // Get current project data from state (not stale selectedProject)
   const currentProjectData = useMemo(() => {
     return selectedProject ? projects.find(p => p.id === selectedProject.id) : null;
@@ -559,6 +586,29 @@ const PanelOperaciones = () => {
       },
     ];
 
+    // Add delete action column
+    basePersonalCols.push({
+      key: "acciones",
+      header: "",
+      width: "50px",
+      render: (p: PersonalItem) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (projectId) {
+              deletePersonalItem(projectId, p.id);
+            }
+          }}
+          title="Eliminar"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      ),
+    });
+
     // Always show Ruta Transporte column when there's transport personnel
     if (hasTransporte) {
       basePersonalCols.push({
@@ -653,6 +703,27 @@ const PanelOperaciones = () => {
             placeholder="Observaciones..."
             onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "observaciones", value)}
           />
+        ),
+      },
+      {
+        key: "acciones",
+        header: "",
+        width: "50px",
+        render: (i: InventarioItem) => (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (projectId) {
+                deleteInventarioItem(projectId, i.id);
+              }
+            }}
+            title="Eliminar"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         ),
       },
       {

@@ -706,27 +706,6 @@ const PanelOperaciones = () => {
         ),
       },
       {
-        key: "acciones",
-        header: "",
-        width: "50px",
-        render: (i: InventarioItem) => (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (projectId) {
-                deleteInventarioItem(projectId, i.id);
-              }
-            }}
-            title="Eliminar"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        ),
-      },
-      {
         key: "recibido",
         header: "Recibido",
         width: "80px",
@@ -749,6 +728,27 @@ const PanelOperaciones = () => {
             placeholder="Notas adicionales..."
             onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "notasAdicionales", value)}
           />
+        ),
+      },
+      {
+        key: "acciones",
+        header: "",
+        width: "50px",
+        render: (i: InventarioItem) => (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (projectId) {
+                deleteInventarioItem(projectId, i.id);
+              }
+            }}
+            title="Eliminar"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         ),
       },
   ];

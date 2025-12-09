@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -84,14 +84,26 @@ export function EmpleadoAutocomplete({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (isOpen && inputRef.current && tipoPersonal === "BBM") {
-      // Use setTimeout to ensure focus happens after Dialog's focus trap
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 50);
+  // Aggressive focus management for BBM input inside Dialog
+  const forceFocus = useCallback(() => {
+    if (inputRef.current && tipoPersonal === "BBM") {
+      inputRef.current.focus();
+      // Also set selection to end of input
+      const len = inputRef.current.value.length;
+      inputRef.current.setSelectionRange(len, len);
     }
-  }, [isOpen, tipoPersonal]);
+  }, [tipoPersonal]);
+
+  useEffect(() => {
+    if (isOpen && tipoPersonal === "BBM") {
+      // Multiple attempts to ensure focus
+      const attempts = [0, 50, 100, 200];
+      const timeouts = attempts.map(delay => 
+        setTimeout(forceFocus, delay)
+      );
+      return () => timeouts.forEach(clearTimeout);
+    }
+  }, [isOpen, tipoPersonal, forceFocus]);
 
   const handleSelectEmpleado = (empleado: typeof empleadosFiltradosPorTipo[0]) => {
     onChange(empleado.nombre, empleado.id);
@@ -102,7 +114,6 @@ export function EmpleadoAutocomplete({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
-    // Don't call onChange on every keystroke for free text - only on blur
   };
 
   const handleBlur = () => {
@@ -135,27 +146,57 @@ export function EmpleadoAutocomplete({
           width: dropdownPosition.width,
           maxHeight: 320,
         }}
-        onPointerDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+        }}
         onClick={(e) => e.stopPropagation()}
+        onFocus={(e) => e.stopPropagation()}
       >
         {/* Search header */}
         <div className="p-3 border-b border-border bg-card sticky top-0">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <input
               ref={inputRef}
+              type="text"
               value={inputValue}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Buscar empleado..."
-              className="h-9 text-sm bg-muted pl-10 pr-3"
+              className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 pl-10 pr-3"
               autoFocus
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
               onPointerDown={(e) => {
                 e.stopPropagation();
-                // Force focus after a microtask to beat the Dialog's focus trap
-                setTimeout(() => inputRef.current?.focus(), 0);
+                // Prevent Radix from stealing focus
+                setTimeout(forceFocus, 0);
               }}
-              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                setTimeout(forceFocus, 0);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                forceFocus();
+              }}
+              onFocus={(e) => {
+                e.stopPropagation();
+              }}
+              onBlur={(e) => {
+                // Prevent blur if clicking inside the portal
+                const relatedTarget = e.relatedTarget as HTMLElement;
+                if (relatedTarget?.closest('#empleado-dropdown-portal')) {
+                  e.preventDefault();
+                  setTimeout(forceFocus, 0);
+                }
+              }}
             />
           </div>
           <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">

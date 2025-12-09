@@ -117,6 +117,7 @@ function fieldToColumn(field: string): string {
     notasCotizacionProveedor: "notas_cotizacion_proveedor",
     cotizacionesProveedor: "cotizaciones_proveedor",
     notasImagenes: "notas_imagenes",
+    feedback: "feedback",
     feedbackAdjuntos: "feedback_adjuntos",
   };
   return mapping[field] || field;

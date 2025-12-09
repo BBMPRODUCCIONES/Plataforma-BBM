@@ -18,7 +18,7 @@ import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjects } from "@/contexts/ProjectsContext";
-import { Project, PersonalItem, InventarioItem, ProjectStatus, CalendarViewMode } from "@/types";
+import { Project, PersonalItem, InventarioItem, ProjectStatus, CalendarViewMode, Attachment } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,16 +79,18 @@ const PanelOperaciones = () => {
   const [localNotasProveedor, setLocalNotasProveedor] = useState("");
   const [localFeedback, setLocalFeedback] = useState("");
   const [localNotasImagenes, setLocalNotasImagenes] = useState<Array<{id: string; url: string; name: string}>>([]);
+  const [localFeedbackAdjuntos, setLocalFeedbackAdjuntos] = useState<Attachment[]>([]);
 
-  // Sync local textarea state when project changes (not on every keystroke)
+  // Sync local state when project changes (not on every keystroke)
   useEffect(() => {
     if (selectedProject) {
       const project = projects.find(p => p.id === selectedProject.id);
       if (project) {
         setLocalNotas(project.notas || "");
-        setLocalNotasProveedor((project as any).notasCotizacionProveedor || "");
-        setLocalNotasImagenes((project as any).notasImagenes || []);
-        setLocalFeedback((project as any).feedback || "");
+        setLocalNotasProveedor(project.notasCotizacionProveedor || "");
+        setLocalNotasImagenes(project.notasImagenes || []);
+        setLocalFeedback(project.feedback || "");
+        setLocalFeedbackAdjuntos(project.feedbackAdjuntos || []);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -848,11 +850,15 @@ const PanelOperaciones = () => {
               updateProject(currentProjectData.id, "notas", localNotas);
             }
             // Save feedback if changed
-            if (localFeedback !== ((currentProjectData as any).feedback || "")) {
+            if (localFeedback !== (currentProjectData.feedback || "")) {
               updateProject(currentProjectData.id, "feedback", localFeedback);
             }
+            // Save feedback attachments if changed
+            if (JSON.stringify(localFeedbackAdjuntos) !== JSON.stringify(currentProjectData.feedbackAdjuntos || [])) {
+              updateProject(currentProjectData.id, "feedbackAdjuntos", localFeedbackAdjuntos);
+            }
             // Save images if changed
-            const currentImages = (currentProjectData as any).notasImagenes || [];
+            const currentImages = currentProjectData.notasImagenes || [];
             if (JSON.stringify(localNotasImagenes) !== JSON.stringify(currentImages)) {
               updateProject(currentProjectData.id, "notasImagenes", localNotasImagenes);
             }
@@ -1034,7 +1040,7 @@ const PanelOperaciones = () => {
                           value={localFeedback}
                           onChange={(e) => setLocalFeedback(e.target.value)}
                           onBlur={() => {
-                            if (localFeedback !== ((currentProjectData as any).feedback || "")) {
+                            if (localFeedback !== (currentProjectData.feedback || "")) {
                               updateProject(currentProjectData.id, "feedback", localFeedback);
                             }
                           }}
@@ -1049,16 +1055,21 @@ const PanelOperaciones = () => {
                         <label className="text-xs text-muted-foreground mb-2 block">Documentos Adjuntos</label>
                         {canEditFeedback() ? (
                           <AttachmentManager
-                            attachments={(currentProjectData as any).feedbackAdjuntos || []}
-                            onAttachmentsChange={(attachments) => updateProject(currentProjectData.id, "feedbackAdjuntos", attachments)}
+                            attachments={localFeedbackAdjuntos}
+                            onAttachmentsChange={(attachments) => {
+                              console.log('[Feedback] Attachments changed:', attachments);
+                              setLocalFeedbackAdjuntos(attachments);
+                              // Save immediately when attachments change
+                              updateProject(currentProjectData.id, "feedbackAdjuntos", attachments);
+                            }}
                             multiple
                             projectId={currentProjectData.id}
                             fieldName="feedbackAdjuntos"
                           />
                         ) : (
                           <div className="text-sm text-muted-foreground">
-                            {((currentProjectData as any).feedbackAdjuntos || []).length > 0 
-                              ? `${((currentProjectData as any).feedbackAdjuntos || []).length} archivo(s) adjunto(s)` 
+                            {localFeedbackAdjuntos.length > 0 
+                              ? `${localFeedbackAdjuntos.length} archivo(s) adjunto(s)` 
                               : "Sin archivos adjuntos"}
                           </div>
                         )}

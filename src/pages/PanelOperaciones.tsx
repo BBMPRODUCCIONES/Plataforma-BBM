@@ -818,7 +818,6 @@ const PanelOperaciones = () => {
                 key={tableKey}
                 data={filteredProjects}
                 columns={columns}
-                onRowClick={(p) => setSelectedProject(p)}
                 highlightedId={highlightedProjectId}
               />
             </div>

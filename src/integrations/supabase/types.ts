@@ -296,18 +296,21 @@ export type Database = {
       user_roles: {
         Row: {
           allowed_panels: string[] | null
+          email: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           allowed_panels?: string[] | null
+          email?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           allowed_panels?: string[] | null
+          email?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string

@@ -129,13 +129,14 @@ serve(async (req) => {
       allowedPanels = ['general', 'operaciones'];
     }
 
-    // Assign role with allowed_panels
+    // Assign role with allowed_panels and email
     const { error: roleError } = await supabase
       .from('user_roles')
       .insert({
         user_id: userId,
         role: invitation.role,
-        allowed_panels: allowedPanels
+        allowed_panels: allowedPanels,
+        email: invitation.email
       });
 
     if (roleError) {

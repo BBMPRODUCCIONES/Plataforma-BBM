@@ -1054,14 +1054,6 @@ const PanelOperaciones = () => {
 
               {selectedProject && currentProjectData && (
                 <div className="space-y-6">
-                {/* Unified PDF Button */}
-                <div className="flex justify-end">
-                  <Button variant="default" onClick={() => printPersonalYInventario(currentProjectData)}>
-                    <FileDown className="h-4 w-4 mr-2" />
-                    Generar PDF (Personal + Inventario)
-                  </Button>
-                </div>
-
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <span className="text-xs text-muted-foreground">Cliente</span>

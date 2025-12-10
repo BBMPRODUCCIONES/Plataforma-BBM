@@ -36,6 +36,8 @@ export interface Project {
   // Feedback section
   feedback?: string;
   feedbackAdjuntos?: Attachment[];
+  // Caja Menor section (Panel Operaciones only)
+  cajaMenor?: CajaMenorItem[];
   createdAt: string;
   updatedAt: string;
 }
@@ -80,6 +82,16 @@ export interface InventarioItem {
   observaciones?: string;
   recibido: boolean;
   notasAdicionales?: string;
+}
+
+export interface CajaMenorItem {
+  id: string;
+  nombre: string;
+  concepto: string;
+  imagenes?: Attachment[];
+  valor: number;
+  categoria: 'Transporte' | 'Alimentación' | 'Compras';
+  estado: 'Aprobado' | 'No aprobado';
 }
 
 export interface Proveedor {

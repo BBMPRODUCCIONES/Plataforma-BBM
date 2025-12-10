@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { User, Check, Search, AlertCircle, Loader2 } from "lucide-react";
+import { User, Check, Search, AlertCircle, Loader2, ChevronDown } from "lucide-react";
 import { useEmpleados } from "@/contexts/EmpleadosContext";
 
 interface EmpleadoAutocompleteProps {
@@ -13,27 +13,19 @@ interface EmpleadoAutocompleteProps {
   className?: string;
 }
 
-interface DropdownPosition {
-  top?: number;
-  bottom?: number;
-  left: number;
-  width: number;
-  openDirection: 'up' | 'down';
-}
-
 export function EmpleadoAutocomplete({
   value,
   onChange,
   tipoPersonal = "BBM",
   useEmpleadoId = false,
-  placeholder = "Seleccionar personal...",
+  placeholder = "Seleccionar empleado...",
   className,
 }: EmpleadoAutocompleteProps) {
   const { empleados, loading } = useEmpleados();
   const [isOpen, setIsOpen] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Resolve display value when using empleadoId mode
   const resolvedDisplayValue = useEmpleadoId 
@@ -49,66 +41,19 @@ export function EmpleadoAutocomplete({
     (e.cargo && e.cargo.toLowerCase().includes(searchTerm))
   );
 
-  // Calculate dropdown position dynamically
-  const calculatePosition = useCallback(() => {
-    if (!containerRef.current) return;
-    
-    const rect = containerRef.current.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const dropdownHeight = 300; // Max height of dropdown
-    
-    const spaceBelow = viewportHeight - rect.bottom;
-    const spaceAbove = rect.top;
-    
-    // Prefer opening downward if there's enough space, otherwise open upward
-    const openDirection = spaceBelow >= dropdownHeight || spaceBelow >= spaceAbove ? 'down' : 'up';
-    
-    if (openDirection === 'down') {
-      setDropdownPosition({
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: Math.max(rect.width, 280),
-        openDirection: 'down'
-      });
-    } else {
-      setDropdownPosition({
-        bottom: viewportHeight - rect.top + 4,
-        left: rect.left,
-        width: Math.max(rect.width, 280),
-        openDirection: 'up'
-      });
-    }
-  }, []);
-
-  // Recalculate position when opening or on scroll/resize
-  useEffect(() => {
-    if (isOpen) {
-      calculatePosition();
-      
-      const handleScrollOrResize = () => calculatePosition();
-      window.addEventListener('scroll', handleScrollOrResize, true);
-      window.addEventListener('resize', handleScrollOrResize);
-      
-      return () => {
-        window.removeEventListener('scroll', handleScrollOrResize, true);
-        window.removeEventListener('resize', handleScrollOrResize);
-      };
-    }
-  }, [isOpen, calculatePosition]);
-
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (containerRef.current && !containerRef.current.contains(target)) {
-      // Also check if clicking on the dropdown itself (which is in a portal)
-        const dropdownEl = document.getElementById('empleado-dropdown-portal');
-        if (dropdownEl && dropdownEl.contains(target)) {
-          return; // Don't close if clicking inside dropdown
-        }
+      if (
+        containerRef.current && 
+        !containerRef.current.contains(target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
+      ) {
         setIsOpen(false);
         // Reset input if no valid selection for BBM or useEmpleadoId mode
-        if ((tipoPersonal === "BBM" || useEmpleadoId) && !empleados.some(e => e.nombre === inputValue)) {
+        if ((tipoPersonal === "BBM" || useEmpleadoId) && !empleados.some(e => e.nombre === inputValue || e.id === value)) {
           setInputValue(resolvedDisplayValue);
         }
       }
@@ -116,7 +61,7 @@ export function EmpleadoAutocomplete({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [inputValue, resolvedDisplayValue, empleados, tipoPersonal, useEmpleadoId]);
+  }, [inputValue, resolvedDisplayValue, empleados, tipoPersonal, useEmpleadoId, value]);
 
   // Sync input value when external value changes
   useEffect(() => {
@@ -147,7 +92,7 @@ export function EmpleadoAutocomplete({
 
   const handleBlur = () => {
     // For non-BBM types, allow free text input
-    if (tipoPersonal !== "BBM" && inputValue !== value) {
+    if (tipoPersonal !== "BBM" && !useEmpleadoId && inputValue !== value) {
       onChange(inputValue);
     }
     // Delay close to allow click on dropdown items
@@ -163,30 +108,25 @@ export function EmpleadoAutocomplete({
 
   const handleFocus = () => {
     setIsOpen(true);
-    calculatePosition();
   };
 
-  // Render dropdown using fixed positioning to escape modal constraints
+  // Check if an employee is currently selected
+  const isSelected = (empleado: typeof empleados[0]) => {
+    if (useEmpleadoId) {
+      return value === empleado.id;
+    }
+    return value === empleado.nombre || inputValue === empleado.nombre;
+  };
+
+  // Render dropdown using relative positioning within the container
   const renderDropdown = () => {
-    if (!isOpen || !dropdownPosition) return null;
+    if (!isOpen) return null;
 
-    const dropdownStyle: React.CSSProperties = {
-      position: 'fixed',
-      left: dropdownPosition.left,
-      width: dropdownPosition.width,
-      zIndex: 9999,
-      ...(dropdownPosition.openDirection === 'down' 
-        ? { top: dropdownPosition.top } 
-        : { bottom: dropdownPosition.bottom }
-      ),
-    };
-
-    if (tipoPersonal === "BBM") {
+    if (useEmpleadoId || tipoPersonal === "BBM") {
       return (
         <div 
-          id="empleado-dropdown-portal"
-          style={dropdownStyle}
-          className="rounded-md border bg-popover shadow-xl"
+          ref={dropdownRef}
+          className="absolute top-full left-0 right-0 mt-1 z-[9999] rounded-md border bg-popover shadow-xl max-h-[280px] overflow-hidden"
         >
           <div className="px-3 py-2 border-b border-border bg-muted/30">
             <p className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -194,8 +134,13 @@ export function EmpleadoAutocomplete({
               Empleados de "Creación de Empleados"
             </p>
           </div>
-          <div className="max-h-[250px] overflow-y-auto">
-            {filteredEmpleados.length === 0 ? (
+          <div className="max-h-[220px] overflow-y-auto">
+            {loading ? (
+              <div className="p-4 text-center">
+                <Loader2 className="h-6 w-6 mx-auto animate-spin text-muted-foreground" />
+                <p className="text-sm text-muted-foreground mt-2">Cargando empleados...</p>
+              </div>
+            ) : filteredEmpleados.length === 0 ? (
               <div className="p-4 text-center">
                 <User className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
                 <p className="text-sm text-muted-foreground">
@@ -215,11 +160,12 @@ export function EmpleadoAutocomplete({
                   key={empleado.id}
                   onMouseDown={(e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     handleSelectEmpleado(empleado);
                   }}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-accent transition-colors",
-                    value === empleado.nombre && "bg-accent"
+                    isSelected(empleado) && "bg-accent"
                   )}
                 >
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -228,10 +174,10 @@ export function EmpleadoAutocomplete({
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{empleado.nombre}</div>
                     <div className="text-xs text-muted-foreground truncate">
-                      {empleado.cargo || "BBM"}
+                      {empleado.cargo || "Sin cargo"}
                     </div>
                   </div>
-                  {value === empleado.nombre && (
+                  {isSelected(empleado) && (
                     <Check className="h-4 w-4 text-primary flex-shrink-0" />
                   )}
                 </div>
@@ -247,9 +193,8 @@ export function EmpleadoAutocomplete({
 
     return (
       <div 
-        id="empleado-dropdown-portal"
-        style={dropdownStyle}
-        className="rounded-md border bg-popover shadow-xl"
+        ref={dropdownRef}
+        className="absolute top-full left-0 right-0 mt-1 z-[9999] rounded-md border bg-popover shadow-xl"
       >
         <div className="px-3 py-1.5 border-b border-border bg-muted/30">
           <span className="text-[10px] text-muted-foreground">
@@ -262,11 +207,12 @@ export function EmpleadoAutocomplete({
               key={empleado.id}
               onMouseDown={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 handleSelectEmpleado(empleado);
               }}
               className={cn(
                 "flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent transition-colors",
-                inputValue === empleado.nombre && "bg-accent"
+                isSelected(empleado) && "bg-accent"
               )}
             >
               <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -276,7 +222,7 @@ export function EmpleadoAutocomplete({
                   {empleado.cargo || "Sin cargo"}
                 </div>
               </div>
-              {inputValue === empleado.nombre && (
+              {isSelected(empleado) && (
                 <Check className="h-4 w-4 text-primary flex-shrink-0" />
               )}
             </div>
@@ -286,8 +232,8 @@ export function EmpleadoAutocomplete({
     );
   };
 
-  // For BBM type: STRICT selector with search input
-  if (tipoPersonal === "BBM") {
+  // For empleadoId mode or BBM type: STRICT selector with search input
+  if (useEmpleadoId || tipoPersonal === "BBM") {
     return (
       <div 
         ref={containerRef} 
@@ -307,12 +253,16 @@ export function EmpleadoAutocomplete({
             onChange={handleInputChange}
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
-            placeholder={value || placeholder}
-            className="h-9 pl-9 pr-3 text-sm w-full"
+            placeholder={resolvedDisplayValue || placeholder}
+            className="h-9 pl-9 pr-8 text-sm w-full bg-background"
           />
+          <ChevronDown className={cn(
+            "absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-transform",
+            isOpen && "rotate-180"
+          )} />
         </div>
 
-        {/* Fixed position dropdown */}
+        {/* Relative position dropdown */}
         {renderDropdown()}
       </div>
     );
@@ -333,10 +283,10 @@ export function EmpleadoAutocomplete({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="h-9 text-sm w-full"
+        className="h-9 text-sm w-full bg-background"
       />
 
-      {/* Fixed position dropdown */}
+      {/* Relative position dropdown */}
       {renderDropdown()}
     </div>
   );

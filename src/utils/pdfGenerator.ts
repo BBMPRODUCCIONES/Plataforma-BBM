@@ -358,13 +358,26 @@ export const printCotizaciones = (project: Project, includeNotes: boolean = true
   openPrintWindow(html);
 };
 
+// Employee type for resolving IDs to names
+interface EmpleadoBasic {
+  id: string;
+  nombre: string;
+}
+
+// Helper to resolve employee ID to name
+const getEmpleadoNombre = (empleadoId: string | undefined, empleados: EmpleadoBasic[]): string => {
+  if (!empleadoId) return '-';
+  const empleado = empleados.find(e => e.id === empleadoId);
+  return empleado?.nombre || empleadoId;
+};
+
 // Generate Caja Menor section (internal use)
-const generateCajaMenorSection = (project: Project): string => {
+const generateCajaMenorSection = (project: Project, empleados: EmpleadoBasic[]): string => {
   const cajaMenor = project.cajaMenor || [];
   
   const tableRows = cajaMenor.map(c => `
     <tr>
-      <td>${c.empleadoId || '-'}</td>
+      <td>${getEmpleadoNombre(c.empleadoId, empleados)}</td>
       <td>${c.concepto || '-'}</td>
       <td>${(c.imagenes || []).length} imagen(es)</td>
       <td>$${(c.valor || 0).toLocaleString('es-CO')}</td>
@@ -378,7 +391,7 @@ const generateCajaMenorSection = (project: Project): string => {
     <table>
       <thead>
         <tr>
-          <th>Colaborador</th>
+          <th>Empleado</th>
           <th>Concepto</th>
           <th>Imágenes</th>
           <th>Valor</th>
@@ -394,7 +407,7 @@ const generateCajaMenorSection = (project: Project): string => {
 };
 
 // Print Caja Menor PDF
-export const printCajaMenor = (project: Project) => {
+export const printCajaMenor = (project: Project, empleados: EmpleadoBasic[] = []) => {
   const content = `
     <div class="info-section">
       <div class="info-row"><span class="info-label">Evento:</span> ${project.evento}</div>
@@ -404,7 +417,7 @@ export const printCajaMenor = (project: Project) => {
       <div class="info-row"><span class="info-label">Ubicación:</span> ${project.ubicacion || '-'}</div>
       <div class="info-row"><span class="info-label">Estado del evento:</span> ${project.estado}</div>
     </div>
-    ${generateCajaMenorSection(project)}
+    ${generateCajaMenorSection(project, empleados)}
   `;
 
   const html = generatePrintableHTML(content, {
@@ -416,16 +429,16 @@ export const printCajaMenor = (project: Project) => {
 };
 
 // Export Caja Menor to Excel (real .xlsx file)
-export const exportCajaMenorToExcel = async (project: Project) => {
+export const exportCajaMenorToExcel = async (project: Project, empleados: EmpleadoBasic[] = []) => {
   const XLSX = await import('xlsx');
   const cajaMenor = project.cajaMenor || [];
   
   // Header row
-  const headers = ['Colaborador', 'Concepto', 'Imágenes', 'Valor', 'Categoría', 'Estado'];
+  const headers = ['Empleado', 'Concepto', 'Imágenes', 'Valor', 'Categoría', 'Estado'];
   
-  // Data rows
+  // Data rows with resolved employee names
   const data = cajaMenor.map(c => ({
-    'Colaborador': c.empleadoId || '',
+    'Empleado': getEmpleadoNombre(c.empleadoId, empleados),
     'Concepto': c.concepto || '',
     'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
     'Valor': c.valor || 0,
@@ -438,7 +451,7 @@ export const exportCajaMenorToExcel = async (project: Project) => {
   
   // Set column widths
   worksheet['!cols'] = [
-    { wch: 25 }, // Colaborador
+    { wch: 25 }, // Empleado
     { wch: 40 }, // Concepto
     { wch: 15 }, // Imágenes
     { wch: 12 }, // Valor

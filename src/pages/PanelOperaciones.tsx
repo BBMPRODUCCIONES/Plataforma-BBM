@@ -19,6 +19,7 @@ import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjects } from "@/contexts/ProjectsContext";
+import { useEmpleados } from "@/contexts/EmpleadosContext";
 import { Project, PersonalItem, InventarioItem, CajaMenorItem, ProjectStatus, CalendarViewMode, Attachment } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,7 @@ const PanelOperaciones = () => {
   const navigate = useNavigate();
   const { canEditStructure, role, canViewFeedback, canEditFeedback } = useUserRole();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
+  const { empleados } = useEmpleados();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
@@ -809,15 +811,15 @@ const PanelOperaciones = () => {
     const projectId = currentProjectData?.id;
     return [
       {
-        key: "colaborador",
-        header: "Colaborador",
+        key: "empleado",
+        header: "Empleado",
         width: "180px",
         render: (c: CajaMenorItem) => (
           <EmpleadoAutocomplete
             value={c.empleadoId || ""}
             onChange={(empleadoId) => projectId && updateCajaMenorItem(projectId, c.id, "empleadoId", empleadoId)}
             useEmpleadoId
-            placeholder="Seleccionar colaborador..."
+            placeholder="Seleccionar empleado..."
           />
         ),
       },
@@ -1090,11 +1092,11 @@ const PanelOperaciones = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => printCajaMenor(currentProjectData)}>
+                          <DropdownMenuItem onClick={() => printCajaMenor(currentProjectData, empleados)}>
                             <FileDown className="h-4 w-4 mr-2" />
                             Descargar PDF
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => exportCajaMenorToExcel(currentProjectData)}>
+                          <DropdownMenuItem onClick={() => exportCajaMenorToExcel(currentProjectData, empleados)}>
                             <FileSpreadsheet className="h-4 w-4 mr-2" />
                             Descargar Excel
                           </DropdownMenuItem>

@@ -802,15 +802,15 @@ const PanelOperaciones = () => {
     const projectId = currentProjectData?.id;
     return [
       {
-        key: "nombre",
-        header: "Nombre",
-        width: "150px",
+        key: "colaborador",
+        header: "Colaborador",
+        width: "180px",
         render: (c: CajaMenorItem) => (
-          <EditableCell
-            value={c.nombre}
-            type="text"
-            placeholder="Nombre..."
-            onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "nombre", value)}
+          <EmpleadoAutocomplete
+            value={c.empleadoId || ""}
+            onChange={(empleadoId) => projectId && updateCajaMenorItem(projectId, c.id, "empleadoId", empleadoId)}
+            useEmpleadoId
+            placeholder="Seleccionar colaborador..."
           />
         ),
       },
@@ -1089,7 +1089,7 @@ const PanelOperaciones = () => {
                         console.log('[PanelOperaciones] Adding caja menor item to project:', currentProjectData.id);
                         const newCajaMenor: CajaMenorItem = {
                           id: `cm${Date.now()}`,
-                          nombre: "",
+                          empleadoId: "",
                           concepto: "",
                           imagenes: [],
                           valor: 0,

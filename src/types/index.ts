@@ -86,7 +86,7 @@ export interface InventarioItem {
 
 export interface CajaMenorItem {
   id: string;
-  nombre: string;
+  empleadoId?: string; // ID del empleado/colaborador vinculado
   concepto: string;
   imagenes?: Attachment[];
   valor: number;

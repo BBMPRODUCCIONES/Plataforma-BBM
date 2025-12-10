@@ -32,10 +32,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
-import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printCajaMenor } from "@/utils/pdfGenerator";
+import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printCajaMenor, exportCajaMenorToExcel } from "@/utils/pdfGenerator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
 const PanelOperaciones = () => {
@@ -1083,14 +1089,25 @@ const PanelOperaciones = () => {
                       Caja Menor ({(currentProjectData.cajaMenor || []).length})
                     </CardTitle>
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => printCajaMenor(currentProjectData)}
-                      >
-                        <FileDown className="h-3 w-3 mr-1" />
-                        Generar PDF (Caja Menor)
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <FileDown className="h-3 w-3 mr-1" />
+                            Exportar
+                            <ChevronDown className="h-3 w-3 ml-1" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => printCajaMenor(currentProjectData)}>
+                            <FileDown className="h-4 w-4 mr-2" />
+                            Descargar PDF
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => exportCajaMenorToExcel(currentProjectData)}>
+                            <FileSpreadsheet className="h-4 w-4 mr-2" />
+                            Descargar Excel
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <Button
                         variant="outline"
                         size="sm"

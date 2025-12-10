@@ -1,4 +1,4 @@
-import { Project, PersonalItem, InventarioItem, Proveedor } from "@/types";
+import { Project, PersonalItem, InventarioItem, Proveedor, CajaMenorItem } from "@/types";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -102,6 +102,8 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
         .badge-bbm { background: #dbeafe; color: #1d4ed8; }
         .badge-proveedor { background: #ffedd5; color: #c2410c; }
         .badge-transporte { background: #dcfce7; color: #16a34a; }
+        .badge-aprobado { background: #dcfce7; color: #16a34a; }
+        .badge-no-aprobado { background: #fee2e2; color: #dc2626; }
         .checkbox {
           display: inline-block;
           width: 14px;
@@ -351,6 +353,63 @@ export const printCotizaciones = (project: Project, includeNotes: boolean = true
     title: 'COTIZACIONES DE PROVEEDORES',
     subtitle: project.evento,
     notes: includeNotes ? project.notas : undefined,
+  });
+
+  openPrintWindow(html);
+};
+
+// Generate Caja Menor section (internal use)
+const generateCajaMenorSection = (project: Project): string => {
+  const cajaMenor = project.cajaMenor || [];
+  
+  const tableRows = cajaMenor.map(c => `
+    <tr>
+      <td>${c.empleadoId || '-'}</td>
+      <td>${c.concepto || '-'}</td>
+      <td>${(c.imagenes || []).length} imagen(es)</td>
+      <td>$${(c.valor || 0).toLocaleString('es-CO')}</td>
+      <td>${c.categoria || '-'}</td>
+      <td><span class="badge ${c.estado === 'Aprobado' ? 'badge-aprobado' : 'badge-no-aprobado'}">${c.estado || '-'}</span></td>
+    </tr>
+  `).join('');
+
+  return `
+    <h2 style="margin: 15px 0 10px; font-size: 14px;">Caja Menor (${cajaMenor.length} registros)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Colaborador</th>
+          <th>Concepto</th>
+          <th>Imágenes</th>
+          <th>Valor</th>
+          <th>Categoría</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows || '<tr><td colspan="6" style="text-align: center;">No hay registros de caja menor</td></tr>'}
+      </tbody>
+    </table>
+  `;
+};
+
+// Print Caja Menor PDF
+export const printCajaMenor = (project: Project) => {
+  const content = `
+    <div class="info-section">
+      <div class="info-row"><span class="info-label">Evento:</span> ${project.evento}</div>
+      <div class="info-row"><span class="info-label">Cliente:</span> ${project.cliente}</div>
+      <div class="info-row"><span class="info-label">Centro de Costos:</span> ${project.centroCostos}</div>
+      <div class="info-row"><span class="info-label">Jefe de Operaciones:</span> ${project.jefeOperaciones || '-'}</div>
+      <div class="info-row"><span class="info-label">Ubicación:</span> ${project.ubicacion || '-'}</div>
+      <div class="info-row"><span class="info-label">Estado del evento:</span> ${project.estado}</div>
+    </div>
+    ${generateCajaMenorSection(project)}
+  `;
+
+  const html = generatePrintableHTML(content, {
+    title: 'CAJA MENOR',
+    subtitle: project.evento,
   });
 
   openPrintWindow(html);

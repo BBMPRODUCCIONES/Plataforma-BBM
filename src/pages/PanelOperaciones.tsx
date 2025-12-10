@@ -35,7 +35,7 @@ import {
 import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
-import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario } from "@/utils/pdfGenerator";
+import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printCajaMenor } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
 
 const PanelOperaciones = () => {
@@ -1082,32 +1082,42 @@ const PanelOperaciones = () => {
                       <Wallet className="h-4 w-4" />
                       Caja Menor ({(currentProjectData.cajaMenor || []).length})
                     </CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        console.log('[PanelOperaciones] Adding caja menor item to project:', currentProjectData.id);
-                        const newCajaMenor: CajaMenorItem = {
-                          id: `cm${Date.now()}`,
-                          empleadoId: "",
-                          concepto: "",
-                          imagenes: [],
-                          valor: 0,
-                          categoria: "Compras",
-                          estado: "No aprobado",
-                        };
-                        try {
-                          await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);
-                          toast.success("Registro de caja menor agregado");
-                        } catch (err) {
-                          console.error('[PanelOperaciones] Error adding caja menor:', err);
-                          toast.error("Error al agregar registro");
-                        }
-                      }}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Agregar Registro
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => printCajaMenor(currentProjectData)}
+                      >
+                        <FileDown className="h-3 w-3 mr-1" />
+                        Generar PDF (Caja Menor)
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          console.log('[PanelOperaciones] Adding caja menor item to project:', currentProjectData.id);
+                          const newCajaMenor: CajaMenorItem = {
+                            id: `cm${Date.now()}`,
+                            empleadoId: "",
+                            concepto: "",
+                            imagenes: [],
+                            valor: 0,
+                            categoria: "Compras",
+                            estado: "No aprobado",
+                          };
+                          try {
+                            await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);
+                            toast.success("Registro de caja menor agregado");
+                          } catch (err) {
+                            console.error('[PanelOperaciones] Error adding caja menor:', err);
+                            toast.error("Error al agregar registro");
+                          }
+                        }}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Agregar Registro
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="pt-0 overflow-hidden">
                     {(currentProjectData.cajaMenor || []).length > 0 ? (

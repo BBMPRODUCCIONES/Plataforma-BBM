@@ -51,6 +51,7 @@ function dbRowToProject(row: any): Project {
     cotizacionesProveedor: row.cotizaciones_proveedor || [],
     feedback: row.feedback || "",
     feedbackAdjuntos: row.feedback_adjuntos || [],
+    cajaMenor: row.caja_menor || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -91,6 +92,7 @@ function projectToDbRow(project: Partial<Project>): Record<string, any> {
   if (project.cotizacionesProveedor !== undefined) row.cotizaciones_proveedor = project.cotizacionesProveedor;
   if (project.feedback !== undefined) row.feedback = project.feedback;
   if (project.feedbackAdjuntos !== undefined) row.feedback_adjuntos = project.feedbackAdjuntos;
+  if (project.cajaMenor !== undefined) row.caja_menor = project.cajaMenor;
   
   return row;
 }
@@ -119,6 +121,7 @@ function fieldToColumn(field: string): string {
     notasImagenes: "notas_imagenes",
     feedback: "feedback",
     feedbackAdjuntos: "feedback_adjuntos",
+    cajaMenor: "caja_menor",
   };
   return mapping[field] || field;
 }

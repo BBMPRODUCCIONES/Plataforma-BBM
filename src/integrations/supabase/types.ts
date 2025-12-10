@@ -154,6 +154,7 @@ export type Database = {
           a_cargo_de: string
           administrativo_responsable: string
           avanzada: string
+          caja_menor: Json
           centro_costos: string
           cliente: string
           cotizaciones: Json
@@ -190,6 +191,7 @@ export type Database = {
           a_cargo_de?: string
           administrativo_responsable?: string
           avanzada?: string
+          caja_menor?: Json
           centro_costos?: string
           cliente?: string
           cotizaciones?: Json
@@ -226,6 +228,7 @@ export type Database = {
           a_cargo_de?: string
           administrativo_responsable?: string
           avanzada?: string
+          caja_menor?: Json
           centro_costos?: string
           cliente?: string
           cotizaciones?: Json

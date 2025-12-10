@@ -18,7 +18,7 @@ import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjects } from "@/contexts/ProjectsContext";
-import { Project, PersonalItem, InventarioItem, ProjectStatus, CalendarViewMode, Attachment } from "@/types";
+import { Project, PersonalItem, InventarioItem, CajaMenorItem, ProjectStatus, CalendarViewMode, Attachment } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,7 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario } from "@/utils/pdfGenerator";
@@ -65,7 +65,8 @@ const PanelOperaciones = () => {
     { key: "ordenCompraOCR", header: "OC + OCR", type: "file" as CellType, width: "120px", visible: true, isCustom: false, order: 15 },
     { key: "notas", header: "Notas", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 16 },
     { key: "inventario", header: "Inventario", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 17 },
-    { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 18 },
+    { key: "cajaMenor", header: "Caja Menor", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 18 },
+    { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 19 },
   ];
   const [managedColumns, setManagedColumns] = usePersistedColumns("panel-operaciones-columns", defaultColumns);
   
@@ -377,6 +378,21 @@ const PanelOperaciones = () => {
               {p.inventario?.length || 0}
             </Button>
           );
+        case "cajaMenor":
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedProject(p);
+              }}
+            >
+              <Wallet className="h-3 w-3 mr-1" />
+              {p.cajaMenor?.length || 0}
+            </Button>
+          );
         case "panelGeneral":
           return (
             <Button
@@ -482,6 +498,29 @@ const PanelOperaciones = () => {
     } catch (err) {
       console.error('[PanelOperaciones] Error deleting inventario:', err);
       toast.error("Error al eliminar material");
+    }
+  };
+
+  // Caja Menor CRUD functions
+  const updateCajaMenorItem = (projectId: string, cajaMenorId: string, field: string, value: any) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const updatedCajaMenor = (project.cajaMenor || []).map(c =>
+      c.id === cajaMenorId ? { ...c, [field]: value } : c
+    );
+    contextUpdateProject(projectId, 'cajaMenor', updatedCajaMenor);
+  };
+
+  const deleteCajaMenorItem = async (projectId: string, cajaMenorId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const updatedCajaMenor = (project.cajaMenor || []).filter(c => c.id !== cajaMenorId);
+    try {
+      await contextUpdateProject(projectId, 'cajaMenor', updatedCajaMenor);
+      toast.success("Registro de caja menor eliminado");
+    } catch (err) {
+      console.error('[PanelOperaciones] Error deleting caja menor:', err);
+      toast.error("Error al eliminar registro");
     }
   };
 
@@ -758,6 +797,113 @@ const PanelOperaciones = () => {
   ];
   }, [currentProjectData?.id, currentProjectData?.inventario]);
 
+  // Caja Menor columns definition
+  const cajaMenorColumns = useMemo(() => {
+    const projectId = currentProjectData?.id;
+    return [
+      {
+        key: "nombre",
+        header: "Nombre",
+        width: "150px",
+        render: (c: CajaMenorItem) => (
+          <EditableCell
+            value={c.nombre}
+            type="text"
+            placeholder="Nombre..."
+            onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "nombre", value)}
+          />
+        ),
+      },
+      {
+        key: "concepto",
+        header: "Concepto",
+        width: "200px",
+        render: (c: CajaMenorItem) => (
+          <EditableCell
+            value={c.concepto}
+            type="text"
+            placeholder="Descripción del concepto..."
+            onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "concepto", value)}
+          />
+        ),
+      },
+      {
+        key: "imagenes",
+        header: "Imágenes",
+        width: "100px",
+        render: (c: CajaMenorItem) => (
+          <AttachmentButton
+            attachments={c.imagenes || []}
+            onAttachmentsChange={(attachments) => projectId && updateCajaMenorItem(projectId, c.id, "imagenes", attachments)}
+            multiple
+            projectId={projectId || ""}
+            fieldName={`caja-menor-${c.id}-imagenes`}
+          />
+        ),
+      },
+      {
+        key: "valor",
+        header: "Valor",
+        width: "100px",
+        render: (c: CajaMenorItem) => (
+          <EditableCell
+            value={c.valor}
+            type="number"
+            placeholder="0"
+            onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "valor", value)}
+          />
+        ),
+      },
+      {
+        key: "categoria",
+        header: "Categoría",
+        width: "130px",
+        render: (c: CajaMenorItem) => (
+          <EditableCell
+            value={c.categoria}
+            type="select"
+            options={["Transporte", "Alimentación", "Compras"]}
+            onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "categoria", value)}
+          />
+        ),
+      },
+      {
+        key: "estado",
+        header: "Estado",
+        width: "130px",
+        render: (c: CajaMenorItem) => (
+          <EditableCell
+            value={c.estado}
+            type="select"
+            options={["Aprobado", "No aprobado"]}
+            onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "estado", value)}
+          />
+        ),
+      },
+      {
+        key: "acciones",
+        header: "",
+        width: "50px",
+        render: (c: CajaMenorItem) => (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (projectId) {
+                deleteCajaMenorItem(projectId, c.id);
+              }
+            }}
+            title="Eliminar"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        ),
+      },
+    ];
+  }, [currentProjectData?.id, currentProjectData?.cajaMenor]);
+
   if (loading) {
     return (
       <Layout>
@@ -1019,6 +1165,53 @@ const PanelOperaciones = () => {
                       />
                     ) : (
                       <p className="text-sm text-muted-foreground">No hay inventario registrado. Haga clic en "Agregar Material" para comenzar.</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Caja Menor Section */}
+                <Card className="overflow-hidden">
+                  <CardHeader className="py-3 flex flex-row items-center justify-between">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Wallet className="h-4 w-4" />
+                      Caja Menor ({(currentProjectData.cajaMenor || []).length})
+                    </CardTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        console.log('[PanelOperaciones] Adding caja menor item to project:', currentProjectData.id);
+                        const newCajaMenor: CajaMenorItem = {
+                          id: `cm${Date.now()}`,
+                          nombre: "",
+                          concepto: "",
+                          imagenes: [],
+                          valor: 0,
+                          categoria: "Compras",
+                          estado: "No aprobado",
+                        };
+                        try {
+                          await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);
+                          toast.success("Registro de caja menor agregado");
+                        } catch (err) {
+                          console.error('[PanelOperaciones] Error adding caja menor:', err);
+                          toast.error("Error al agregar registro");
+                        }
+                      }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Agregar Registro
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="pt-0 overflow-hidden">
+                    {(currentProjectData.cajaMenor || []).length > 0 ? (
+                      <MatrixTable
+                        data={currentProjectData.cajaMenor || []}
+                        columns={cajaMenorColumns}
+                        noHorizontalScroll
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No hay registros de caja menor. Haga clic en "Agregar Registro" para comenzar.</p>
                     )}
                   </CardContent>
                 </Card>

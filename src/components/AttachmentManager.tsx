@@ -5,6 +5,7 @@ import { Upload, X, Eye, Download, Paperclip, Loader2, FileText, Image, FileSpre
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { CameraCapture, useCameraAvailable } from "@/components/CameraCapture";
 import {
   Dialog,
   DialogContent,
@@ -339,10 +340,11 @@ export function AttachmentButton({
   enableCamera = false,
 }: Omit<AttachmentManagerProps, "className" | "acceptedTypes" | "maxSize"> & { label?: string; enableCamera?: boolean }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [loadingUrls, setLoadingUrls] = useState<Record<string, boolean>>({});
+  const hasCamera = useCameraAvailable();
 
   const uploadToStorage = async (file: File): Promise<Attachment | null> => {
     try {
@@ -481,6 +483,27 @@ export function AttachmentButton({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  // Handle camera capture
+  const handleCameraCapture = async (file: File) => {
+    setIsUploading(true);
+    const attachment = await uploadToStorage(file);
+    if (attachment) {
+      if (multiple) {
+        onAttachmentsChange([...attachments, attachment]);
+      } else {
+        onAttachmentsChange([attachment]);
+      }
+      toast({
+        title: "Foto guardada",
+        description: "La imagen se ha guardado correctamente",
+      });
+    }
+    setIsUploading(false);
+  };
+
+  // Show camera button only if camera is available
+  const showCameraButton = enableCamera && hasCamera !== false;
+
   return (
     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
       <input
@@ -491,15 +514,13 @@ export function AttachmentButton({
         className="hidden"
         disabled={disabled || isUploading}
       />
-      {enableCamera && (
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={(e) => handleFileSelect(e.target.files)}
-          className="hidden"
-          disabled={disabled || isUploading}
+      
+      {/* Camera Capture Dialog */}
+      {showCameraButton && (
+        <CameraCapture
+          open={cameraOpen}
+          onOpenChange={setCameraOpen}
+          onCapture={handleCameraCapture}
         />
       )}
       
@@ -579,11 +600,14 @@ export function AttachmentButton({
                   </>
                 )}
               </Button>
-              {enableCamera && (
+              {showCameraButton && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => cameraInputRef.current?.click()}
+                  onClick={() => {
+                    setDialogOpen(false);
+                    setTimeout(() => setCameraOpen(true), 100);
+                  }}
                   disabled={disabled || isUploading}
                   title="Tomar foto con cámara"
                 >
@@ -615,12 +639,12 @@ export function AttachmentButton({
               </>
             )}
           </Button>
-          {enableCamera && (
+          {showCameraButton && (
             <Button
               variant="ghost"
               size="sm"
               className="h-6 px-2 text-xs"
-              onClick={() => cameraInputRef.current?.click()}
+              onClick={() => setCameraOpen(true)}
               disabled={disabled || isUploading}
               title="Tomar foto con cámara"
             >

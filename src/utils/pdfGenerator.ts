@@ -415,42 +415,44 @@ export const printCajaMenor = (project: Project) => {
   openPrintWindow(html);
 };
 
-// Export Caja Menor to Excel (CSV format compatible with Excel)
-export const exportCajaMenorToExcel = (project: Project) => {
+// Export Caja Menor to Excel (real .xlsx file)
+export const exportCajaMenorToExcel = async (project: Project) => {
+  const XLSX = await import('xlsx');
   const cajaMenor = project.cajaMenor || [];
-  
-  // BOM for UTF-8 Excel compatibility
-  const BOM = '\uFEFF';
   
   // Header row
   const headers = ['Colaborador', 'Concepto', 'Imágenes', 'Valor', 'Categoría', 'Estado'];
   
   // Data rows
-  const rows = cajaMenor.map(c => [
-    c.empleadoId || '',
-    (c.concepto || '').replace(/"/g, '""'), // Escape quotes
-    `${(c.imagenes || []).length} imagen(es)`,
-    c.valor || 0,
-    c.categoria || '',
-    c.estado || ''
-  ]);
+  const data = cajaMenor.map(c => ({
+    'Colaborador': c.empleadoId || '',
+    'Concepto': c.concepto || '',
+    'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
+    'Valor': c.valor || 0,
+    'Categoría': c.categoria || '',
+    'Estado': c.estado || ''
+  }));
   
-  // Convert to CSV
-  const csvContent = BOM + [
-    headers.join(','),
-    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-  ].join('\n');
+  // Create worksheet from data
+  const worksheet = XLSX.utils.json_to_sheet(data, { header: headers });
   
-  // Create and download file
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `caja_menor_${project.evento.replace(/[^a-zA-Z0-9]/g, '_')}_${format(new Date(), 'yyyyMMdd')}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // Set column widths
+  worksheet['!cols'] = [
+    { wch: 25 }, // Colaborador
+    { wch: 40 }, // Concepto
+    { wch: 15 }, // Imágenes
+    { wch: 12 }, // Valor
+    { wch: 15 }, // Categoría
+    { wch: 15 }, // Estado
+  ];
+  
+  // Create workbook
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Caja Menor');
+  
+  // Generate and download file
+  const fileName = `caja_menor_${project.evento.replace(/[^a-zA-Z0-9]/g, '_')}_${format(new Date(), 'yyyyMMdd')}.xlsx`;
+  XLSX.writeFile(workbook, fileName);
 };
 
 // Open print window and trigger print

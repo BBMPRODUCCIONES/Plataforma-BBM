@@ -830,7 +830,7 @@ const PanelOperaciones = () => {
       {
         key: "imagenes",
         header: "Imágenes",
-        width: "100px",
+        width: "120px",
         render: (c: CajaMenorItem) => (
           <AttachmentButton
             attachments={c.imagenes || []}
@@ -838,6 +838,7 @@ const PanelOperaciones = () => {
             multiple
             projectId={projectId || ""}
             fieldName={`caja-menor-${c.id}-imagenes`}
+            enableCamera
           />
         ),
       },

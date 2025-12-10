@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Attachment } from "@/types";
-import { Upload, X, Eye, Download, Paperclip, Loader2, FileText, Image, FileSpreadsheet, File } from "lucide-react";
+import { Upload, X, Eye, Download, Paperclip, Loader2, FileText, Image, FileSpreadsheet, File, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -336,8 +336,10 @@ export function AttachmentButton({
   projectId = "general",
   fieldName = "attachments",
   label = "Adjuntar",
-}: Omit<AttachmentManagerProps, "className" | "acceptedTypes" | "maxSize"> & { label?: string }) {
+  enableCamera = false,
+}: Omit<AttachmentManagerProps, "className" | "acceptedTypes" | "maxSize"> & { label?: string; enableCamera?: boolean }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loadingUrls, setLoadingUrls] = useState<Record<string, boolean>>({});
@@ -489,6 +491,17 @@ export function AttachmentButton({
         className="hidden"
         disabled={disabled || isUploading}
       />
+      {enableCamera && (
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={(e) => handleFileSelect(e.target.files)}
+          className="hidden"
+          disabled={disabled || isUploading}
+        />
+      )}
       
       {attachments.length > 0 ? (
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -546,11 +559,11 @@ export function AttachmentButton({
                 </div>
               ))}
             </div>
-            <div className="pt-2 border-t">
+            <div className="pt-2 border-t flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full"
+                className="flex-1"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={disabled || isUploading}
               >
@@ -562,33 +575,59 @@ export function AttachmentButton({
                 ) : (
                   <>
                     <Upload className="h-4 w-4 mr-2" />
-                    Agregar más archivos
+                    Agregar archivos
                   </>
                 )}
               </Button>
+              {enableCamera && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={disabled || isUploading}
+                  title="Tomar foto con cámara"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Cámara
+                </Button>
+              )}
             </div>
           </DialogContent>
         </Dialog>
       ) : (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || isUploading}
-        >
-          {isUploading ? (
-            <>
-              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-              Subiendo...
-            </>
-          ) : (
-            <>
-              <Paperclip className="h-3 w-3 mr-1" />
-              {label}
-            </>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || isUploading}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Subiendo...
+              </>
+            ) : (
+              <>
+                <Paperclip className="h-3 w-3 mr-1" />
+                {label}
+              </>
+            )}
+          </Button>
+          {enableCamera && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={disabled || isUploading}
+              title="Tomar foto con cámara"
+            >
+              <Camera className="h-3 w-3" />
+            </Button>
           )}
-        </Button>
+        </div>
       )}
     </div>
   );

@@ -13,6 +13,7 @@ import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { EmpleadoAutocomplete } from "@/components/EmpleadoAutocomplete";
+import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
@@ -873,10 +874,8 @@ const PanelOperaciones = () => {
         header: "Estado",
         width: "130px",
         render: (c: CajaMenorItem) => (
-          <EditableCell
+          <CajaMenorEstadoSelect
             value={c.estado}
-            type="select"
-            options={["Aprobado", "No aprobado"]}
             onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "estado", value)}
           />
         ),

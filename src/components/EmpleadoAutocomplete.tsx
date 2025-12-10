@@ -5,9 +5,10 @@ import { User, Check, Search, AlertCircle, Loader2 } from "lucide-react";
 import { useEmpleados } from "@/contexts/EmpleadosContext";
 
 interface EmpleadoAutocompleteProps {
-  value: string;
+  value: string; // Can be empleadoId or nombre depending on usage
   onChange: (value: string, empleadoId?: string) => void;
-  tipoPersonal: "BBM" | "Proveedor" | "Transporte";
+  tipoPersonal?: "BBM" | "Proveedor" | "Transporte";
+  useEmpleadoId?: boolean; // If true, value is empleadoId, display nombre
   placeholder?: string;
   className?: string;
 }
@@ -23,16 +24,23 @@ interface DropdownPosition {
 export function EmpleadoAutocomplete({
   value,
   onChange,
-  tipoPersonal,
+  tipoPersonal = "BBM",
+  useEmpleadoId = false,
   placeholder = "Seleccionar personal...",
   className,
 }: EmpleadoAutocompleteProps) {
   const { empleados, loading } = useEmpleados();
   const [isOpen, setIsOpen] = useState(false);
-  const [inputValue, setInputValue] = useState(value || "");
   const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Resolve display value when using empleadoId mode
+  const resolvedDisplayValue = useEmpleadoId 
+    ? empleados.find(e => e.id === value)?.nombre || ""
+    : value;
+
+  const [inputValue, setInputValue] = useState(resolvedDisplayValue);
 
   // Filter employees by search term
   const searchTerm = inputValue.toLowerCase();
@@ -93,32 +101,40 @@ export function EmpleadoAutocomplete({
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (containerRef.current && !containerRef.current.contains(target)) {
-        // Also check if clicking on the dropdown itself (which is in a portal)
+      // Also check if clicking on the dropdown itself (which is in a portal)
         const dropdownEl = document.getElementById('empleado-dropdown-portal');
         if (dropdownEl && dropdownEl.contains(target)) {
           return; // Don't close if clicking inside dropdown
         }
         setIsOpen(false);
-        // Reset input if no valid selection for BBM
-        if (tipoPersonal === "BBM" && !empleados.some(e => e.nombre === inputValue)) {
-          setInputValue(value || "");
+        // Reset input if no valid selection for BBM or useEmpleadoId mode
+        if ((tipoPersonal === "BBM" || useEmpleadoId) && !empleados.some(e => e.nombre === inputValue)) {
+          setInputValue(resolvedDisplayValue);
         }
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [inputValue, value, empleados, tipoPersonal]);
+  }, [inputValue, resolvedDisplayValue, empleados, tipoPersonal, useEmpleadoId]);
 
   // Sync input value when external value changes
   useEffect(() => {
-    if (value !== inputValue && !isOpen) {
-      setInputValue(value || "");
+    const newDisplayValue = useEmpleadoId 
+      ? empleados.find(e => e.id === value)?.nombre || ""
+      : value;
+    if (newDisplayValue !== inputValue && !isOpen) {
+      setInputValue(newDisplayValue);
     }
-  }, [value]);
+  }, [value, empleados, useEmpleadoId]);
 
   const handleSelectEmpleado = (empleado: typeof empleados[0]) => {
-    onChange(empleado.nombre, empleado.id);
+    // When using empleadoId mode, pass empleadoId as the main value
+    if (useEmpleadoId) {
+      onChange(empleado.id, empleado.id);
+    } else {
+      onChange(empleado.nombre, empleado.id);
+    }
     setInputValue(empleado.nombre);
     setIsOpen(false);
   };

@@ -742,7 +742,7 @@ const PanelOperaciones = () => {
       { 
         key: "nombreMaterial", 
         header: "Material", 
-        width: "minmax(550px, 3fr)",
+        width: "minmax(400px, 4fr)",
         className: "align-top !whitespace-normal",
         render: (i: InventarioItem) => {
           const text = i.nombreMaterial || "";
@@ -769,10 +769,10 @@ const PanelOperaciones = () => {
           );
         },
       },
-      {
-        key: "cantidad",
-        header: "Cantidad",
-        width: "100px",
+      { 
+        key: "cantidad", 
+        header: "Cantidad", 
+        width: "80px",
         render: (i: InventarioItem) => (
           <div className="flex items-center gap-1">
             <EditableCell
@@ -794,7 +794,7 @@ const PanelOperaciones = () => {
       { 
         key: "observaciones", 
         header: "Observaciones", 
-        width: "180px",
+        width: "150px",
         render: (i: InventarioItem) => (
           <EditableCell
             value={i.observaciones}
@@ -807,7 +807,7 @@ const PanelOperaciones = () => {
       {
         key: "recibido",
         header: "Recibido",
-        width: "70px",
+        width: "55px",
         render: (i: InventarioItem) => (
           <EditableCell
             value={i.recibido}
@@ -819,7 +819,7 @@ const PanelOperaciones = () => {
       { 
         key: "notasAdicionales", 
         header: "Notas Adicionales", 
-        width: "160px",
+        width: "minmax(180px, 2fr)",
         render: (i: InventarioItem) => (
           <EditableCell
             value={i.notasAdicionales}
@@ -832,7 +832,7 @@ const PanelOperaciones = () => {
       {
         key: "acciones",
         header: "",
-        width: "45px",
+        width: "35px",
         render: (i: InventarioItem) => (
           <Button
             variant="ghost"

@@ -13,6 +13,7 @@ import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { EmpleadoAutocomplete } from "@/components/EmpleadoAutocomplete";
+import { ProveedorAutocomplete } from "@/components/ProveedorAutocomplete";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
@@ -583,25 +584,41 @@ const PanelOperaciones = () => {
         key: "nombre", 
         header: "Personal", 
         width: "200px",
-        render: (p: PersonalItem) => (
-          <EmpleadoAutocomplete
-            value={p.nombre}
-            tipoPersonal={p.tipoPersonal || "BBM"}
-            onChange={(value, empleadoId) => {
-              if (projectId) {
-                // Use atomic update for BBM employees
-                if (empleadoId && p.tipoPersonal === "BBM") {
+        render: (p: PersonalItem) => {
+          // BBM uses EmpleadoAutocomplete, Proveedor/Transporte use ProveedorAutocomplete
+          if (p.tipoPersonal === "BBM") {
+            return (
+              <EmpleadoAutocomplete
+                value={p.nombre}
+                tipoPersonal="BBM"
+                useEmpleadoId
+                onChange={(value, empleadoId) => {
+                  if (projectId) {
+                    updatePersonalItemMultiple(projectId, p.id, {
+                      nombre: value,
+                      empleadoId: empleadoId
+                    });
+                  }
+                }}
+              />
+            );
+          }
+          // Proveedor or Transporte - use ProveedorAutocomplete
+          return (
+            <ProveedorAutocomplete
+              value={p.nombre}
+              onChange={(value, proveedorId) => {
+                if (projectId) {
                   updatePersonalItemMultiple(projectId, p.id, {
                     nombre: value,
-                    empleadoId: empleadoId
+                    proveedorId: proveedorId
                   });
-                } else {
-                  updatePersonalItem(projectId, p.id, "nombre", value);
                 }
-              }
-            }}
-          />
-        ),
+              }}
+              placeholder={p.tipoPersonal === "Transporte" ? "Buscar transporte..." : "Buscar proveedor..."}
+            />
+          );
+        },
       },
       { 
         key: "cargo", 

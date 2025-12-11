@@ -21,6 +21,7 @@ import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useEmpleados } from "@/contexts/EmpleadosContext";
+import { useDateRange } from "@/contexts/DateRangeContext";
 import { Project, PersonalItem, InventarioItem, CajaMenorItem, ProjectStatus, CalendarViewMode, Attachment } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,7 @@ const PanelOperaciones = () => {
   const { canEditStructure, role, canViewFeedback, canEditFeedback } = useUserRole();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { empleados } = useEmpleados();
+  const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
@@ -80,10 +82,13 @@ const PanelOperaciones = () => {
   ];
   const [managedColumns, setManagedColumns] = usePersistedColumns("panel-operaciones-columns", defaultColumns);
   
-  const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | undefined>();
+  // Calendar filter state - using global context
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
+  
+  // Computed dateRange from global context
+  const dateRange = globalDateRange?.from && globalDateRange?.to 
+    ? { start: globalDateRange.from, end: globalDateRange.to } 
+    : undefined;
 
   // Local state for textareas to prevent "erasing" while typing
   const [localNotas, setLocalNotas] = useState("");
@@ -129,22 +134,22 @@ const PanelOperaciones = () => {
   const allColumnConfigs = managedColumns;
 
   const getDateRange = () => {
-    if (viewMode === "custom" && dateRange) {
+    if (globalViewMode === "custom" && dateRange) {
       return dateRange;
     }
-    switch (viewMode) {
+    switch (globalViewMode) {
       case "day":
-        return { start: startOfDay(selectedDate), end: endOfDay(selectedDate) };
+        return { start: startOfDay(globalSelectedDate), end: endOfDay(globalSelectedDate) };
       case "week":
-        return { start: startOfWeek(selectedDate, { weekStartsOn: 1 }), end: endOfWeek(selectedDate, { weekStartsOn: 1 }) };
+        return { start: startOfWeek(globalSelectedDate, { weekStartsOn: 1 }), end: endOfWeek(globalSelectedDate, { weekStartsOn: 1 }) };
       case "month":
-        return { start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) };
+        return { start: startOfMonth(globalSelectedDate), end: endOfMonth(globalSelectedDate) };
       case "quarter":
-        return { start: startOfQuarter(selectedDate), end: endOfQuarter(selectedDate) };
+        return { start: startOfQuarter(globalSelectedDate), end: endOfQuarter(globalSelectedDate) };
       case "year":
-        return { start: startOfYear(selectedDate), end: endOfYear(selectedDate) };
+        return { start: startOfYear(globalSelectedDate), end: endOfYear(globalSelectedDate) };
       default:
-        return { start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) };
+        return { start: startOfMonth(globalSelectedDate), end: endOfMonth(globalSelectedDate) };
     }
   };
 
@@ -977,13 +982,13 @@ const PanelOperaciones = () => {
         />
 
         <CalendarFilter
-          viewMode={viewMode}
-          selectedDate={selectedDate}
+          viewMode={globalViewMode}
+          selectedDate={globalSelectedDate}
           dateRange={dateRange}
           statusFilter={statusFilter}
-          onViewModeChange={setViewMode}
-          onDateChange={setSelectedDate}
-          onDateRangeChange={setDateRange}
+          onViewModeChange={setGlobalViewMode}
+          onDateChange={setGlobalSelectedDate}
+          onDateRangeChange={(range) => range ? setGlobalDateRange({ from: range.start, to: range.end }) : setGlobalDateRange(undefined)}
           onStatusChange={setStatusFilter}
         />
 
@@ -1019,9 +1024,9 @@ const PanelOperaciones = () => {
           <TabsContent value="gantt" className="mt-4">
             <GanttChart
               projects={filteredProjects}
-              startDate={selectedDate}
-              monthsToShow={viewMode === "year" ? 12 : viewMode === "quarter" ? 3 : viewMode === "month" ? 3 : 1}
-              viewMode={viewMode}
+              startDate={globalSelectedDate}
+              monthsToShow={globalViewMode === "year" ? 12 : globalViewMode === "quarter" ? 3 : globalViewMode === "month" ? 3 : 1}
+              viewMode={globalViewMode}
               customDateRange={dateRange}
               onProjectClick={handleGanttProjectClick}
             />

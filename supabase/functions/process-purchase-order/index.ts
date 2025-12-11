@@ -114,28 +114,32 @@ serve(async (req) => {
 
 ## 2. ÍTEMS DE INVENTARIO:
 
-Extrae TODOS los ítems/productos/servicios listados en el documento. Hay dos posibles formatos:
+Extrae los ítems/productos/servicios listados en el documento. Hay dos posibles formatos:
 
-**Formato A - Una fila por ítem:**
+**Formato A - Una fila por ítem (cada fila de la tabla es un ítem individual):**
 La cotización tiene una tabla con columnas como: Ítem | Descripción | Cantidad
-Por cada fila, extrae la descripción y cantidad.
+Cada fila representa UN ítem con descripción corta (1-2 líneas).
+Por cada fila, extrae la descripción y cantidad como un ítem separado.
 
-**Formato B - Múltiples ítems en una celda:**
-Una celda de "Descripción" contiene varias líneas, cada una con formato:
-"<cantidad> <descripción del ítem>"
-Ejemplo:
-2 Cabina de sonido Bose L1 Compact
-1 Consola de sonido analoga
-3 Microfono inalambrico
+**Formato B - Un ítem con descripción larga (bloque de texto con múltiples elementos):**
+La tabla tiene pocas filas (ej: 1-3), pero la celda de "Descripción" de cada fila contiene un BLOQUE GRANDE de texto con múltiples líneas describiendo muchos elementos o servicios incluidos.
+Ejemplo: Una fila con Ítem="SONIDO", Cantidad=1, y Descripción con 20+ líneas describiendo todos los equipos incluidos.
 
-Para cada línea: el primer número es la cantidad, el resto es la descripción.
+REGLA CRÍTICA PARA FORMATO B:
+- NO descomponer el bloque de texto en múltiples ítems
+- Mantener TODO el texto de la descripción como UN SOLO ítem
+- Preservar los saltos de línea dentro del texto
+- Usar la cantidad de la fila original (no extraer cantidades del texto interno)
+
+CÓMO DISTINGUIR:
+- Formato A: Muchas filas en la tabla (5, 10, 20+), cada una con descripción corta
+- Formato B: Pocas filas (1-5), pero descripciones muy largas con múltiples líneas de texto
 
 IMPORTANTE:
 - Extrae los números monetarios SIN símbolos de moneda
 - Si no identificas un valor, devuelve null
-- Extrae TODOS los ítems que encuentres, sin importar el formato
 - La cantidad debe ser un número (ej: 2, 1.5, 10)
-- La descripción/material debe ser texto descriptivo del ítem
+- Para Formato B, preserva el texto completo incluyendo saltos de línea
 
 Responde ÚNICAMENTE con un JSON válido en este formato exacto:
 {
@@ -145,8 +149,7 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto:
   "confianza": "<alta, media, baja>",
   "detallesExtraidos": "<breve descripción de lo que encontraste>",
   "inventarioItems": [
-    { "material": "<descripción del ítem>", "cantidad": <número> },
-    { "material": "<descripción del ítem>", "cantidad": <número> }
+    { "material": "<descripción completa del ítem>", "cantidad": <número> }
   ]
 }
 

@@ -580,8 +580,8 @@ export function PurchaseOrderUpload({
 
       {/* OCR Confirmation Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
               Datos Extraídos - Nueva Cotización
@@ -589,85 +589,91 @@ export function PurchaseOrderUpload({
           </DialogHeader>
 
           {extractedData && (
-            <div className="space-y-4">
-              <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                <p className="text-muted-foreground">{extractedData.detallesExtraidos}</p>
-                <p className={`mt-1 font-medium ${getConfianzaColor(extractedData.confianza)}`}>
-                  Confianza: {extractedData.confianza}
-                </p>
-                {extractedData.moneda && (
-                  <p className="text-muted-foreground">Moneda detectada: {extractedData.moneda}</p>
+            <>
+              {/* Scrollable content area */}
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                  <p className="text-muted-foreground">{extractedData.detallesExtraidos}</p>
+                  <p className={`mt-1 font-medium ${getConfianzaColor(extractedData.confianza)}`}>
+                    Confianza: {extractedData.confianza}
+                  </p>
+                  {extractedData.moneda && (
+                    <p className="text-muted-foreground">Moneda detectada: {extractedData.moneda}</p>
+                  )}
+                </div>
+
+                {/* Show existing totals if there are other quotations */}
+                {attachments.length > 0 && (totalBruto > 0 || totalTotal > 0) && (
+                  <div className="p-3 bg-primary/10 rounded-lg text-sm border border-primary/20">
+                    <p className="font-medium mb-1">Totales actuales del proyecto:</p>
+                    <div className="flex gap-4">
+                      <span>Bruto: {formatCurrency(totalBruto)}</span>
+                      <span className="text-primary">Total: {formatCurrency(totalTotal)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Los valores de esta cotización se sumarán a los existentes.
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ingresoBruto">Ingreso Bruto de esta cotización</Label>
+                    <Input
+                      id="ingresoBruto"
+                      type="number"
+                      value={editedIngresoBruto}
+                      onChange={(e) => setEditedIngresoBruto(e.target.value)}
+                      placeholder="Valor extraído o ingrese manualmente"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="ingresoTotal">Ingreso Total de esta cotización</Label>
+                    <Input
+                      id="ingresoTotal"
+                      type="number"
+                      value={editedIngresoTotal}
+                      onChange={(e) => setEditedIngresoTotal(e.target.value)}
+                      placeholder="Valor extraído o ingrese manualmente"
+                    />
+                  </div>
+                </div>
+
+                {/* Preview of new totals */}
+                {(editedIngresoBruto || editedIngresoTotal) && (
+                  <div className="p-3 bg-green-500/10 rounded-lg text-sm border border-green-500/20">
+                    <p className="font-medium mb-1">Nuevos totales del proyecto:</p>
+                    <div className="flex gap-4">
+                      <span>Bruto: {formatCurrency(totalBruto + (parseFloat(editedIngresoBruto) || 0))}</span>
+                      <span className="text-primary">Total: {formatCurrency(totalTotal + (parseFloat(editedIngresoTotal) || 0))}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Preview of extracted inventory items */}
+                {extractedData.inventarioItems && extractedData.inventarioItems.length > 0 && (
+                  <div className="p-3 bg-blue-500/10 rounded-lg text-sm border border-blue-500/20">
+                    <p className="font-medium mb-2 flex items-center gap-2">
+                      📦 Ítems de inventario detectados ({extractedData.inventarioItems.length}):
+                    </p>
+                    <div className="max-h-40 overflow-y-auto space-y-1.5 border-l-2 border-blue-500/30 pl-3">
+                      {extractedData.inventarioItems.map((item, idx) => (
+                        <div key={idx} className="flex justify-between text-sm py-0.5">
+                          <span className="flex-1 mr-3">{item.material}</span>
+                          <span className="text-blue-400 font-medium whitespace-nowrap">x{item.cantidad}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Estos ítems se agregarán al inventario del proyecto en Panel Operaciones.
+                    </p>
+                  </div>
                 )}
               </div>
 
-              {/* Show existing totals if there are other quotations */}
-              {attachments.length > 0 && (totalBruto > 0 || totalTotal > 0) && (
-                <div className="p-3 bg-primary/10 rounded-lg text-sm border border-primary/20">
-                  <p className="font-medium mb-1">Totales actuales del proyecto:</p>
-                  <div className="flex gap-4">
-                    <span>Bruto: {formatCurrency(totalBruto)}</span>
-                    <span className="text-primary">Total: {formatCurrency(totalTotal)}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Los valores de esta cotización se sumarán a los existentes.
-                  </p>
-                </div>
-              )}
-
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="ingresoBruto">Ingreso Bruto de esta cotización</Label>
-                  <Input
-                    id="ingresoBruto"
-                    type="number"
-                    value={editedIngresoBruto}
-                    onChange={(e) => setEditedIngresoBruto(e.target.value)}
-                    placeholder="Valor extraído o ingrese manualmente"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="ingresoTotal">Ingreso Total de esta cotización</Label>
-                  <Input
-                    id="ingresoTotal"
-                    type="number"
-                    value={editedIngresoTotal}
-                    onChange={(e) => setEditedIngresoTotal(e.target.value)}
-                    placeholder="Valor extraído o ingrese manualmente"
-                  />
-                </div>
-              </div>
-
-              {/* Preview of new totals */}
-              {(editedIngresoBruto || editedIngresoTotal) && (
-                <div className="p-3 bg-green-500/10 rounded-lg text-sm border border-green-500/20">
-                  <p className="font-medium mb-1">Nuevos totales del proyecto:</p>
-                  <div className="flex gap-4">
-                    <span>Bruto: {formatCurrency(totalBruto + (parseFloat(editedIngresoBruto) || 0))}</span>
-                    <span className="text-primary">Total: {formatCurrency(totalTotal + (parseFloat(editedIngresoTotal) || 0))}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Preview of extracted inventory items */}
-              {extractedData.inventarioItems && extractedData.inventarioItems.length > 0 && (
-                <div className="p-3 bg-blue-500/10 rounded-lg text-sm border border-blue-500/20">
-                  <p className="font-medium mb-2">Ítems de inventario detectados ({extractedData.inventarioItems.length}):</p>
-                  <div className="max-h-32 overflow-y-auto space-y-1">
-                    {extractedData.inventarioItems.map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-xs">
-                        <span className="truncate flex-1 mr-2">{item.material}</span>
-                        <span className="text-muted-foreground font-medium whitespace-nowrap">x{item.cantidad}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Estos ítems se agregarán al inventario del proyecto en Panel Operaciones.
-                  </p>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2">
+              {/* Fixed footer with action buttons */}
+              <div className="flex-shrink-0 flex justify-end gap-2 pt-4 mt-4 border-t border-border">
                 <Button variant="outline" onClick={handleCancel}>
                   <X className="h-4 w-4 mr-1" />
                   Solo Adjuntar
@@ -677,7 +683,7 @@ export function PurchaseOrderUpload({
                   Confirmar Valores
                 </Button>
               </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>

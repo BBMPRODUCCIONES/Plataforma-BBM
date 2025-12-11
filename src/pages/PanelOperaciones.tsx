@@ -358,10 +358,17 @@ const PanelOperaciones = () => {
               <PurchaseOrderUpload
                 currentIngresoBruto={p.ingresoBruto}
                 currentIngresoTotal={p.ingresoTotal}
-                onDataExtracted={(ingresoBruto, ingresoTotal) => {
+                onDataExtracted={(ingresoBruto, ingresoTotal, inventarioItems) => {
+                  // Merge new inventory items with existing ones
+                  const existingInventario = p.inventario || [];
+                  const mergedInventario = inventarioItems && inventarioItems.length > 0
+                    ? [...existingInventario, ...inventarioItems]
+                    : existingInventario;
+                  
                   updateProjectMultiple(p.id, {
                     ingresoBruto: ingresoBruto ?? undefined,
                     ingresoTotal: ingresoTotal ?? undefined,
+                    inventario: mergedInventario.length > 0 ? mergedInventario : undefined,
                   });
                 }}
               />

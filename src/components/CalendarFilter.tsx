@@ -76,9 +76,8 @@ export function CalendarFilter({
 }: CalendarFilterProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [rangePickerOpen, setRangePickerOpen] = useState(false);
-  const [tempRange, setTempRange] = useState<DateRange | undefined>(
-    dateRange ? { from: dateRange.start, to: dateRange.end } : undefined
-  );
+  // No inicializar con dateRange para que empiece limpio en cada sesión/refresh
+  const [tempRange, setTempRange] = useState<DateRange | undefined>(undefined);
 
   const getDateRangeLabel = () => {
     if (viewMode === "custom" && dateRange) {
@@ -272,41 +271,58 @@ export function CalendarFilter({
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-auto p-0 bg-popover border border-border shadow-lg z-50 max-h-[80vh] overflow-hidden" 
+          className="w-auto p-0 bg-popover border border-border shadow-lg z-50" 
           align="start"
           sideOffset={4}
           avoidCollisions={true}
         >
-          <div className="flex max-h-[75vh]">
-            {/* Presets */}
-            <div className="border-r border-border p-3 space-y-1 min-w-[140px] overflow-y-auto">
-              <p className="text-xs font-semibold text-muted-foreground mb-2">Presets</p>
-              <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("last7")}>
-                Últimos 7 días
-              </Button>
-              <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("last30")}>
-                Últimos 30 días
-              </Button>
-              <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("last90")}>
-                Últimos 90 días
-              </Button>
-              <div className="border-t border-border my-2" />
-              <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("thisWeek")}>
-                Esta semana
-              </Button>
-              <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("thisMonth")}>
-                Este mes
-              </Button>
-              <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("thisQuarter")}>
-                Este trimestre
-              </Button>
-              <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("thisYear")}>
-                Este año
+          <div className="flex flex-col">
+            {/* Header con rango seleccionado y botón Aplicar - SIEMPRE VISIBLE */}
+            <div className="flex items-center justify-between p-3 border-b border-border bg-muted/50">
+              <div className="text-xs text-muted-foreground">
+                {tempRange?.from && tempRange?.to ? (
+                  <span className="font-medium text-foreground">
+                    {format(tempRange.from, "d MMM yyyy", { locale: es })} - {format(tempRange.to, "d MMM yyyy", { locale: es })}
+                  </span>
+                ) : (
+                  <span>Selecciona un rango de fechas</span>
+                )}
+              </div>
+              <Button size="sm" className="h-7 text-xs ml-4" onClick={applyRange} disabled={!tempRange?.from || !tempRange?.to}>
+                Aplicar
               </Button>
             </div>
-            {/* Calendar */}
-            <div className="p-3 flex flex-col">
-              <div className="flex-1 overflow-y-auto">
+            
+            {/* Contenido con presets y calendario */}
+            <div className="flex max-h-[60vh] overflow-hidden">
+              {/* Presets */}
+              <div className="border-r border-border p-3 space-y-1 min-w-[140px] overflow-y-auto">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Presets</p>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("last7")}>
+                  Últimos 7 días
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("last30")}>
+                  Últimos 30 días
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("last90")}>
+                  Últimos 90 días
+                </Button>
+                <div className="border-t border-border my-2" />
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("thisWeek")}>
+                  Esta semana
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("thisMonth")}>
+                  Este mes
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("thisQuarter")}>
+                  Este trimestre
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("thisYear")}>
+                  Este año
+                </Button>
+              </div>
+              {/* Calendar */}
+              <div className="p-3 overflow-y-auto">
                 <Calendar
                   mode="range"
                   selected={tempRange}
@@ -315,20 +331,6 @@ export function CalendarFilter({
                   locale={es}
                   className="pointer-events-auto"
                 />
-              </div>
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border bg-popover">
-                <div className="text-xs text-muted-foreground">
-                  {tempRange?.from && tempRange?.to ? (
-                    <span>
-                      {format(tempRange.from, "d MMM yyyy", { locale: es })} - {format(tempRange.to, "d MMM yyyy", { locale: es })}
-                    </span>
-                  ) : (
-                    <span>Selecciona un rango</span>
-                  )}
-                </div>
-                <Button size="sm" className="h-7 text-xs" onClick={applyRange} disabled={!tempRange?.from || !tempRange?.to}>
-                  Aplicar
-                </Button>
               </div>
             </div>
           </div>

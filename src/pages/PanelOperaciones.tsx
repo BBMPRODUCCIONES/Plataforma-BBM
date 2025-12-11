@@ -1216,41 +1216,6 @@ const PanelOperaciones = () => {
                         </CardContent>
                       </Card>
 
-                      {/* Cotización de Proveedor Section */}
-                      <Card className="overflow-hidden">
-                        <CardHeader className="py-3">
-                          <CardTitle className="text-sm flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            Cotización de Proveedor
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div>
-                            <label className="text-xs text-muted-foreground mb-1 block">Notas del Proveedor</label>
-                            <Textarea
-                              value={localNotasProveedor}
-                              onChange={(e) => setLocalNotasProveedor(e.target.value)}
-                              onBlur={() => {
-                                if (localNotasProveedor !== (currentProjectData.notasCotizacionProveedor || "")) {
-                                  updateProject(currentProjectData.id, "notasCotizacionProveedor", localNotasProveedor);
-                                }
-                              }}
-                              placeholder="Notas sobre cotizaciones de proveedores..."
-                              className="min-h-[80px]"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-muted-foreground mb-1 block">Archivos Adjuntos</label>
-                            <AttachmentManager
-                              attachments={currentProjectData.cotizacionesProveedor || []}
-                              onAttachmentsChange={(attachments) => updateProject(currentProjectData.id, "cotizacionesProveedor", attachments)}
-                              projectId={currentProjectData.id}
-                              fieldName="cotizacionesProveedor"
-                              multiple
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
 
                       {/* Feedback Section - Only visible to users with permission */}
                       {canViewFeedback() && (

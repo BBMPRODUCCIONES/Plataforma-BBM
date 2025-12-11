@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Loader2, Check, X, Paperclip, Eye, Download, Trash2 } from "lucide-react";
+import { Upload, FileText, Loader2, Check, X, Paperclip, Eye, Download, Trash2, Info } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -11,6 +11,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Attachment } from "@/types";
 
 const BUCKET_NAME = "project-attachments";
@@ -49,6 +55,13 @@ export function PurchaseOrderUpload({
   const [pendingAttachment, setPendingAttachment] = useState<Attachment | null>(null);
   const [loadingUrls, setLoadingUrls] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Calculate totals from all attachments
+  const calculateTotals = (atts: Attachment[]) => {
+    const totalBruto = atts.reduce((sum, att) => sum + (att.ingresoBruto || 0), 0);
+    const totalTotal = atts.reduce((sum, att) => sum + (att.ingresoTotal || 0), 0);
+    return { totalBruto, totalTotal };
+  };
 
   const getSignedUrl = async (attachment: Attachment): Promise<string | null> => {
     if (!attachment.filePath || !attachment.bucket) {
@@ -114,7 +127,12 @@ export function PurchaseOrderUpload({
       }
     }
     if (onAttachmentsChange) {
-      onAttachmentsChange(attachments.filter((a) => a.id !== attachment.id));
+      const newAttachments = attachments.filter((a) => a.id !== attachment.id);
+      onAttachmentsChange(newAttachments);
+      
+      // Recalculate totals and update project
+      const { totalBruto, totalTotal } = calculateTotals(newAttachments);
+      onDataExtracted(totalBruto > 0 ? totalBruto : null, totalTotal > 0 ? totalTotal : null);
     }
     toast({
       title: "Archivo eliminado",
@@ -206,6 +224,8 @@ export function PurchaseOrderUpload({
         uploadedAt: new Date().toISOString(),
         filePath: filePath,
         bucket: BUCKET_NAME,
+        ingresoBruto: 0,
+        ingresoTotal: 0,
       };
 
       setPendingAttachment(newAttachment);
@@ -253,7 +273,8 @@ export function PurchaseOrderUpload({
     } catch (error) {
       console.error('Error processing file:', error);
       if (pendingAttachment && onAttachmentsChange) {
-        onAttachmentsChange([...attachments, pendingAttachment]);
+        const newAttachments = [...attachments, pendingAttachment];
+        onAttachmentsChange(newAttachments);
         setPendingAttachment(null);
       }
       toast({
@@ -270,13 +291,23 @@ export function PurchaseOrderUpload({
   };
 
   const handleConfirm = () => {
-    const ingresoBruto = editedIngresoBruto ? parseFloat(editedIngresoBruto) : null;
-    const ingresoTotal = editedIngresoTotal ? parseFloat(editedIngresoTotal) : null;
-    
-    onDataExtracted(ingresoBruto, ingresoTotal);
+    const ingresoBruto = editedIngresoBruto ? parseFloat(editedIngresoBruto) : 0;
+    const ingresoTotal = editedIngresoTotal ? parseFloat(editedIngresoTotal) : 0;
     
     if (pendingAttachment && onAttachmentsChange) {
-      onAttachmentsChange([...attachments, pendingAttachment]);
+      // Store income values in the attachment
+      const attachmentWithIncome: Attachment = {
+        ...pendingAttachment,
+        ingresoBruto,
+        ingresoTotal,
+      };
+      
+      const newAttachments = [...attachments, attachmentWithIncome];
+      onAttachmentsChange(newAttachments);
+      
+      // Calculate totals from all attachments and update project
+      const { totalBruto, totalTotal } = calculateTotals(newAttachments);
+      onDataExtracted(totalBruto > 0 ? totalBruto : null, totalTotal > 0 ? totalTotal : null);
     }
     
     setShowConfirmDialog(false);
@@ -291,7 +322,8 @@ export function PurchaseOrderUpload({
 
   const handleCancel = () => {
     if (pendingAttachment && onAttachmentsChange) {
-      onAttachmentsChange([...attachments, pendingAttachment]);
+      const newAttachments = [...attachments, pendingAttachment];
+      onAttachmentsChange(newAttachments);
     }
     setShowConfirmDialog(false);
     setExtractedData(null);
@@ -317,6 +349,19 @@ export function PurchaseOrderUpload({
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-CO', { 
+      style: 'currency', 
+      currency: 'COP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  // Get totals for display
+  const { totalBruto, totalTotal } = calculateTotals(attachments);
+  const hasMultipleWithValues = attachments.filter(a => (a.ingresoBruto || 0) > 0 || (a.ingresoTotal || 0) > 0).length > 1;
 
   return (
     <>
@@ -359,61 +404,129 @@ export function PurchaseOrderUpload({
             </>
           )}
         </Button>
+        
+        {/* Tooltip with breakdown when multiple quotations have values */}
+        {hasMultipleWithValues && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                  <Info className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <div className="text-xs space-y-1">
+                  <p className="font-semibold border-b pb-1 mb-1">Desglose por cotización:</p>
+                  {attachments.map((att, idx) => (
+                    ((att.ingresoBruto || 0) > 0 || (att.ingresoTotal || 0) > 0) && (
+                      <div key={att.id} className="flex justify-between gap-4">
+                        <span className="truncate max-w-[120px]">#{idx + 1} {att.name}</span>
+                        <span className="text-muted-foreground">
+                          B: {formatCurrency(att.ingresoBruto || 0)} | T: {formatCurrency(att.ingresoTotal || 0)}
+                        </span>
+                      </div>
+                    )
+                  ))}
+                  <div className="border-t pt-1 mt-1 font-semibold flex justify-between">
+                    <span>Total:</span>
+                    <span>B: {formatCurrency(totalBruto)} | T: {formatCurrency(totalTotal)}</span>
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       {/* View Attachments Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Paperclip className="h-5 w-5" />
-              Archivos Adjuntos ({attachments.length})
+              Cotizaciones ({attachments.length})
             </DialogTitle>
           </DialogHeader>
+          
+          {/* Totals Summary */}
+          {attachments.length > 0 && (totalBruto > 0 || totalTotal > 0) && (
+            <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <p className="text-sm font-medium mb-2">Resumen del Proyecto:</p>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Ingreso Bruto Total:</span>
+                  <p className="font-semibold text-lg">{formatCurrency(totalBruto)}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Ingreso Total:</span>
+                  <p className="font-semibold text-lg text-primary">{formatCurrency(totalTotal)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="space-y-2 max-h-[300px] overflow-y-auto">
-            {attachments.map((attachment) => (
+            {attachments.map((attachment, idx) => (
               <div
                 key={attachment.id}
-                className="flex items-center justify-between p-2 bg-muted/50 rounded-lg"
+                className="p-3 bg-muted/50 rounded-lg border"
               >
-                <div className="flex-1 min-w-0 mr-2">
-                  <p className="text-sm font-medium truncate">{attachment.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatFileSize(attachment.size)}
-                  </p>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex-1 min-w-0 mr-2">
+                    <p className="text-sm font-medium truncate">
+                      <span className="text-muted-foreground mr-1">#{idx + 1}</span>
+                      {attachment.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatFileSize(attachment.size || 0)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => viewAttachment(attachment)}
+                      disabled={loadingUrls[attachment.id]}
+                    >
+                      {loadingUrls[attachment.id] ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Eye className="h-3 w-3" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => downloadAttachment(attachment)}
+                      disabled={loadingUrls[attachment.id]}
+                    >
+                      <Download className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                      onClick={() => deleteAttachment(attachment)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => viewAttachment(attachment)}
-                    disabled={loadingUrls[attachment.id]}
-                  >
-                    {loadingUrls[attachment.id] ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Eye className="h-3 w-3" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => downloadAttachment(attachment)}
-                    disabled={loadingUrls[attachment.id]}
-                  >
-                    <Download className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                    onClick={() => deleteAttachment(attachment)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
+                {/* Per-quotation income display */}
+                {((attachment.ingresoBruto || 0) > 0 || (attachment.ingresoTotal || 0) > 0) && (
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t">
+                    <div>
+                      <span className="text-muted-foreground">Bruto: </span>
+                      <span className="font-medium">{formatCurrency(attachment.ingresoBruto || 0)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Total: </span>
+                      <span className="font-medium text-primary">{formatCurrency(attachment.ingresoTotal || 0)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -425,7 +538,7 @@ export function PurchaseOrderUpload({
               disabled={isProcessing}
             >
               <Upload className="h-3 w-3 mr-1" />
-              Agregar más
+              Agregar cotización
             </Button>
             <Button variant="secondary" size="sm" onClick={() => setShowViewDialog(false)}>
               Cerrar
@@ -440,7 +553,7 @@ export function PurchaseOrderUpload({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Datos Extraídos
+              Datos Extraídos - Nueva Cotización
             </DialogTitle>
           </DialogHeader>
 
@@ -456,9 +569,23 @@ export function PurchaseOrderUpload({
                 )}
               </div>
 
+              {/* Show existing totals if there are other quotations */}
+              {attachments.length > 0 && (totalBruto > 0 || totalTotal > 0) && (
+                <div className="p-3 bg-primary/10 rounded-lg text-sm border border-primary/20">
+                  <p className="font-medium mb-1">Totales actuales del proyecto:</p>
+                  <div className="flex gap-4">
+                    <span>Bruto: {formatCurrency(totalBruto)}</span>
+                    <span className="text-primary">Total: {formatCurrency(totalTotal)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Los valores de esta cotización se sumarán a los existentes.
+                  </p>
+                </div>
+              )}
+
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="ingresoBruto">Ingreso Bruto (sin impuestos)</Label>
+                  <Label htmlFor="ingresoBruto">Ingreso Bruto de esta cotización</Label>
                   <Input
                     id="ingresoBruto"
                     type="number"
@@ -466,15 +593,10 @@ export function PurchaseOrderUpload({
                     onChange={(e) => setEditedIngresoBruto(e.target.value)}
                     placeholder="Valor extraído o ingrese manualmente"
                   />
-                  {currentIngresoBruto && (
-                    <p className="text-xs text-muted-foreground">
-                      Valor actual: ${currentIngresoBruto.toLocaleString()}
-                    </p>
-                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="ingresoTotal">Ingreso Total (con impuestos)</Label>
+                  <Label htmlFor="ingresoTotal">Ingreso Total de esta cotización</Label>
                   <Input
                     id="ingresoTotal"
                     type="number"
@@ -482,13 +604,19 @@ export function PurchaseOrderUpload({
                     onChange={(e) => setEditedIngresoTotal(e.target.value)}
                     placeholder="Valor extraído o ingrese manualmente"
                   />
-                  {currentIngresoTotal && (
-                    <p className="text-xs text-muted-foreground">
-                      Valor actual: ${currentIngresoTotal.toLocaleString()}
-                    </p>
-                  )}
                 </div>
               </div>
+
+              {/* Preview of new totals */}
+              {(editedIngresoBruto || editedIngresoTotal) && (
+                <div className="p-3 bg-green-500/10 rounded-lg text-sm border border-green-500/20">
+                  <p className="font-medium mb-1">Nuevos totales del proyecto:</p>
+                  <div className="flex gap-4">
+                    <span>Bruto: {formatCurrency(totalBruto + (parseFloat(editedIngresoBruto) || 0))}</span>
+                    <span className="text-primary">Total: {formatCurrency(totalTotal + (parseFloat(editedIngresoTotal) || 0))}</span>
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={handleCancel}>

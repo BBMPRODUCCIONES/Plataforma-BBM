@@ -742,7 +742,7 @@ const PanelOperaciones = () => {
       { 
         key: "nombreMaterial", 
         header: "Material", 
-        width: "minmax(250px, 1fr)",
+        width: "minmax(380px, 1fr)",
         className: "align-top !whitespace-normal",
         render: (i: InventarioItem) => {
           const text = i.nombreMaterial || "";

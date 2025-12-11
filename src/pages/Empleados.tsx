@@ -31,6 +31,7 @@ import {
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { EditableCell, CellType } from "@/components/EditableCell";
+import { BancoAutocomplete } from "@/components/BancoAutocomplete";
 import { Plus, Trash2, Edit, Users, Search, Settings, Loader2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -331,11 +332,10 @@ export default function Empleados() {
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-2">
                       <Label htmlFor="banco" className="text-xs">BANCO</Label>
-                      <Input
-                        id="banco"
-                        placeholder="Ej: Bancolombia"
+                      <BancoAutocomplete
                         value={formData.banco}
-                        onChange={(e) => setFormData({ ...formData, banco: e.target.value })}
+                        onChange={(value) => setFormData({ ...formData, banco: value })}
+                        placeholder="Buscar banco..."
                       />
                     </div>
                     <div className="space-y-2">
@@ -432,11 +432,10 @@ export default function Empleados() {
                     ))}
                     {/* Banking columns */}
                     <TableCell className="border-r border-border/30">
-                      <EditableCell
+                      <BancoAutocomplete
                         value={empleado.banco || ""}
-                        type="text"
-                        placeholder="Ej: Bancolombia"
                         onChange={(value) => handleUpdateEmpleado(empleado.id, "banco", value)}
+                        placeholder="Buscar banco..."
                       />
                     </TableCell>
                     <TableCell className="border-r border-border/30">

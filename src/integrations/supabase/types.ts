@@ -274,6 +274,7 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          banco: string
           categoria: string
           correo: string
           cotizaciones: Json
@@ -281,11 +282,14 @@ export type Database = {
           id: string
           nombre: string
           notas: string
+          numero_cuenta: string
           telefono: string
+          tipo_cuenta: string
           tipo_producto_servicio: string
           updated_at: string
         }
         Insert: {
+          banco?: string
           categoria?: string
           correo?: string
           cotizaciones?: Json
@@ -293,11 +297,14 @@ export type Database = {
           id?: string
           nombre?: string
           notas?: string
+          numero_cuenta?: string
           telefono?: string
+          tipo_cuenta?: string
           tipo_producto_servicio?: string
           updated_at?: string
         }
         Update: {
+          banco?: string
           categoria?: string
           correo?: string
           cotizaciones?: Json
@@ -305,7 +312,9 @@ export type Database = {
           id?: string
           nombre?: string
           notas?: string
+          numero_cuenta?: string
           telefono?: string
+          tipo_cuenta?: string
           tipo_producto_servicio?: string
           updated_at?: string
         }

@@ -23,6 +23,9 @@ const dbRowToProveedor = (row: any): Proveedor => ({
   tipoProductoServicio: row.tipo_producto_servicio || '',
   notas: row.notas || '',
   cotizacionesAnteriores: row.cotizaciones || [],
+  banco: row.banco || '',
+  tipoCuenta: row.tipo_cuenta || '',
+  numeroCuenta: row.numero_cuenta || '',
 });
 
 // Map Proveedor to DB row
@@ -35,6 +38,9 @@ const proveedorToDbRow = (proveedor: Partial<Proveedor>): Record<string, any> =>
   if (proveedor.tipoProductoServicio !== undefined) row.tipo_producto_servicio = proveedor.tipoProductoServicio;
   if (proveedor.notas !== undefined) row.notas = proveedor.notas;
   if (proveedor.cotizacionesAnteriores !== undefined) row.cotizaciones = proveedor.cotizacionesAnteriores;
+  if (proveedor.banco !== undefined) row.banco = proveedor.banco;
+  if (proveedor.tipoCuenta !== undefined) row.tipo_cuenta = proveedor.tipoCuenta;
+  if (proveedor.numeroCuenta !== undefined) row.numero_cuenta = proveedor.numeroCuenta;
   return row;
 };
 
@@ -43,6 +49,8 @@ const fieldToColumn = (field: string): string => {
   const mapping: Record<string, string> = {
     tipoProductoServicio: 'tipo_producto_servicio',
     cotizacionesAnteriores: 'cotizaciones',
+    tipoCuenta: 'tipo_cuenta',
+    numeroCuenta: 'numero_cuenta',
   };
   return mapping[field] || field;
 };

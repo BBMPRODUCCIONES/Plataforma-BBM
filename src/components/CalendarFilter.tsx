@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -76,10 +76,16 @@ export function CalendarFilter({
 }: CalendarFilterProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [rangePickerOpen, setRangePickerOpen] = useState(false);
-  // Inicializar tempRange con el dateRange actual si existe
   const [tempRange, setTempRange] = useState<DateRange | undefined>(
     dateRange ? { from: dateRange.start, to: dateRange.end } : undefined
   );
+
+  // Sincronizar tempRange cuando dateRange (del contexto global) cambia
+  useEffect(() => {
+    if (dateRange) {
+      setTempRange({ from: dateRange.start, to: dateRange.end });
+    }
+  }, [dateRange?.start?.getTime(), dateRange?.end?.getTime()]);
 
   const getDateRangeLabel = () => {
     if (viewMode === "custom" && dateRange) {

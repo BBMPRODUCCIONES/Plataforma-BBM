@@ -742,13 +742,15 @@ const PanelOperaciones = () => {
       { 
         key: "nombreMaterial", 
         header: "Material", 
-        width: "180px",
+        width: "300px",
+        className: "align-top",
         render: (i: InventarioItem) => (
-          <EditableCell
-            value={i.nombreMaterial}
-            type="text"
+          <Textarea
+            value={i.nombreMaterial || ""}
             placeholder="Nombre del material..."
-            onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "nombreMaterial", value)}
+            onChange={(e) => projectId && updateInventarioItem(projectId, i.id, "nombreMaterial", e.target.value)}
+            className="min-h-[2.5rem] resize-none text-sm bg-transparent border-0 focus-visible:ring-1 focus-visible:ring-ring whitespace-pre-wrap"
+            rows={Math.max(1, (i.nombreMaterial?.split('\n').length || 1))}
           />
         ),
       },

@@ -37,28 +37,37 @@ export type Database = {
       }
       employees: {
         Row: {
+          banco: string
           cargo: string
           correo: string
           created_at: string
           id: string
           nombre: string
+          numero_cuenta: string
           telefono: string
+          tipo_cuenta: string
         }
         Insert: {
+          banco?: string
           cargo?: string
           correo?: string
           created_at?: string
           id?: string
           nombre?: string
+          numero_cuenta?: string
           telefono?: string
+          tipo_cuenta?: string
         }
         Update: {
+          banco?: string
           cargo?: string
           correo?: string
           created_at?: string
           id?: string
           nombre?: string
+          numero_cuenta?: string
           telefono?: string
+          tipo_cuenta?: string
         }
         Relationships: []
       }

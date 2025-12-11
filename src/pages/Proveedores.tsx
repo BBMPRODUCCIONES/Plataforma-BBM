@@ -29,6 +29,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CotizacionesDialog } from "@/components/CotizacionesDialog";
+import { BancoAutocomplete } from "@/components/BancoAutocomplete";
 
 const baseColumnDefs = [
   { key: "categoria", header: "CATEGORÍA", width: "120px", type: "text" as const },
@@ -36,6 +37,7 @@ const baseColumnDefs = [
   { key: "telefono", header: "TELÉFONO", width: "140px", type: "text" as const },
   { key: "correo", header: "CORREO", width: "200px", type: "text" as const },
   { key: "tipoProductoServicio", header: "TIPO DE PRODUCTO O SERVICIO", width: "250px", type: "text" as const },
+  { key: "datosBancarios", header: "DATOS BANCARIOS", width: "320px", type: "text" as const },
   { key: "cotizaciones", header: "COTIZACIONES", width: "120px", type: "file" as const },
   { key: "notas", header: "NOTAS", width: "200px", type: "text" as const },
 ];
@@ -56,6 +58,9 @@ const Proveedores = () => {
     correo: "",
     tipoProductoServicio: "",
     notas: "",
+    banco: "",
+    tipoCuenta: "",
+    numeroCuenta: "",
   });
   const { role } = useUserRole();
   const isAdmin = role?.toLowerCase() === "administrador";
@@ -118,6 +123,9 @@ const Proveedores = () => {
         correo: "",
         tipoProductoServicio: "",
         notas: "",
+        banco: "",
+        tipoCuenta: "",
+        numeroCuenta: "",
       });
     } catch (err) {
       console.error('[Proveedores] Error creating proveedor:', err);
@@ -214,6 +222,46 @@ const Proveedores = () => {
             type="text"
             onChange={(value) => handleUpdateProveedor(p.id, "tipoProductoServicio", value)}
           />
+        ),
+      };
+    }
+
+    if (colConfig.key === "datosBancarios" && !colConfig.isCustom) {
+      return {
+        key: colConfig.key,
+        header: colConfig.header,
+        width: colConfig.width,
+        render: (p: Proveedor) => (
+          <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-1">
+              <BancoAutocomplete
+                value={p.banco || ""}
+                onChange={(value) => handleUpdateProveedor(p.id, "banco", value)}
+                placeholder="Banco"
+                className="w-28"
+              />
+            </div>
+            <span className="text-muted-foreground">|</span>
+            <Select
+              value={p.tipoCuenta || ""}
+              onValueChange={(value) => handleUpdateProveedor(p.id, "tipoCuenta", value)}
+            >
+              <SelectTrigger className="h-7 w-24 text-xs">
+                <SelectValue placeholder="Cuenta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Ahorros">Ahorros</SelectItem>
+                <SelectItem value="Corriente">Corriente</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-muted-foreground">|</span>
+            <Input
+              value={p.numeroCuenta || ""}
+              onChange={(e) => handleUpdateProveedor(p.id, "numeroCuenta", e.target.value)}
+              placeholder="# Cuenta"
+              className="h-7 w-28 text-xs"
+            />
+          </div>
         ),
       };
     }
@@ -437,6 +485,44 @@ const Proveedores = () => {
                   placeholder="Notas adicionales"
                 />
               </div>
+
+              {/* DATOS BANCARIOS */}
+              <div className="space-y-3 pt-2 border-t">
+                <Label className="text-sm font-semibold">DATOS BANCARIOS</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Banco</Label>
+                    <BancoAutocomplete
+                      value={newProveedor.banco}
+                      onChange={(value) => setNewProveedor(prev => ({ ...prev, banco: value }))}
+                      placeholder="Buscar banco..."
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Cuenta</Label>
+                    <Select
+                      value={newProveedor.tipoCuenta}
+                      onValueChange={(value) => setNewProveedor(prev => ({ ...prev, tipoCuenta: value }))}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Ahorros">Ahorros</SelectItem>
+                        <SelectItem value="Corriente">Corriente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground"># de Cuenta</Label>
+                    <Input
+                      value={newProveedor.numeroCuenta}
+                      onChange={(e) => setNewProveedor(prev => ({ ...prev, numeroCuenta: e.target.value }))}
+                      placeholder="Número de cuenta"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <DialogFooter className="mt-6">
@@ -492,6 +578,16 @@ const Proveedores = () => {
                   <div>
                     <span className="text-xs text-muted-foreground">Notas</span>
                     <p className="text-sm mt-1">{selectedProveedor.notas}</p>
+                  </div>
+                )}
+
+                {/* DATOS BANCARIOS */}
+                {(selectedProveedor.banco || selectedProveedor.tipoCuenta || selectedProveedor.numeroCuenta) && (
+                  <div className="pt-2 border-t">
+                    <span className="text-xs text-muted-foreground font-semibold">Datos Bancarios</span>
+                    <p className="text-sm mt-1">
+                      {selectedProveedor.banco || "-"} | {selectedProveedor.tipoCuenta || "-"} | {selectedProveedor.numeroCuenta || "-"}
+                    </p>
                   </div>
                 )}
 

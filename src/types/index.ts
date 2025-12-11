@@ -103,6 +103,9 @@ export interface Proveedor {
   tipoProductoServicio: string;
   cotizacionesAnteriores?: Attachment[];
   notas?: string;
+  banco?: string;
+  tipoCuenta?: string;
+  numeroCuenta?: string;
 }
 
 export interface Cliente {

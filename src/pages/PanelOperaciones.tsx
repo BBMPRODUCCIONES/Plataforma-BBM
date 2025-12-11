@@ -791,19 +791,6 @@ const PanelOperaciones = () => {
           </div>
         ),
       },
-      { 
-        key: "observaciones", 
-        header: "Observaciones", 
-        width: "150px",
-        render: (i: InventarioItem) => (
-          <EditableCell
-            value={i.observaciones}
-            type="text"
-            placeholder="Observaciones..."
-            onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "observaciones", value)}
-          />
-        ),
-      },
       {
         key: "recibido",
         header: "Recibido",

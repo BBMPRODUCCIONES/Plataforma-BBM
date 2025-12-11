@@ -17,9 +17,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Attachment } from "@/types";
+import { Attachment, InventarioItem } from "@/types";
 
 const BUCKET_NAME = "project-attachments";
+
+interface ExtractedInventarioItem {
+  material: string;
+  cantidad: number;
+}
 
 interface ExtractedData {
   ingresoBruto: number | null;
@@ -27,10 +32,15 @@ interface ExtractedData {
   moneda: string;
   confianza: string;
   detallesExtraidos: string;
+  inventarioItems?: ExtractedInventarioItem[];
 }
 
 interface PurchaseOrderUploadProps {
-  onDataExtracted: (ingresoBruto: number | null, ingresoTotal: number | null) => void;
+  onDataExtracted: (
+    ingresoBruto: number | null, 
+    ingresoTotal: number | null,
+    inventarioItems?: InventarioItem[]
+  ) => void;
   currentIngresoBruto?: number;
   currentIngresoTotal?: number;
   attachments?: Attachment[];
@@ -130,9 +140,9 @@ export function PurchaseOrderUpload({
       const newAttachments = attachments.filter((a) => a.id !== attachment.id);
       onAttachmentsChange(newAttachments);
       
-      // Recalculate totals and update project
+      // Recalculate totals and update project (no inventory items on delete)
       const { totalBruto, totalTotal } = calculateTotals(newAttachments);
-      onDataExtracted(totalBruto > 0 ? totalBruto : null, totalTotal > 0 ? totalTotal : null);
+      onDataExtracted(totalBruto > 0 ? totalBruto : null, totalTotal > 0 ? totalTotal : null, undefined);
     }
     toast({
       title: "Archivo eliminado",
@@ -305,18 +315,39 @@ export function PurchaseOrderUpload({
       const newAttachments = [...attachments, attachmentWithIncome];
       onAttachmentsChange(newAttachments);
       
-      // Calculate totals from all attachments and update project
+      // Convert extracted inventory items to InventarioItem format
+      let inventarioItems: InventarioItem[] | undefined;
+      if (extractedData?.inventarioItems && extractedData.inventarioItems.length > 0) {
+        inventarioItems = extractedData.inventarioItems.map((item) => ({
+          id: crypto.randomUUID(),
+          nombreMaterial: item.material,
+          cantidad: item.cantidad,
+          unidad: 'unidad',
+          recibido: false,
+          observaciones: '',
+          notasAdicionales: '',
+        }));
+      }
+      
+      // Calculate totals from all attachments and update project with inventory
       const { totalBruto, totalTotal } = calculateTotals(newAttachments);
-      onDataExtracted(totalBruto > 0 ? totalBruto : null, totalTotal > 0 ? totalTotal : null);
+      onDataExtracted(
+        totalBruto > 0 ? totalBruto : null, 
+        totalTotal > 0 ? totalTotal : null,
+        inventarioItems
+      );
     }
     
     setShowConfirmDialog(false);
     setExtractedData(null);
     setPendingAttachment(null);
     
+    const itemCount = extractedData?.inventarioItems?.length || 0;
     toast({
       title: "Valores actualizados",
-      description: "Los datos y el archivo se han registrado correctamente",
+      description: itemCount > 0 
+        ? `Datos registrados. ${itemCount} ítems agregados al inventario.`
+        : "Los datos y el archivo se han registrado correctamente",
     });
   };
 
@@ -615,6 +646,24 @@ export function PurchaseOrderUpload({
                     <span>Bruto: {formatCurrency(totalBruto + (parseFloat(editedIngresoBruto) || 0))}</span>
                     <span className="text-primary">Total: {formatCurrency(totalTotal + (parseFloat(editedIngresoTotal) || 0))}</span>
                   </div>
+                </div>
+              )}
+
+              {/* Preview of extracted inventory items */}
+              {extractedData.inventarioItems && extractedData.inventarioItems.length > 0 && (
+                <div className="p-3 bg-blue-500/10 rounded-lg text-sm border border-blue-500/20">
+                  <p className="font-medium mb-2">Ítems de inventario detectados ({extractedData.inventarioItems.length}):</p>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {extractedData.inventarioItems.map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-xs">
+                        <span className="truncate flex-1 mr-2">{item.material}</span>
+                        <span className="text-muted-foreground font-medium whitespace-nowrap">x{item.cantidad}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Estos ítems se agregarán al inventario del proyecto en Panel Operaciones.
+                  </p>
                 </div>
               )}
 

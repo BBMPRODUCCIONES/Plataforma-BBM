@@ -290,10 +290,17 @@ const PanelDirectivo = () => {
             currentIngresoBruto={p.ingresoBruto}
             currentIngresoTotal={p.ingresoTotal}
             projectId={p.id}
-            onDataExtracted={(ingresoBruto, ingresoTotal) => {
+            onDataExtracted={(ingresoBruto, ingresoTotal, inventarioItems) => {
+              // Merge new inventory items with existing ones (don't replace)
+              const existingInventario = p.inventario || [];
+              const mergedInventario = inventarioItems && inventarioItems.length > 0
+                ? [...existingInventario, ...inventarioItems]
+                : existingInventario;
+              
               updateProjectMultiple(p.id, {
                 ingresoBruto: ingresoBruto ?? undefined,
                 ingresoTotal: ingresoTotal ?? undefined,
+                inventario: mergedInventario.length > 0 ? mergedInventario : undefined,
               });
             }}
           />
@@ -306,10 +313,17 @@ const PanelDirectivo = () => {
             currentIngresoBruto={p.ingresoBruto}
             currentIngresoTotal={p.ingresoTotal}
             projectId={p.id}
-            onDataExtracted={(ingresoBruto, ingresoTotal) => {
+            onDataExtracted={(ingresoBruto, ingresoTotal, inventarioItems) => {
+              // Merge new inventory items with existing ones (don't replace)
+              const existingInventario = p.inventario || [];
+              const mergedInventario = inventarioItems && inventarioItems.length > 0
+                ? [...existingInventario, ...inventarioItems]
+                : existingInventario;
+              
               updateProjectMultiple(p.id, {
                 ingresoBruto: ingresoBruto ?? undefined,
                 ingresoTotal: ingresoTotal ?? undefined,
+                inventario: mergedInventario.length > 0 ? mergedInventario : undefined,
               });
             }}
           />

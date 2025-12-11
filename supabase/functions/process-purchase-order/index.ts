@@ -101,6 +101,57 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
+    // Common prompt for extraction
+    const extractionPrompt = `Analiza esta cotización, Orden de Compra o factura y extrae:
+
+## 1. VALORES MONETARIOS:
+
+1. **Ingreso Bruto**: El valor del producto o servicio SIN impuestos. Busca:
+   - "Total Bruto", "Subtotal", "Base", "Neto", "Valor antes de IVA", "Base gravable"
+
+2. **Ingreso Total**: El valor TOTAL incluyendo impuestos. Busca:
+   - "Total a Pagar", "Total", "Gran Total", "Valor Total", "Total con IVA"
+
+## 2. ÍTEMS DE INVENTARIO:
+
+Extrae TODOS los ítems/productos/servicios listados en el documento. Hay dos posibles formatos:
+
+**Formato A - Una fila por ítem:**
+La cotización tiene una tabla con columnas como: Ítem | Descripción | Cantidad
+Por cada fila, extrae la descripción y cantidad.
+
+**Formato B - Múltiples ítems en una celda:**
+Una celda de "Descripción" contiene varias líneas, cada una con formato:
+"<cantidad> <descripción del ítem>"
+Ejemplo:
+2 Cabina de sonido Bose L1 Compact
+1 Consola de sonido analoga
+3 Microfono inalambrico
+
+Para cada línea: el primer número es la cantidad, el resto es la descripción.
+
+IMPORTANTE:
+- Extrae los números monetarios SIN símbolos de moneda
+- Si no identificas un valor, devuelve null
+- Extrae TODOS los ítems que encuentres, sin importar el formato
+- La cantidad debe ser un número (ej: 2, 1.5, 10)
+- La descripción/material debe ser texto descriptivo del ítem
+
+Responde ÚNICAMENTE con un JSON válido en este formato exacto:
+{
+  "ingresoBruto": <número o null>,
+  "ingresoTotal": <número o null>,
+  "moneda": "<código de moneda: COP, USD, EUR>",
+  "confianza": "<alta, media, baja>",
+  "detallesExtraidos": "<breve descripción de lo que encontraste>",
+  "inventarioItems": [
+    { "material": "<descripción del ítem>", "cantidad": <número> },
+    { "material": "<descripción del ítem>", "cantidad": <número> }
+  ]
+}
+
+Si no encuentras ítems de inventario, devuelve "inventarioItems": []`;
+
     // Prepare the message content based on file type
     let messageContent: any[];
     
@@ -109,37 +160,7 @@ serve(async (req) => {
       messageContent = [
         {
           type: "text",
-          text: `Analiza esta cotización, Orden de Compra o factura y extrae los siguientes valores monetarios:
-
-1. **Ingreso Bruto**: El valor del producto o servicio SIN impuestos. Busca:
-   - "Total Bruto"
-   - "Subtotal"
-   - "Base"
-   - "Neto"
-   - "Valor antes de IVA"
-   - "Base gravable"
-
-2. **Ingreso Total**: El valor TOTAL incluyendo impuestos y todos los cargos. Busca:
-   - "Total a Pagar"
-   - "Total"
-   - "Gran Total"
-   - "Valor Total"
-   - "Total con IVA"
-
-IMPORTANTE:
-- Extrae los números SIN símbolos de moneda (solo el número)
-- Si hay varios valores, usa el que corresponda a "Total Bruto" para ingreso bruto y "Total a Pagar" para ingreso total
-- Si no puedes identificar claramente un valor, devuelve null para ese campo
-- Los valores deben ser números decimales (ejemplo: 1500000.00)
-
-Responde ÚNICAMENTE con un JSON válido en este formato exacto:
-{
-  "ingresoBruto": <número o null>,
-  "ingresoTotal": <número o null>,
-  "moneda": "<código de moneda detectada como COP, USD, EUR>",
-  "confianza": "<alta, media, baja>",
-  "detallesExtraidos": "<breve descripción de lo que encontraste>"
-}`
+          text: extractionPrompt
         },
         {
           type: "image_url",
@@ -153,27 +174,7 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto:
       messageContent = [
         {
           type: "text",
-          text: `Analiza el siguiente contenido de una cotización, Orden de Compra o factura (archivo: ${fileName}) y extrae los valores monetarios:
-
-${fileContent}
-
-Extrae:
-1. **Ingreso Bruto**: El valor del producto o servicio SIN impuestos. Busca: "Total Bruto", "Subtotal", "Base", "Neto", "Valor antes de IVA"
-2. **Ingreso Total**: El valor TOTAL incluyendo impuestos. Busca: "Total a Pagar", "Total", "Gran Total", "Valor Total"
-
-IMPORTANTE:
-- Los valores deben ser números sin símbolos de moneda
-- Si hay varios valores, usa "Total Bruto" para ingreso bruto y "Total a Pagar" para ingreso total
-- Si no puedes identificar claramente un valor, devuelve null
-
-Responde ÚNICAMENTE con un JSON válido en este formato exacto:
-{
-  "ingresoBruto": <número o null>,
-  "ingresoTotal": <número o null>,
-  "moneda": "<código de moneda detectada como COP, USD, EUR>",
-  "confianza": "<alta, media, baja>",
-  "detallesExtraidos": "<breve descripción de lo que encontraste>"
-}`
+          text: `${extractionPrompt}\n\nContenido del archivo (${fileName}):\n\n${fileContent}`
         }
       ];
     }

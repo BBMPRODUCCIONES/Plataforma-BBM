@@ -742,27 +742,28 @@ const PanelOperaciones = () => {
       { 
         key: "nombreMaterial", 
         header: "Material", 
-        width: "minmax(400px, 4fr)",
-        className: "align-top !whitespace-normal",
+        width: "70%",
+        className: "align-top",
         render: (i: InventarioItem) => {
           const text = i.nombreMaterial || "";
           const lineCount = text.split('\n').length;
           const charLength = text.length;
-          // Calculate rows based on line breaks AND approximate character wrapping (roughly 40 chars per line)
-          const estimatedRows = Math.max(lineCount, Math.ceil(charLength / 40));
-          const rows = Math.max(2, Math.min(estimatedRows, 15));
+          const estimatedRows = Math.max(lineCount, Math.ceil(charLength / 60));
+          const rows = Math.max(2, Math.min(estimatedRows, 20));
           
           return (
             <Textarea
               value={text}
               placeholder="Nombre del material..."
               onChange={(e) => projectId && updateInventarioItem(projectId, i.id, "nombreMaterial", e.target.value)}
-              className="w-full resize-none text-sm bg-transparent border-0 focus-visible:ring-1 focus-visible:ring-ring break-words overflow-hidden"
+              className="w-full resize-none text-sm bg-transparent border-0 focus-visible:ring-1 focus-visible:ring-ring"
               style={{ 
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
+                overflowWrap: 'break-word',
                 minHeight: `${rows * 1.5}rem`,
-                height: 'auto'
+                height: 'auto',
+                overflow: 'visible'
               }}
               rows={rows}
             />
@@ -772,20 +773,20 @@ const PanelOperaciones = () => {
       { 
         key: "cantidad", 
         header: "Cantidad", 
-        width: "80px",
+        width: "10%",
         render: (i: InventarioItem) => (
-          <div className="flex items-center gap-1">
+          <div className="flex flex-col gap-1">
             <EditableCell
               value={i.cantidad}
               type="number"
               onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "cantidad", value)}
-              className="w-14"
+              className="w-full"
             />
             <EditableCell
               value={i.unidad}
               type="text"
               onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "unidad", value)}
-              className="w-16"
+              className="w-full text-xs"
               placeholder="uds"
             />
           </div>
@@ -794,7 +795,7 @@ const PanelOperaciones = () => {
       {
         key: "recibido",
         header: "Recibido",
-        width: "55px",
+        width: "8%",
         render: (i: InventarioItem) => (
           <EditableCell
             value={i.recibido}
@@ -806,12 +807,12 @@ const PanelOperaciones = () => {
       { 
         key: "notasAdicionales", 
         header: "Notas Adicionales", 
-        width: "minmax(180px, 2fr)",
+        width: "10%",
         render: (i: InventarioItem) => (
           <EditableCell
             value={i.notasAdicionales}
             type="text"
-            placeholder="Notas adicionales..."
+            placeholder="Notas..."
             onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "notasAdicionales", value)}
           />
         ),
@@ -819,12 +820,12 @@ const PanelOperaciones = () => {
       {
         key: "acciones",
         header: "",
-        width: "35px",
+        width: "2%",
         render: (i: InventarioItem) => (
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            className="h-6 w-6 text-muted-foreground hover:text-destructive"
             onClick={(e) => {
               e.stopPropagation();
               if (projectId) {
@@ -833,7 +834,7 @@ const PanelOperaciones = () => {
             }}
             title="Eliminar"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3 w-3" />
           </Button>
         ),
       },

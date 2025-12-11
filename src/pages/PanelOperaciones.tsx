@@ -88,6 +88,7 @@ const PanelOperaciones = () => {
   const [localNotas, setLocalNotas] = useState("");
   const [localNotasProveedor, setLocalNotasProveedor] = useState("");
   const [localFeedback, setLocalFeedback] = useState("");
+  const [selectedSection, setSelectedSection] = useState<"plantilla" | "cajaMenor" | null>(null);
   const [localNotasImagenes, setLocalNotasImagenes] = useState<Array<{id: string; url: string; name: string}>>([]);
   const [localFeedbackAdjuntos, setLocalFeedbackAdjuntos] = useState<Attachment[]>([]);
 
@@ -326,6 +327,7 @@ const PanelOperaciones = () => {
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedProject(p);
+                setSelectedSection("plantilla");
               }}
             >
               <Users className="h-3 w-3 mr-1" />
@@ -381,6 +383,7 @@ const PanelOperaciones = () => {
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedProject(p);
+                setSelectedSection("plantilla");
               }}
             >
               <Package className="h-3 w-3 mr-1" />
@@ -396,6 +399,7 @@ const PanelOperaciones = () => {
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedProject(p);
+                setSelectedSection("cajaMenor");
               }}
             >
               <Wallet className="h-3 w-3 mr-1" />
@@ -1018,6 +1022,7 @@ const PanelOperaciones = () => {
             }
           }
           setSelectedProject(null);
+          setSelectedSection(null);
         }}>
           <DialogContent 
             className="w-[95vw] max-w-[1400px] max-h-[90vh] p-0"
@@ -1056,92 +1061,294 @@ const PanelOperaciones = () => {
 
               {selectedProject && currentProjectData && (
                 <div className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <span className="text-xs text-muted-foreground">Cliente</span>
-                    <p className="text-sm font-medium">{currentProjectData.cliente}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground">Centro Costos</span>
-                    <p className="text-sm font-mono">{currentProjectData.centroCostos}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground">Jefe Operaciones</span>
-                    <p className="text-sm">{currentProjectData.jefeOperaciones || "-"}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground">Ubicación</span>
-                    <p className="text-sm">{currentProjectData.ubicacion || "-"}</p>
-                  </div>
-                </div>
-
-                {/* Caja Menor Section */}
-                <Card className="overflow-hidden">
-                  <CardHeader className="py-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Wallet className="h-4 w-4" />
-                      Caja Menor ({(currentProjectData.cajaMenor || []).length})
-                    </CardTitle>
-                    <div className="flex gap-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <FileDown className="h-3 w-3 mr-1" />
-                            Exportar
-                            <ChevronDown className="h-3 w-3 ml-1" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => printCajaMenor(currentProjectData, empleados)}>
-                            <FileDown className="h-4 w-4 mr-2" />
-                            Descargar PDF
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => exportCajaMenorToExcel(currentProjectData, empleados)}>
-                            <FileSpreadsheet className="h-4 w-4 mr-2" />
-                            Descargar Excel
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          console.log('[PanelOperaciones] Adding caja menor item to project:', currentProjectData.id);
-                          const newCajaMenor: CajaMenorItem = {
-                            id: `cm${Date.now()}`,
-                            empleadoId: "",
-                            concepto: "",
-                            imagenes: [],
-                            valor: 0,
-                            categoria: "Compras",
-                            estado: "No aprobado",
-                          };
-                          try {
-                            await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);
-                            toast.success("Registro de caja menor agregado");
-                          } catch (err) {
-                            console.error('[PanelOperaciones] Error adding caja menor:', err);
-                            toast.error("Error al agregar registro");
-                          }
-                        }}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Agregar Registro
-                      </Button>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <span className="text-xs text-muted-foreground">Cliente</span>
+                      <p className="text-sm font-medium">{currentProjectData.cliente}</p>
                     </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 overflow-hidden">
-                    {(currentProjectData.cajaMenor || []).length > 0 ? (
-                      <MatrixTable
-                        data={currentProjectData.cajaMenor || []}
-                        columns={cajaMenorColumns}
-                        noHorizontalScroll
-                      />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No hay registros de caja menor. Haga clic en "Agregar Registro" para comenzar.</p>
-                    )}
-                  </CardContent>
-                </Card>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Centro Costos</span>
+                      <p className="text-sm font-mono">{currentProjectData.centroCostos}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Jefe Operaciones</span>
+                      <p className="text-sm">{currentProjectData.jefeOperaciones || "-"}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Ubicación</span>
+                      <p className="text-sm">{currentProjectData.ubicacion || "-"}</p>
+                    </div>
+                  </div>
+
+                  {/* Plantilla Completa: Personal, Inventario, Cotizaciones Proveedor, Feedback, Notas */}
+                  {selectedSection === "plantilla" && (
+                    <>
+                      {/* Personal Section */}
+                      <Card className="overflow-hidden">
+                        <CardHeader className="py-3 flex flex-row items-center justify-between">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Personal ({(currentProjectData.personal || []).length})
+                          </CardTitle>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              const newPersonal: PersonalItem = {
+                                id: `p${Date.now()}`,
+                                tipoPersonal: "BBM",
+                                nombre: "",
+                                cargo: "",
+                                telefono: "",
+                                notas: "",
+                              };
+                              try {
+                                await contextUpdateProject(currentProjectData.id, 'personal', [...(currentProjectData.personal || []), newPersonal]);
+                                toast.success("Personal agregado");
+                              } catch (err) {
+                                console.error('[PanelOperaciones] Error adding personal:', err);
+                                toast.error("Error al agregar personal");
+                              }
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Agregar Personal
+                          </Button>
+                        </CardHeader>
+                        <CardContent className="pt-0 overflow-hidden">
+                          {(currentProjectData.personal || []).length > 0 ? (
+                            <MatrixTable
+                              data={currentProjectData.personal || []}
+                              columns={personalColumns}
+                              noHorizontalScroll
+                            />
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No hay personal asignado. Haga clic en "Agregar Personal" para comenzar.</p>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {/* Inventario Section */}
+                      <Card className="overflow-hidden">
+                        <CardHeader className="py-3 flex flex-row items-center justify-between">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Package className="h-4 w-4" />
+                            Inventario ({(currentProjectData.inventario || []).length})
+                          </CardTitle>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              const newInventario: InventarioItem = {
+                                id: `i${Date.now()}`,
+                                nombreMaterial: "",
+                                cantidad: 1,
+                                unidad: "uds",
+                                observaciones: "",
+                                recibido: false,
+                                notasAdicionales: "",
+                              };
+                              try {
+                                await contextUpdateProject(currentProjectData.id, 'inventario', [...(currentProjectData.inventario || []), newInventario]);
+                                toast.success("Material agregado");
+                              } catch (err) {
+                                console.error('[PanelOperaciones] Error adding inventario:', err);
+                                toast.error("Error al agregar material");
+                              }
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Agregar Material
+                          </Button>
+                        </CardHeader>
+                        <CardContent className="pt-0 overflow-hidden">
+                          {(currentProjectData.inventario || []).length > 0 ? (
+                            <MatrixTable
+                              data={currentProjectData.inventario || []}
+                              columns={inventarioColumns}
+                              noHorizontalScroll
+                            />
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No hay materiales en inventario. Haga clic en "Agregar Material" para comenzar.</p>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {/* Cotización de Proveedor Section */}
+                      <Card className="overflow-hidden">
+                        <CardHeader className="py-3">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            Cotización de Proveedor
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div>
+                            <label className="text-xs text-muted-foreground mb-1 block">Notas del Proveedor</label>
+                            <Textarea
+                              value={localNotasProveedor}
+                              onChange={(e) => setLocalNotasProveedor(e.target.value)}
+                              onBlur={() => {
+                                if (localNotasProveedor !== (currentProjectData.notasCotizacionProveedor || "")) {
+                                  updateProject(currentProjectData.id, "notasCotizacionProveedor", localNotasProveedor);
+                                }
+                              }}
+                              placeholder="Notas sobre cotizaciones de proveedores..."
+                              className="min-h-[80px]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-muted-foreground mb-1 block">Archivos Adjuntos</label>
+                            <AttachmentManager
+                              attachments={currentProjectData.cotizacionesProveedor || []}
+                              onAttachmentsChange={(attachments) => updateProject(currentProjectData.id, "cotizacionesProveedor", attachments)}
+                              projectId={currentProjectData.id}
+                              fieldName="cotizacionesProveedor"
+                              multiple
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Feedback Section - Only visible to users with permission */}
+                      {canViewFeedback() && (
+                        <Card className="overflow-hidden">
+                          <CardHeader className="py-3">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <MessageSquare className="h-4 w-4" />
+                              Feedback
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div>
+                              <Textarea
+                                value={localFeedback}
+                                onChange={(e) => setLocalFeedback(e.target.value)}
+                                onBlur={() => {
+                                  if (localFeedback !== (currentProjectData.feedback || "")) {
+                                    updateProject(currentProjectData.id, "feedback", localFeedback);
+                                  }
+                                }}
+                                placeholder="Comentarios y feedback del evento..."
+                                className="min-h-[100px]"
+                                disabled={!canEditFeedback()}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground mb-1 block">Archivos Adjuntos</label>
+                              <AttachmentManager
+                                attachments={localFeedbackAdjuntos}
+                                onAttachmentsChange={(attachments) => {
+                                  setLocalFeedbackAdjuntos(attachments);
+                                  updateProject(currentProjectData.id, "feedbackAdjuntos", attachments);
+                                }}
+                                projectId={currentProjectData.id}
+                                fieldName="feedbackAdjuntos"
+                                multiple
+                                disabled={!canEditFeedback()}
+                              />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Notas Generales Section */}
+                      <Card className="overflow-hidden">
+                        <CardHeader className="py-3">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <StickyNote className="h-4 w-4" />
+                            Notas Generales
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <NotasGeneralesEditor
+                            value={localNotas}
+                            images={localNotasImagenes}
+                            onChange={setLocalNotas}
+                            onImagesChange={(images) => {
+                              setLocalNotasImagenes(images);
+                              updateProject(currentProjectData.id, "notasImagenes", images);
+                            }}
+                            onBlur={() => {
+                              if (localNotas !== (currentProjectData.notas || "")) {
+                                updateProject(currentProjectData.id, "notas", localNotas);
+                              }
+                            }}
+                            placeholder="Notas generales del evento (puedes pegar imágenes con Ctrl+V)..."
+                          />
+                        </CardContent>
+                      </Card>
+                    </>
+                  )}
+
+                  {/* Caja Menor Section - Solo cuando selectedSection === "cajaMenor" */}
+                  {selectedSection === "cajaMenor" && (
+                    <Card className="overflow-hidden">
+                      <CardHeader className="py-3 flex flex-row items-center justify-between">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Wallet className="h-4 w-4" />
+                          Caja Menor ({(currentProjectData.cajaMenor || []).length})
+                        </CardTitle>
+                        <div className="flex gap-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <FileDown className="h-3 w-3 mr-1" />
+                                Exportar
+                                <ChevronDown className="h-3 w-3 ml-1" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => printCajaMenor(currentProjectData, empleados)}>
+                                <FileDown className="h-4 w-4 mr-2" />
+                                Descargar PDF
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => exportCajaMenorToExcel(currentProjectData, empleados)}>
+                                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                Descargar Excel
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              const newCajaMenor: CajaMenorItem = {
+                                id: `cm${Date.now()}`,
+                                empleadoId: "",
+                                concepto: "",
+                                imagenes: [],
+                                valor: 0,
+                                categoria: "Compras",
+                                estado: "No aprobado",
+                              };
+                              try {
+                                await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);
+                                toast.success("Registro de caja menor agregado");
+                              } catch (err) {
+                                console.error('[PanelOperaciones] Error adding caja menor:', err);
+                                toast.error("Error al agregar registro");
+                              }
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Agregar Registro
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0 overflow-hidden">
+                        {(currentProjectData.cajaMenor || []).length > 0 ? (
+                          <MatrixTable
+                            data={currentProjectData.cajaMenor || []}
+                            columns={cajaMenorColumns}
+                            noHorizontalScroll
+                          />
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No hay registros de caja menor. Haga clic en "Agregar Registro" para comenzar.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               )}
             </div>

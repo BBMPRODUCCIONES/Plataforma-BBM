@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -34,6 +34,7 @@ import { es } from "date-fns/locale";
 import { CalendarViewMode, ProjectStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
+import { useDateRange } from "@/contexts/DateRangeContext";
 
 interface CalendarFilterProps {
   viewMode: CalendarViewMode;
@@ -74,10 +75,23 @@ export function CalendarFilter({
   onDateRangeChange,
   onStatusChange,
 }: CalendarFilterProps) {
+  const { globalDateRange, setGlobalDateRange } = useDateRange();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [rangePickerOpen, setRangePickerOpen] = useState(false);
-  // No inicializar con dateRange para que empiece limpio en cada sesión/refresh
   const [tempRange, setTempRange] = useState<DateRange | undefined>(undefined);
+
+  // Sincronizar con el rango global cuando cambia desde otro panel
+  useEffect(() => {
+    if (globalDateRange) {
+      setTempRange(globalDateRange);
+      // Actualizar el dateRange local del componente padre
+      if (globalDateRange.from && globalDateRange.to) {
+        onDateRangeChange?.({ start: globalDateRange.from, end: globalDateRange.to });
+      }
+    } else {
+      setTempRange(undefined);
+    }
+  }, [globalDateRange]);
 
   const getDateRangeLabel = () => {
     if (viewMode === "custom" && dateRange) {
@@ -184,6 +198,8 @@ export function CalendarFilter({
 
   const applyRange = () => {
     if (tempRange?.from && tempRange?.to) {
+      // Actualizar el contexto global para sincronizar entre paneles
+      setGlobalDateRange(tempRange);
       onDateRangeChange?.({ start: tempRange.from, end: tempRange.to });
       setRangePickerOpen(false);
     }
@@ -226,6 +242,8 @@ export function CalendarFilter({
     }
 
     onViewModeChange("custom");
+    // Actualizar el contexto global para sincronizar entre paneles
+    setGlobalDateRange({ from: start, to: end });
     onDateRangeChange?.({ start, end });
     setTempRange({ from: start, to: end });
     setRangePickerOpen(false);

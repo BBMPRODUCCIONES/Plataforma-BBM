@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon, ChevronLeft, ChevronRight, CalendarRange } from "lucide-react";
+import { CalendarIcon, ChevronLeft, ChevronRight, CalendarRange, X } from "lucide-react";
 import { 
   format, 
   addDays, 
@@ -393,6 +393,23 @@ export function CalendarFilter({
           ))}
         </SelectContent>
       </Select>
+
+      {/* Clear Filter Button - only show when custom range is active */}
+      {viewMode === "custom" && dateRange && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive gap-1"
+          onClick={() => {
+            onViewModeChange("month");
+            onDateRangeChange?.(undefined);
+            setTempRange(undefined);
+          }}
+        >
+          <X className="h-3 w-3" />
+          Limpiar
+        </Button>
+      )}
     </div>
   );
 }

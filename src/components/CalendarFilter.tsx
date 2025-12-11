@@ -271,10 +271,15 @@ export function CalendarFilter({
             Rango
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 bg-popover border border-border shadow-lg z-50" align="start">
-          <div className="flex">
+        <PopoverContent 
+          className="w-auto p-0 bg-popover border border-border shadow-lg z-50 max-h-[80vh] overflow-hidden" 
+          align="start"
+          sideOffset={4}
+          avoidCollisions={true}
+        >
+          <div className="flex max-h-[75vh]">
             {/* Presets */}
-            <div className="border-r border-border p-3 space-y-1 min-w-[140px]">
+            <div className="border-r border-border p-3 space-y-1 min-w-[140px] overflow-y-auto">
               <p className="text-xs font-semibold text-muted-foreground mb-2">Presets</p>
               <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("last7")}>
                 Últimos 7 días
@@ -300,16 +305,18 @@ export function CalendarFilter({
               </Button>
             </div>
             {/* Calendar */}
-            <div className="p-3">
-              <Calendar
-                mode="range"
-                selected={tempRange}
-                onSelect={handleRangeSelect}
-                numberOfMonths={2}
-                locale={es}
-                className="pointer-events-auto"
-              />
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+            <div className="p-3 flex flex-col">
+              <div className="flex-1 overflow-y-auto">
+                <Calendar
+                  mode="range"
+                  selected={tempRange}
+                  onSelect={handleRangeSelect}
+                  numberOfMonths={2}
+                  locale={es}
+                  className="pointer-events-auto"
+                />
+              </div>
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border bg-popover">
                 <div className="text-xs text-muted-foreground">
                   {tempRange?.from && tempRange?.to ? (
                     <span>

@@ -41,7 +41,7 @@ export function MatrixTable<T extends { id: string }>({
             {columns.map((col) => (
               <th
                 key={col.key}
-                style={noHorizontalScroll ? undefined : { width: col.width, minWidth: col.width }}
+                style={{ width: col.width, minWidth: col.width }}
                 className={cn(col.className)}
               >
                 {col.header}
@@ -60,7 +60,7 @@ export function MatrixTable<T extends { id: string }>({
               )}
             >
               {columns.map((col) => (
-                <td key={col.key} className={cn(col.className)}>
+                <td key={col.key} style={{ width: col.width }} className={cn(col.className)}>
                   {col.render
                     ? col.render(item, idx)
                     : (item as Record<string, unknown>)[col.key]?.toString() || "-"}

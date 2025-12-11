@@ -742,17 +742,32 @@ const PanelOperaciones = () => {
       { 
         key: "nombreMaterial", 
         header: "Material", 
-        width: "300px",
-        className: "align-top",
-        render: (i: InventarioItem) => (
-          <Textarea
-            value={i.nombreMaterial || ""}
-            placeholder="Nombre del material..."
-            onChange={(e) => projectId && updateInventarioItem(projectId, i.id, "nombreMaterial", e.target.value)}
-            className="min-h-[2.5rem] resize-none text-sm bg-transparent border-0 focus-visible:ring-1 focus-visible:ring-ring whitespace-pre-wrap"
-            rows={Math.max(1, (i.nombreMaterial?.split('\n').length || 1))}
-          />
-        ),
+        width: "minmax(250px, 1fr)",
+        className: "align-top !whitespace-normal",
+        render: (i: InventarioItem) => {
+          const text = i.nombreMaterial || "";
+          const lineCount = text.split('\n').length;
+          const charLength = text.length;
+          // Calculate rows based on line breaks AND approximate character wrapping (roughly 40 chars per line)
+          const estimatedRows = Math.max(lineCount, Math.ceil(charLength / 40));
+          const rows = Math.max(2, Math.min(estimatedRows, 15));
+          
+          return (
+            <Textarea
+              value={text}
+              placeholder="Nombre del material..."
+              onChange={(e) => projectId && updateInventarioItem(projectId, i.id, "nombreMaterial", e.target.value)}
+              className="w-full resize-none text-sm bg-transparent border-0 focus-visible:ring-1 focus-visible:ring-ring break-words overflow-hidden"
+              style={{ 
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                minHeight: `${rows * 1.5}rem`,
+                height: 'auto'
+              }}
+              rows={rows}
+            />
+          );
+        },
       },
       {
         key: "cantidad",

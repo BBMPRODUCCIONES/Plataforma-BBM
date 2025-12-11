@@ -690,13 +690,15 @@ const PanelOperaciones = () => {
         width: "200px",
         render: (p: PersonalItem) => (
           p.tipoPersonal === "Transporte" ? (
-            <EditableCell
-              value={p.rutaTransporte}
-              type="text"
-              placeholder="Ruta obligatoria..."
-              onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "rutaTransporte", value)}
-              className={!p.rutaTransporte ? "border-destructive/50" : ""}
-            />
+            <div className={`rounded ${!p.rutaTransporte ? "bg-destructive/20 ring-2 ring-destructive/50" : ""}`}>
+              <EditableCell
+                value={p.rutaTransporte}
+                type="text"
+                placeholder="⚠️ Ruta obligatoria..."
+                onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "rutaTransporte", value)}
+                className={!p.rutaTransporte ? "border-destructive text-destructive placeholder:text-destructive/70" : ""}
+              />
+            </div>
           ) : <span className="text-xs text-muted-foreground">-</span>
         ),
       });
@@ -1017,6 +1019,17 @@ const PanelOperaciones = () => {
         {/* Project Detail Dialog */}
         <Dialog open={!!selectedProject} onOpenChange={(open) => {
           if (!open && selectedProject && currentProjectData) {
+            // Validate transport routes before closing (only for plantilla section)
+            if (selectedSection === "plantilla") {
+              const transportesSinRuta = (currentProjectData.personal || []).filter(
+                p => p.tipoPersonal === "Transporte" && !p.rutaTransporte?.trim()
+              );
+              if (transportesSinRuta.length > 0) {
+                toast.error(`Faltan rutas obligatorias en ${transportesSinRuta.length} transporte(s). Complete las rutas antes de cerrar.`);
+                return; // Prevent closing
+              }
+            }
+            
             // Save pending notes before closing
             if (localNotasProveedor !== (currentProjectData.notasCotizacionProveedor || "")) {
               updateProject(currentProjectData.id, "notasCotizacionProveedor", localNotasProveedor);

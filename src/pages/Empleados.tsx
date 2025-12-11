@@ -20,7 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MatrixTable } from "@/components/MatrixTable";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { EditableCell, CellType } from "@/components/EditableCell";
@@ -144,8 +151,7 @@ export default function Empleados() {
     { key: "nombre", header: "Nombre", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 1 },
     { key: "telefono", header: "Teléfono", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 2 },
     { key: "correo", header: "Correo Electrónico", type: "text" as CellType, width: "220px", visible: true, isCustom: false, order: 3 },
-    { key: "datosBancarios", header: "Datos Bancarios", type: "text" as CellType, width: "280px", visible: true, isCustom: false, order: 4 },
-    { key: "createdAt", header: "Fecha de Registro", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 5 },
+    { key: "createdAt", header: "Fecha de Registro", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 4 },
   ];
 
   const allColumnConfigs = managedColumns.length > 0 ? managedColumns : baseColumnDefs;
@@ -157,100 +163,63 @@ export default function Empleados() {
     setColumnManagerOpen(true);
   };
 
-  const formatDatosBancarios = (e: Empleado) => {
-    const parts = [e.banco, e.tipoCuenta, e.numeroCuenta].filter(Boolean);
-    if (parts.length === 0) return <span className="text-muted-foreground text-xs">Sin datos bancarios</span>;
-    return <span className="text-sm">{parts.join(" – ")}</span>;
-  };
-
-  const getColumnRender = (col: ColumnConfig) => {
-    return (e: Empleado) => {
-      switch (col.key) {
-        case "cargo":
-          return (
-            <EditableCell
-              value={e.cargo || ""}
-              type="text"
-              onChange={(value) => handleUpdateEmpleado(e.id, "cargo", value)}
-            />
-          );
-        case "nombre":
-          return (
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Users className="w-4 h-4 text-primary" />
-              </div>
-              <EditableCell
-                value={e.nombre}
-                type="text"
-                onChange={(value) => handleUpdateEmpleado(e.id, "nombre", value)}
-              />
+  const getColumnRender = (col: ColumnConfig, e: Empleado) => {
+    switch (col.key) {
+      case "cargo":
+        return (
+          <EditableCell
+            value={e.cargo || ""}
+            type="text"
+            onChange={(value) => handleUpdateEmpleado(e.id, "cargo", value)}
+          />
+        );
+      case "nombre":
+        return (
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Users className="w-4 h-4 text-primary" />
             </div>
-          );
-        case "telefono":
-          return (
             <EditableCell
-              value={e.telefono}
+              value={e.nombre}
               type="text"
-              onChange={(value) => handleUpdateEmpleado(e.id, "telefono", value)}
+              onChange={(value) => handleUpdateEmpleado(e.id, "nombre", value)}
             />
-          );
-        case "correo":
-          return (
-            <EditableCell
-              value={e.correo}
-              type="text"
-              onChange={(value) => handleUpdateEmpleado(e.id, "correo", value)}
-            />
-          );
-        case "datosBancarios":
-          return formatDatosBancarios(e);
-        case "createdAt":
-          return new Date(e.createdAt).toLocaleDateString('es-CO');
-        default:
-          // Custom columns
-          const value = e[col.key];
-          return (
-            <EditableCell
-              value={value}
-              type={col.type || "text"}
-              options={col.options}
-              onChange={(newValue) => handleUpdateEmpleado(e.id, col.key, newValue)}
-            />
-          );
-      }
-    };
+          </div>
+        );
+      case "telefono":
+        return (
+          <EditableCell
+            value={e.telefono}
+            type="text"
+            onChange={(value) => handleUpdateEmpleado(e.id, "telefono", value)}
+          />
+        );
+      case "correo":
+        return (
+          <EditableCell
+            value={e.correo}
+            type="text"
+            onChange={(value) => handleUpdateEmpleado(e.id, "correo", value)}
+          />
+        );
+      case "createdAt":
+        return new Date(e.createdAt).toLocaleDateString('es-CO');
+      default:
+        const value = e[col.key];
+        return (
+          <EditableCell
+            value={value}
+            type={col.type || "text"}
+            options={col.options}
+            onChange={(newValue) => handleUpdateEmpleado(e.id, col.key, newValue)}
+          />
+        );
+    }
   };
 
-  const columns = [
-    ...allColumnConfigs
-      .filter(col => col.visible !== false)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .map(col => ({
-        key: col.key,
-        header: col.header,
-        width: col.width,
-        render: getColumnRender(col),
-      })),
-    { 
-      key: "actions", 
-      header: "Acciones", 
-      width: "120px", 
-      render: (e: Empleado) => (
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={(ev) => { ev.stopPropagation(); handleEdit(e); }}>
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={(ev) => { ev.stopPropagation(); handleDelete(e.id); }}>
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
-        </div>
-      )
-    },
-  ];
-
-  // Generate a unique key for the table to force re-renders when columns change
-  const tableKey = `table-${allColumnConfigs.map(c => `${c.key}-${c.visible}-${c.order}`).join('_')}`;
+  const visibleColumns = allColumnConfigs
+    .filter(col => col.visible !== false)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   if (loading) {
     return (
@@ -415,7 +384,94 @@ export default function Empleados() {
             <h3 className="text-sm font-semibold">Listado de Empleados</h3>
             <span className="text-xs text-muted-foreground">{filteredEmpleados.length} empleados registrados</span>
           </div>
-          <MatrixTable key={tableKey} data={filteredEmpleados} columns={columns} />
+          <div className="overflow-x-auto scrollbar-thin">
+            <Table>
+              <TableHeader>
+                {/* First row with grouped header */}
+                <TableRow className="border-b-0">
+                  {visibleColumns.map(col => (
+                    <TableHead 
+                      key={col.key} 
+                      rowSpan={2} 
+                      className="border-r border-border/50 text-center align-middle"
+                      style={{ width: col.width, minWidth: col.width }}
+                    >
+                      {col.header}
+                    </TableHead>
+                  ))}
+                  <TableHead 
+                    colSpan={3} 
+                    className="text-center border-b border-border/50 bg-primary/5 font-bold"
+                  >
+                    DATOS BANCARIOS
+                  </TableHead>
+                  <TableHead rowSpan={2} className="text-center align-middle" style={{ width: "120px" }}>
+                    Acciones
+                  </TableHead>
+                </TableRow>
+                {/* Second row with banking sub-columns */}
+                <TableRow>
+                  <TableHead className="text-center border-r border-border/50 bg-primary/5" style={{ width: "150px", minWidth: "150px" }}>
+                    BANCO
+                  </TableHead>
+                  <TableHead className="text-center border-r border-border/50 bg-primary/5" style={{ width: "120px", minWidth: "120px" }}>
+                    CUENTA
+                  </TableHead>
+                  <TableHead className="text-center bg-primary/5" style={{ width: "150px", minWidth: "150px" }}>
+                    # DE CUENTA
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredEmpleados.map((empleado) => (
+                  <TableRow key={empleado.id}>
+                    {visibleColumns.map(col => (
+                      <TableCell key={col.key} className="border-r border-border/30">
+                        {getColumnRender(col, empleado)}
+                      </TableCell>
+                    ))}
+                    {/* Banking columns */}
+                    <TableCell className="border-r border-border/30">
+                      <EditableCell
+                        value={empleado.banco || ""}
+                        type="text"
+                        placeholder="Ej: Bancolombia"
+                        onChange={(value) => handleUpdateEmpleado(empleado.id, "banco", value)}
+                      />
+                    </TableCell>
+                    <TableCell className="border-r border-border/30">
+                      <EditableCell
+                        value={empleado.tipoCuenta || ""}
+                        type="select"
+                        options={["Ahorros", "Corriente"]}
+                        placeholder="Seleccionar"
+                        onChange={(value) => handleUpdateEmpleado(empleado.id, "tipoCuenta", value)}
+                      />
+                    </TableCell>
+                    <TableCell className="border-r border-border/30">
+                      <EditableCell
+                        value={empleado.numeroCuenta || ""}
+                        type="text"
+                        placeholder="Ej: 1234567890"
+                        onChange={(value) => handleUpdateEmpleado(empleado.id, "numeroCuenta", value)}
+                      />
+                    </TableCell>
+                    {/* Actions column */}
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(empleado)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(empleado.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         <div className="p-4 bg-muted/30 rounded-lg border border-border">

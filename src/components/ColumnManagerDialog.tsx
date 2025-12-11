@@ -280,7 +280,7 @@ export function ColumnManagerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Columns className="h-5 w-5" />
@@ -288,7 +288,7 @@ export function ColumnManagerDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="list">Columnas</TabsTrigger>
             <TabsTrigger value="edit">
@@ -296,7 +296,7 @@ export function ColumnManagerDialog({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="list" className="mt-4 flex-1 flex flex-col min-h-0">
+          <TabsContent value="list" className="mt-4">
             <div className="flex justify-end mb-4">
               <Button size="sm" onClick={startCreating}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -304,7 +304,7 @@ export function ColumnManagerDialog({
               </Button>
             </div>
 
-            <ScrollArea className="flex-1 max-h-[60vh] pr-4">
+            <div className="max-h-[50vh] overflow-y-auto pr-2">
               <div className="space-y-2">
                 {sortedColumns.map((column, index) => (
                   <div
@@ -418,7 +418,7 @@ export function ColumnManagerDialog({
                   </div>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
 
             <p className="text-xs text-muted-foreground mt-4">
               Arrastra las columnas para reordenarlas. Usa el ícono de configuración para definir visibilidad por rol. Las columnas personalizadas pueden eliminarse.

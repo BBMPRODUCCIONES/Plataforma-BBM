@@ -340,12 +340,15 @@ export type Database = {
       get_employees_for_role: {
         Args: never
         Returns: {
+          banco: string
           cargo: string
           correo: string
           created_at: string
           id: string
           nombre: string
+          numero_cuenta: string
           telefono: string
+          tipo_cuenta: string
         }[]
       }
       has_role: {

@@ -60,6 +60,9 @@ export interface Attachment {
   uploadedAt: string;
   filePath?: string; // Path in Supabase Storage for persistent files
   bucket?: string; // Storage bucket name
+  // Per-quotation income fields (for cotizaciones)
+  ingresoBruto?: number;
+  ingresoTotal?: number;
 }
 
 export interface PersonalItem {

@@ -13,6 +13,13 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MatrixTable } from "@/components/MatrixTable";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
@@ -60,10 +67,13 @@ export default function Empleados() {
     nombre: "",
     telefono: "",
     correo: "",
+    banco: "",
+    tipoCuenta: "",
+    numeroCuenta: "",
   });
 
   const resetForm = () => {
-    setFormData({ cargo: "", nombre: "", telefono: "", correo: "" });
+    setFormData({ cargo: "", nombre: "", telefono: "", correo: "", banco: "", tipoCuenta: "", numeroCuenta: "" });
     setEditingEmpleado(null);
   };
 
@@ -107,6 +117,9 @@ export default function Empleados() {
       nombre: empleado.nombre,
       telefono: empleado.telefono,
       correo: empleado.correo,
+      banco: empleado.banco || "",
+      tipoCuenta: empleado.tipoCuenta || "",
+      numeroCuenta: empleado.numeroCuenta || "",
     });
     setDialogOpen(true);
   };
@@ -131,7 +144,8 @@ export default function Empleados() {
     { key: "nombre", header: "Nombre", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 1 },
     { key: "telefono", header: "Teléfono", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 2 },
     { key: "correo", header: "Correo Electrónico", type: "text" as CellType, width: "220px", visible: true, isCustom: false, order: 3 },
-    { key: "createdAt", header: "Fecha de Registro", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 4 },
+    { key: "datosBancarios", header: "Datos Bancarios", type: "text" as CellType, width: "280px", visible: true, isCustom: false, order: 4 },
+    { key: "createdAt", header: "Fecha de Registro", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 5 },
   ];
 
   const allColumnConfigs = managedColumns.length > 0 ? managedColumns : baseColumnDefs;
@@ -141,6 +155,12 @@ export default function Empleados() {
       setManagedColumns(baseColumnDefs);
     }
     setColumnManagerOpen(true);
+  };
+
+  const formatDatosBancarios = (e: Empleado) => {
+    const parts = [e.banco, e.tipoCuenta, e.numeroCuenta].filter(Boolean);
+    if (parts.length === 0) return <span className="text-muted-foreground text-xs">Sin datos bancarios</span>;
+    return <span className="text-sm">{parts.join(" – ")}</span>;
   };
 
   const getColumnRender = (col: ColumnConfig) => {
@@ -183,6 +203,8 @@ export default function Empleados() {
               onChange={(value) => handleUpdateEmpleado(e.id, "correo", value)}
             />
           );
+        case "datosBancarios":
+          return formatDatosBancarios(e);
         case "createdAt":
           return new Date(e.createdAt).toLocaleDateString('es-CO');
         default:
@@ -290,46 +312,88 @@ export default function Empleados() {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cargo">Cargo</Label>
-                  <Input
-                    id="cargo"
-                    placeholder="Ej: Coordinador de Logística"
-                    value={formData.cargo}
-                    onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-                  />
+              <div className="space-y-6 py-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cargo">Cargo</Label>
+                    <Input
+                      id="cargo"
+                      placeholder="Ej: Coordinador de Logística"
+                      value={formData.cargo}
+                      onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nombre">Nombre *</Label>
+                    <Input
+                      id="nombre"
+                      placeholder="Ej: Juan Pérez"
+                      value={formData.nombre}
+                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="telefono">Teléfono</Label>
+                    <Input
+                      id="telefono"
+                      placeholder="Ej: +57 300 123 4567"
+                      value={formData.telefono}
+                      onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="correo">Correo Electrónico</Label>
+                    <Input
+                      id="correo"
+                      type="email"
+                      placeholder="Ej: empleado@empresa.com"
+                      value={formData.correo}
+                      onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="nombre">Nombre *</Label>
-                  <Input
-                    id="nombre"
-                    placeholder="Ej: Juan Pérez"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="telefono">Teléfono</Label>
-                  <Input
-                    id="telefono"
-                    placeholder="Ej: +57 300 123 4567"
-                    value={formData.telefono}
-                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="correo">Correo Electrónico</Label>
-                  <Input
-                    id="correo"
-                    type="email"
-                    placeholder="Ej: empleado@empresa.com"
-                    value={formData.correo}
-                    onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
-                  />
+                {/* DATOS BANCARIOS Section */}
+                <div className="space-y-3 pt-2 border-t border-border">
+                  <h4 className="text-sm font-semibold text-foreground">DATOS BANCARIOS</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="banco" className="text-xs">BANCO</Label>
+                      <Input
+                        id="banco"
+                        placeholder="Ej: Bancolombia"
+                        value={formData.banco}
+                        onChange={(e) => setFormData({ ...formData, banco: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tipoCuenta" className="text-xs">CUENTA</Label>
+                      <Select 
+                        value={formData.tipoCuenta} 
+                        onValueChange={(value) => setFormData({ ...formData, tipoCuenta: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Ahorros">Ahorros</SelectItem>
+                          <SelectItem value="Corriente">Corriente</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="numeroCuenta" className="text-xs"># DE CUENTA</Label>
+                      <Input
+                        id="numeroCuenta"
+                        placeholder="Ej: 1234567890"
+                        value={formData.numeroCuenta}
+                        onChange={(e) => setFormData({ ...formData, numeroCuenta: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

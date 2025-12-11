@@ -8,6 +8,9 @@ export interface Empleado {
   nombre: string;
   telefono: string;
   correo: string;
+  banco: string;
+  tipoCuenta: string;
+  numeroCuenta: string;
   createdAt: string;
   [key: string]: any;
 }
@@ -32,6 +35,9 @@ function dbRowToEmpleado(row: any): Empleado {
     // These fields will be empty strings for non-admin users (filtered by the secure function)
     telefono: row.telefono || "",
     correo: row.correo || "",
+    banco: row.banco || "",
+    tipoCuenta: row.tipo_cuenta || "",
+    numeroCuenta: row.numero_cuenta || "",
     createdAt: row.created_at,
   };
 }
@@ -100,6 +106,9 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       nombre: empleadoData.nombre || "",
       telefono: empleadoData.telefono || "",
       correo: empleadoData.correo || "",
+      banco: empleadoData.banco || "",
+      tipoCuenta: empleadoData.tipoCuenta || "",
+      numeroCuenta: empleadoData.numeroCuenta || "",
       createdAt: new Date().toISOString(),
     };
 
@@ -113,6 +122,9 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
         nombre: empleadoData.nombre,
         telefono: empleadoData.telefono,
         correo: empleadoData.correo,
+        banco: empleadoData.banco,
+        tipo_cuenta: empleadoData.tipoCuenta,
+        numero_cuenta: empleadoData.numeroCuenta,
       })
       .select()
       .single();
@@ -143,6 +155,9 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
     if (data.nombre !== undefined) updateData.nombre = data.nombre;
     if (data.telefono !== undefined) updateData.telefono = data.telefono;
     if (data.correo !== undefined) updateData.correo = data.correo;
+    if (data.banco !== undefined) updateData.banco = data.banco;
+    if (data.tipoCuenta !== undefined) updateData.tipo_cuenta = data.tipoCuenta;
+    if (data.numeroCuenta !== undefined) updateData.numero_cuenta = data.numeroCuenta;
 
     const { error } = await supabase
       .from("employees")

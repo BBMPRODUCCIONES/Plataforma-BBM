@@ -742,7 +742,7 @@ const PanelOperaciones = () => {
       { 
         key: "nombreMaterial", 
         header: "Material", 
-        width: "minmax(500px, 1fr)",
+        width: "minmax(550px, 3fr)",
         className: "align-top !whitespace-normal",
         render: (i: InventarioItem) => {
           const text = i.nombreMaterial || "";
@@ -794,7 +794,7 @@ const PanelOperaciones = () => {
       { 
         key: "observaciones", 
         header: "Observaciones", 
-        width: "200px",
+        width: "180px",
         render: (i: InventarioItem) => (
           <EditableCell
             value={i.observaciones}
@@ -807,7 +807,7 @@ const PanelOperaciones = () => {
       {
         key: "recibido",
         header: "Recibido",
-        width: "80px",
+        width: "70px",
         render: (i: InventarioItem) => (
           <EditableCell
             value={i.recibido}
@@ -819,7 +819,7 @@ const PanelOperaciones = () => {
       { 
         key: "notasAdicionales", 
         header: "Notas Adicionales", 
-        width: "180px",
+        width: "160px",
         render: (i: InventarioItem) => (
           <EditableCell
             value={i.notasAdicionales}
@@ -832,7 +832,7 @@ const PanelOperaciones = () => {
       {
         key: "acciones",
         header: "",
-        width: "50px",
+        width: "45px",
         render: (i: InventarioItem) => (
           <Button
             variant="ghost"

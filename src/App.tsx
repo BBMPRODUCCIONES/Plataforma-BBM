@@ -25,6 +25,7 @@ import Usuarios from "./pages/Usuarios";
 import Clientes from "./pages/Clientes";
 import Empleados from "./pages/Empleados";
 import NotFound from "./pages/NotFound";
+import InstalarApp from "./pages/InstalarApp";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/crear-cuenta" element={<CrearCuenta />} />
+                  <Route path="/instalar" element={<InstalarApp />} />
 
                   {/* Panel routes with access control */}
                   <Route path="/panel-directivo" element={

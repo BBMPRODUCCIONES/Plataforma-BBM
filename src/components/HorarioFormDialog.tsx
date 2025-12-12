@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -7,11 +7,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { EmpleadoAutocomplete } from '@/components/EmpleadoAutocomplete';
 import { CameraCapture } from '@/components/CameraCapture';
-import { useHorarios } from '@/contexts/HorariosContext';
+import { useHorarios, Horario } from '@/contexts/HorariosContext';
 import { useProjects } from '@/contexts/ProjectsContext';
 import { useEmpleados } from '@/contexts/EmpleadosContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, AlertCircle, Camera } from 'lucide-react';
+import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, AlertCircle, Camera, ExternalLink } from 'lucide-react';
 import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -26,10 +26,13 @@ interface LocationData {
   lat: number;
   lng: number;
   address?: string;
+  accuracy?: number;
+  provider?: string;
+  status?: 'available' | 'unavailable' | 'denied' | 'error';
 }
 
 export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps) => {
-  const { addHorario } = useHorarios();
+  const { addHorario, updateHorario, horarios } = useHorarios();
   const { projects } = useProjects();
   const { empleados } = useEmpleados();
   const [loading, setLoading] = useState(false);
@@ -42,6 +45,9 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
   const [eventoNombre, setEventoNombre] = useState('');
   const [eventoSearch, setEventoSearch] = useState('');
   const [showEventoDropdown, setShowEventoDropdown] = useState(false);
+
+  // Existing record (for duplicate prevention)
+  const [existingRecord, setExistingRecord] = useState<Horario | null>(null);
 
   // Camera dialogs
   const [cameraLlegadaOpen, setCameraLlegadaOpen] = useState(false);
@@ -59,12 +65,66 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
   const [horarioSalida, setHorarioSalida] = useState('');
   const [locationSalida, setLocationSalida] = useState<LocationData | null>(null);
 
+  // Check for existing record when empleado, fecha, categoria, or evento changes
+  const checkExistingRecord = useCallback(() => {
+    if (!empleadoId) {
+      setExistingRecord(null);
+      return;
+    }
+
+    const dia = format(fechaEvento, 'yyyy-MM-dd');
+    
+    const existing = horarios.find(h => {
+      const sameEmployee = h.empleado_id === empleadoId;
+      const sameDay = h.dia === dia;
+      const sameCategory = h.categoria === categoria;
+      const sameEvent = categoria === 'Evento' ? h.evento_id === eventoId : true;
+      
+      return sameEmployee && sameDay && sameCategory && sameEvent;
+    });
+
+    if (existing) {
+      setExistingRecord(existing);
+      // Pre-fill existing data
+      if (existing.foto_llegada) setFotoLlegada(existing.foto_llegada);
+      if (existing.llegada) setHorarioLlegada(existing.llegada);
+      if (existing.ubicacion_llegada) setUbicacionLlegada(existing.ubicacion_llegada);
+      if (existing.foto_salida) setFotoSalida(existing.foto_salida);
+      if (existing.salida) setHorarioSalida(existing.salida);
+      if (existing.ubicacion_salida) setUbicacionSalida(existing.ubicacion_salida);
+      
+      // Try to parse location from stored string
+      if (existing.ubicacion_llegada && existing.ubicacion_llegada.includes(',')) {
+        const coords = existing.ubicacion_llegada.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+        if (coords) {
+          setLocationLlegada({ lat: parseFloat(coords[1]), lng: parseFloat(coords[2]) });
+        }
+      }
+      if (existing.ubicacion_salida && existing.ubicacion_salida.includes(',')) {
+        const coords = existing.ubicacion_salida.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+        if (coords) {
+          setLocationSalida({ lat: parseFloat(coords[1]), lng: parseFloat(coords[2]) });
+        }
+      }
+    } else {
+      setExistingRecord(null);
+    }
+  }, [empleadoId, fechaEvento, categoria, eventoId, horarios]);
+
+  useEffect(() => {
+    checkExistingRecord();
+  }, [checkExistingRecord]);
+
   // Reset event selection when category changes to Evento
   useEffect(() => {
     if (categoria === 'Evento') {
       setFechaEvento(new Date());
     }
   }, [categoria]);
+
+  // Check if llegada/salida is already registered
+  const llegadaRegistered = Boolean(existingRecord?.foto_llegada && existingRecord?.llegada);
+  const salidaRegistered = Boolean(existingRecord?.foto_salida && existingRecord?.salida);
 
   // Filter events by selected date (montaje or ejecucion)
   const eventsForDate = useMemo(() => {
@@ -115,14 +175,15 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
         toast.error('Geolocalización no soportada');
-        resolve(null);
+        resolve({ lat: 0, lng: 0, status: 'unavailable', provider: 'none' });
         return;
       }
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
-          const { latitude, longitude } = position.coords;
+          const { latitude, longitude, accuracy } = position.coords;
           let address: string | undefined;
+          const provider = accuracy < 100 ? 'gps' : 'network';
 
           try {
             const response = await fetch(
@@ -136,23 +197,55 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
             console.log('Could not get address:', err);
           }
 
-          resolve({ lat: latitude, lng: longitude, address });
+          // Show warning if accuracy is low
+          if (accuracy && accuracy > 2000) {
+            toast.warning(`Precisión baja: ${Math.round(accuracy)}m`, {
+              description: 'La ubicación se guardará pero puede no ser exacta'
+            });
+          }
+
+          resolve({ 
+            lat: latitude, 
+            lng: longitude, 
+            address, 
+            accuracy,
+            provider,
+            status: 'available' 
+          });
         },
         (error) => {
           console.error('Location error:', error);
+          let status: LocationData['status'] = 'error';
           if (error.code === error.PERMISSION_DENIED) {
+            status = 'denied';
             toast.error('Para registrar la ubicación debes habilitar permisos de ubicación en tu dispositivo.');
+          } else if (error.code === error.TIMEOUT) {
+            toast.error('Tiempo de espera agotado para obtener ubicación');
           } else {
             toast.error('No se pudo obtener la ubicación');
           }
-          resolve(null);
+          // Return partial data so record can still be saved
+          resolve({ lat: 0, lng: 0, status, provider: 'failed' });
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     });
   };
 
+  const getGoogleMapsLink = (location: LocationData | null): string | null => {
+    if (!location || location.status !== 'available' || (location.lat === 0 && location.lng === 0)) {
+      return null;
+    }
+    return `https://www.google.com/maps?q=${location.lat},${location.lng}`;
+  };
+
   const handleCaptureLlegada = async (file: File) => {
+    // Check if llegada already registered
+    if (llegadaRegistered) {
+      toast.error('Ya registraste tu llegada hoy. No puedes registrar otra llegada para esta fecha.');
+      return;
+    }
+
     const now = new Date();
     const timestamp = now.toLocaleTimeString('es-CO', {
       hour: '2-digit',
@@ -160,6 +253,7 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
       hour12: false
     });
 
+    let photoUrl = '';
     try {
       const fileName = `horario-llegada-${Date.now()}.jpg`;
       const filePath = `horarios/${fileName}`;
@@ -174,11 +268,15 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
         .from('notes-images')
         .getPublicUrl(filePath);
 
+      photoUrl = publicUrl;
       setFotoLlegada(publicUrl);
     } catch (err) {
       console.error('Error uploading photo:', err);
       const reader = new FileReader();
-      reader.onload = () => setFotoLlegada(reader.result as string);
+      reader.onload = () => {
+        photoUrl = reader.result as string;
+        setFotoLlegada(photoUrl);
+      };
       reader.readAsDataURL(file);
     }
 
@@ -187,13 +285,34 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
     const location = await getCurrentLocation();
     if (location) {
       setLocationLlegada(location);
-      setUbicacionLlegada(location.address || `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`);
+      if (location.status === 'available') {
+        // Store coordinates for Google Maps link + optional address
+        const coordsStr = `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
+        setUbicacionLlegada(coordsStr);
+      } else {
+        setUbicacionLlegada('Ubicación no disponible');
+      }
+    } else {
+      setUbicacionLlegada('Ubicación no disponible');
     }
 
     toast.success('Foto de llegada capturada');
   };
 
   const handleCaptureSalida = async (file: File) => {
+    // Check if salida already registered
+    if (salidaRegistered) {
+      toast.error('Ya registraste tu salida hoy. No puedes registrar otra salida para esta fecha.');
+      return;
+    }
+
+    // Optional: Check if llegada exists before allowing salida
+    const hasLlegada = llegadaRegistered || fotoLlegada;
+    if (!hasLlegada) {
+      toast.error('Debes registrar tu llegada antes de registrar la salida.');
+      return;
+    }
+
     const now = new Date();
     const timestamp = now.toLocaleTimeString('es-CO', {
       hour: '2-digit',
@@ -201,6 +320,7 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
       hour12: false
     });
 
+    let photoUrl = '';
     try {
       const fileName = `horario-salida-${Date.now()}.jpg`;
       const filePath = `horarios/${fileName}`;
@@ -215,11 +335,15 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
         .from('notes-images')
         .getPublicUrl(filePath);
 
+      photoUrl = publicUrl;
       setFotoSalida(publicUrl);
     } catch (err) {
       console.error('Error uploading photo:', err);
       const reader = new FileReader();
-      reader.onload = () => setFotoSalida(reader.result as string);
+      reader.onload = () => {
+        photoUrl = reader.result as string;
+        setFotoSalida(photoUrl);
+      };
       reader.readAsDataURL(file);
     }
 
@@ -228,7 +352,14 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
     const location = await getCurrentLocation();
     if (location) {
       setLocationSalida(location);
-      setUbicacionSalida(location.address || `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`);
+      if (location.status === 'available') {
+        const coordsStr = `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
+        setUbicacionSalida(coordsStr);
+      } else {
+        setUbicacionSalida('Ubicación no disponible');
+      }
+    } else {
+      setUbicacionSalida('Ubicación no disponible');
     }
 
     toast.success('Foto de salida capturada');
@@ -244,31 +375,50 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
       return;
     }
 
+    // Require at least llegada to save
+    if (!fotoLlegada && !horarioLlegada) {
+      toast.error('Debes registrar al menos la llegada');
+      return;
+    }
+
     setLoading(true);
     try {
       const dia = format(fechaEvento, 'yyyy-MM-dd');
       const empleado = empleados.find(e => e.id === empleadoId);
       const cargo = empleado?.cargo || '';
 
-      await addHorario({
-        empleado_id: empleadoId,
-        evento_id: eventoId,
-        evento_nombre: eventoNombre,
-        cargo,
-        dia,
-        categoria,
-        llegada: horarioLlegada || '',
-        ubicacion_llegada: ubicacionLlegada,
-        salida: horarioSalida || '',
-        ubicacion_salida: ubicacionSalida,
-        foto_llegada: fotoLlegada,
-        foto_salida: fotoSalida,
-      });
+      // If existing record, update it instead of creating new
+      if (existingRecord) {
+        await updateHorario(existingRecord.id, {
+          llegada: horarioLlegada || existingRecord.llegada,
+          ubicacion_llegada: ubicacionLlegada || existingRecord.ubicacion_llegada,
+          salida: horarioSalida || existingRecord.salida,
+          ubicacion_salida: ubicacionSalida || existingRecord.ubicacion_salida,
+          foto_llegada: fotoLlegada || existingRecord.foto_llegada,
+          foto_salida: fotoSalida || existingRecord.foto_salida,
+        });
+        toast.success('Horario actualizado');
+      } else {
+        await addHorario({
+          empleado_id: empleadoId,
+          evento_id: eventoId,
+          evento_nombre: eventoNombre || (categoria === 'Oficina' ? 'Oficina' : ''),
+          cargo,
+          dia,
+          categoria,
+          llegada: horarioLlegada || '',
+          ubicacion_llegada: ubicacionLlegada,
+          salida: horarioSalida || '',
+          ubicacion_salida: ubicacionSalida,
+          foto_llegada: fotoLlegada,
+          foto_salida: fotoSalida,
+        });
+      }
 
       resetForm();
       onOpenChange(false);
     } catch (err) {
-      console.error('Error creating horario:', err);
+      console.error('Error creating/updating horario:', err);
     } finally {
       setLoading(false);
     }
@@ -289,6 +439,7 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
     setUbicacionSalida('');
     setHorarioSalida('');
     setLocationSalida(null);
+    setExistingRecord(null);
   };
 
   return (
@@ -340,7 +491,15 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
 
               {/* Llegada Section */}
               <div className="space-y-3">
-                <Label className="text-lg font-bold uppercase">Llegada</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-lg font-bold uppercase">Llegada</Label>
+                  {llegadaRegistered && (
+                    <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
+                      <Check className="h-3 w-3" />
+                      Registrada
+                    </span>
+                  )}
+                </div>
                 <div className="grid grid-cols-3 gap-4">
                   {/* Foto */}
                   <div className="space-y-2">
@@ -349,19 +508,21 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
                       {fotoLlegada ? (
                         <div className="relative w-full">
                           <img src={fotoLlegada} alt="Llegada" className="w-full h-20 object-cover rounded" />
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={() => {
-                              setFotoLlegada('');
-                              setHorarioLlegada('');
-                              setUbicacionLlegada('');
-                              setLocationLlegada(null);
-                            }}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          {!llegadaRegistered && (
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              className="absolute -top-2 -right-2 h-6 w-6"
+                              onClick={() => {
+                                setFotoLlegada('');
+                                setHorarioLlegada('');
+                                setUbicacionLlegada('');
+                                setLocationLlegada(null);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
                         </div>
                       ) : (
                         <Button
@@ -369,6 +530,7 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
                           variant="outline"
                           size="sm"
                           onClick={() => setCameraLlegadaOpen(true)}
+                          disabled={llegadaRegistered}
                           className="gap-2"
                         >
                           <Camera className="h-4 w-4" />
@@ -378,29 +540,46 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
                     </div>
                   </div>
 
-                  {/* Ubicación - Read only */}
+                  {/* Ubicación - Read only with Google Maps link */}
                   <div className="space-y-2">
                     <Label className="text-xs font-medium uppercase text-muted-foreground flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
                       Ubicación
                     </Label>
-                    <div className="relative">
-                      <Input
-                        value={ubicacionLlegada}
-                        readOnly
-                        placeholder="Se captura con la foto"
-                        className="bg-muted/50 cursor-not-allowed text-xs"
-                      />
-                      {locationLlegada && (
-                        <Check className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                    <div className="space-y-1">
+                      <div className="relative">
+                        <Input
+                          value={ubicacionLlegada}
+                          readOnly
+                          placeholder="Se captura con la foto"
+                          className="bg-muted/50 cursor-not-allowed text-xs"
+                        />
+                        {locationLlegada?.status === 'available' && (
+                          <Check className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                        )}
+                      </div>
+                      {getGoogleMapsLink(locationLlegada) ? (
+                        <a
+                          href={getGoogleMapsLink(locationLlegada)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Ver ubicación en Google Maps
+                        </a>
+                      ) : !ubicacionLlegada ? (
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Automático al tomar foto
+                        </p>
+                      ) : ubicacionLlegada === 'Ubicación no disponible' && (
+                        <p className="text-[10px] text-destructive flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          No se pudo obtener ubicación
+                        </p>
                       )}
                     </div>
-                    {!ubicacionLlegada && (
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Automático al tomar foto
-                      </p>
-                    )}
                   </div>
 
                   {/* Horario - Read only */}
@@ -432,7 +611,15 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
 
               {/* Salida Section */}
               <div className="space-y-3">
-                <Label className="text-lg font-bold uppercase">Salida</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-lg font-bold uppercase">Salida</Label>
+                  {salidaRegistered && (
+                    <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
+                      <Check className="h-3 w-3" />
+                      Registrada
+                    </span>
+                  )}
+                </div>
                 <div className="grid grid-cols-3 gap-4">
                   {/* Foto */}
                   <div className="space-y-2">
@@ -441,19 +628,21 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
                       {fotoSalida ? (
                         <div className="relative w-full">
                           <img src={fotoSalida} alt="Salida" className="w-full h-20 object-cover rounded" />
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={() => {
-                              setFotoSalida('');
-                              setHorarioSalida('');
-                              setUbicacionSalida('');
-                              setLocationSalida(null);
-                            }}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          {!salidaRegistered && (
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              className="absolute -top-2 -right-2 h-6 w-6"
+                              onClick={() => {
+                                setFotoSalida('');
+                                setHorarioSalida('');
+                                setUbicacionSalida('');
+                                setLocationSalida(null);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
                         </div>
                       ) : (
                         <Button
@@ -461,38 +650,61 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
                           variant="outline"
                           size="sm"
                           onClick={() => setCameraSalidaOpen(true)}
+                          disabled={salidaRegistered || (!llegadaRegistered && !fotoLlegada)}
                           className="gap-2"
                         >
                           <Camera className="h-4 w-4" />
                           Tomar foto
                         </Button>
                       )}
+                      {!llegadaRegistered && !fotoLlegada && !salidaRegistered && (
+                        <p className="text-[10px] text-muted-foreground text-center">
+                          Registra llegada primero
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  {/* Ubicación - Read only */}
+                  {/* Ubicación - Read only with Google Maps link */}
                   <div className="space-y-2">
                     <Label className="text-xs font-medium uppercase text-muted-foreground flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
                       Ubicación
                     </Label>
-                    <div className="relative">
-                      <Input
-                        value={ubicacionSalida}
-                        readOnly
-                        placeholder="Se captura con la foto"
-                        className="bg-muted/50 cursor-not-allowed text-xs"
-                      />
-                      {locationSalida && (
-                        <Check className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                    <div className="space-y-1">
+                      <div className="relative">
+                        <Input
+                          value={ubicacionSalida}
+                          readOnly
+                          placeholder="Se captura con la foto"
+                          className="bg-muted/50 cursor-not-allowed text-xs"
+                        />
+                        {locationSalida?.status === 'available' && (
+                          <Check className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                        )}
+                      </div>
+                      {getGoogleMapsLink(locationSalida) ? (
+                        <a
+                          href={getGoogleMapsLink(locationSalida)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Ver ubicación en Google Maps
+                        </a>
+                      ) : !ubicacionSalida ? (
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Automático al tomar foto
+                        </p>
+                      ) : ubicacionSalida === 'Ubicación no disponible' && (
+                        <p className="text-[10px] text-destructive flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          No se pudo obtener ubicación
+                        </p>
                       )}
                     </div>
-                    {!ubicacionSalida && (
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Automático al tomar foto
-                      </p>
-                    )}
                   </div>
 
                   {/* Horario - Read only */}

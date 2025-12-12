@@ -38,13 +38,18 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchHorarios = async () => {
+    console.log('[HorariosContext] Fetching horarios...');
     try {
       const { data, error } = await supabase
         .from('horarios')
         .select('*')
         .order('dia', { ascending: false });
 
-      if (error) throw error;
+      console.log('[HorariosContext] Raw data from DB:', data?.length, 'records');
+      if (error) {
+        console.error('[HorariosContext] DB error:', error);
+        throw error;
+      }
       
       // Fetch employee names
       const empleadoIds = [...new Set(data?.map(h => h.empleado_id).filter(Boolean))];
@@ -66,9 +71,10 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
         empleado_nombre: h.empleado_id ? empleadosMap[h.empleado_id] || '' : ''
       })) as Horario[];
 
+      console.log('[HorariosContext] Setting horarios state:', horariosWithNames.length, 'records');
       setHorarios(horariosWithNames);
     } catch (error) {
-      console.error('Error fetching horarios:', error);
+      console.error('[HorariosContext] Error fetching horarios:', error);
       toast.error('Error al cargar horarios');
     } finally {
       setLoading(false);

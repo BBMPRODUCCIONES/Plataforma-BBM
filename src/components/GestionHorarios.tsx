@@ -139,20 +139,30 @@ export const GestionHorarios = () => {
 
   // Filter horarios by selected employee and date range, then expand to rows per event
   const filteredHorarios = useMemo((): ExpandedHorario[] => {
+    console.log('[GestionHorarios] Total horarios from context:', horarios.length);
+    console.log('[GestionHorarios] Selected empleado:', selectedEmpleadoId);
+    
     let filtered = [...horarios];
 
-    // Filter by selected employee
+    // Filter by selected employee (if one is selected)
     if (selectedEmpleadoId) {
       filtered = filtered.filter(h => h.empleado_id === selectedEmpleadoId);
+      console.log('[GestionHorarios] After employee filter:', filtered.length);
     }
 
     // Filter by date range
     const range = getDateRange();
     if (range) {
       filtered = filtered.filter(h => {
-        const horarioDate = parseISO(h.dia);
-        return isWithinInterval(horarioDate, { start: range.start, end: range.end });
+        try {
+          const horarioDate = parseISO(h.dia);
+          return isWithinInterval(horarioDate, { start: range.start, end: range.end });
+        } catch (e) {
+          console.error('[GestionHorarios] Date parse error for:', h.dia, e);
+          return false;
+        }
       });
+      console.log('[GestionHorarios] After date filter:', filtered.length, 'Range:', range);
     }
 
     // Expand to multiple rows if evento_nombre contains multiple events (separated by " + ")
@@ -168,12 +178,14 @@ export const GestionHorarios = () => {
       const eventoNombre = horario.evento_nombre || '';
       const parts = eventoNombre.split(' + ').map(p => p.trim()).filter(Boolean);
       
-      // Determine category display
-      const hasOficina = parts.some(p => p.toLowerCase() === 'oficina');
+      // Determine category display based on categoria field and evento_nombre
+      const categoria = horario.categoria || '';
+      const hasOficina = categoria.toLowerCase() === 'oficina' || parts.some(p => p.toLowerCase() === 'oficina');
       const eventParts = parts.filter(p => p.toLowerCase() !== 'oficina');
+      const hasEvents = eventParts.length > 0 || (categoria.toLowerCase() === 'evento' && eventoNombre);
       
       let displayCategoria: string;
-      if (hasOficina && eventParts.length > 0) {
+      if (hasOficina && hasEvents) {
         displayCategoria = 'Oficina + Evento';
       } else if (hasOficina) {
         displayCategoria = 'Oficina';
@@ -192,16 +204,6 @@ export const GestionHorarios = () => {
             displayNombre,
           });
         });
-        // If only oficina and no events, still create one row
-        if (hasOficina && eventParts.length === 0) {
-          expanded.push({
-            ...horario,
-            displayEvento: 'OFICINA',
-            displayCargo,
-            displayCategoria,
-            displayNombre,
-          });
-        }
       } else if (eventParts.length === 1) {
         // Single event
         expanded.push({
@@ -211,7 +213,7 @@ export const GestionHorarios = () => {
           displayCategoria,
           displayNombre,
         });
-      } else if (hasOficina) {
+      } else if (hasOficina || categoria.toLowerCase() === 'oficina') {
         // Only oficina, no events
         expanded.push({
           ...horario,
@@ -221,17 +223,18 @@ export const GestionHorarios = () => {
           displayNombre,
         });
       } else {
-        // Fallback - show whatever evento_nombre has
+        // Fallback - use evento_nombre directly
         expanded.push({
           ...horario,
-          displayEvento: eventoNombre || '-',
+          displayEvento: eventoNombre || horario.categoria || '-',
           displayCargo,
-          displayCategoria: horario.categoria,
+          displayCategoria: categoria || 'Evento',
           displayNombre,
         });
       }
     });
 
+    console.log('[GestionHorarios] Final expanded rows:', expanded.length);
     return expanded;
   }, [horarios, selectedEmpleadoId, getDateRange, empleados]);
 

@@ -14,7 +14,7 @@ import { useProjects } from '@/contexts/ProjectsContext';
 import { Project } from '@/types';
 import { useEmpleados } from '@/contexts/EmpleadosContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, Camera, ExternalLink, Building2, Star, Save, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, Camera, ExternalLink, Building2, Star, Save, AlertTriangle, Home } from 'lucide-react';
 import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -63,6 +63,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
   // Context selection
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
   const [oficinaEnabled, setOficinaEnabled] = useState(false);
+  const [casaEnabled, setCasaEnabled] = useState(false);
   const [contextModified, setContextModified] = useState(false);
 
   // Single daily record from DB
@@ -212,6 +213,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
         
         // Parse context from record
         setOficinaEnabled(record.categoria === 'Oficina' || record.evento_nombre?.includes('Oficina') || false);
+        setCasaEnabled(record.evento_nombre?.includes('Casa') || false);
         if (record.evento_id) {
           setSelectedEventIds([record.evento_id]);
         } else {
@@ -240,6 +242,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     setUbicacionSalida('');
     setLocationSalida(null);
     setOficinaEnabled(false);
+    setCasaEnabled(false);
     setSelectedEventIds([]);
     setSalidaContingencia(null);
     setContextModified(false);
@@ -257,6 +260,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     if (!existingRecord) {
       setSelectedEventIds([]);
       setOficinaEnabled(false);
+      setCasaEnabled(false);
     }
     setEventoSearch('');
   }, [fecha]);
@@ -283,6 +287,11 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
   const handleOficinaToggle = (checked: boolean) => {
     setContextModified(true);
     setOficinaEnabled(checked);
+  };
+
+  const handleCasaToggle = (checked: boolean) => {
+    setContextModified(true);
+    setCasaEnabled(checked);
   };
   const getCurrentLocation = (): Promise<LocationData | null> => {
     return new Promise((resolve) => {
@@ -368,8 +377,8 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     }
 
     // Validate context is selected
-    if (!oficinaEnabled && selectedEventIds.length === 0) {
-      toast.error('Selecciona al menos oficina o un evento como contexto');
+    if (!oficinaEnabled && !casaEnabled && selectedEventIds.length === 0) {
+      toast.error('Selecciona al menos oficina, casa o un evento como contexto');
       return false;
     }
 
@@ -380,12 +389,15 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     // Build evento_nombre based on context
     const contextParts: string[] = [];
     if (oficinaEnabled) contextParts.push('Oficina');
+    if (casaEnabled) contextParts.push('Casa');
     selectedEventIds.forEach(eventId => {
       const project = projects.find(p => p.id === eventId);
       if (project) contextParts.push(project.evento);
     });
     const eventoNombre = contextParts.join(' + ') || 'Sin contexto';
-    const categoria = oficinaEnabled && selectedEventIds.length === 0 ? 'Oficina' : 'Evento';
+    const categoria = (oficinaEnabled || casaEnabled) && selectedEventIds.length === 0 
+      ? (oficinaEnabled ? 'Oficina' : 'Casa') 
+      : 'Evento';
 
     // Build Google Maps link
     const mapsUrl = data.location?.status === 'available' && data.location.lat !== 0
@@ -467,8 +479,8 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     }
 
     // Validate context is selected
-    if (!oficinaEnabled && selectedEventIds.length === 0) {
-      toast.error('Selecciona oficina o al menos un evento como contexto');
+    if (!oficinaEnabled && !casaEnabled && selectedEventIds.length === 0) {
+      toast.error('Selecciona oficina, casa o al menos un evento como contexto');
       setCameraLlegadaOpen(false);
       return;
     }
@@ -616,8 +628,8 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
       return;
     }
 
-    if (!oficinaEnabled && selectedEventIds.length === 0) {
-      toast.error('Selecciona al menos oficina o un evento como contexto');
+    if (!oficinaEnabled && !casaEnabled && selectedEventIds.length === 0) {
+      toast.error('Selecciona al menos oficina, casa o un evento como contexto');
       return;
     }
 
@@ -626,12 +638,15 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     // Build new context string
     const contextParts: string[] = [];
     if (oficinaEnabled) contextParts.push('Oficina');
+    if (casaEnabled) contextParts.push('Casa');
     selectedEventIds.forEach(eventId => {
       const project = projects.find(p => p.id === eventId);
       if (project) contextParts.push(project.evento);
     });
     const eventoNombre = contextParts.join(' + ') || 'Sin contexto';
-    const categoria = oficinaEnabled && selectedEventIds.length === 0 ? 'Oficina' : 'Evento';
+    const categoria: 'Oficina' | 'Casa' | 'Evento' = (oficinaEnabled || casaEnabled) && selectedEventIds.length === 0 
+      ? (oficinaEnabled ? 'Oficina' : 'Casa') 
+      : 'Evento';
 
     try {
       const { error } = await supabase
@@ -725,12 +740,14 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     // Build current context for contingency
     const contextParts: string[] = [];
     if (oficinaEnabled) contextParts.push('Oficina');
+    if (casaEnabled) contextParts.push('Casa');
     selectedEventIds.forEach(eventId => {
       const project = projects.find(p => p.id === eventId);
       if (project) contextParts.push(project.evento);
     });
     const contexto = {
       oficina: oficinaEnabled,
+      casa: casaEnabled,
       eventos: selectedEventIds,
       eventoNombres: contextParts,
     };
@@ -816,7 +833,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     }
   };
 
-  const showRegistrationForm = empleadoId && (oficinaEnabled || selectedEventIds.length > 0);
+  const showRegistrationForm = empleadoId && (oficinaEnabled || casaEnabled || selectedEventIds.length > 0);
 
   // Display values from existing record or local state
   const displayFotoLlegada = existingRecord?.foto_llegada || fotoLlegada;
@@ -877,6 +894,12 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                       <span className="inline-flex items-center gap-1 bg-primary/20 text-primary px-2 py-1 rounded text-xs">
                         <Building2 className="h-3 w-3" />
                         Oficina
+                      </span>
+                    )}
+                    {casaEnabled && (
+                      <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-500 px-2 py-1 rounded text-xs">
+                        <Home className="h-3 w-3" />
+                        Casa
                       </span>
                     )}
                     {selectedEventIds.map(eventId => {
@@ -1207,7 +1230,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                 </div>
               ) : !loadingRecord && (
                 <div className="text-center text-muted-foreground py-12 border-2 border-dashed border-border rounded-lg">
-                  <p className="text-sm">Selecciona un empleado y luego activa Oficina o selecciona eventos como contexto</p>
+                  <p className="text-sm">Selecciona un empleado y luego activa Oficina, Casa o selecciona eventos como contexto</p>
                 </div>
               )}
             </div>
@@ -1251,6 +1274,22 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                 <Switch
                   checked={oficinaEnabled}
                   onCheckedChange={handleOficinaToggle}
+                  disabled={!empleadoId || salidaRegistered}
+                />
+              </div>
+
+              {/* Casa Toggle */}
+              <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <Home className="h-5 w-5 text-amber-500" />
+                  <div>
+                    <Label className="text-sm font-bold">CASA</Label>
+                    <p className="text-xs text-muted-foreground">Trabajo remoto</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={casaEnabled}
+                  onCheckedChange={handleCasaToggle}
                   disabled={!empleadoId || salidaRegistered}
                 />
               </div>

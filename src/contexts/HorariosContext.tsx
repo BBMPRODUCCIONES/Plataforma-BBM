@@ -9,7 +9,7 @@ export interface Horario {
   evento_nombre: string;
   cargo: string;
   dia: string;
-  categoria: 'Oficina' | 'Evento';
+  categoria: 'Oficina' | 'Casa' | 'Evento';
   llegada: string;
   ubicacion_llegada: string;
   salida: string;

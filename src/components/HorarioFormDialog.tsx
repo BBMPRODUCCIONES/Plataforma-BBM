@@ -5,13 +5,16 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { EmpleadoAutocomplete } from '@/components/EmpleadoAutocomplete';
 import { CameraCapture } from '@/components/CameraCapture';
 import { useHorarios, Horario } from '@/contexts/HorariosContext';
 import { useProjects } from '@/contexts/ProjectsContext';
+import { Project } from '@/types';
 import { useEmpleados } from '@/contexts/EmpleadosContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, AlertCircle, Camera, ExternalLink } from 'lucide-react';
+import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, AlertCircle, Camera, ExternalLink, Building2, Star } from 'lucide-react';
 import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -31,6 +34,28 @@ interface LocationData {
   status?: 'available' | 'unavailable' | 'denied' | 'error';
 }
 
+interface SelectedEvent {
+  id: string;
+  nombre: string;
+  isAssigned: boolean; // true if employee is assigned to this event
+}
+
+// Structure to track registrations per type (oficina or each event)
+interface RegistrationState {
+  tipo: 'Oficina' | 'Evento';
+  eventoId?: string;
+  eventoNombre?: string;
+  existingRecord: Horario | null;
+  fotoLlegada: string;
+  ubicacionLlegada: string;
+  horarioLlegada: string;
+  locationLlegada: LocationData | null;
+  fotoSalida: string;
+  ubicacionSalida: string;
+  horarioSalida: string;
+  locationSalida: LocationData | null;
+}
+
 export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps) => {
   const { addHorario, updateHorario, horarios } = useHorarios();
   const { projects } = useProjects();
@@ -39,136 +64,170 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
 
   // Form state
   const [empleadoId, setEmpleadoId] = useState<string | null>(null);
-  const [categoria, setCategoria] = useState<'Oficina' | 'Evento'>('Oficina');
-  const [fechaEvento, setFechaEvento] = useState<Date>(new Date());
-  const [eventoId, setEventoId] = useState<string | null>(null);
-  const [eventoNombre, setEventoNombre] = useState('');
+  const [fecha, setFecha] = useState<Date>(new Date());
   const [eventoSearch, setEventoSearch] = useState('');
-  const [showEventoDropdown, setShowEventoDropdown] = useState(false);
+  
+  // New: multi-select events and oficina toggle
+  const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
+  const [oficinaEnabled, setOficinaEnabled] = useState(false);
 
-  // Existing record (for duplicate prevention)
-  const [existingRecord, setExistingRecord] = useState<Horario | null>(null);
+  // Active registration being captured (which one is currently open for camera)
+  const [activeRegistration, setActiveRegistration] = useState<string | null>(null); // 'oficina' or event id
+
+  // Registration states per type
+  const [registrations, setRegistrations] = useState<Map<string, RegistrationState>>(new Map());
 
   // Camera dialogs
   const [cameraLlegadaOpen, setCameraLlegadaOpen] = useState(false);
   const [cameraSalidaOpen, setCameraSalidaOpen] = useState(false);
 
-  // Llegada
-  const [fotoLlegada, setFotoLlegada] = useState<string>('');
-  const [ubicacionLlegada, setUbicacionLlegada] = useState('');
-  const [horarioLlegada, setHorarioLlegada] = useState('');
-  const [locationLlegada, setLocationLlegada] = useState<LocationData | null>(null);
-
-  // Salida
-  const [fotoSalida, setFotoSalida] = useState<string>('');
-  const [ubicacionSalida, setUbicacionSalida] = useState('');
-  const [horarioSalida, setHorarioSalida] = useState('');
-  const [locationSalida, setLocationSalida] = useState<LocationData | null>(null);
-
-  // Check for existing record when empleado, fecha, categoria, or evento changes
-  const checkExistingRecord = useCallback(() => {
-    if (!empleadoId) {
-      setExistingRecord(null);
-      return;
-    }
-
-    const dia = format(fechaEvento, 'yyyy-MM-dd');
-    
-    const existing = horarios.find(h => {
-      const sameEmployee = h.empleado_id === empleadoId;
-      const sameDay = h.dia === dia;
-      const sameCategory = h.categoria === categoria;
-      const sameEvent = categoria === 'Evento' ? h.evento_id === eventoId : true;
-      
-      return sameEmployee && sameDay && sameCategory && sameEvent;
-    });
-
-    if (existing) {
-      setExistingRecord(existing);
-      // Pre-fill existing data
-      if (existing.foto_llegada) setFotoLlegada(existing.foto_llegada);
-      if (existing.llegada) setHorarioLlegada(existing.llegada);
-      if (existing.ubicacion_llegada) setUbicacionLlegada(existing.ubicacion_llegada);
-      if (existing.foto_salida) setFotoSalida(existing.foto_salida);
-      if (existing.salida) setHorarioSalida(existing.salida);
-      if (existing.ubicacion_salida) setUbicacionSalida(existing.ubicacion_salida);
-      
-      // Try to parse location from stored string
-      if (existing.ubicacion_llegada && existing.ubicacion_llegada.includes(',')) {
-        const coords = existing.ubicacion_llegada.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
-        if (coords) {
-          setLocationLlegada({ lat: parseFloat(coords[1]), lng: parseFloat(coords[2]) });
-        }
-      }
-      if (existing.ubicacion_salida && existing.ubicacion_salida.includes(',')) {
-        const coords = existing.ubicacion_salida.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
-        if (coords) {
-          setLocationSalida({ lat: parseFloat(coords[1]), lng: parseFloat(coords[2]) });
-        }
-      }
-    } else {
-      setExistingRecord(null);
-    }
-  }, [empleadoId, fechaEvento, categoria, eventoId, horarios]);
-
-  useEffect(() => {
-    checkExistingRecord();
-  }, [checkExistingRecord]);
-
-  // Reset event selection when category changes to Evento
-  useEffect(() => {
-    if (categoria === 'Evento') {
-      setFechaEvento(new Date());
-    }
-  }, [categoria]);
-
-  // Check if llegada/salida is already registered
-  const llegadaRegistered = Boolean(existingRecord?.foto_llegada && existingRecord?.llegada);
-  const salidaRegistered = Boolean(existingRecord?.foto_salida && existingRecord?.salida);
-
   // Filter events by selected date (montaje or ejecucion)
   const eventsForDate = useMemo(() => {
-    if (!fechaEvento) return [];
+    if (!fecha) return [];
     
     return projects.filter(project => {
       try {
-        const montajeStart = parseISO(project.fechaMontajeInicio);
-        const montajeEnd = parseISO(project.fechaMontajeFin);
-        const isInMontaje = isWithinInterval(fechaEvento, { start: montajeStart, end: montajeEnd }) ||
-          isSameDay(fechaEvento, montajeStart) || isSameDay(fechaEvento, montajeEnd);
+        // Check montaje dates
+        if (project.fechaMontajeInicio && project.fechaMontajeFin) {
+          const montajeStart = parseISO(project.fechaMontajeInicio);
+          const montajeEnd = parseISO(project.fechaMontajeFin);
+          const isInMontaje = isWithinInterval(fecha, { start: montajeStart, end: montajeEnd }) ||
+            isSameDay(fecha, montajeStart) || isSameDay(fecha, montajeEnd);
+          if (isInMontaje) return true;
+        }
 
-        const ejecucionStart = parseISO(project.fechaEjecucionInicio);
-        const ejecucionEnd = parseISO(project.fechaEjecucionFin);
-        const isInEjecucion = isWithinInterval(fechaEvento, { start: ejecucionStart, end: ejecucionEnd }) ||
-          isSameDay(fechaEvento, ejecucionStart) || isSameDay(fechaEvento, ejecucionEnd);
+        // Check ejecucion dates
+        if (project.fechaEjecucionInicio && project.fechaEjecucionFin) {
+          const ejecucionStart = parseISO(project.fechaEjecucionInicio);
+          const ejecucionEnd = parseISO(project.fechaEjecucionFin);
+          const isInEjecucion = isWithinInterval(fecha, { start: ejecucionStart, end: ejecucionEnd }) ||
+            isSameDay(fecha, ejecucionStart) || isSameDay(fecha, ejecucionEnd);
+          if (isInEjecucion) return true;
+        }
 
-        return isInMontaje || isInEjecucion;
+        return false;
       } catch {
         return false;
       }
     });
-  }, [projects, fechaEvento]);
+  }, [projects, fecha]);
+
+  // Check if employee is assigned to an event (in personal array)
+  const isEmployeeAssignedToEvent = useCallback((project: Project, empId: string | null): boolean => {
+    if (!empId || !project.personal) return false;
+    
+    // personal is an array of objects with empleado_id or similar
+    return project.personal.some((p: any) => 
+      p.empleado_id === empId || p.personal === empId || p.nombre === empleados.find(e => e.id === empId)?.nombre
+    );
+  }, [empleados]);
+
+  // Sort events: assigned ones first
+  const sortedEventsForDate = useMemo(() => {
+    return [...eventsForDate].sort((a, b) => {
+      const aAssigned = isEmployeeAssignedToEvent(a, empleadoId);
+      const bAssigned = isEmployeeAssignedToEvent(b, empleadoId);
+      if (aAssigned && !bAssigned) return -1;
+      if (!aAssigned && bAssigned) return 1;
+      return 0;
+    });
+  }, [eventsForDate, empleadoId, isEmployeeAssignedToEvent]);
 
   // Filter events based on search
   const filteredEvents = useMemo(() => {
-    if (!eventoSearch.trim()) return eventsForDate;
-    return eventsForDate.filter(p =>
+    if (!eventoSearch.trim()) return sortedEventsForDate;
+    return sortedEventsForDate.filter(p =>
       p.evento.toLowerCase().includes(eventoSearch.toLowerCase())
     );
-  }, [eventsForDate, eventoSearch]);
+  }, [sortedEventsForDate, eventoSearch]);
 
-  // Reset event selection when date changes
+  // Load existing records for the employee + date combination
+  const loadExistingRecords = useCallback(() => {
+    if (!empleadoId) {
+      setRegistrations(new Map());
+      return;
+    }
+
+    const dia = format(fecha, 'yyyy-MM-dd');
+    const newRegistrations = new Map<string, RegistrationState>();
+
+    // Check for oficina record
+    const oficinaRecord = horarios.find(h => 
+      h.empleado_id === empleadoId && 
+      h.dia === dia && 
+      h.categoria === 'Oficina'
+    );
+
+    if (oficinaRecord || oficinaEnabled) {
+      newRegistrations.set('oficina', {
+        tipo: 'Oficina',
+        existingRecord: oficinaRecord || null,
+        fotoLlegada: oficinaRecord?.foto_llegada || '',
+        ubicacionLlegada: oficinaRecord?.ubicacion_llegada || '',
+        horarioLlegada: oficinaRecord?.llegada || '',
+        locationLlegada: parseLocationFromString(oficinaRecord?.ubicacion_llegada),
+        fotoSalida: oficinaRecord?.foto_salida || '',
+        ubicacionSalida: oficinaRecord?.ubicacion_salida || '',
+        horarioSalida: oficinaRecord?.salida || '',
+        locationSalida: parseLocationFromString(oficinaRecord?.ubicacion_salida),
+      });
+    }
+
+    // Check for event records
+    selectedEventIds.forEach(eventId => {
+      const eventRecord = horarios.find(h => 
+        h.empleado_id === empleadoId && 
+        h.dia === dia && 
+        h.categoria === 'Evento' &&
+        h.evento_id === eventId
+      );
+      const project = projects.find(p => p.id === eventId);
+
+      newRegistrations.set(eventId, {
+        tipo: 'Evento',
+        eventoId: eventId,
+        eventoNombre: project?.evento || eventRecord?.evento_nombre || '',
+        existingRecord: eventRecord || null,
+        fotoLlegada: eventRecord?.foto_llegada || '',
+        ubicacionLlegada: eventRecord?.ubicacion_llegada || '',
+        horarioLlegada: eventRecord?.llegada || '',
+        locationLlegada: parseLocationFromString(eventRecord?.ubicacion_llegada),
+        fotoSalida: eventRecord?.foto_salida || '',
+        ubicacionSalida: eventRecord?.ubicacion_salida || '',
+        horarioSalida: eventRecord?.salida || '',
+        locationSalida: parseLocationFromString(eventRecord?.ubicacion_salida),
+      });
+    });
+
+    setRegistrations(newRegistrations);
+  }, [empleadoId, fecha, horarios, oficinaEnabled, selectedEventIds, projects]);
+
   useEffect(() => {
-    setEventoId(null);
-    setEventoNombre('');
-    setEventoSearch('');
-  }, [fechaEvento]);
+    loadExistingRecords();
+  }, [loadExistingRecords]);
 
-  const handleSelectEvento = (project: typeof projects[0]) => {
-    setEventoId(project.id);
-    setEventoNombre(project.evento);
-    setEventoSearch(project.evento);
-    setShowEventoDropdown(false);
+  // Reset selections when date changes
+  useEffect(() => {
+    setSelectedEventIds([]);
+    setEventoSearch('');
+  }, [fecha]);
+
+  const parseLocationFromString = (locationStr: string | undefined): LocationData | null => {
+    if (!locationStr || !locationStr.includes(',')) return null;
+    const coords = locationStr.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+    if (coords) {
+      return { lat: parseFloat(coords[1]), lng: parseFloat(coords[2]), status: 'available' };
+    }
+    return null;
+  };
+
+  const toggleEventSelection = (eventId: string) => {
+    setSelectedEventIds(prev => {
+      if (prev.includes(eventId)) {
+        return prev.filter(id => id !== eventId);
+      }
+      return [...prev, eventId];
+    });
   };
 
   const getCurrentLocation = (): Promise<LocationData | null> => {
@@ -197,7 +256,6 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
             console.log('Could not get address:', err);
           }
 
-          // Show warning if accuracy is low
           if (accuracy && accuracy > 2000) {
             toast.warning(`Precisión baja: ${Math.round(accuracy)}m`, {
               description: 'La ubicación se guardará pero puede no ser exacta'
@@ -224,7 +282,6 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
           } else {
             toast.error('No se pudo obtener la ubicación');
           }
-          // Return partial data so record can still be saved
           resolve({ lat: 0, lng: 0, status, provider: 'failed' });
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -240,9 +297,14 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
   };
 
   const handleCaptureLlegada = async (file: File) => {
-    // Check if llegada already registered
-    if (llegadaRegistered) {
-      toast.error('Ya registraste tu llegada hoy. No puedes registrar otra llegada para esta fecha.');
+    if (!activeRegistration) return;
+
+    const reg = registrations.get(activeRegistration);
+    if (!reg) return;
+
+    // Check if already registered
+    if (reg.existingRecord?.foto_llegada && reg.existingRecord?.llegada) {
+      toast.error('Ya registraste tu llegada. No puedes registrar otra llegada.');
       return;
     }
 
@@ -269,45 +331,52 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
         .getPublicUrl(filePath);
 
       photoUrl = publicUrl;
-      setFotoLlegada(publicUrl);
     } catch (err) {
       console.error('Error uploading photo:', err);
       const reader = new FileReader();
       reader.onload = () => {
         photoUrl = reader.result as string;
-        setFotoLlegada(photoUrl);
       };
       reader.readAsDataURL(file);
     }
 
-    setHorarioLlegada(timestamp);
-
     const location = await getCurrentLocation();
-    if (location) {
-      setLocationLlegada(location);
-      if (location.status === 'available') {
-        // Store coordinates for Google Maps link + optional address
-        const coordsStr = `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
-        setUbicacionLlegada(coordsStr);
-      } else {
-        setUbicacionLlegada('Ubicación no disponible');
+    const coordsStr = location?.status === 'available' 
+      ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
+      : 'Ubicación no disponible';
+
+    setRegistrations(prev => {
+      const updated = new Map(prev);
+      const current = updated.get(activeRegistration);
+      if (current) {
+        updated.set(activeRegistration, {
+          ...current,
+          fotoLlegada: photoUrl,
+          horarioLlegada: timestamp,
+          ubicacionLlegada: coordsStr,
+          locationLlegada: location,
+        });
       }
-    } else {
-      setUbicacionLlegada('Ubicación no disponible');
-    }
+      return updated;
+    });
 
     toast.success('Foto de llegada capturada');
   };
 
   const handleCaptureSalida = async (file: File) => {
-    // Check if salida already registered
-    if (salidaRegistered) {
-      toast.error('Ya registraste tu salida hoy. No puedes registrar otra salida para esta fecha.');
+    if (!activeRegistration) return;
+
+    const reg = registrations.get(activeRegistration);
+    if (!reg) return;
+
+    // Check if already registered
+    if (reg.existingRecord?.foto_salida && reg.existingRecord?.salida) {
+      toast.error('Ya registraste tu salida. No puedes registrar otra salida.');
       return;
     }
 
-    // Optional: Check if llegada exists before allowing salida
-    const hasLlegada = llegadaRegistered || fotoLlegada;
+    // Check if llegada exists
+    const hasLlegada = (reg.existingRecord?.foto_llegada && reg.existingRecord?.llegada) || reg.fotoLlegada;
     if (!hasLlegada) {
       toast.error('Debes registrar tu llegada antes de registrar la salida.');
       return;
@@ -336,31 +405,34 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
         .getPublicUrl(filePath);
 
       photoUrl = publicUrl;
-      setFotoSalida(publicUrl);
     } catch (err) {
       console.error('Error uploading photo:', err);
       const reader = new FileReader();
       reader.onload = () => {
         photoUrl = reader.result as string;
-        setFotoSalida(photoUrl);
       };
       reader.readAsDataURL(file);
     }
 
-    setHorarioSalida(timestamp);
-
     const location = await getCurrentLocation();
-    if (location) {
-      setLocationSalida(location);
-      if (location.status === 'available') {
-        const coordsStr = `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
-        setUbicacionSalida(coordsStr);
-      } else {
-        setUbicacionSalida('Ubicación no disponible');
+    const coordsStr = location?.status === 'available' 
+      ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
+      : 'Ubicación no disponible';
+
+    setRegistrations(prev => {
+      const updated = new Map(prev);
+      const current = updated.get(activeRegistration);
+      if (current) {
+        updated.set(activeRegistration, {
+          ...current,
+          fotoSalida: photoUrl,
+          horarioSalida: timestamp,
+          ubicacionSalida: coordsStr,
+          locationSalida: location,
+        });
       }
-    } else {
-      setUbicacionSalida('Ubicación no disponible');
-    }
+      return updated;
+    });
 
     toast.success('Foto de salida capturada');
   };
@@ -370,55 +442,63 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
       toast.error('Selecciona un empleado');
       return;
     }
-    if (categoria === 'Evento' && !eventoId) {
-      toast.error('Selecciona un evento');
+
+    if (!oficinaEnabled && selectedEventIds.length === 0) {
+      toast.error('Selecciona al menos oficina o un evento');
       return;
     }
 
-    // Require at least llegada to save
-    if (!fotoLlegada && !horarioLlegada) {
-      toast.error('Debes registrar al menos la llegada');
-      return;
+    // Check each registration has at least llegada
+    for (const [key, reg] of registrations) {
+      if (!reg.fotoLlegada && !reg.horarioLlegada && !reg.existingRecord?.llegada) {
+        const label = key === 'oficina' ? 'Oficina' : reg.eventoNombre;
+        toast.error(`Debes registrar la llegada para ${label}`);
+        return;
+      }
     }
 
     setLoading(true);
     try {
-      const dia = format(fechaEvento, 'yyyy-MM-dd');
+      const dia = format(fecha, 'yyyy-MM-dd');
       const empleado = empleados.find(e => e.id === empleadoId);
       const cargo = empleado?.cargo || '';
 
-      // If existing record, update it instead of creating new
-      if (existingRecord) {
-        await updateHorario(existingRecord.id, {
-          llegada: horarioLlegada || existingRecord.llegada,
-          ubicacion_llegada: ubicacionLlegada || existingRecord.ubicacion_llegada,
-          salida: horarioSalida || existingRecord.salida,
-          ubicacion_salida: ubicacionSalida || existingRecord.ubicacion_salida,
-          foto_llegada: fotoLlegada || existingRecord.foto_llegada,
-          foto_salida: fotoSalida || existingRecord.foto_salida,
-        });
-        toast.success('Horario actualizado');
-      } else {
-        await addHorario({
-          empleado_id: empleadoId,
-          evento_id: eventoId,
-          evento_nombre: eventoNombre || (categoria === 'Oficina' ? 'Oficina' : ''),
-          cargo,
-          dia,
-          categoria,
-          llegada: horarioLlegada || '',
-          ubicacion_llegada: ubicacionLlegada,
-          salida: horarioSalida || '',
-          ubicacion_salida: ubicacionSalida,
-          foto_llegada: fotoLlegada,
-          foto_salida: fotoSalida,
-        });
+      for (const [key, reg] of registrations) {
+        if (reg.existingRecord) {
+          // Update existing record
+          await updateHorario(reg.existingRecord.id, {
+            llegada: reg.horarioLlegada || reg.existingRecord.llegada,
+            ubicacion_llegada: reg.ubicacionLlegada || reg.existingRecord.ubicacion_llegada,
+            salida: reg.horarioSalida || reg.existingRecord.salida,
+            ubicacion_salida: reg.ubicacionSalida || reg.existingRecord.ubicacion_salida,
+            foto_llegada: reg.fotoLlegada || reg.existingRecord.foto_llegada,
+            foto_salida: reg.fotoSalida || reg.existingRecord.foto_salida,
+          });
+        } else {
+          // Create new record
+          await addHorario({
+            empleado_id: empleadoId,
+            evento_id: reg.tipo === 'Evento' ? reg.eventoId || null : null,
+            evento_nombre: reg.tipo === 'Evento' ? reg.eventoNombre || '' : 'Oficina',
+            cargo,
+            dia,
+            categoria: reg.tipo,
+            llegada: reg.horarioLlegada || '',
+            ubicacion_llegada: reg.ubicacionLlegada,
+            salida: reg.horarioSalida || '',
+            ubicacion_salida: reg.ubicacionSalida,
+            foto_llegada: reg.fotoLlegada,
+            foto_salida: reg.fotoSalida,
+          });
+        }
       }
 
+      toast.success('Horarios guardados');
       resetForm();
       onOpenChange(false);
     } catch (err) {
-      console.error('Error creating/updating horario:', err);
+      console.error('Error saving horarios:', err);
+      toast.error('Error al guardar');
     } finally {
       setLoading(false);
     }
@@ -426,26 +506,265 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
 
   const resetForm = () => {
     setEmpleadoId(null);
-    setCategoria('Oficina');
-    setFechaEvento(new Date());
-    setEventoId(null);
-    setEventoNombre('');
+    setFecha(new Date());
+    setSelectedEventIds([]);
+    setOficinaEnabled(false);
     setEventoSearch('');
-    setFotoLlegada('');
-    setUbicacionLlegada('');
-    setHorarioLlegada('');
-    setLocationLlegada(null);
-    setFotoSalida('');
-    setUbicacionSalida('');
-    setHorarioSalida('');
-    setLocationSalida(null);
-    setExistingRecord(null);
+    setRegistrations(new Map());
+    setActiveRegistration(null);
+  };
+
+  const clearLlegada = (key: string) => {
+    setRegistrations(prev => {
+      const updated = new Map(prev);
+      const current = updated.get(key);
+      if (current && !current.existingRecord?.foto_llegada) {
+        updated.set(key, {
+          ...current,
+          fotoLlegada: '',
+          horarioLlegada: '',
+          ubicacionLlegada: '',
+          locationLlegada: null,
+        });
+      }
+      return updated;
+    });
+  };
+
+  const clearSalida = (key: string) => {
+    setRegistrations(prev => {
+      const updated = new Map(prev);
+      const current = updated.get(key);
+      if (current && !current.existingRecord?.foto_salida) {
+        updated.set(key, {
+          ...current,
+          fotoSalida: '',
+          horarioSalida: '',
+          ubicacionSalida: '',
+          locationSalida: null,
+        });
+      }
+      return updated;
+    });
+  };
+
+  const renderRegistrationSection = (key: string, reg: RegistrationState) => {
+    const llegadaRegistered = Boolean(reg.existingRecord?.foto_llegada && reg.existingRecord?.llegada);
+    const salidaRegistered = Boolean(reg.existingRecord?.foto_salida && reg.existingRecord?.salida);
+    const hasLlegada = llegadaRegistered || reg.fotoLlegada;
+    const label = key === 'oficina' ? 'Oficina' : reg.eventoNombre;
+
+    return (
+      <div key={key} className="border border-border rounded-lg p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          {key === 'oficina' ? (
+            <Building2 className="h-5 w-5 text-primary" />
+          ) : (
+            <Star className="h-5 w-5 text-primary" />
+          )}
+          <h3 className="font-bold text-lg">{label}</h3>
+        </div>
+
+        {/* Llegada */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-bold uppercase">Llegada</Label>
+            {llegadaRegistered && (
+              <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                Registrada
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {/* Foto */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Foto</Label>
+              <div className="border-2 border-dashed border-border rounded-lg p-2 min-h-[80px] flex flex-col items-center justify-center">
+                {reg.fotoLlegada || reg.existingRecord?.foto_llegada ? (
+                  <div className="relative w-full">
+                    <img 
+                      src={reg.fotoLlegada || reg.existingRecord?.foto_llegada} 
+                      alt="Llegada" 
+                      className="w-full h-16 object-cover rounded" 
+                    />
+                    {!llegadaRegistered && reg.fotoLlegada && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-5 w-5"
+                        onClick={() => clearLlegada(key)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setActiveRegistration(key);
+                      setCameraLlegadaOpen(true);
+                    }}
+                    disabled={llegadaRegistered}
+                    className="gap-1 text-xs"
+                  >
+                    <Camera className="h-3 w-3" />
+                    Tomar foto
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Ubicación */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                Ubicación
+              </Label>
+              <Input
+                value={reg.ubicacionLlegada || reg.existingRecord?.ubicacion_llegada || ''}
+                readOnly
+                placeholder="--"
+                className="bg-muted/50 cursor-not-allowed text-xs h-8"
+              />
+              {getGoogleMapsLink(reg.locationLlegada) && (
+                <a
+                  href={getGoogleMapsLink(reg.locationLlegada)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Ver en Maps
+                </a>
+              )}
+            </div>
+
+            {/* Horario */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Horario
+              </Label>
+              <Input
+                value={reg.horarioLlegada || reg.existingRecord?.llegada || ''}
+                readOnly
+                placeholder="--:--"
+                className="bg-muted/50 cursor-not-allowed font-mono text-xs h-8"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Salida */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-bold uppercase">Salida</Label>
+            {salidaRegistered && (
+              <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                Registrada
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {/* Foto */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Foto</Label>
+              <div className="border-2 border-dashed border-border rounded-lg p-2 min-h-[80px] flex flex-col items-center justify-center">
+                {reg.fotoSalida || reg.existingRecord?.foto_salida ? (
+                  <div className="relative w-full">
+                    <img 
+                      src={reg.fotoSalida || reg.existingRecord?.foto_salida} 
+                      alt="Salida" 
+                      className="w-full h-16 object-cover rounded" 
+                    />
+                    {!salidaRegistered && reg.fotoSalida && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-5 w-5"
+                        onClick={() => clearSalida(key)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setActiveRegistration(key);
+                        setCameraSalidaOpen(true);
+                      }}
+                      disabled={salidaRegistered || !hasLlegada}
+                      className="gap-1 text-xs"
+                    >
+                      <Camera className="h-3 w-3" />
+                      Tomar foto
+                    </Button>
+                    {!hasLlegada && (
+                      <p className="text-[9px] text-muted-foreground">Registra llegada primero</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Ubicación */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                Ubicación
+              </Label>
+              <Input
+                value={reg.ubicacionSalida || reg.existingRecord?.ubicacion_salida || ''}
+                readOnly
+                placeholder="--"
+                className="bg-muted/50 cursor-not-allowed text-xs h-8"
+              />
+              {getGoogleMapsLink(reg.locationSalida) && (
+                <a
+                  href={getGoogleMapsLink(reg.locationSalida)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Ver en Maps
+                </a>
+              )}
+            </div>
+
+            {/* Horario */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Horario
+              </Label>
+              <Input
+                value={reg.horarioSalida || reg.existingRecord?.salida || ''}
+                readOnly
+                placeholder="--:--"
+                className="bg-muted/50 cursor-not-allowed font-mono text-xs h-8"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-center">GESTIÓN DE HORARIOS</DialogTitle>
           </DialogHeader>
@@ -466,366 +785,139 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
                 />
               </div>
 
-              {/* Categoría */}
-              <div className="space-y-2">
-                <Label className="text-sm font-bold uppercase">Categoría</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={categoria === 'Evento' ? 'default' : 'outline'}
-                    onClick={() => setCategoria('Evento')}
-                    className="flex-1"
-                  >
-                    EVENTO
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={categoria === 'Oficina' ? 'default' : 'outline'}
-                    onClick={() => setCategoria('Oficina')}
-                    className="flex-1"
-                  >
-                    OFICINA
-                  </Button>
-                </div>
-              </div>
-
-              {/* Llegada Section */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-lg font-bold uppercase">Llegada</Label>
-                  {llegadaRegistered && (
-                    <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
-                      <Check className="h-3 w-3" />
-                      Registrada
-                    </span>
-                  )}
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Foto */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground">Foto</Label>
-                    <div className="border-2 border-dashed border-border rounded-lg p-4 min-h-[100px] flex flex-col items-center justify-center gap-2">
-                      {fotoLlegada ? (
-                        <div className="relative w-full">
-                          <img src={fotoLlegada} alt="Llegada" className="w-full h-20 object-cover rounded" />
-                          {!llegadaRegistered && (
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="absolute -top-2 -right-2 h-6 w-6"
-                              onClick={() => {
-                                setFotoLlegada('');
-                                setHorarioLlegada('');
-                                setUbicacionLlegada('');
-                                setLocationLlegada(null);
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCameraLlegadaOpen(true)}
-                          disabled={llegadaRegistered}
-                          className="gap-2"
-                        >
-                          <Camera className="h-4 w-4" />
-                          Tomar foto
-                        </Button>
-                      )}
-                    </div>
+              {/* Registration Sections */}
+              <div className="space-y-4">
+                {registrations.size === 0 && (
+                  <div className="text-center text-muted-foreground py-8 border-2 border-dashed border-border rounded-lg">
+                    <p>Selecciona un empleado y luego activa Oficina o selecciona eventos</p>
                   </div>
-
-                  {/* Ubicación - Read only with Google Maps link */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      Ubicación
-                    </Label>
-                    <div className="space-y-1">
-                      <div className="relative">
-                        <Input
-                          value={ubicacionLlegada}
-                          readOnly
-                          placeholder="Se captura con la foto"
-                          className="bg-muted/50 cursor-not-allowed text-xs"
-                        />
-                        {locationLlegada?.status === 'available' && (
-                          <Check className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
-                        )}
-                      </div>
-                      {getGoogleMapsLink(locationLlegada) ? (
-                        <a
-                          href={getGoogleMapsLink(locationLlegada)!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          Ver ubicación en Google Maps
-                        </a>
-                      ) : !ubicacionLlegada ? (
-                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          Automático al tomar foto
-                        </p>
-                      ) : ubicacionLlegada === 'Ubicación no disponible' && (
-                        <p className="text-[10px] text-destructive flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          No se pudo obtener ubicación
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Horario - Read only */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Horario
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        value={horarioLlegada}
-                        readOnly
-                        placeholder="--:--"
-                        className="bg-muted/50 cursor-not-allowed font-mono"
-                      />
-                      {horarioLlegada && (
-                        <Check className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
-                      )}
-                    </div>
-                    {!horarioLlegada && (
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Automático al tomar foto
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Salida Section */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-lg font-bold uppercase">Salida</Label>
-                  {salidaRegistered && (
-                    <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
-                      <Check className="h-3 w-3" />
-                      Registrada
-                    </span>
-                  )}
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Foto */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground">Foto</Label>
-                    <div className="border-2 border-dashed border-border rounded-lg p-4 min-h-[100px] flex flex-col items-center justify-center gap-2">
-                      {fotoSalida ? (
-                        <div className="relative w-full">
-                          <img src={fotoSalida} alt="Salida" className="w-full h-20 object-cover rounded" />
-                          {!salidaRegistered && (
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="absolute -top-2 -right-2 h-6 w-6"
-                              onClick={() => {
-                                setFotoSalida('');
-                                setHorarioSalida('');
-                                setUbicacionSalida('');
-                                setLocationSalida(null);
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCameraSalidaOpen(true)}
-                          disabled={salidaRegistered || (!llegadaRegistered && !fotoLlegada)}
-                          className="gap-2"
-                        >
-                          <Camera className="h-4 w-4" />
-                          Tomar foto
-                        </Button>
-                      )}
-                      {!llegadaRegistered && !fotoLlegada && !salidaRegistered && (
-                        <p className="text-[10px] text-muted-foreground text-center">
-                          Registra llegada primero
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Ubicación - Read only with Google Maps link */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      Ubicación
-                    </Label>
-                    <div className="space-y-1">
-                      <div className="relative">
-                        <Input
-                          value={ubicacionSalida}
-                          readOnly
-                          placeholder="Se captura con la foto"
-                          className="bg-muted/50 cursor-not-allowed text-xs"
-                        />
-                        {locationSalida?.status === 'available' && (
-                          <Check className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
-                        )}
-                      </div>
-                      {getGoogleMapsLink(locationSalida) ? (
-                        <a
-                          href={getGoogleMapsLink(locationSalida)!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          Ver ubicación en Google Maps
-                        </a>
-                      ) : !ubicacionSalida ? (
-                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          Automático al tomar foto
-                        </p>
-                      ) : ubicacionSalida === 'Ubicación no disponible' && (
-                        <p className="text-[10px] text-destructive flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          No se pudo obtener ubicación
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Horario - Read only */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Horario
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        value={horarioSalida}
-                        readOnly
-                        placeholder="--:--"
-                        className="bg-muted/50 cursor-not-allowed font-mono"
-                      />
-                      {horarioSalida && (
-                        <Check className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
-                      )}
-                    </div>
-                    {!horarioSalida && (
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Automático al tomar foto
-                      </p>
-                    )}
-                  </div>
-                </div>
+                )}
+                {Array.from(registrations.entries()).map(([key, reg]) => 
+                  renderRegistrationSection(key, reg)
+                )}
               </div>
 
               {/* Submit Button */}
-              <Button
-                onClick={handleSubmit}
-                className="w-full"
-                disabled={loading}
-              >
-                {loading ? 'Guardando...' : 'Guardar Horario'}
-              </Button>
+              {registrations.size > 0 && (
+                <Button
+                  onClick={handleSubmit}
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? 'Guardando...' : 'Guardar Horarios'}
+                </Button>
+              )}
             </div>
 
-            {/* Right Panel - Event Selection (only if categoria === 'Evento') */}
-            {categoria === 'Evento' && (
-              <div className="w-72 border-l border-border pl-6 space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-bold uppercase">Fecha</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(fechaEvento, "PPP", { locale: es })}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={fechaEvento}
-                        onSelect={(date) => date && setFechaEvento(date)}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-bold uppercase">Nombre de Evento</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={eventoSearch}
-                      onChange={(e) => {
-                        setEventoSearch(e.target.value);
-                        setShowEventoDropdown(true);
-                      }}
-                      onFocus={() => setShowEventoDropdown(true)}
-                      placeholder="Buscar evento..."
-                      className="pl-9"
+            {/* Right Panel - Date + Event Selection + Oficina Toggle */}
+            <div className="w-80 border-l border-border pl-6 space-y-6">
+              {/* Fecha */}
+              <div className="space-y-2">
+                <Label className="text-sm font-bold uppercase">Fecha</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(fecha, "PPP", { locale: es })}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={fecha}
+                      onSelect={(date) => date && setFecha(date)}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
                     />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Oficina Toggle */}
+              <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  <div>
+                    <Label className="text-sm font-bold">OFICINA</Label>
+                    <p className="text-xs text-muted-foreground">Registro de oficina</p>
                   </div>
+                </div>
+                <Switch
+                  checked={oficinaEnabled}
+                  onCheckedChange={setOficinaEnabled}
+                  disabled={!empleadoId}
+                />
+              </div>
 
-                  <p className="text-[10px] text-muted-foreground">
-                    Mostrando eventos del {format(fechaEvento, "d 'de' MMMM", { locale: es })}
-                  </p>
+              {/* Eventos */}
+              <div className="space-y-3">
+                <Label className="text-sm font-bold uppercase">Eventos</Label>
+                
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={eventoSearch}
+                    onChange={(e) => setEventoSearch(e.target.value)}
+                    placeholder="Buscar evento..."
+                    className="pl-9"
+                    disabled={!empleadoId}
+                  />
+                </div>
 
-                  {showEventoDropdown && (
-                    <div className="border border-border rounded-md bg-background max-h-60 overflow-y-auto shadow-lg">
-                      {filteredEvents.length > 0 ? (
-                        filteredEvents.map((event) => (
-                          <button
-                            key={event.id}
-                            className={cn(
-                              "w-full text-left px-3 py-2 hover:bg-muted text-sm flex items-center gap-2",
-                              eventoId === event.id && "bg-muted"
+                <p className="text-[10px] text-muted-foreground">
+                  Eventos del {format(fecha, "d 'de' MMMM", { locale: es })}
+                  {empleadoId && ' • Los asignados aparecen primero'}
+                </p>
+
+                <div className="border border-border rounded-lg bg-background max-h-52 overflow-y-auto">
+                  {filteredEvents.length > 0 ? (
+                    filteredEvents.map((event) => {
+                      const isAssigned = isEmployeeAssignedToEvent(event, empleadoId);
+                      const isSelected = selectedEventIds.includes(event.id);
+                      
+                      return (
+                        <div
+                          key={event.id}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer border-b border-border last:border-b-0",
+                            isSelected && "bg-primary/10"
+                          )}
+                          onClick={() => empleadoId && toggleEventSelection(event.id)}
+                        >
+                          <Checkbox 
+                            checked={isSelected}
+                            disabled={!empleadoId}
+                            className="pointer-events-none"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm truncate">{event.evento}</p>
+                            {isAssigned && (
+                              <p className="text-[10px] text-primary flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-primary" />
+                                Asignado
+                              </p>
                             )}
-                            onClick={() => handleSelectEvento(event)}
-                          >
-                            {eventoId === event.id && (
-                              <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                            )}
-                            <span className="truncate">{event.evento}</span>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                          No hay eventos para esta fecha
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  )}
-
-                  {eventoId && (
-                    <div className="p-2 bg-primary/10 rounded border border-primary/20">
-                      <p className="text-xs font-medium text-primary">Evento seleccionado:</p>
-                      <p className="text-sm truncate">{eventoNombre}</p>
+                      );
+                    })
+                  ) : (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No hay eventos para esta fecha
                     </div>
                   )}
                 </div>
+
+                {selectedEventIds.length > 0 && (
+                  <p className="text-xs text-primary">
+                    {selectedEventIds.length} evento{selectedEventIds.length > 1 ? 's' : ''} seleccionado{selectedEventIds.length > 1 ? 's' : ''}
+                  </p>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

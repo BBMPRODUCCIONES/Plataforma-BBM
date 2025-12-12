@@ -129,8 +129,16 @@ export const GestionHorarios = () => {
     return eventos;
   }, [selectedEmpleadoId, projects, getDateRange]);
 
-  // Filter horarios by selected employee and date range
-  const filteredHorarios = useMemo(() => {
+  // Expanded horarios - one row per event in multi-event registrations
+  interface ExpandedHorario extends Horario {
+    displayEvento: string;
+    displayCargo: string;
+    displayCategoria: string;
+    displayNombre: string;
+  }
+
+  // Filter horarios by selected employee and date range, then expand to rows per event
+  const filteredHorarios = useMemo((): ExpandedHorario[] => {
     let filtered = [...horarios];
 
     // Filter by selected employee
@@ -147,8 +155,85 @@ export const GestionHorarios = () => {
       });
     }
 
-    return filtered;
-  }, [horarios, selectedEmpleadoId, getDateRange]);
+    // Expand to multiple rows if evento_nombre contains multiple events (separated by " + ")
+    const expanded: ExpandedHorario[] = [];
+    
+    filtered.forEach(horario => {
+      // Get employee data for autocompletado
+      const empleado = empleados.find(e => e.id === horario.empleado_id);
+      const displayNombre = empleado?.nombre || horario.empleado_nombre || '-';
+      const displayCargo = empleado?.cargo || horario.cargo || '-';
+      
+      // Parse evento_nombre to check for multiple events and oficina
+      const eventoNombre = horario.evento_nombre || '';
+      const parts = eventoNombre.split(' + ').map(p => p.trim()).filter(Boolean);
+      
+      // Determine category display
+      const hasOficina = parts.some(p => p.toLowerCase() === 'oficina');
+      const eventParts = parts.filter(p => p.toLowerCase() !== 'oficina');
+      
+      let displayCategoria: string;
+      if (hasOficina && eventParts.length > 0) {
+        displayCategoria = 'Oficina + Evento';
+      } else if (hasOficina) {
+        displayCategoria = 'Oficina';
+      } else {
+        displayCategoria = 'Evento';
+      }
+      
+      // If there are multiple events, create a row for each
+      if (eventParts.length > 1) {
+        eventParts.forEach(eventName => {
+          expanded.push({
+            ...horario,
+            displayEvento: eventName,
+            displayCargo,
+            displayCategoria,
+            displayNombre,
+          });
+        });
+        // If only oficina and no events, still create one row
+        if (hasOficina && eventParts.length === 0) {
+          expanded.push({
+            ...horario,
+            displayEvento: 'OFICINA',
+            displayCargo,
+            displayCategoria,
+            displayNombre,
+          });
+        }
+      } else if (eventParts.length === 1) {
+        // Single event
+        expanded.push({
+          ...horario,
+          displayEvento: eventParts[0],
+          displayCargo,
+          displayCategoria,
+          displayNombre,
+        });
+      } else if (hasOficina) {
+        // Only oficina, no events
+        expanded.push({
+          ...horario,
+          displayEvento: 'OFICINA',
+          displayCargo,
+          displayCategoria: 'Oficina',
+          displayNombre,
+        });
+      } else {
+        // Fallback - show whatever evento_nombre has
+        expanded.push({
+          ...horario,
+          displayEvento: eventoNombre || '-',
+          displayCargo,
+          displayCategoria: horario.categoria,
+          displayNombre,
+        });
+      }
+    });
+
+    return expanded;
+  }, [horarios, selectedEmpleadoId, getDateRange, empleados]);
 
   const handleEdit = (horario: Horario) => {
     setEditingHorario(horario);
@@ -408,10 +493,30 @@ export const GestionHorarios = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredHorarios.map((horario) => {
-                // Parse ubicación to check if it's a Google Maps link
+              filteredHorarios.map((horario, index) => {
+                // Parse ubicación to create clickable Google Maps link
                 const renderUbicacion = (ubicacion: string) => {
-                  if (!ubicacion) return '-';
+                  if (!ubicacion || ubicacion === '-') return <span className="text-muted-foreground text-xs">-</span>;
+                  
+                  // Check if it's coordinates (lat, lng format)
+                  const coordsMatch = ubicacion.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+                  if (coordsMatch) {
+                    const lat = coordsMatch[1];
+                    const lng = coordsMatch[2];
+                    const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                    return (
+                      <a 
+                        href={mapsUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline text-xs flex items-center gap-1"
+                      >
+                        Ver en Maps
+                      </a>
+                    );
+                  }
+                  
+                  // Check if it already contains a maps link
                   if (ubicacion.includes('google.com/maps') || ubicacion.startsWith('http')) {
                     return (
                       <a 
@@ -420,32 +525,46 @@ export const GestionHorarios = () => {
                         rel="noopener noreferrer"
                         className="text-primary hover:underline text-xs"
                       >
-                        Ver mapa
+                        Ver en Maps
                       </a>
                     );
                   }
+                  
+                  // Check for "Ubicación no disponible"
+                  if (ubicacion.toLowerCase().includes('no disponible')) {
+                    return <span className="text-muted-foreground text-xs">No disponible</span>;
+                  }
+                  
                   return <span className="text-xs">{ubicacion}</span>;
                 };
 
+                // Determine category badge color
+                const getCategoryStyles = (categoria: string) => {
+                  if (categoria.includes('Oficina') && categoria.includes('Evento')) {
+                    return "bg-purple-500/20 text-purple-400";
+                  } else if (categoria === 'Oficina') {
+                    return "bg-blue-500/20 text-blue-400";
+                  }
+                  return "bg-green-500/20 text-green-400";
+                };
+
                 return (
-                  <TableRow key={horario.id}>
-                    <TableCell className="font-medium">{horario.evento_nombre || '-'}</TableCell>
-                    <TableCell>{horario.cargo}</TableCell>
-                    <TableCell>{horario.empleado_nombre}</TableCell>
+                  <TableRow key={`${horario.id}-${index}`}>
+                    <TableCell className="font-medium">{horario.displayEvento}</TableCell>
+                    <TableCell>{horario.displayCargo}</TableCell>
+                    <TableCell>{horario.displayNombre}</TableCell>
                     <TableCell>{format(parseISO(horario.dia), 'dd/MM/yyyy')}</TableCell>
                     <TableCell>
                       <span className={cn(
-                        "px-2 py-1 rounded text-xs font-medium",
-                        horario.categoria === 'Oficina' 
-                          ? "bg-blue-500/20 text-blue-400" 
-                          : "bg-green-500/20 text-green-400"
+                        "px-2 py-1 rounded text-xs font-medium whitespace-nowrap",
+                        getCategoryStyles(horario.displayCategoria)
                       )}>
-                        {horario.categoria}
+                        {horario.displayCategoria}
                       </span>
                     </TableCell>
-                    <TableCell className="text-center font-mono">{horario.llegada}</TableCell>
+                    <TableCell className="text-center font-mono">{horario.llegada || '-'}</TableCell>
                     <TableCell className="text-center">{renderUbicacion(horario.ubicacion_llegada)}</TableCell>
-                    <TableCell className="text-center font-mono">{horario.salida}</TableCell>
+                    <TableCell className="text-center font-mono">{horario.salida || '-'}</TableCell>
                     <TableCell className="text-center">{renderUbicacion(horario.ubicacion_salida)}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">

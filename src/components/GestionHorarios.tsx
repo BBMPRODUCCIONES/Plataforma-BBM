@@ -162,30 +162,50 @@ export const GestionHorarios = () => {
 
   // Filter horarios by selected employee and date range, then expand to rows per event
   const filteredHorarios = useMemo((): ExpandedHorario[] => {
+    console.log('[GestionHorarios] === FILTERING HORARIOS ===');
     console.log('[GestionHorarios] Total horarios from context:', horarios.length);
-    console.log('[GestionHorarios] Selected empleado:', selectedEmpleadoId);
+    console.log('[GestionHorarios] Selected empleado ID:', selectedEmpleadoId);
+    
+    if (horarios.length > 0) {
+      console.log('[GestionHorarios] Sample horarios empleado_ids:', horarios.slice(0, 5).map(h => ({
+        id: h.id,
+        empleado_id: h.empleado_id,
+        dia: h.dia,
+        categoria: h.categoria,
+        evento_nombre: h.evento_nombre
+      })));
+    }
     
     let filtered = [...horarios];
 
     // Filter by selected employee (if one is selected)
     if (selectedEmpleadoId) {
-      filtered = filtered.filter(h => h.empleado_id === selectedEmpleadoId);
-      console.log('[GestionHorarios] After employee filter:', filtered.length);
+      filtered = filtered.filter(h => {
+        const match = h.empleado_id === selectedEmpleadoId;
+        if (!match && h.empleado_id) {
+          console.log('[GestionHorarios] ID mismatch:', h.empleado_id, 'vs', selectedEmpleadoId);
+        }
+        return match;
+      });
+      console.log('[GestionHorarios] After employee filter:', filtered.length, 'records');
     }
 
     // Filter by date range
     const range = getDateRange();
     if (range) {
+      console.log('[GestionHorarios] Date range:', format(range.start, 'yyyy-MM-dd'), 'to', format(range.end, 'yyyy-MM-dd'));
       filtered = filtered.filter(h => {
         try {
           const horarioDate = parseISO(h.dia);
-          return isWithinInterval(horarioDate, { start: range.start, end: range.end });
+          const inRange = isWithinInterval(horarioDate, { start: range.start, end: range.end });
+          console.log('[GestionHorarios] Date check:', h.dia, '-> in range:', inRange);
+          return inRange;
         } catch (e) {
           console.error('[GestionHorarios] Date parse error for:', h.dia, e);
           return false;
         }
       });
-      console.log('[GestionHorarios] After date filter:', filtered.length, 'Range:', range);
+      console.log('[GestionHorarios] After date filter:', filtered.length, 'records');
     }
 
     // Expand to multiple rows if evento_nombre contains multiple events (separated by " + ")
@@ -334,6 +354,7 @@ export const GestionHorarios = () => {
             <EmpleadoAutocomplete
               value={selectedEmpleadoId}
               onChange={handleEmpleadoChange}
+              useEmpleadoId={true}
               placeholder="Buscar empleado por nombre..."
             />
           </div>
@@ -450,55 +471,55 @@ export const GestionHorarios = () => {
         </HorarioFormDialog>
       </div>
 
-      {/* Eventos Asignados Section */}
-      {selectedEmpleadoId && (
-        <div className="bg-card/30 p-4 rounded-lg border border-border/30">
-          <h3 className="text-sm font-semibold mb-3 text-foreground">
-            EVENTOS ASIGNADOS (Panel Operativo)
-          </h3>
+      {/* Eventos Asignados Section - Solo informativo, NO bloquea historial */}
+      {selectedEmpleadoId && eventosAsignados.length > 0 && (
+        <details className="bg-card/30 p-4 rounded-lg border border-border/30">
+          <summary className="text-sm font-semibold cursor-pointer text-foreground flex items-center gap-2">
+            <span>EVENTOS ASIGNADOS EN PANEL OPERATIVO</span>
+            <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded">
+              {eventosAsignados.length} evento{eventosAsignados.length !== 1 ? 's' : ''}
+            </span>
+            <span className="text-xs text-muted-foreground ml-auto">(clic para expandir)</span>
+          </summary>
           
-          {eventosAsignados.length === 0 ? (
-            <div className="flex items-center gap-2 text-amber-400 bg-amber-500/10 p-3 rounded-md">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">Sin eventos asignados en el rango de fechas seleccionado</span>
-            </div>
-          ) : (
-            <div className="grid gap-2">
-              {eventosAsignados.map((evento) => (
-                <div 
-                  key={evento.projectId}
-                  className="flex items-center justify-between p-3 bg-muted/30 rounded-md border border-border/30"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium text-sm">{evento.evento}</span>
-                    <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded">
-                      {evento.cargo || 'Sin cargo'}
-                    </span>
-                    <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded">
-                      {evento.tipoPersonal}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {evento.fechaMontajeInicio && (
-                      <span className="mr-3">
-                        Montaje: {format(parseISO(evento.fechaMontajeInicio), 'dd/MM')} - {format(parseISO(evento.fechaMontajeFin), 'dd/MM')}
-                      </span>
-                    )}
-                    {evento.fechaEjecucionInicio && (
-                      <span>
-                        Ejecución: {format(parseISO(evento.fechaEjecucionInicio), 'dd/MM')} - {format(parseISO(evento.fechaEjecucionFin), 'dd/MM')}
-                      </span>
-                    )}
-                  </div>
+          <div className="grid gap-2 mt-3">
+            {eventosAsignados.map((evento) => (
+              <div 
+                key={evento.projectId}
+                className="flex items-center justify-between p-3 bg-muted/30 rounded-md border border-border/30"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="font-medium text-sm">{evento.evento}</span>
+                  <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded">
+                    {evento.cargo || 'Sin cargo'}
+                  </span>
+                  <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded">
+                    {evento.tipoPersonal}
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="text-xs text-muted-foreground">
+                  {evento.fechaMontajeInicio && (
+                    <span className="mr-3">
+                      Montaje: {format(parseISO(evento.fechaMontajeInicio), 'dd/MM')} - {format(parseISO(evento.fechaMontajeFin), 'dd/MM')}
+                    </span>
+                  )}
+                  {evento.fechaEjecucionInicio && (
+                    <span>
+                      Ejecución: {format(parseISO(evento.fechaEjecucionInicio), 'dd/MM')} - {format(parseISO(evento.fechaEjecucionFin), 'dd/MM')}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
       )}
 
-      {/* Horarios Table */}
+      {/* Historial de Horarios - Independiente de eventos asignados */}
       <div className="border rounded-lg overflow-hidden">
+        <h3 className="text-sm font-semibold p-3 bg-muted/30 border-b border-border/50">
+          HISTORIAL DE REGISTROS DE HORARIOS
+        </h3>
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">

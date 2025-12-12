@@ -14,7 +14,7 @@ import { useProjects } from '@/contexts/ProjectsContext';
 import { Project } from '@/types';
 import { useEmpleados } from '@/contexts/EmpleadosContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, AlertCircle, Camera, ExternalLink, Building2, Star } from 'lucide-react';
+import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, Camera, ExternalLink, Building2, Star } from 'lucide-react';
 import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -34,25 +34,22 @@ interface LocationData {
   status?: 'available' | 'unavailable' | 'denied' | 'error';
 }
 
-interface SelectedEvent {
-  id: string;
-  nombre: string;
-  isAssigned: boolean; // true if employee is assigned to this event
-}
-
-// Structure to track registrations per type (oficina or each event)
-interface RegistrationState {
-  tipo: 'Oficina' | 'Evento';
-  eventoId?: string;
-  eventoNombre?: string;
-  existingRecord: Horario | null;
+// New model: single daily record with context
+interface DailyRecord {
+  id?: string; // existing record id
+  empleadoId: string;
+  fecha: string;
+  oficina: boolean;
+  eventoIds: string[];
+  // Llegada
   fotoLlegada: string;
-  ubicacionLlegada: string;
   horarioLlegada: string;
+  ubicacionLlegada: string;
   locationLlegada: LocationData | null;
+  // Salida
   fotoSalida: string;
-  ubicacionSalida: string;
   horarioSalida: string;
+  ubicacionSalida: string;
   locationSalida: LocationData | null;
 }
 
@@ -67,27 +64,31 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
   const [fecha, setFecha] = useState<Date>(new Date());
   const [eventoSearch, setEventoSearch] = useState('');
   
-  // New: multi-select events and oficina toggle
+  // Context selection
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
   const [oficinaEnabled, setOficinaEnabled] = useState(false);
 
-  // Active registration being captured (which one is currently open for camera)
-  const [activeRegistration, setActiveRegistration] = useState<string | null>(null); // 'oficina' or event id
-
-  // Registration states per type
-  const [registrations, setRegistrations] = useState<Map<string, RegistrationState>>(new Map());
+  // Single daily record
+  const [existingRecord, setExistingRecord] = useState<Horario | null>(null);
+  const [fotoLlegada, setFotoLlegada] = useState('');
+  const [horarioLlegada, setHorarioLlegada] = useState('');
+  const [ubicacionLlegada, setUbicacionLlegada] = useState('');
+  const [locationLlegada, setLocationLlegada] = useState<LocationData | null>(null);
+  const [fotoSalida, setFotoSalida] = useState('');
+  const [horarioSalida, setHorarioSalida] = useState('');
+  const [ubicacionSalida, setUbicacionSalida] = useState('');
+  const [locationSalida, setLocationSalida] = useState<LocationData | null>(null);
 
   // Camera dialogs
   const [cameraLlegadaOpen, setCameraLlegadaOpen] = useState(false);
   const [cameraSalidaOpen, setCameraSalidaOpen] = useState(false);
 
-  // Filter events by selected date (montaje or ejecucion)
+  // Filter events by selected date
   const eventsForDate = useMemo(() => {
     if (!fecha) return [];
     
     return projects.filter(project => {
       try {
-        // Check montaje dates
         if (project.fechaMontajeInicio && project.fechaMontajeFin) {
           const montajeStart = parseISO(project.fechaMontajeInicio);
           const montajeEnd = parseISO(project.fechaMontajeFin);
@@ -96,7 +97,6 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
           if (isInMontaje) return true;
         }
 
-        // Check ejecucion dates
         if (project.fechaEjecucionInicio && project.fechaEjecucionFin) {
           const ejecucionStart = parseISO(project.fechaEjecucionInicio);
           const ejecucionEnd = parseISO(project.fechaEjecucionFin);
@@ -112,11 +112,9 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
     });
   }, [projects, fecha]);
 
-  // Check if employee is assigned to an event (in personal array)
+  // Check if employee is assigned to an event
   const isEmployeeAssignedToEvent = useCallback((project: Project, empId: string | null): boolean => {
     if (!empId || !project.personal) return false;
-    
-    // personal is an array of objects with empleado_id or similar
     return project.personal.some((p: any) => 
       p.empleado_id === empId || p.personal === empId || p.nombre === empleados.find(e => e.id === empId)?.nombre
     );
@@ -141,76 +139,62 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
     );
   }, [sortedEventsForDate, eventoSearch]);
 
-  // Load existing records for the employee + date combination
-  const loadExistingRecords = useCallback(() => {
+  // Load existing record for employee + date (unique key)
+  const loadExistingRecord = useCallback(() => {
     if (!empleadoId) {
-      setRegistrations(new Map());
+      setExistingRecord(null);
       return;
     }
 
     const dia = format(fecha, 'yyyy-MM-dd');
-    const newRegistrations = new Map<string, RegistrationState>();
-
-    // Check for oficina record
-    const oficinaRecord = horarios.find(h => 
-      h.empleado_id === empleadoId && 
-      h.dia === dia && 
-      h.categoria === 'Oficina'
+    
+    // Find record for this employee + date (new model: one record per day)
+    const record = horarios.find(h => 
+      h.empleado_id === empleadoId && h.dia === dia
     );
 
-    if (oficinaRecord || oficinaEnabled) {
-      newRegistrations.set('oficina', {
-        tipo: 'Oficina',
-        existingRecord: oficinaRecord || null,
-        fotoLlegada: oficinaRecord?.foto_llegada || '',
-        ubicacionLlegada: oficinaRecord?.ubicacion_llegada || '',
-        horarioLlegada: oficinaRecord?.llegada || '',
-        locationLlegada: parseLocationFromString(oficinaRecord?.ubicacion_llegada),
-        fotoSalida: oficinaRecord?.foto_salida || '',
-        ubicacionSalida: oficinaRecord?.ubicacion_salida || '',
-        horarioSalida: oficinaRecord?.salida || '',
-        locationSalida: parseLocationFromString(oficinaRecord?.ubicacion_salida),
-      });
+    if (record) {
+      setExistingRecord(record);
+      setFotoLlegada(record.foto_llegada || '');
+      setHorarioLlegada(record.llegada || '');
+      setUbicacionLlegada(record.ubicacion_llegada || '');
+      setLocationLlegada(parseLocationFromString(record.ubicacion_llegada));
+      setFotoSalida(record.foto_salida || '');
+      setHorarioSalida(record.salida || '');
+      setUbicacionSalida(record.ubicacion_salida || '');
+      setLocationSalida(parseLocationFromString(record.ubicacion_salida));
+      
+      // Parse context from record
+      setOficinaEnabled(record.categoria === 'Oficina' || record.evento_nombre?.includes('Oficina') || false);
+      // For events, we'd need to parse from evento_id or evento_nombre
+      if (record.evento_id) {
+        setSelectedEventIds([record.evento_id]);
+      }
+    } else {
+      setExistingRecord(null);
+      setFotoLlegada('');
+      setHorarioLlegada('');
+      setUbicacionLlegada('');
+      setLocationLlegada(null);
+      setFotoSalida('');
+      setHorarioSalida('');
+      setUbicacionSalida('');
+      setLocationSalida(null);
     }
-
-    // Check for event records
-    selectedEventIds.forEach(eventId => {
-      const eventRecord = horarios.find(h => 
-        h.empleado_id === empleadoId && 
-        h.dia === dia && 
-        h.categoria === 'Evento' &&
-        h.evento_id === eventId
-      );
-      const project = projects.find(p => p.id === eventId);
-
-      newRegistrations.set(eventId, {
-        tipo: 'Evento',
-        eventoId: eventId,
-        eventoNombre: project?.evento || eventRecord?.evento_nombre || '',
-        existingRecord: eventRecord || null,
-        fotoLlegada: eventRecord?.foto_llegada || '',
-        ubicacionLlegada: eventRecord?.ubicacion_llegada || '',
-        horarioLlegada: eventRecord?.llegada || '',
-        locationLlegada: parseLocationFromString(eventRecord?.ubicacion_llegada),
-        fotoSalida: eventRecord?.foto_salida || '',
-        ubicacionSalida: eventRecord?.ubicacion_salida || '',
-        horarioSalida: eventRecord?.salida || '',
-        locationSalida: parseLocationFromString(eventRecord?.ubicacion_salida),
-      });
-    });
-
-    setRegistrations(newRegistrations);
-  }, [empleadoId, fecha, horarios, oficinaEnabled, selectedEventIds, projects]);
+  }, [empleadoId, fecha, horarios]);
 
   useEffect(() => {
-    loadExistingRecords();
-  }, [loadExistingRecords]);
+    loadExistingRecord();
+  }, [loadExistingRecord]);
 
-  // Reset selections when date changes
+  // Reset event selections when date changes
   useEffect(() => {
-    setSelectedEventIds([]);
+    if (!existingRecord) {
+      setSelectedEventIds([]);
+      setOficinaEnabled(false);
+    }
     setEventoSearch('');
-  }, [fecha]);
+  }, [fecha, existingRecord]);
 
   const parseLocationFromString = (locationStr: string | undefined): LocationData | null => {
     if (!locationStr || !locationStr.includes(',')) return null;
@@ -296,15 +280,13 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
     return `https://www.google.com/maps?q=${location.lat},${location.lng}`;
   };
 
+  const llegadaRegistered = Boolean(existingRecord?.foto_llegada && existingRecord?.llegada);
+  const salidaRegistered = Boolean(existingRecord?.foto_salida && existingRecord?.salida);
+  const hasLlegada = llegadaRegistered || fotoLlegada;
+
   const handleCaptureLlegada = async (file: File) => {
-    if (!activeRegistration) return;
-
-    const reg = registrations.get(activeRegistration);
-    if (!reg) return;
-
-    // Check if already registered
-    if (reg.existingRecord?.foto_llegada && reg.existingRecord?.llegada) {
-      toast.error('Ya registraste tu llegada. No puedes registrar otra llegada.');
+    if (llegadaRegistered) {
+      toast.error('Ya registraste tu llegada hoy. No puedes registrar otra llegada.');
       return;
     }
 
@@ -345,38 +327,20 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
       ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
       : 'Ubicación no disponible';
 
-    setRegistrations(prev => {
-      const updated = new Map(prev);
-      const current = updated.get(activeRegistration);
-      if (current) {
-        updated.set(activeRegistration, {
-          ...current,
-          fotoLlegada: photoUrl,
-          horarioLlegada: timestamp,
-          ubicacionLlegada: coordsStr,
-          locationLlegada: location,
-        });
-      }
-      return updated;
-    });
+    setFotoLlegada(photoUrl);
+    setHorarioLlegada(timestamp);
+    setUbicacionLlegada(coordsStr);
+    setLocationLlegada(location);
 
     toast.success('Foto de llegada capturada');
   };
 
   const handleCaptureSalida = async (file: File) => {
-    if (!activeRegistration) return;
-
-    const reg = registrations.get(activeRegistration);
-    if (!reg) return;
-
-    // Check if already registered
-    if (reg.existingRecord?.foto_salida && reg.existingRecord?.salida) {
-      toast.error('Ya registraste tu salida. No puedes registrar otra salida.');
+    if (salidaRegistered) {
+      toast.error('Ya registraste tu salida hoy. No puedes registrar otra salida.');
       return;
     }
 
-    // Check if llegada exists
-    const hasLlegada = (reg.existingRecord?.foto_llegada && reg.existingRecord?.llegada) || reg.fotoLlegada;
     if (!hasLlegada) {
       toast.error('Debes registrar tu llegada antes de registrar la salida.');
       return;
@@ -419,20 +383,10 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
       ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
       : 'Ubicación no disponible';
 
-    setRegistrations(prev => {
-      const updated = new Map(prev);
-      const current = updated.get(activeRegistration);
-      if (current) {
-        updated.set(activeRegistration, {
-          ...current,
-          fotoSalida: photoUrl,
-          horarioSalida: timestamp,
-          ubicacionSalida: coordsStr,
-          locationSalida: location,
-        });
-      }
-      return updated;
-    });
+    setFotoSalida(photoUrl);
+    setHorarioSalida(timestamp);
+    setUbicacionSalida(coordsStr);
+    setLocationSalida(location);
 
     toast.success('Foto de salida capturada');
   };
@@ -444,17 +398,13 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
     }
 
     if (!oficinaEnabled && selectedEventIds.length === 0) {
-      toast.error('Selecciona al menos oficina o un evento');
+      toast.error('Selecciona al menos oficina o un evento como contexto');
       return;
     }
 
-    // Check each registration has at least llegada
-    for (const [key, reg] of registrations) {
-      if (!reg.fotoLlegada && !reg.horarioLlegada && !reg.existingRecord?.llegada) {
-        const label = key === 'oficina' ? 'Oficina' : reg.eventoNombre;
-        toast.error(`Debes registrar la llegada para ${label}`);
-        return;
-      }
+    if (!fotoLlegada && !horarioLlegada && !existingRecord?.llegada) {
+      toast.error('Debes registrar la llegada');
+      return;
     }
 
     setLoading(true);
@@ -463,41 +413,54 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
       const empleado = empleados.find(e => e.id === empleadoId);
       const cargo = empleado?.cargo || '';
 
-      for (const [key, reg] of registrations) {
-        if (reg.existingRecord) {
-          // Update existing record
-          await updateHorario(reg.existingRecord.id, {
-            llegada: reg.horarioLlegada || reg.existingRecord.llegada,
-            ubicacion_llegada: reg.ubicacionLlegada || reg.existingRecord.ubicacion_llegada,
-            salida: reg.horarioSalida || reg.existingRecord.salida,
-            ubicacion_salida: reg.ubicacionSalida || reg.existingRecord.ubicacion_salida,
-            foto_llegada: reg.fotoLlegada || reg.existingRecord.foto_llegada,
-            foto_salida: reg.fotoSalida || reg.existingRecord.foto_salida,
-          });
-        } else {
-          // Create new record
-          await addHorario({
-            empleado_id: empleadoId,
-            evento_id: reg.tipo === 'Evento' ? reg.eventoId || null : null,
-            evento_nombre: reg.tipo === 'Evento' ? reg.eventoNombre || '' : 'Oficina',
-            cargo,
-            dia,
-            categoria: reg.tipo,
-            llegada: reg.horarioLlegada || '',
-            ubicacion_llegada: reg.ubicacionLlegada,
-            salida: reg.horarioSalida || '',
-            ubicacion_salida: reg.ubicacionSalida,
-            foto_llegada: reg.fotoLlegada,
-            foto_salida: reg.fotoSalida,
-          });
-        }
+      // Build evento_nombre based on context
+      const contextParts: string[] = [];
+      if (oficinaEnabled) contextParts.push('Oficina');
+      selectedEventIds.forEach(eventId => {
+        const project = projects.find(p => p.id === eventId);
+        if (project) contextParts.push(project.evento);
+      });
+      const eventoNombre = contextParts.join(' + ');
+
+      // Determine categoria
+      const categoria = oficinaEnabled && selectedEventIds.length === 0 ? 'Oficina' : 'Evento';
+
+      if (existingRecord) {
+        // Update existing record
+        await updateHorario(existingRecord.id, {
+          evento_nombre: eventoNombre,
+          evento_id: selectedEventIds.length > 0 ? selectedEventIds[0] : null,
+          categoria,
+          llegada: horarioLlegada || existingRecord.llegada,
+          ubicacion_llegada: ubicacionLlegada || existingRecord.ubicacion_llegada,
+          salida: horarioSalida || existingRecord.salida,
+          ubicacion_salida: ubicacionSalida || existingRecord.ubicacion_salida,
+          foto_llegada: fotoLlegada || existingRecord.foto_llegada,
+          foto_salida: fotoSalida || existingRecord.foto_salida,
+        });
+      } else {
+        // Create new single daily record
+        await addHorario({
+          empleado_id: empleadoId,
+          evento_id: selectedEventIds.length > 0 ? selectedEventIds[0] : null,
+          evento_nombre: eventoNombre,
+          cargo,
+          dia,
+          categoria,
+          llegada: horarioLlegada || '',
+          ubicacion_llegada: ubicacionLlegada,
+          salida: horarioSalida || '',
+          ubicacion_salida: ubicacionSalida,
+          foto_llegada: fotoLlegada,
+          foto_salida: fotoSalida,
+        });
       }
 
-      toast.success('Horarios guardados');
+      toast.success('Horario guardado');
       resetForm();
       onOpenChange(false);
     } catch (err) {
-      console.error('Error saving horarios:', err);
+      console.error('Error saving horario:', err);
       toast.error('Error al guardar');
     } finally {
       setLoading(false);
@@ -510,261 +473,41 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
     setSelectedEventIds([]);
     setOficinaEnabled(false);
     setEventoSearch('');
-    setRegistrations(new Map());
-    setActiveRegistration(null);
+    setExistingRecord(null);
+    setFotoLlegada('');
+    setHorarioLlegada('');
+    setUbicacionLlegada('');
+    setLocationLlegada(null);
+    setFotoSalida('');
+    setHorarioSalida('');
+    setUbicacionSalida('');
+    setLocationSalida(null);
   };
 
-  const clearLlegada = (key: string) => {
-    setRegistrations(prev => {
-      const updated = new Map(prev);
-      const current = updated.get(key);
-      if (current && !current.existingRecord?.foto_llegada) {
-        updated.set(key, {
-          ...current,
-          fotoLlegada: '',
-          horarioLlegada: '',
-          ubicacionLlegada: '',
-          locationLlegada: null,
-        });
-      }
-      return updated;
-    });
+  const clearLlegada = () => {
+    if (!llegadaRegistered) {
+      setFotoLlegada('');
+      setHorarioLlegada('');
+      setUbicacionLlegada('');
+      setLocationLlegada(null);
+    }
   };
 
-  const clearSalida = (key: string) => {
-    setRegistrations(prev => {
-      const updated = new Map(prev);
-      const current = updated.get(key);
-      if (current && !current.existingRecord?.foto_salida) {
-        updated.set(key, {
-          ...current,
-          fotoSalida: '',
-          horarioSalida: '',
-          ubicacionSalida: '',
-          locationSalida: null,
-        });
-      }
-      return updated;
-    });
+  const clearSalida = () => {
+    if (!salidaRegistered) {
+      setFotoSalida('');
+      setHorarioSalida('');
+      setUbicacionSalida('');
+      setLocationSalida(null);
+    }
   };
 
-  const renderRegistrationSection = (key: string, reg: RegistrationState) => {
-    const llegadaRegistered = Boolean(reg.existingRecord?.foto_llegada && reg.existingRecord?.llegada);
-    const salidaRegistered = Boolean(reg.existingRecord?.foto_salida && reg.existingRecord?.salida);
-    const hasLlegada = llegadaRegistered || reg.fotoLlegada;
-    const label = key === 'oficina' ? 'Oficina' : reg.eventoNombre;
-
-    return (
-      <div key={key} className="border border-border rounded-lg p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          {key === 'oficina' ? (
-            <Building2 className="h-5 w-5 text-primary" />
-          ) : (
-            <Star className="h-5 w-5 text-primary" />
-          )}
-          <h3 className="font-bold text-lg">{label}</h3>
-        </div>
-
-        {/* Llegada */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-bold uppercase">Llegada</Label>
-            {llegadaRegistered && (
-              <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
-                <Check className="h-3 w-3" />
-                Registrada
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {/* Foto */}
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Foto</Label>
-              <div className="border-2 border-dashed border-border rounded-lg p-2 min-h-[80px] flex flex-col items-center justify-center">
-                {reg.fotoLlegada || reg.existingRecord?.foto_llegada ? (
-                  <div className="relative w-full">
-                    <img 
-                      src={reg.fotoLlegada || reg.existingRecord?.foto_llegada} 
-                      alt="Llegada" 
-                      className="w-full h-16 object-cover rounded" 
-                    />
-                    {!llegadaRegistered && reg.fotoLlegada && (
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2 h-5 w-5"
-                        onClick={() => clearLlegada(key)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setActiveRegistration(key);
-                      setCameraLlegadaOpen(true);
-                    }}
-                    disabled={llegadaRegistered}
-                    className="gap-1 text-xs"
-                  >
-                    <Camera className="h-3 w-3" />
-                    Tomar foto
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Ubicación */}
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                Ubicación
-              </Label>
-              <Input
-                value={reg.ubicacionLlegada || reg.existingRecord?.ubicacion_llegada || ''}
-                readOnly
-                placeholder="--"
-                className="bg-muted/50 cursor-not-allowed text-xs h-8"
-              />
-              {getGoogleMapsLink(reg.locationLlegada) && (
-                <a
-                  href={getGoogleMapsLink(reg.locationLlegada)!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  Ver en Maps
-                </a>
-              )}
-            </div>
-
-            {/* Horario */}
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Horario
-              </Label>
-              <Input
-                value={reg.horarioLlegada || reg.existingRecord?.llegada || ''}
-                readOnly
-                placeholder="--:--"
-                className="bg-muted/50 cursor-not-allowed font-mono text-xs h-8"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Salida */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-bold uppercase">Salida</Label>
-            {salidaRegistered && (
-              <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
-                <Check className="h-3 w-3" />
-                Registrada
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {/* Foto */}
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Foto</Label>
-              <div className="border-2 border-dashed border-border rounded-lg p-2 min-h-[80px] flex flex-col items-center justify-center">
-                {reg.fotoSalida || reg.existingRecord?.foto_salida ? (
-                  <div className="relative w-full">
-                    <img 
-                      src={reg.fotoSalida || reg.existingRecord?.foto_salida} 
-                      alt="Salida" 
-                      className="w-full h-16 object-cover rounded" 
-                    />
-                    {!salidaRegistered && reg.fotoSalida && (
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2 h-5 w-5"
-                        onClick={() => clearSalida(key)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setActiveRegistration(key);
-                        setCameraSalidaOpen(true);
-                      }}
-                      disabled={salidaRegistered || !hasLlegada}
-                      className="gap-1 text-xs"
-                    >
-                      <Camera className="h-3 w-3" />
-                      Tomar foto
-                    </Button>
-                    {!hasLlegada && (
-                      <p className="text-[9px] text-muted-foreground">Registra llegada primero</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Ubicación */}
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                Ubicación
-              </Label>
-              <Input
-                value={reg.ubicacionSalida || reg.existingRecord?.ubicacion_salida || ''}
-                readOnly
-                placeholder="--"
-                className="bg-muted/50 cursor-not-allowed text-xs h-8"
-              />
-              {getGoogleMapsLink(reg.locationSalida) && (
-                <a
-                  href={getGoogleMapsLink(reg.locationSalida)!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  Ver en Maps
-                </a>
-              )}
-            </div>
-
-            {/* Horario */}
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Horario
-              </Label>
-              <Input
-                value={reg.horarioSalida || reg.existingRecord?.salida || ''}
-                readOnly
-                placeholder="--:--"
-                className="bg-muted/50 cursor-not-allowed font-mono text-xs h-8"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const showRegistrationForm = empleadoId && (oficinaEnabled || selectedEventIds.length > 0);
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-center">GESTIÓN DE HORARIOS</DialogTitle>
           </DialogHeader>
@@ -785,32 +528,233 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
                 />
               </div>
 
-              {/* Registration Sections */}
-              <div className="space-y-4">
-                {registrations.size === 0 && (
-                  <div className="text-center text-muted-foreground py-8 border-2 border-dashed border-border rounded-lg">
-                    <p>Selecciona un empleado y luego activa Oficina o selecciona eventos</p>
+              {/* Single Registration Section */}
+              {showRegistrationForm ? (
+                <div className="border border-border rounded-lg p-4 space-y-6">
+                  {/* Context Summary */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {oficinaEnabled && (
+                      <span className="inline-flex items-center gap-1 bg-primary/20 text-primary px-2 py-1 rounded text-xs">
+                        <Building2 className="h-3 w-3" />
+                        Oficina
+                      </span>
+                    )}
+                    {selectedEventIds.map(eventId => {
+                      const project = projects.find(p => p.id === eventId);
+                      return (
+                        <span key={eventId} className="inline-flex items-center gap-1 bg-primary/20 text-primary px-2 py-1 rounded text-xs">
+                          <Star className="h-3 w-3" />
+                          {project?.evento || 'Evento'}
+                        </span>
+                      );
+                    })}
                   </div>
-                )}
-                {Array.from(registrations.entries()).map(([key, reg]) => 
-                  renderRegistrationSection(key, reg)
-                )}
-              </div>
 
-              {/* Submit Button */}
-              {registrations.size > 0 && (
-                <Button
-                  onClick={handleSubmit}
-                  className="w-full"
-                  disabled={loading}
-                >
-                  {loading ? 'Guardando...' : 'Guardar Horarios'}
-                </Button>
+                  {/* LLEGADA */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-lg font-bold uppercase">Llegada</Label>
+                      {llegadaRegistered && (
+                        <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
+                          <Check className="h-3 w-3" />
+                          Registrada
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      {/* Foto */}
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Foto</Label>
+                        <div className="border-2 border-dashed border-border rounded-lg p-3 min-h-[100px] flex flex-col items-center justify-center">
+                          {fotoLlegada || existingRecord?.foto_llegada ? (
+                            <div className="relative w-full">
+                              <img 
+                                src={fotoLlegada || existingRecord?.foto_llegada} 
+                                alt="Llegada" 
+                                className="w-full h-20 object-cover rounded" 
+                              />
+                              {!llegadaRegistered && fotoLlegada && (
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  className="absolute -top-2 -right-2 h-6 w-6"
+                                  onClick={clearLlegada}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCameraLlegadaOpen(true)}
+                              disabled={llegadaRegistered}
+                              className="gap-2"
+                            >
+                              <Camera className="h-4 w-4" />
+                              Tomar foto
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Ubicación */}
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          Ubicación
+                        </Label>
+                        <Input
+                          value={ubicacionLlegada || existingRecord?.ubicacion_llegada || ''}
+                          readOnly
+                          placeholder="--"
+                          className="bg-muted/50 cursor-not-allowed text-sm"
+                        />
+                        {getGoogleMapsLink(locationLlegada) && (
+                          <a
+                            href={getGoogleMapsLink(locationLlegada)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Ver ubicación en Google Maps
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Horario */}
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Horario
+                        </Label>
+                        <Input
+                          value={horarioLlegada || existingRecord?.llegada || ''}
+                          readOnly
+                          placeholder="--:--"
+                          className="bg-muted/50 cursor-not-allowed font-mono text-lg font-bold"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SALIDA */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-lg font-bold uppercase">Salida</Label>
+                      {salidaRegistered && (
+                        <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
+                          <Check className="h-3 w-3" />
+                          Registrada
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      {/* Foto */}
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Foto</Label>
+                        <div className="border-2 border-dashed border-border rounded-lg p-3 min-h-[100px] flex flex-col items-center justify-center">
+                          {fotoSalida || existingRecord?.foto_salida ? (
+                            <div className="relative w-full">
+                              <img 
+                                src={fotoSalida || existingRecord?.foto_salida} 
+                                alt="Salida" 
+                                className="w-full h-20 object-cover rounded" 
+                              />
+                              {!salidaRegistered && fotoSalida && (
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  className="absolute -top-2 -right-2 h-6 w-6"
+                                  onClick={clearSalida}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCameraSalidaOpen(true)}
+                                disabled={salidaRegistered || !hasLlegada}
+                                className="gap-2"
+                              >
+                                <Camera className="h-4 w-4" />
+                                Tomar foto
+                              </Button>
+                              {!hasLlegada && (
+                                <p className="text-xs text-muted-foreground">Registra llegada primero</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Ubicación */}
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          Ubicación
+                        </Label>
+                        <Input
+                          value={ubicacionSalida || existingRecord?.ubicacion_salida || ''}
+                          readOnly
+                          placeholder="--"
+                          className="bg-muted/50 cursor-not-allowed text-sm"
+                        />
+                        {getGoogleMapsLink(locationSalida) && (
+                          <a
+                            href={getGoogleMapsLink(locationSalida)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Ver ubicación en Google Maps
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Horario */}
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Horario
+                        </Label>
+                        <Input
+                          value={horarioSalida || existingRecord?.salida || ''}
+                          readOnly
+                          placeholder="--:--"
+                          className="bg-muted/50 cursor-not-allowed font-mono text-lg font-bold"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <Button
+                    onClick={handleSubmit}
+                    className="w-full"
+                    disabled={loading}
+                  >
+                    {loading ? 'Guardando...' : 'Guardar Horario'}
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground py-12 border-2 border-dashed border-border rounded-lg">
+                  <p className="text-sm">Selecciona un empleado y luego activa Oficina o selecciona eventos como contexto</p>
+                </div>
               )}
             </div>
 
-            {/* Right Panel - Date + Event Selection + Oficina Toggle */}
-            <div className="w-80 border-l border-border pl-6 space-y-6">
+            {/* Right Panel - Date + Context Selection */}
+            <div className="w-72 border-l border-border pl-6 space-y-6">
               {/* Fecha */}
               <div className="space-y-2">
                 <Label className="text-sm font-bold uppercase">Fecha</Label>
@@ -872,7 +816,7 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
                   {empleadoId && ' • Los asignados aparecen primero'}
                 </p>
 
-                <div className="border border-border rounded-lg bg-background max-h-52 overflow-y-auto">
+                <div className="border border-border rounded-lg bg-background max-h-48 overflow-y-auto">
                   {filteredEvents.length > 0 ? (
                     filteredEvents.map((event) => {
                       const isAssigned = isEmployeeAssignedToEvent(event, empleadoId);

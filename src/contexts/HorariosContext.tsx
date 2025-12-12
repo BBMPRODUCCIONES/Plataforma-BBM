@@ -108,7 +108,9 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
           llegada: horario.llegada,
           ubicacion_llegada: horario.ubicacion_llegada,
           salida: horario.salida,
-          ubicacion_salida: horario.ubicacion_salida
+          ubicacion_salida: horario.ubicacion_salida,
+          foto_llegada: horario.foto_llegada || '',
+          foto_salida: horario.foto_salida || ''
         }])
         .select()
         .single();

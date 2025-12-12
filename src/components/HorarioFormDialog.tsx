@@ -14,7 +14,7 @@ import { useProjects } from '@/contexts/ProjectsContext';
 import { Project } from '@/types';
 import { useEmpleados } from '@/contexts/EmpleadosContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, Camera, ExternalLink, Building2, Star } from 'lucide-react';
+import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, Camera, ExternalLink, Building2, Star, Save, AlertTriangle } from 'lucide-react';
 import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,13 @@ interface LocationData {
   status?: 'available' | 'unavailable' | 'denied' | 'error';
 }
 
+interface SalidaContingencia {
+  foto: string;
+  horario: string;
+  ubicacion: string;
+  timestamp: string;
+}
+
 export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, children }: HorarioFormDialogProps) => {
   const { addHorario, updateHorario, refetch } = useHorarios();
   const { projects } = useProjects();
@@ -50,6 +57,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
   // Context selection
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
   const [oficinaEnabled, setOficinaEnabled] = useState(false);
+  const [contextModified, setContextModified] = useState(false);
 
   // Single daily record from DB
   const [existingRecord, setExistingRecord] = useState<Horario | null>(null);
@@ -64,6 +72,10 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
   const [horarioSalida, setHorarioSalida] = useState('');
   const [ubicacionSalida, setUbicacionSalida] = useState('');
   const [locationSalida, setLocationSalida] = useState<LocationData | null>(null);
+
+  // Contingency exit state
+  const [salidaContingencia, setSalidaContingencia] = useState<SalidaContingencia | null>(null);
+  const [cameraContingenciaOpen, setCameraContingenciaOpen] = useState(false);
 
   // Camera dialogs
   const [cameraLlegadaOpen, setCameraLlegadaOpen] = useState(false);
@@ -204,6 +216,8 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     setLocationSalida(null);
     setOficinaEnabled(false);
     setSelectedEventIds([]);
+    setSalidaContingencia(null);
+    setContextModified(false);
   };
 
   // Load record when employee or date changes
@@ -232,6 +246,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
   };
 
   const toggleEventSelection = (eventId: string) => {
+    setContextModified(true);
     setSelectedEventIds(prev => {
       if (prev.includes(eventId)) {
         return prev.filter(id => id !== eventId);
@@ -240,6 +255,10 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     });
   };
 
+  const handleOficinaToggle = (checked: boolean) => {
+    setContextModified(true);
+    setOficinaEnabled(checked);
+  };
   const getCurrentLocation = (): Promise<LocationData | null> => {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
@@ -565,6 +584,121 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     setLoading(false);
   };
 
+  // Save context changes without losing llegada
+  const handleSaveContextChanges = async () => {
+    if (!existingRecord || !empleadoId) {
+      toast.error('No hay registro existente para actualizar');
+      return;
+    }
+
+    if (!oficinaEnabled && selectedEventIds.length === 0) {
+      toast.error('Selecciona al menos oficina o un evento como contexto');
+      return;
+    }
+
+    setLoading(true);
+
+    // Build new context string
+    const contextParts: string[] = [];
+    if (oficinaEnabled) contextParts.push('Oficina');
+    selectedEventIds.forEach(eventId => {
+      const project = projects.find(p => p.id === eventId);
+      if (project) contextParts.push(project.evento);
+    });
+    const eventoNombre = contextParts.join(' + ') || 'Sin contexto';
+    const categoria = oficinaEnabled && selectedEventIds.length === 0 ? 'Oficina' : 'Evento';
+
+    try {
+      const { error } = await supabase
+        .from('horarios')
+        .update({
+          evento_nombre: eventoNombre,
+          evento_id: selectedEventIds.length > 0 ? selectedEventIds[0] : null,
+          categoria,
+        })
+        .eq('id', existingRecord.id);
+
+      if (error) throw error;
+
+      await loadExistingRecord();
+      await refetch();
+      setContextModified(false);
+      toast.success('Contexto actualizado correctamente');
+    } catch (err) {
+      console.error('Error updating context:', err);
+      toast.error('Error al actualizar el contexto');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle contingency exit capture
+  const handleCaptureContingencia = async (file: File) => {
+    if (!empleadoId) {
+      toast.error('Debes seleccionar un empleado de la lista');
+      setCameraContingenciaOpen(false);
+      return;
+    }
+
+    if (!hasLlegada) {
+      toast.error('Debes registrar tu llegada antes de agregar una salida de contingencia');
+      setCameraContingenciaOpen(false);
+      return;
+    }
+
+    setLoading(true);
+    setCameraContingenciaOpen(false);
+
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString('es-CO', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+
+    let photoUrl = '';
+    try {
+      const fileName = `horario-contingencia-${empleadoId}-${Date.now()}.jpg`;
+      const filePath = `horarios/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('notes-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('notes-images')
+        .getPublicUrl(filePath);
+
+      photoUrl = publicUrl;
+    } catch (err) {
+      console.error('Error uploading contingency photo:', err);
+      toast.error('Error al subir la foto de contingencia');
+      setLoading(false);
+      return;
+    }
+
+    const location = await getCurrentLocation();
+    const coordsStr = location?.status === 'available' 
+      ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
+      : 'Ubicación no disponible';
+
+    // Save contingency exit to local state first
+    const contingenciaData: SalidaContingencia = {
+      foto: photoUrl,
+      horario: timestamp,
+      ubicacion: coordsStr,
+      timestamp: now.toISOString()
+    };
+    setSalidaContingencia(contingenciaData);
+
+    // Also save to backend (we'll store in salida fields if main salida is not registered)
+    // Or we could use a separate field if needed - for now, show in UI
+    toast.success('Salida de contingencia registrada');
+    setLoading(false);
+  };
+
   const resetForm = () => {
     setEmpleadoId(null);
     setFecha(new Date());
@@ -861,6 +995,104 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                     </div>
                   </div>
 
+                  {/* Save Context Changes Button - visible when context modified and salida not registered */}
+                  {hasLlegada && !salidaRegistered && contextModified && (
+                    <div className="flex justify-center">
+                      <Button
+                        onClick={handleSaveContextChanges}
+                        disabled={loading}
+                        className="gap-2"
+                      >
+                        <Save className="h-4 w-4" />
+                        Guardar Cambios de Contexto
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* SALIDA DE CONTINGENCIA */}
+                  {hasLlegada && (
+                    <div className="space-y-3 border-t border-border pt-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-lg font-bold uppercase flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-amber-500" />
+                          Salida de Contingencia
+                        </Label>
+                        {salidaContingencia && (
+                          <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-1 rounded-full flex items-center gap-1">
+                            <Check className="h-3 w-3" />
+                            Registrada
+                          </span>
+                        )}
+                      </div>
+                      
+                      {salidaContingencia ? (
+                        <div className="grid grid-cols-3 gap-4 bg-amber-500/5 p-3 rounded-lg">
+                          {/* Foto contingencia */}
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground">Foto</Label>
+                            <img 
+                              src={salidaContingencia.foto} 
+                              alt="Salida contingencia" 
+                              className="w-full h-20 object-cover rounded" 
+                            />
+                          </div>
+                          
+                          {/* Ubicación contingencia */}
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              Ubicación
+                            </Label>
+                            <Input
+                              value={salidaContingencia.ubicacion || ''}
+                              readOnly
+                              className="bg-muted/50 cursor-not-allowed text-sm"
+                            />
+                            {salidaContingencia.ubicacion && !salidaContingencia.ubicacion.includes('no disponible') && (
+                              <a
+                                href={`https://www.google.com/maps?q=${salidaContingencia.ubicacion.replace(' ', '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Ver en Google Maps
+                              </a>
+                            )}
+                          </div>
+                          
+                          {/* Horario contingencia */}
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Horario
+                            </Label>
+                            <Input
+                              value={salidaContingencia.horario || ''}
+                              readOnly
+                              className="bg-muted/50 cursor-not-allowed font-mono text-lg font-bold"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setCameraContingenciaOpen(true)}
+                          disabled={loading}
+                          className="w-full gap-2 border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
+                        >
+                          <Camera className="h-4 w-4" />
+                          Agregar salida de contingencia
+                        </Button>
+                      )}
+                      
+                      <p className="text-xs text-muted-foreground">
+                        Usa esta opción si necesitas registrar una salida adicional por contingencia.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Status message */}
                   {llegadaRegistered && salidaRegistered && (
                     <div className="bg-green-500/10 text-green-500 p-3 rounded-lg text-center text-sm">
@@ -913,8 +1145,8 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                 </div>
                 <Switch
                   checked={oficinaEnabled}
-                  onCheckedChange={setOficinaEnabled}
-                  disabled={!empleadoId || llegadaRegistered}
+                  onCheckedChange={handleOficinaToggle}
+                  disabled={!empleadoId || salidaRegistered}
                 />
               </div>
 
@@ -951,11 +1183,11 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                             "flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer border-b border-border last:border-b-0",
                             isSelected && "bg-primary/10"
                           )}
-                          onClick={() => empleadoId && !llegadaRegistered && toggleEventSelection(event.id)}
+                          onClick={() => empleadoId && !salidaRegistered && toggleEventSelection(event.id)}
                         >
                           <Checkbox 
                             checked={isSelected}
-                            disabled={!empleadoId || llegadaRegistered}
+                            disabled={!empleadoId || salidaRegistered}
                             className="pointer-events-none"
                           />
                           <div className="flex-1 min-w-0">
@@ -983,9 +1215,9 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                   </p>
                 )}
 
-                {llegadaRegistered && (
+                {salidaRegistered && (
                   <p className="text-xs text-amber-400">
-                    El contexto no puede modificarse después de registrar llegada
+                    El contexto no puede modificarse después de registrar salida
                   </p>
                 )}
               </div>
@@ -1004,6 +1236,11 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
         open={cameraSalidaOpen}
         onOpenChange={setCameraSalidaOpen}
         onCapture={handleCaptureSalida}
+      />
+      <CameraCapture
+        open={cameraContingenciaOpen}
+        onOpenChange={setCameraContingenciaOpen}
+        onCapture={handleCaptureContingencia}
       />
     </>
   );

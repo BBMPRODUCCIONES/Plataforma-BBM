@@ -15,10 +15,10 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "robots.txt", "bbm-logo.png"],
+      includeAssets: ["favicon.png", "robots.txt", "pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
-        name: "BBM Producciones - Gestión de Eventos",
-        short_name: "BBM Producciones",
+        name: "BBM Producciones",
+        short_name: "BBM",
         description: "Plataforma de gestión integral de eventos",
         theme_color: "#0f172a",
         background_color: "#0f172a",

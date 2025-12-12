@@ -35,7 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printCajaMenor, exportCajaMenorToExcel } from "@/utils/pdfGenerator";
@@ -46,6 +46,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { HorarioFormDialog } from "@/components/HorarioFormDialog";
 
 const PanelOperaciones = () => {
   const navigate = useNavigate();
@@ -97,6 +98,7 @@ const PanelOperaciones = () => {
   const [selectedSection, setSelectedSection] = useState<"plantilla" | "cajaMenor" | null>(null);
   const [localNotasImagenes, setLocalNotasImagenes] = useState<Array<{id: string; url: string; name: string}>>([]);
   const [localFeedbackAdjuntos, setLocalFeedbackAdjuntos] = useState<Attachment[]>([]);
+  const [horarioFormOpen, setHorarioFormOpen] = useState(false);
 
   // Sync local state when project changes (not on every keystroke)
   useEffect(() => {
@@ -974,10 +976,16 @@ const PanelOperaciones = () => {
             { label: "Proveedores", to: "/proveedores" },
           ]}
           actions={
-            <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
-              <Settings className="h-4 w-4 mr-2" />
-              Gestionar Columnas
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setHorarioFormOpen(true)}>
+                <Clock className="h-4 w-4 mr-2" />
+                Gestión de Horarios
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
+                <Settings className="h-4 w-4 mr-2" />
+                Gestionar Columnas
+              </Button>
+            </div>
           }
         />
 
@@ -1400,6 +1408,11 @@ const PanelOperaciones = () => {
           columns={managedColumns}
           onColumnsChange={setManagedColumns}
           panelName="Panel Operaciones"
+        />
+
+        <HorarioFormDialog
+          open={horarioFormOpen}
+          onOpenChange={setHorarioFormOpen}
         />
       </div>
     </Layout>

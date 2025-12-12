@@ -16,6 +16,16 @@ export interface Horario {
   ubicacion_salida: string;
   foto_llegada?: string;
   foto_salida?: string;
+  // Contingency exit fields
+  contingencia_foto?: string | null;
+  contingencia_hora?: string | null;
+  contingencia_ubicacion?: string | null;
+  contingencia_lat?: number | null;
+  contingencia_lng?: number | null;
+  contingencia_accuracy_m?: number | null;
+  contingencia_maps_url?: string | null;
+  contingencia_location_status?: string | null;
+  contingencia_contexto?: Record<string, any> | null;
   created_at: string;
   updated_at: string;
   // Joined fields

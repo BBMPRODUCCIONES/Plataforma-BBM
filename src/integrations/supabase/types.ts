@@ -108,6 +108,15 @@ export type Database = {
         Row: {
           cargo: string
           categoria: string
+          contingencia_accuracy_m: number | null
+          contingencia_contexto: Json | null
+          contingencia_foto: string | null
+          contingencia_hora: string | null
+          contingencia_lat: number | null
+          contingencia_lng: number | null
+          contingencia_location_status: string | null
+          contingencia_maps_url: string | null
+          contingencia_ubicacion: string | null
           created_at: string
           dia: string
           empleado_id: string | null
@@ -125,6 +134,15 @@ export type Database = {
         Insert: {
           cargo?: string
           categoria?: string
+          contingencia_accuracy_m?: number | null
+          contingencia_contexto?: Json | null
+          contingencia_foto?: string | null
+          contingencia_hora?: string | null
+          contingencia_lat?: number | null
+          contingencia_lng?: number | null
+          contingencia_location_status?: string | null
+          contingencia_maps_url?: string | null
+          contingencia_ubicacion?: string | null
           created_at?: string
           dia: string
           empleado_id?: string | null
@@ -142,6 +160,15 @@ export type Database = {
         Update: {
           cargo?: string
           categoria?: string
+          contingencia_accuracy_m?: number | null
+          contingencia_contexto?: Json | null
+          contingencia_foto?: string | null
+          contingencia_hora?: string | null
+          contingencia_lat?: number | null
+          contingencia_lng?: number | null
+          contingencia_location_status?: string | null
+          contingencia_maps_url?: string | null
+          contingencia_ubicacion?: string | null
           created_at?: string
           dia?: string
           empleado_id?: string | null

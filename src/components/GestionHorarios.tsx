@@ -168,6 +168,7 @@ export const GestionHorarios = () => {
     salidaEmergencia?: {
       hora: string;
       ubicacion: string;
+      maps_url?: string;
     };
     // For expand functionality
     eventos: string[];
@@ -268,11 +269,27 @@ export const GestionHorarios = () => {
           existing.ubicacion_salida = horario.ubicacion_salida;
         }
         
+        // Merge contingency data if exists
+        if (horario.contingencia_hora && !existing.salidaEmergencia) {
+          existing.salidaEmergencia = {
+            hora: horario.contingencia_hora,
+            ubicacion: horario.contingencia_ubicacion || '',
+            maps_url: horario.contingencia_maps_url || '',
+          };
+        }
+        
         // Store original horarios for expansion
         existing.originalHorarios.push(horario);
         
       } else {
         // Create new group
+        // Check for contingency data in this horario
+        const salidaEmergenciaData = horario.contingencia_hora ? {
+          hora: horario.contingencia_hora,
+          ubicacion: horario.contingencia_ubicacion || '',
+          maps_url: horario.contingencia_maps_url || '',
+        } : undefined;
+        
         grouped.set(key, {
           id: horario.id,
           empleado_id: horario.empleado_id || '',
@@ -284,6 +301,7 @@ export const GestionHorarios = () => {
           ubicacion_llegada: horario.ubicacion_llegada || '',
           salida: horario.salida || '',
           ubicacion_salida: horario.ubicacion_salida || '',
+          salidaEmergencia: salidaEmergenciaData,
           eventos: eventParts,
           hasOficina,
           originalHorarios: [horario],
@@ -695,7 +713,20 @@ export const GestionHorarios = () => {
                         {horario.salidaEmergencia ? (
                           <div className="space-y-1">
                             <span className="font-mono text-orange-400">{horario.salidaEmergencia.hora}</span>
-                            <div>{renderUbicacion(horario.salidaEmergencia.ubicacion)}</div>
+                            <div>
+                              {horario.salidaEmergencia.maps_url ? (
+                                <a 
+                                  href={horario.salidaEmergencia.maps_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline text-xs"
+                                >
+                                  Ver en Maps
+                                </a>
+                              ) : (
+                                renderUbicacion(horario.salidaEmergencia.ubicacion)
+                              )}
+                            </div>
                           </div>
                         ) : (
                           <span className="text-muted-foreground text-xs">—</span>

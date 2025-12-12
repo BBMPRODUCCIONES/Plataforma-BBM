@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -36,27 +36,8 @@ interface LocationData {
   status?: 'available' | 'unavailable' | 'denied' | 'error';
 }
 
-// New model: single daily record with context
-interface DailyRecord {
-  id?: string; // existing record id
-  empleadoId: string;
-  fecha: string;
-  oficina: boolean;
-  eventoIds: string[];
-  // Llegada
-  fotoLlegada: string;
-  horarioLlegada: string;
-  ubicacionLlegada: string;
-  locationLlegada: LocationData | null;
-  // Salida
-  fotoSalida: string;
-  horarioSalida: string;
-  ubicacionSalida: string;
-  locationSalida: LocationData | null;
-}
-
 export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, children }: HorarioFormDialogProps) => {
-  const { addHorario, updateHorario, horarios } = useHorarios();
+  const { addHorario, updateHorario, refetch } = useHorarios();
   const { projects } = useProjects();
   const { empleados } = useEmpleados();
   const [loading, setLoading] = useState(false);
@@ -70,8 +51,11 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
   const [oficinaEnabled, setOficinaEnabled] = useState(false);
 
-  // Single daily record
+  // Single daily record from DB
   const [existingRecord, setExistingRecord] = useState<Horario | null>(null);
+  const [loadingRecord, setLoadingRecord] = useState(false);
+  
+  // Local state for new captures (before saving)
   const [fotoLlegada, setFotoLlegada] = useState('');
   const [horarioLlegada, setHorarioLlegada] = useState('');
   const [ubicacionLlegada, setUbicacionLlegada] = useState('');
@@ -125,7 +109,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
   const isEmployeeAssignedToEvent = useCallback((project: Project, empId: string | null): boolean => {
     if (!empId || !project.personal) return false;
     return project.personal.some((p: any) => 
-      p.empleado_id === empId || p.personal === empId || p.nombre === empleados.find(e => e.id === empId)?.nombre
+      p.empleado_id === empId || p.empleadoId === empId || p.personal === empId || p.nombre === empleados.find(e => e.id === empId)?.nombre
     );
   }, [empleados]);
 
@@ -148,62 +132,95 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     );
   }, [sortedEventsForDate, eventoSearch]);
 
-  // Load existing record for employee + date (unique key)
-  const loadExistingRecord = useCallback(() => {
+  // Load existing record directly from DB for employee + date (unique key)
+  const loadExistingRecord = useCallback(async () => {
     if (!empleadoId) {
       setExistingRecord(null);
+      clearLocalState();
       return;
     }
 
     const dia = format(fecha, 'yyyy-MM-dd');
-    
-    // Find record for this employee + date (new model: one record per day)
-    const record = horarios.find(h => 
-      h.empleado_id === empleadoId && h.dia === dia
-    );
+    setLoadingRecord(true);
 
-    if (record) {
-      setExistingRecord(record);
-      setFotoLlegada(record.foto_llegada || '');
-      setHorarioLlegada(record.llegada || '');
-      setUbicacionLlegada(record.ubicacion_llegada || '');
-      setLocationLlegada(parseLocationFromString(record.ubicacion_llegada));
-      setFotoSalida(record.foto_salida || '');
-      setHorarioSalida(record.salida || '');
-      setUbicacionSalida(record.ubicacion_salida || '');
-      setLocationSalida(parseLocationFromString(record.ubicacion_salida));
-      
-      // Parse context from record
-      setOficinaEnabled(record.categoria === 'Oficina' || record.evento_nombre?.includes('Oficina') || false);
-      // For events, we'd need to parse from evento_id or evento_nombre
-      if (record.evento_id) {
-        setSelectedEventIds([record.evento_id]);
+    try {
+      // Query directly from DB for this employee + date
+      const { data, error } = await supabase
+        .from('horarios')
+        .select('*')
+        .eq('empleado_id', empleadoId)
+        .eq('dia', dia)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading horario:', error);
+        setExistingRecord(null);
+        clearLocalState();
+        return;
       }
-    } else {
+
+      if (data) {
+        const record = data as Horario;
+        setExistingRecord(record);
+        
+        // Populate local state from existing record
+        setFotoLlegada(record.foto_llegada || '');
+        setHorarioLlegada(record.llegada || '');
+        setUbicacionLlegada(record.ubicacion_llegada || '');
+        setLocationLlegada(parseLocationFromString(record.ubicacion_llegada));
+        setFotoSalida(record.foto_salida || '');
+        setHorarioSalida(record.salida || '');
+        setUbicacionSalida(record.ubicacion_salida || '');
+        setLocationSalida(parseLocationFromString(record.ubicacion_salida));
+        
+        // Parse context from record
+        setOficinaEnabled(record.categoria === 'Oficina' || record.evento_nombre?.includes('Oficina') || false);
+        if (record.evento_id) {
+          setSelectedEventIds([record.evento_id]);
+        } else {
+          setSelectedEventIds([]);
+        }
+      } else {
+        setExistingRecord(null);
+        clearLocalState();
+      }
+    } catch (err) {
+      console.error('Error in loadExistingRecord:', err);
       setExistingRecord(null);
-      setFotoLlegada('');
-      setHorarioLlegada('');
-      setUbicacionLlegada('');
-      setLocationLlegada(null);
-      setFotoSalida('');
-      setHorarioSalida('');
-      setUbicacionSalida('');
-      setLocationSalida(null);
+      clearLocalState();
+    } finally {
+      setLoadingRecord(false);
     }
-  }, [empleadoId, fecha, horarios]);
+  }, [empleadoId, fecha]);
 
+  const clearLocalState = () => {
+    setFotoLlegada('');
+    setHorarioLlegada('');
+    setUbicacionLlegada('');
+    setLocationLlegada(null);
+    setFotoSalida('');
+    setHorarioSalida('');
+    setUbicacionSalida('');
+    setLocationSalida(null);
+    setOficinaEnabled(false);
+    setSelectedEventIds([]);
+  };
+
+  // Load record when employee or date changes
   useEffect(() => {
-    loadExistingRecord();
-  }, [loadExistingRecord]);
+    if (open) {
+      loadExistingRecord();
+    }
+  }, [loadExistingRecord, open]);
 
-  // Reset event selections when date changes
+  // Reset event selections when date changes (only if no existing record)
   useEffect(() => {
     if (!existingRecord) {
       setSelectedEventIds([]);
       setOficinaEnabled(false);
     }
     setEventoSearch('');
-  }, [fecha, existingRecord]);
+  }, [fecha]);
 
   const parseLocationFromString = (locationStr: string | undefined): LocationData | null => {
     if (!locationStr || !locationStr.includes(',')) return null;
@@ -289,15 +306,136 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     return `https://www.google.com/maps?q=${location.lat},${location.lng}`;
   };
 
+  // Check if llegada/salida are already registered in DB
   const llegadaRegistered = Boolean(existingRecord?.foto_llegada && existingRecord?.llegada);
   const salidaRegistered = Boolean(existingRecord?.foto_salida && existingRecord?.salida);
-  const hasLlegada = llegadaRegistered || fotoLlegada;
+  const hasLlegada = llegadaRegistered || (fotoLlegada && horarioLlegada);
+
+  // Save to backend immediately when capturing photo
+  const saveToBackend = async (type: 'llegada' | 'salida', data: {
+    foto: string;
+    horario: string;
+    ubicacion: string;
+    location: LocationData | null;
+  }) => {
+    if (!empleadoId) {
+      toast.error('Debes seleccionar un empleado de la lista');
+      return false;
+    }
+
+    // Validate context is selected
+    if (!oficinaEnabled && selectedEventIds.length === 0) {
+      toast.error('Selecciona al menos oficina o un evento como contexto');
+      return false;
+    }
+
+    const dia = format(fecha, 'yyyy-MM-dd');
+    const empleado = empleados.find(e => e.id === empleadoId);
+    const cargo = empleado?.cargo || '';
+
+    // Build evento_nombre based on context
+    const contextParts: string[] = [];
+    if (oficinaEnabled) contextParts.push('Oficina');
+    selectedEventIds.forEach(eventId => {
+      const project = projects.find(p => p.id === eventId);
+      if (project) contextParts.push(project.evento);
+    });
+    const eventoNombre = contextParts.join(' + ') || 'Sin contexto';
+    const categoria = oficinaEnabled && selectedEventIds.length === 0 ? 'Oficina' : 'Evento';
+
+    // Build Google Maps link
+    const mapsUrl = data.location?.status === 'available' && data.location.lat !== 0
+      ? `https://www.google.com/maps?q=${data.location.lat},${data.location.lng}`
+      : '';
+
+    // Prepare ubicacion string with all metadata
+    const ubicacionFull = data.location?.status === 'available' && data.location.lat !== 0
+      ? `${data.location.lat.toFixed(6)}, ${data.location.lng.toFixed(6)}`
+      : `Ubicación no disponible (${data.location?.status || 'unknown'})`;
+
+    try {
+      if (existingRecord) {
+        // Update existing record
+        const updateData: Partial<Horario> = {
+          evento_nombre: eventoNombre,
+          evento_id: selectedEventIds.length > 0 ? selectedEventIds[0] : null,
+          categoria,
+        };
+
+        if (type === 'llegada') {
+          updateData.foto_llegada = data.foto;
+          updateData.llegada = data.horario;
+          updateData.ubicacion_llegada = ubicacionFull;
+        } else {
+          updateData.foto_salida = data.foto;
+          updateData.salida = data.horario;
+          updateData.ubicacion_salida = ubicacionFull;
+        }
+
+        const { error } = await supabase
+          .from('horarios')
+          .update(updateData)
+          .eq('id', existingRecord.id);
+
+        if (error) throw error;
+      } else {
+        // Create new record
+        const newRecord: any = {
+          empleado_id: empleadoId,
+          evento_id: selectedEventIds.length > 0 ? selectedEventIds[0] : null,
+          evento_nombre: eventoNombre,
+          cargo,
+          dia,
+          categoria,
+          llegada: type === 'llegada' ? data.horario : '',
+          ubicacion_llegada: type === 'llegada' ? ubicacionFull : '',
+          salida: type === 'salida' ? data.horario : '',
+          ubicacion_salida: type === 'salida' ? ubicacionFull : '',
+          foto_llegada: type === 'llegada' ? data.foto : '',
+          foto_salida: type === 'salida' ? data.foto : '',
+        };
+
+        const { error } = await supabase
+          .from('horarios')
+          .insert([newRecord]);
+
+        if (error) throw error;
+      }
+
+      // Refresh from backend
+      await loadExistingRecord();
+      await refetch();
+      
+      return true;
+    } catch (err) {
+      console.error('Error saving to backend:', err);
+      toast.error('Error al guardar en base de datos');
+      return false;
+    }
+  };
 
   const handleCaptureLlegada = async (file: File) => {
+    // Validate employee is selected from database
+    if (!empleadoId) {
+      toast.error('Debes seleccionar un empleado de la lista');
+      setCameraLlegadaOpen(false);
+      return;
+    }
+
+    // Validate context is selected
+    if (!oficinaEnabled && selectedEventIds.length === 0) {
+      toast.error('Selecciona oficina o al menos un evento como contexto');
+      setCameraLlegadaOpen(false);
+      return;
+    }
+
     if (llegadaRegistered) {
       toast.error('Ya registraste tu llegada hoy. No puedes registrar otra llegada.');
       return;
     }
+
+    setLoading(true);
+    setCameraLlegadaOpen(false);
 
     const now = new Date();
     const timestamp = now.toLocaleTimeString('es-CO', {
@@ -308,7 +446,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
 
     let photoUrl = '';
     try {
-      const fileName = `horario-llegada-${Date.now()}.jpg`;
+      const fileName = `horario-llegada-${empleadoId}-${Date.now()}.jpg`;
       const filePath = `horarios/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -324,11 +462,9 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
       photoUrl = publicUrl;
     } catch (err) {
       console.error('Error uploading photo:', err);
-      const reader = new FileReader();
-      reader.onload = () => {
-        photoUrl = reader.result as string;
-      };
-      reader.readAsDataURL(file);
+      toast.error('Error al subir la foto');
+      setLoading(false);
+      return;
     }
 
     const location = await getCurrentLocation();
@@ -336,15 +472,36 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
       ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
       : 'Ubicación no disponible';
 
-    setFotoLlegada(photoUrl);
-    setHorarioLlegada(timestamp);
-    setUbicacionLlegada(coordsStr);
-    setLocationLlegada(location);
+    // Save immediately to backend
+    const success = await saveToBackend('llegada', {
+      foto: photoUrl,
+      horario: timestamp,
+      ubicacion: coordsStr,
+      location
+    });
 
-    toast.success('Foto de llegada capturada');
+    if (success) {
+      toast.success('Llegada registrada correctamente');
+    }
+
+    setLoading(false);
   };
 
   const handleCaptureSalida = async (file: File) => {
+    // Validate employee is selected from database
+    if (!empleadoId) {
+      toast.error('Debes seleccionar un empleado de la lista');
+      setCameraSalidaOpen(false);
+      return;
+    }
+
+    // Validate context is selected
+    if (!oficinaEnabled && selectedEventIds.length === 0) {
+      toast.error('Selecciona oficina o al menos un evento como contexto');
+      setCameraSalidaOpen(false);
+      return;
+    }
+
     if (salidaRegistered) {
       toast.error('Ya registraste tu salida hoy. No puedes registrar otra salida.');
       return;
@@ -355,6 +512,9 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
       return;
     }
 
+    setLoading(true);
+    setCameraSalidaOpen(false);
+
     const now = new Date();
     const timestamp = now.toLocaleTimeString('es-CO', {
       hour: '2-digit',
@@ -364,7 +524,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
 
     let photoUrl = '';
     try {
-      const fileName = `horario-salida-${Date.now()}.jpg`;
+      const fileName = `horario-salida-${empleadoId}-${Date.now()}.jpg`;
       const filePath = `horarios/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -380,11 +540,9 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
       photoUrl = publicUrl;
     } catch (err) {
       console.error('Error uploading photo:', err);
-      const reader = new FileReader();
-      reader.onload = () => {
-        photoUrl = reader.result as string;
-      };
-      reader.readAsDataURL(file);
+      toast.error('Error al subir la foto');
+      setLoading(false);
+      return;
     }
 
     const location = await getCurrentLocation();
@@ -392,88 +550,19 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
       ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
       : 'Ubicación no disponible';
 
-    setFotoSalida(photoUrl);
-    setHorarioSalida(timestamp);
-    setUbicacionSalida(coordsStr);
-    setLocationSalida(location);
+    // Save immediately to backend
+    const success = await saveToBackend('salida', {
+      foto: photoUrl,
+      horario: timestamp,
+      ubicacion: coordsStr,
+      location
+    });
 
-    toast.success('Foto de salida capturada');
-  };
-
-  const handleSubmit = async () => {
-    if (!empleadoId) {
-      toast.error('Selecciona un empleado');
-      return;
+    if (success) {
+      toast.success('Salida registrada correctamente');
     }
 
-    if (!oficinaEnabled && selectedEventIds.length === 0) {
-      toast.error('Selecciona al menos oficina o un evento como contexto');
-      return;
-    }
-
-    if (!fotoLlegada && !horarioLlegada && !existingRecord?.llegada) {
-      toast.error('Debes registrar la llegada');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const dia = format(fecha, 'yyyy-MM-dd');
-      const empleado = empleados.find(e => e.id === empleadoId);
-      const cargo = empleado?.cargo || '';
-
-      // Build evento_nombre based on context
-      const contextParts: string[] = [];
-      if (oficinaEnabled) contextParts.push('Oficina');
-      selectedEventIds.forEach(eventId => {
-        const project = projects.find(p => p.id === eventId);
-        if (project) contextParts.push(project.evento);
-      });
-      const eventoNombre = contextParts.join(' + ');
-
-      // Determine categoria
-      const categoria = oficinaEnabled && selectedEventIds.length === 0 ? 'Oficina' : 'Evento';
-
-      if (existingRecord) {
-        // Update existing record
-        await updateHorario(existingRecord.id, {
-          evento_nombre: eventoNombre,
-          evento_id: selectedEventIds.length > 0 ? selectedEventIds[0] : null,
-          categoria,
-          llegada: horarioLlegada || existingRecord.llegada,
-          ubicacion_llegada: ubicacionLlegada || existingRecord.ubicacion_llegada,
-          salida: horarioSalida || existingRecord.salida,
-          ubicacion_salida: ubicacionSalida || existingRecord.ubicacion_salida,
-          foto_llegada: fotoLlegada || existingRecord.foto_llegada,
-          foto_salida: fotoSalida || existingRecord.foto_salida,
-        });
-      } else {
-        // Create new single daily record
-        await addHorario({
-          empleado_id: empleadoId,
-          evento_id: selectedEventIds.length > 0 ? selectedEventIds[0] : null,
-          evento_nombre: eventoNombre,
-          cargo,
-          dia,
-          categoria,
-          llegada: horarioLlegada || '',
-          ubicacion_llegada: ubicacionLlegada,
-          salida: horarioSalida || '',
-          ubicacion_salida: ubicacionSalida,
-          foto_llegada: fotoLlegada,
-          foto_salida: fotoSalida,
-        });
-      }
-
-      toast.success('Horario guardado');
-      resetForm();
-      onOpenChange(false);
-    } catch (err) {
-      console.error('Error saving horario:', err);
-      toast.error('Error al guardar');
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   };
 
   const resetForm = () => {
@@ -483,14 +572,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     setOficinaEnabled(false);
     setEventoSearch('');
     setExistingRecord(null);
-    setFotoLlegada('');
-    setHorarioLlegada('');
-    setUbicacionLlegada('');
-    setLocationLlegada(null);
-    setFotoSalida('');
-    setHorarioSalida('');
-    setUbicacionSalida('');
-    setLocationSalida(null);
+    clearLocalState();
   };
 
   const clearLlegada = () => {
@@ -513,9 +595,20 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
 
   const showRegistrationForm = empleadoId && (oficinaEnabled || selectedEventIds.length > 0);
 
+  // Display values from existing record or local state
+  const displayFotoLlegada = existingRecord?.foto_llegada || fotoLlegada;
+  const displayHorarioLlegada = existingRecord?.llegada || horarioLlegada;
+  const displayUbicacionLlegada = existingRecord?.ubicacion_llegada || ubicacionLlegada;
+  const displayFotoSalida = existingRecord?.foto_salida || fotoSalida;
+  const displayHorarioSalida = existingRecord?.salida || horarioSalida;
+  const displayUbicacionSalida = existingRecord?.ubicacion_salida || ubicacionSalida;
+
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(isOpen) => {
+        if (!isOpen) resetForm();
+        onOpenChange(isOpen);
+      }}>
         {children && <DialogTrigger asChild>{children}</DialogTrigger>}
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -525,21 +618,35 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
           <div className="flex gap-6">
             {/* Left Panel - Main Form */}
             <div className="flex-1 space-y-6">
-              {/* Nombre - Connected to Empleados */}
+              {/* Nombre - Connected to Empleados (REQUIRED) */}
               <div className="space-y-2">
                 <Label className="text-sm font-bold uppercase">Nombre</Label>
                 <EmpleadoAutocomplete
                   value={empleadoId || ''}
                   onChange={(_, id) => {
-                    setEmpleadoId(id || null);
+                    if (id) {
+                      setEmpleadoId(id);
+                    } else {
+                      setEmpleadoId(null);
+                    }
                   }}
                   useEmpleadoId={true}
                   placeholder="Buscar empleado..."
                 />
+                {!empleadoId && (
+                  <p className="text-xs text-amber-400">* Debes seleccionar un empleado de la lista</p>
+                )}
               </div>
 
+              {/* Loading indicator */}
+              {loadingRecord && (
+                <div className="text-center py-4 text-muted-foreground">
+                  Cargando registro...
+                </div>
+              )}
+
               {/* Single Registration Section */}
-              {showRegistrationForm ? (
+              {showRegistrationForm && !loadingRecord ? (
                 <div className="border border-border rounded-lg p-4 space-y-6">
                   {/* Context Summary */}
                   <div className="flex items-center gap-2 flex-wrap">
@@ -560,6 +667,13 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                     })}
                   </div>
 
+                  {/* Existing record info */}
+                  {existingRecord && (
+                    <div className="bg-muted/30 p-2 rounded text-xs text-muted-foreground">
+                      Registro existente para {format(fecha, "d 'de' MMMM", { locale: es })}
+                    </div>
+                  )}
+
                   {/* LLEGADA */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -576,10 +690,10 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                       <div className="space-y-2">
                         <Label className="text-xs text-muted-foreground">Foto</Label>
                         <div className="border-2 border-dashed border-border rounded-lg p-3 min-h-[100px] flex flex-col items-center justify-center">
-                          {fotoLlegada || existingRecord?.foto_llegada ? (
+                          {displayFotoLlegada ? (
                             <div className="relative w-full">
                               <img 
-                                src={fotoLlegada || existingRecord?.foto_llegada} 
+                                src={displayFotoLlegada} 
                                 alt="Llegada" 
                                 className="w-full h-20 object-cover rounded" 
                               />
@@ -600,7 +714,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                               variant="outline"
                               size="sm"
                               onClick={() => setCameraLlegadaOpen(true)}
-                              disabled={llegadaRegistered}
+                              disabled={llegadaRegistered || loading}
                               className="gap-2"
                             >
                               <Camera className="h-4 w-4" />
@@ -617,14 +731,14 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                           Ubicación
                         </Label>
                         <Input
-                          value={ubicacionLlegada || existingRecord?.ubicacion_llegada || ''}
+                          value={displayUbicacionLlegada || ''}
                           readOnly
                           placeholder="--"
                           className="bg-muted/50 cursor-not-allowed text-sm"
                         />
-                        {getGoogleMapsLink(locationLlegada) && (
+                        {displayUbicacionLlegada && !displayUbicacionLlegada.includes('no disponible') && (
                           <a
-                            href={getGoogleMapsLink(locationLlegada)!}
+                            href={`https://www.google.com/maps?q=${displayUbicacionLlegada.replace(' ', '')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-primary hover:underline flex items-center gap-1"
@@ -642,7 +756,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                           Horario
                         </Label>
                         <Input
-                          value={horarioLlegada || existingRecord?.llegada || ''}
+                          value={displayHorarioLlegada || ''}
                           readOnly
                           placeholder="--:--"
                           className="bg-muted/50 cursor-not-allowed font-mono text-lg font-bold"
@@ -667,10 +781,10 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                       <div className="space-y-2">
                         <Label className="text-xs text-muted-foreground">Foto</Label>
                         <div className="border-2 border-dashed border-border rounded-lg p-3 min-h-[100px] flex flex-col items-center justify-center">
-                          {fotoSalida || existingRecord?.foto_salida ? (
+                          {displayFotoSalida ? (
                             <div className="relative w-full">
                               <img 
-                                src={fotoSalida || existingRecord?.foto_salida} 
+                                src={displayFotoSalida} 
                                 alt="Salida" 
                                 className="w-full h-20 object-cover rounded" 
                               />
@@ -692,7 +806,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setCameraSalidaOpen(true)}
-                                disabled={salidaRegistered || !hasLlegada}
+                                disabled={salidaRegistered || !hasLlegada || loading}
                                 className="gap-2"
                               >
                                 <Camera className="h-4 w-4" />
@@ -713,14 +827,14 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                           Ubicación
                         </Label>
                         <Input
-                          value={ubicacionSalida || existingRecord?.ubicacion_salida || ''}
+                          value={displayUbicacionSalida || ''}
                           readOnly
                           placeholder="--"
                           className="bg-muted/50 cursor-not-allowed text-sm"
                         />
-                        {getGoogleMapsLink(locationSalida) && (
+                        {displayUbicacionSalida && !displayUbicacionSalida.includes('no disponible') && (
                           <a
-                            href={getGoogleMapsLink(locationSalida)!}
+                            href={`https://www.google.com/maps?q=${displayUbicacionSalida.replace(' ', '')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-primary hover:underline flex items-center gap-1"
@@ -738,7 +852,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                           Horario
                         </Label>
                         <Input
-                          value={horarioSalida || existingRecord?.salida || ''}
+                          value={displayHorarioSalida || ''}
                           readOnly
                           placeholder="--:--"
                           className="bg-muted/50 cursor-not-allowed font-mono text-lg font-bold"
@@ -747,16 +861,14 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                     </div>
                   </div>
 
-                  {/* Submit Button */}
-                  <Button
-                    onClick={handleSubmit}
-                    className="w-full"
-                    disabled={loading}
-                  >
-                    {loading ? 'Guardando...' : 'Guardar Horario'}
-                  </Button>
+                  {/* Status message */}
+                  {llegadaRegistered && salidaRegistered && (
+                    <div className="bg-green-500/10 text-green-500 p-3 rounded-lg text-center text-sm">
+                      ✓ Registro completo para hoy
+                    </div>
+                  )}
                 </div>
-              ) : (
+              ) : !loadingRecord && (
                 <div className="text-center text-muted-foreground py-12 border-2 border-dashed border-border rounded-lg">
                   <p className="text-sm">Selecciona un empleado y luego activa Oficina o selecciona eventos como contexto</p>
                 </div>
@@ -802,7 +914,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                 <Switch
                   checked={oficinaEnabled}
                   onCheckedChange={setOficinaEnabled}
-                  disabled={!empleadoId}
+                  disabled={!empleadoId || llegadaRegistered}
                 />
               </div>
 
@@ -839,11 +951,11 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                             "flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer border-b border-border last:border-b-0",
                             isSelected && "bg-primary/10"
                           )}
-                          onClick={() => empleadoId && toggleEventSelection(event.id)}
+                          onClick={() => empleadoId && !llegadaRegistered && toggleEventSelection(event.id)}
                         >
                           <Checkbox 
                             checked={isSelected}
-                            disabled={!empleadoId}
+                            disabled={!empleadoId || llegadaRegistered}
                             className="pointer-events-none"
                           />
                           <div className="flex-1 min-w-0">
@@ -868,6 +980,12 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                 {selectedEventIds.length > 0 && (
                   <p className="text-xs text-primary">
                     {selectedEventIds.length} evento{selectedEventIds.length > 1 ? 's' : ''} seleccionado{selectedEventIds.length > 1 ? 's' : ''}
+                  </p>
+                )}
+
+                {llegadaRegistered && (
+                  <p className="text-xs text-amber-400">
+                    El contexto no puede modificarse después de registrar llegada
                   </p>
                 )}
               </div>

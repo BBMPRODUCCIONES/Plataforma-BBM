@@ -104,6 +104,69 @@ export type Database = {
         }
         Relationships: []
       }
+      horarios: {
+        Row: {
+          cargo: string
+          categoria: string
+          created_at: string
+          dia: string
+          empleado_id: string | null
+          evento_id: string | null
+          evento_nombre: string
+          id: string
+          llegada: string
+          salida: string
+          ubicacion_llegada: string
+          ubicacion_salida: string
+          updated_at: string
+        }
+        Insert: {
+          cargo?: string
+          categoria?: string
+          created_at?: string
+          dia: string
+          empleado_id?: string | null
+          evento_id?: string | null
+          evento_nombre?: string
+          id?: string
+          llegada?: string
+          salida?: string
+          ubicacion_llegada?: string
+          ubicacion_salida?: string
+          updated_at?: string
+        }
+        Update: {
+          cargo?: string
+          categoria?: string
+          created_at?: string
+          dia?: string
+          empleado_id?: string | null
+          evento_id?: string | null
+          evento_nombre?: string
+          id?: string
+          llegada?: string
+          salida?: string
+          ubicacion_llegada?: string
+          ubicacion_salida?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horarios_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horarios_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           accepted_at: string | null

@@ -39,39 +39,66 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchHorarios = async () => {
     console.log('[HorariosContext] Fetching horarios...');
+    
+    // Log current auth status
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log('[HorariosContext] Current user:', user?.id, user?.email);
+    
     try {
-      const { data, error } = await supabase
+      const { data, error, status } = await supabase
         .from('horarios')
         .select('*')
         .order('dia', { ascending: false });
 
-      console.log('[HorariosContext] Raw data from DB:', data?.length, 'records');
+      console.log('[HorariosContext] Query response - Status:', status, 'Records:', data?.length);
+      
       if (error) {
-        console.error('[HorariosContext] DB error:', error);
+        console.error('[HorariosContext] DB error:', error.message, error.code, error.details);
         throw error;
       }
       
+      if (!data || data.length === 0) {
+        console.log('[HorariosContext] No horarios found in database');
+        setHorarios([]);
+        setLoading(false);
+        return;
+      }
+      
+      console.log('[HorariosContext] Raw horarios data:', data.map(h => ({
+        id: h.id,
+        empleado_id: h.empleado_id,
+        dia: h.dia,
+        evento_nombre: h.evento_nombre,
+        categoria: h.categoria
+      })));
+      
       // Fetch employee names
-      const empleadoIds = [...new Set(data?.map(h => h.empleado_id).filter(Boolean))];
+      const empleadoIds = [...new Set(data.map(h => h.empleado_id).filter(Boolean))] as string[];
       let empleadosMap: Record<string, string> = {};
       
       if (empleadoIds.length > 0) {
-        const { data: empleados } = await supabase
+        console.log('[HorariosContext] Fetching employee names for IDs:', empleadoIds);
+        const { data: empleados, error: empError } = await supabase
           .from('employees')
           .select('id, nombre')
           .in('id', empleadoIds);
         
+        if (empError) {
+          console.error('[HorariosContext] Error fetching employees:', empError);
+        }
+        
         if (empleados) {
           empleadosMap = empleados.reduce((acc, e) => ({ ...acc, [e.id]: e.nombre }), {});
+          console.log('[HorariosContext] Employee map:', empleadosMap);
         }
       }
 
-      const horariosWithNames = (data || []).map(h => ({
+      const horariosWithNames = data.map(h => ({
         ...h,
         empleado_nombre: h.empleado_id ? empleadosMap[h.empleado_id] || '' : ''
       })) as Horario[];
 
-      console.log('[HorariosContext] Setting horarios state:', horariosWithNames.length, 'records');
+      console.log('[HorariosContext] Final horarios with names:', horariosWithNames.length, 'records');
       setHorarios(horariosWithNames);
     } catch (error) {
       console.error('[HorariosContext] Error fetching horarios:', error);

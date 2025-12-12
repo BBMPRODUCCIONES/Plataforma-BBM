@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useHorarios, Horario } from '@/contexts/HorariosContext';
 import { useEmpleados } from '@/contexts/EmpleadosContext';
 import { useProjects } from '@/contexts/ProjectsContext';
@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Search, Plus, CalendarIcon, Pencil, Trash2, ChevronLeft, ChevronRight, User, AlertCircle } from 'lucide-react';
+import { Search, Plus, CalendarIcon, Pencil, Trash2, ChevronLeft, ChevronRight, User, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Project, PersonalItem } from '@/types';
 import { EmpleadoAutocomplete } from '@/components/EmpleadoAutocomplete';
@@ -41,7 +41,7 @@ interface EventoAsignado {
 }
 
 export const GestionHorarios = () => {
-  const { horarios, loading, deleteHorario } = useHorarios();
+  const { horarios, loading, deleteHorario, refetch } = useHorarios();
   const { empleados } = useEmpleados();
   const { projects } = useProjects();
   
@@ -50,10 +50,33 @@ export const GestionHorarios = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | undefined>();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHorario, setEditingHorario] = useState<Horario | null>(null);
+
+  // Force refetch on mount and when component becomes visible
+  useEffect(() => {
+    console.log('[GestionHorarios] Component mounted, forcing refetch...');
+    refetch();
+  }, [refetch]);
+
+  // Log horarios state changes
+  useEffect(() => {
+    console.log('[GestionHorarios] Horarios updated:', horarios.length, 'records');
+    if (horarios.length > 0) {
+      console.log('[GestionHorarios] Sample horario:', horarios[0]);
+    }
+  }, [horarios]);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    console.log('[GestionHorarios] Manual refresh triggered');
+    await refetch();
+    setIsRefreshing(false);
+    toast.success('Datos actualizados');
+  };
 
   // Get date range based on view mode
   const getDateRange = useCallback((): { start: Date; end: Date } | null => {
@@ -398,6 +421,16 @@ export const GestionHorarios = () => {
           </Button>
           <Button variant="outline" size="sm" className="h-7 px-3 text-xs" onClick={() => setSelectedDate(new Date())}>
             Hoy
+          </Button>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-7 w-7" 
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            title="Refrescar datos"
+          >
+            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
           </Button>
         </div>
 

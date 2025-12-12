@@ -9,6 +9,7 @@ import { ProjectsProvider } from "@/contexts/ProjectsContext";
 import { ClientesProvider } from "@/contexts/ClientesContext";
 import { ProveedoresProvider } from "@/contexts/ProveedoresContext";
 import { DateRangeProvider } from "@/contexts/DateRangeContext";
+import { HorariosProvider } from "@/contexts/HorariosContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -33,6 +34,7 @@ const App = () => (
       <AuthProvider>
         <ProjectsProvider>
           <EmpleadosProvider>
+          <HorariosProvider>
           <ClientesProvider>
             <ProveedoresProvider>
               <DateRangeProvider>
@@ -107,6 +109,7 @@ const App = () => (
               </DateRangeProvider>
             </ProveedoresProvider>
             </ClientesProvider>
+          </HorariosProvider>
           </EmpleadosProvider>
         </ProjectsProvider>
       </AuthProvider>

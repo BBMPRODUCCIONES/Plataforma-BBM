@@ -28,11 +28,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { BancoAutocomplete } from "@/components/BancoAutocomplete";
-import { Plus, Trash2, Edit, Users, Search, Settings, Loader2, ShieldAlert } from "lucide-react";
+import { GestionHorarios } from "@/components/GestionHorarios";
+import { Plus, Trash2, Edit, Users, Search, Settings, Loader2, ShieldAlert, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEmpleados, Empleado } from "@/contexts/EmpleadosContext";
@@ -47,6 +49,7 @@ export default function Empleados() {
   const [searchTerm, setSearchTerm] = useState("");
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<"empleados" | "horarios">("empleados");
 
   // SECURITY: Only admin can access this page
   // This page displays sensitive contact information (telefono, correo)
@@ -239,7 +242,7 @@ export default function Empleados() {
           title="Creación de Empleados"
           description="Administrar empleados que pueden ser asignados a proyectos"
           actions={
-            isAdmin && (
+            activeTab === "empleados" && isAdmin && (
               <Button variant="outline" size="sm" onClick={initializeColumns}>
                 <Settings className="h-4 w-4 mr-2" />
                 Gestionar Columnas
@@ -248,239 +251,261 @@ export default function Empleados() {
           }
         />
 
-        {/* Security Notice */}
-        <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
-          <ShieldAlert className="h-4 w-4 text-primary" />
-          <span className="text-xs text-muted-foreground">
-            Esta página contiene información de contacto sensible y solo es accesible para administradores.
-          </span>
-        </div>
+        {/* Tabs for switching between Empleados and Gestión de Horarios */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "empleados" | "horarios")}>
+          <TabsList className="bg-muted/50">
+            <TabsTrigger value="empleados" className="gap-2">
+              <Users className="h-4 w-4" />
+              Empleados
+            </TabsTrigger>
+            <TabsTrigger value="horarios" className="gap-2">
+              <Clock className="h-4 w-4" />
+              Gestión de Horarios
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nombre, correo o cargo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+          {/* Empleados Tab Content */}
+          <TabsContent value="empleados" className="space-y-6 mt-4">
+            {/* Security Notice */}
+            <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <ShieldAlert className="h-4 w-4 text-primary" />
+              <span className="text-xs text-muted-foreground">
+                Esta página contiene información de contacto sensible y solo es accesible para administradores.
+              </span>
+            </div>
 
-          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Empleado
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingEmpleado ? "Editar Empleado" : "Agregar Nuevo Empleado"}</DialogTitle>
-                <DialogDescription>
-                  Complete los datos del empleado. Los empleados creados aquí estarán disponibles para selección en eventos.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-6 py-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cargo">Cargo</Label>
-                    <Input
-                      id="cargo"
-                      placeholder="Ej: Coordinador de Logística"
-                      value={formData.cargo}
-                      onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre">Nombre *</Label>
-                    <Input
-                      id="nombre"
-                      placeholder="Ej: Juan Pérez"
-                      value={formData.nombre}
-                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="telefono">Teléfono</Label>
-                    <Input
-                      id="telefono"
-                      placeholder="Ej: +57 300 123 4567"
-                      value={formData.telefono}
-                      onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="correo">Correo Electrónico</Label>
-                    <Input
-                      id="correo"
-                      type="email"
-                      placeholder="Ej: empleado@empresa.com"
-                      value={formData.correo}
-                      onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                {/* DATOS BANCARIOS Section */}
-                <div className="space-y-3 pt-2 border-t border-border">
-                  <h4 className="text-sm font-semibold text-foreground">DATOS BANCARIOS</h4>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="banco" className="text-xs">BANCO</Label>
-                      <BancoAutocomplete
-                        value={formData.banco}
-                        onChange={(value) => setFormData({ ...formData, banco: value })}
-                        placeholder="Buscar banco..."
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tipoCuenta" className="text-xs">CUENTA</Label>
-                      <Select 
-                        value={formData.tipoCuenta} 
-                        onValueChange={(value) => setFormData({ ...formData, tipoCuenta: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Ahorros">Ahorros</SelectItem>
-                          <SelectItem value="Corriente">Corriente</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="numeroCuenta" className="text-xs"># DE CUENTA</Label>
-                      <Input
-                        id="numeroCuenta"
-                        placeholder="Ej: 1234567890"
-                        value={formData.numeroCuenta}
-                        onChange={(e) => setFormData({ ...formData, numeroCuenta: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, correo o cargo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
 
-              <DialogFooter>
-                <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  {editingEmpleado ? "Guardar Cambios" : "Agregar Empleado"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        <div className="panel-card">
-          <div className="panel-header mb-0">
-            <h3 className="text-sm font-semibold">Listado de Empleados</h3>
-            <span className="text-xs text-muted-foreground">{filteredEmpleados.length} empleados registrados</span>
-          </div>
-          <div className="overflow-x-auto scrollbar-thin">
-            <Table>
-              <TableHeader>
-                {/* First row with grouped header */}
-                <TableRow className="border-b-0">
-                  {visibleColumns.map(col => (
-                    <TableHead 
-                      key={col.key} 
-                      rowSpan={2} 
-                      className="border-r border-border/50 text-center align-middle"
-                      style={{ width: col.width, minWidth: col.width }}
-                    >
-                      {col.header}
-                    </TableHead>
-                  ))}
-                  <TableHead 
-                    colSpan={3} 
-                    className="text-center border-b border-border/50 bg-primary/5 font-bold"
-                  >
-                    DATOS BANCARIOS
-                  </TableHead>
-                  <TableHead rowSpan={2} className="text-center align-middle" style={{ width: "120px" }}>
-                    Acciones
-                  </TableHead>
-                </TableRow>
-                {/* Second row with banking sub-columns */}
-                <TableRow>
-                  <TableHead className="text-center border-r border-border/50 bg-primary/5" style={{ width: "150px", minWidth: "150px" }}>
-                    BANCO
-                  </TableHead>
-                  <TableHead className="text-center border-r border-border/50 bg-primary/5" style={{ width: "120px", minWidth: "120px" }}>
-                    CUENTA
-                  </TableHead>
-                  <TableHead className="text-center bg-primary/5" style={{ width: "150px", minWidth: "150px" }}>
-                    # DE CUENTA
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEmpleados.map((empleado) => (
-                  <TableRow key={empleado.id}>
-                    {visibleColumns.map(col => (
-                      <TableCell key={col.key} className="border-r border-border/30">
-                        {getColumnRender(col, empleado)}
-                      </TableCell>
-                    ))}
-                    {/* Banking columns */}
-                    <TableCell className="border-r border-border/30">
-                      <BancoAutocomplete
-                        value={empleado.banco || ""}
-                        onChange={(value) => handleUpdateEmpleado(empleado.id, "banco", value)}
-                        placeholder="Buscar banco..."
-                      />
-                    </TableCell>
-                    <TableCell className="border-r border-border/30">
-                      <EditableCell
-                        value={empleado.tipoCuenta || ""}
-                        type="select"
-                        options={["Ahorros", "Corriente"]}
-                        placeholder="Seleccionar"
-                        onChange={(value) => handleUpdateEmpleado(empleado.id, "tipoCuenta", value)}
-                      />
-                    </TableCell>
-                    <TableCell className="border-r border-border/30">
-                      <EditableCell
-                        value={empleado.numeroCuenta || ""}
-                        type="text"
-                        placeholder="Ej: 1234567890"
-                        onChange={(value) => handleUpdateEmpleado(empleado.id, "numeroCuenta", value)}
-                      />
-                    </TableCell>
-                    {/* Actions column */}
-                    <TableCell>
-                      <div className="flex items-center justify-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(empleado)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(empleado.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+              <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar Empleado
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{editingEmpleado ? "Editar Empleado" : "Agregar Nuevo Empleado"}</DialogTitle>
+                    <DialogDescription>
+                      Complete los datos del empleado. Los empleados creados aquí estarán disponibles para selección en eventos.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-6 py-4">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="cargo">Cargo</Label>
+                        <Input
+                          id="cargo"
+                          placeholder="Ej: Coordinador de Logística"
+                          value={formData.cargo}
+                          onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                        />
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
 
-        <div className="p-4 bg-muted/30 rounded-lg border border-border">
-          <h4 className="text-sm font-medium mb-2">Nota Importante</h4>
-          <p className="text-xs text-muted-foreground">
-            Los empleados creados aquí son la fuente oficial de datos para el personal interno. 
-            Cuando seleccione "Tipo = BBM" en el módulo de Personal de un evento, <strong>solo podrá seleccionar</strong> empleados 
-            registrados en este módulo. No es posible escribir nombres manualmente para personal BBM.
-          </p>
-        </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="nombre">Nombre *</Label>
+                        <Input
+                          id="nombre"
+                          placeholder="Ej: Juan Pérez"
+                          value={formData.nombre}
+                          onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="telefono">Teléfono</Label>
+                        <Input
+                          id="telefono"
+                          placeholder="Ej: +57 300 123 4567"
+                          value={formData.telefono}
+                          onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="correo">Correo Electrónico</Label>
+                        <Input
+                          id="correo"
+                          type="email"
+                          placeholder="Ej: empleado@empresa.com"
+                          value={formData.correo}
+                          onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    {/* DATOS BANCARIOS Section */}
+                    <div className="space-y-3 pt-2 border-t border-border">
+                      <h4 className="text-sm font-semibold text-foreground">DATOS BANCARIOS</h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="banco" className="text-xs">BANCO</Label>
+                          <BancoAutocomplete
+                            value={formData.banco}
+                            onChange={(value) => setFormData({ ...formData, banco: value })}
+                            placeholder="Buscar banco..."
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="tipoCuenta" className="text-xs">CUENTA</Label>
+                          <Select 
+                            value={formData.tipoCuenta} 
+                            onValueChange={(value) => setFormData({ ...formData, tipoCuenta: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Ahorros">Ahorros</SelectItem>
+                              <SelectItem value="Corriente">Corriente</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="numeroCuenta" className="text-xs"># DE CUENTA</Label>
+                          <Input
+                            id="numeroCuenta"
+                            placeholder="Ej: 1234567890"
+                            value={formData.numeroCuenta}
+                            onChange={(e) => setFormData({ ...formData, numeroCuenta: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleSave} disabled={saving}>
+                      {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {editingEmpleado ? "Guardar Cambios" : "Agregar Empleado"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="panel-card">
+              <div className="panel-header mb-0">
+                <h3 className="text-sm font-semibold">Listado de Empleados</h3>
+                <span className="text-xs text-muted-foreground">{filteredEmpleados.length} empleados registrados</span>
+              </div>
+              <div className="overflow-x-auto scrollbar-thin">
+                <Table>
+                  <TableHeader>
+                    {/* First row with grouped header */}
+                    <TableRow className="border-b-0">
+                      {visibleColumns.map(col => (
+                        <TableHead 
+                          key={col.key} 
+                          rowSpan={2} 
+                          className="border-r border-border/50 text-center align-middle"
+                          style={{ width: col.width, minWidth: col.width }}
+                        >
+                          {col.header}
+                        </TableHead>
+                      ))}
+                      <TableHead 
+                        colSpan={3} 
+                        className="text-center border-b border-border/50 bg-primary/5 font-bold"
+                      >
+                        DATOS BANCARIOS
+                      </TableHead>
+                      <TableHead rowSpan={2} className="text-center align-middle" style={{ width: "120px" }}>
+                        Acciones
+                      </TableHead>
+                    </TableRow>
+                    {/* Second row with banking sub-columns */}
+                    <TableRow>
+                      <TableHead className="text-center border-r border-border/50 bg-primary/5" style={{ width: "150px", minWidth: "150px" }}>
+                        BANCO
+                      </TableHead>
+                      <TableHead className="text-center border-r border-border/50 bg-primary/5" style={{ width: "120px", minWidth: "120px" }}>
+                        CUENTA
+                      </TableHead>
+                      <TableHead className="text-center bg-primary/5" style={{ width: "150px", minWidth: "150px" }}>
+                        # DE CUENTA
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredEmpleados.map((empleado) => (
+                      <TableRow key={empleado.id}>
+                        {visibleColumns.map(col => (
+                          <TableCell key={col.key} className="border-r border-border/30">
+                            {getColumnRender(col, empleado)}
+                          </TableCell>
+                        ))}
+                        {/* Banking columns */}
+                        <TableCell className="border-r border-border/30">
+                          <BancoAutocomplete
+                            value={empleado.banco || ""}
+                            onChange={(value) => handleUpdateEmpleado(empleado.id, "banco", value)}
+                            placeholder="Buscar banco..."
+                          />
+                        </TableCell>
+                        <TableCell className="border-r border-border/30">
+                          <EditableCell
+                            value={empleado.tipoCuenta || ""}
+                            type="select"
+                            options={["Ahorros", "Corriente"]}
+                            placeholder="Seleccionar"
+                            onChange={(value) => handleUpdateEmpleado(empleado.id, "tipoCuenta", value)}
+                          />
+                        </TableCell>
+                        <TableCell className="border-r border-border/30">
+                          <EditableCell
+                            value={empleado.numeroCuenta || ""}
+                            type="text"
+                            placeholder="Ej: 1234567890"
+                            onChange={(value) => handleUpdateEmpleado(empleado.id, "numeroCuenta", value)}
+                          />
+                        </TableCell>
+                        {/* Actions column */}
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(empleado)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(empleado.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <div className="p-4 bg-muted/30 rounded-lg border border-border">
+              <h4 className="text-sm font-medium mb-2">Nota Importante</h4>
+              <p className="text-xs text-muted-foreground">
+                Los empleados creados aquí son la fuente oficial de datos para el personal interno. 
+                Cuando seleccione "Tipo = BBM" en el módulo de Personal de un evento, <strong>solo podrá seleccionar</strong> empleados 
+                registrados en este módulo. No es posible escribir nombres manualmente para personal BBM.
+              </p>
+            </div>
+          </TabsContent>
+
+          {/* Gestión de Horarios Tab Content */}
+          <TabsContent value="horarios" className="mt-4">
+            <GestionHorarios />
+          </TabsContent>
+        </Tabs>
 
         <ColumnManagerDialog
           open={columnManagerOpen}

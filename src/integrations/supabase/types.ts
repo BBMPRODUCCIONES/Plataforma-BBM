@@ -113,6 +113,8 @@ export type Database = {
           empleado_id: string | null
           evento_id: string | null
           evento_nombre: string
+          foto_llegada: string | null
+          foto_salida: string | null
           id: string
           llegada: string
           salida: string
@@ -128,6 +130,8 @@ export type Database = {
           empleado_id?: string | null
           evento_id?: string | null
           evento_nombre?: string
+          foto_llegada?: string | null
+          foto_salida?: string | null
           id?: string
           llegada?: string
           salida?: string
@@ -143,6 +147,8 @@ export type Database = {
           empleado_id?: string | null
           evento_id?: string | null
           evento_nombre?: string
+          foto_llegada?: string | null
+          foto_salida?: string | null
           id?: string
           llegada?: string
           salida?: string

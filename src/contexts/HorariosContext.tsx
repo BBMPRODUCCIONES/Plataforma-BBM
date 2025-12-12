@@ -14,6 +14,8 @@ export interface Horario {
   ubicacion_llegada: string;
   salida: string;
   ubicacion_salida: string;
+  foto_llegada?: string;
+  foto_salida?: string;
   created_at: string;
   updated_at: string;
   // Joined fields

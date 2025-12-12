@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,8 @@ import { toast } from 'sonner';
 interface HorarioFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultEmpleadoId?: string;
+  children?: React.ReactNode;
 }
 
 interface LocationData {
@@ -53,7 +55,7 @@ interface DailyRecord {
   locationSalida: LocationData | null;
 }
 
-export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps) => {
+export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, children }: HorarioFormDialogProps) => {
   const { addHorario, updateHorario, horarios } = useHorarios();
   const { projects } = useProjects();
   const { empleados } = useEmpleados();
@@ -82,6 +84,13 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
   // Camera dialogs
   const [cameraLlegadaOpen, setCameraLlegadaOpen] = useState(false);
   const [cameraSalidaOpen, setCameraSalidaOpen] = useState(false);
+
+  // Initialize with defaultEmpleadoId when dialog opens
+  useEffect(() => {
+    if (open && defaultEmpleadoId && !empleadoId) {
+      setEmpleadoId(defaultEmpleadoId);
+    }
+  }, [open, defaultEmpleadoId]);
 
   // Filter events by selected date
   const eventsForDate = useMemo(() => {
@@ -507,6 +516,7 @@ export const HorarioFormDialog = ({ open, onOpenChange }: HorarioFormDialogProps
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
+        {children && <DialogTrigger asChild>{children}</DialogTrigger>}
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-center">GESTIÓN DE HORARIOS</DialogTitle>

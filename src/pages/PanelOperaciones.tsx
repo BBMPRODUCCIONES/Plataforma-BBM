@@ -914,13 +914,15 @@ const PanelOperaciones = () => {
   const cajaMenorColumns = useMemo(() => {
     const projectId = currentProjectData?.id;
     
-    // Helper to get employee display name
+    // Helper to get employee display name - prioritize DB lookup over stored name
     const getEmpleadoName = (c: CajaMenorItem) => {
-      if (c.empleadoNombre) return c.empleadoNombre;
+      // First try to find the employee by ID (most reliable, gets current name from DB)
       if (c.empleadoId) {
         const emp = empleados.find(e => e.id === c.empleadoId);
-        return emp?.nombre || "Empleado desconocido";
+        if (emp?.nombre) return emp.nombre;
       }
+      // Fallback to stored name if ID lookup fails
+      if (c.empleadoNombre) return c.empleadoNombre;
       return "Sin empleado";
     };
     

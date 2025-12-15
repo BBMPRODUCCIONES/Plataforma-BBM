@@ -167,11 +167,16 @@ const Usuarios = () => {
       const invitationLink = `${window.location.origin}/crear-cuenta?token=${data.invitation.token}`;
       setGeneratedLink(invitationLink);
 
-      // Show different message if employee was linked
+      // Show different message based on employee status
       if (data.employeeLinked) {
         toast({
           title: "Invitación creada (empleado existente vinculado)",
           description: `Se usará el registro de empleado existente para ${newEmail}`,
+        });
+      } else if (data.employeeCreated) {
+        toast({
+          title: "Invitación y empleado creados",
+          description: `Se creó invitación y empleado automáticamente para ${newEmail}`,
         });
       } else {
         toast({

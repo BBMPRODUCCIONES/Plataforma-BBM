@@ -20,6 +20,8 @@ interface ReactivationData {
   email: string;
   role: Database["public"]["Enums"]["app_role"];
   allowed_panels: string[];
+  isOrphanedUser?: boolean;
+  orphanedUserId?: string;
   deletedEmployee: {
     id: string;
     nombre: string;
@@ -224,12 +226,14 @@ const Usuarios = () => {
         throw new Error(errorMsg);
       }
 
-      // Check if needs reactivation
+      // Check if needs reactivation (deleted user, orphaned user, or soft-deleted employee)
       if (data.needsReactivation) {
         setReactivationData({
           email: newEmail.trim(),
           role: newRole,
           allowed_panels: newRole === "administrador" ? ALL_PANELS : newPanels,
+          isOrphanedUser: data.isOrphanedUser || false,
+          orphanedUserId: data.orphanedUserId,
           deletedEmployee: data.deletedEmployee,
           deletedUser: data.deletedUser
         });
@@ -294,7 +298,8 @@ const Usuarios = () => {
         body: {
           email: reactivationData.email,
           role: reactivationData.role,
-          allowed_panels: reactivationData.allowed_panels
+          allowed_panels: reactivationData.allowed_panels,
+          orphanedUserId: reactivationData.orphanedUserId // Pass orphaned user ID for cleanup
         },
       });
 
@@ -964,15 +969,30 @@ const Usuarios = () => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <RefreshCw className="h-5 w-5 text-amber-500" />
-                Usuario Previamente Eliminado
+                {reactivationData?.isOrphanedUser ? "Usuario con Datos Incompletos" : "Usuario Previamente Eliminado"}
               </DialogTitle>
               <DialogDescription>
-                El correo <strong>{reactivationData?.email}</strong> ya estaba registrado pero fue eliminado. 
-                ¿Deseas reactivar este usuario?
+                {reactivationData?.isOrphanedUser ? (
+                  <>El correo <strong>{reactivationData?.email}</strong> existe en el sistema pero sin rol asignado (datos incompletos). ¿Deseas limpiar y crear nueva invitación?</>
+                ) : (
+                  <>El correo <strong>{reactivationData?.email}</strong> ya estaba registrado pero fue eliminado. ¿Deseas reactivar este usuario?</>
+                )}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-4">
+              {reactivationData?.isOrphanedUser && (
+                <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                  <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                    Usuario huérfano detectado
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Este usuario existe en el sistema de autenticación pero no tiene rol ni permisos asignados. 
+                    Se eliminará el registro incompleto y se creará una nueva invitación.
+                  </p>
+                </div>
+              )}
+
               {reactivationData?.deletedEmployee && (
                 <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
                   <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
@@ -987,13 +1007,13 @@ const Usuarios = () => {
                 </div>
               )}
 
-              {reactivationData?.deletedUser && !reactivationData?.deletedEmployee && (
+              {reactivationData?.deletedUser && !reactivationData?.deletedEmployee && !reactivationData?.isOrphanedUser && (
                 <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
                   <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
                     Usuario previamente eliminado
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Eliminado: {new Date(reactivationData.deletedUser.created_at).toLocaleDateString("es-ES")}
+                    Fecha: {new Date(reactivationData.deletedUser.created_at).toLocaleDateString("es-ES")}
                   </p>
                 </div>
               )}
@@ -1008,8 +1028,10 @@ const Usuarios = () => {
               </div>
 
               <p className="text-xs text-muted-foreground">
-                Al reactivar, se restaurará el empleado (si existe) y se generará un nuevo link de invitación. 
-                El usuario deberá crear una nueva contraseña.
+                {reactivationData?.isOrphanedUser 
+                  ? "Se limpiará el registro incompleto y se generará un nuevo link de invitación."
+                  : "Al reactivar, se restaurará el empleado (si existe) y se generará un nuevo link de invitación. El usuario deberá crear una nueva contraseña."
+                }
               </p>
             </div>
 

@@ -1569,6 +1569,10 @@ const PanelOperaciones = () => {
         <HorarioFormDialog
           open={horarioFormOpen}
           onOpenChange={setHorarioFormOpen}
+          mode="field"
+          lockEmpleado={true}
+          lockFecha={true}
+          defaultEmpleadoId={currentUserEmpleado?.id}
         />
       </div>
     </Layout>

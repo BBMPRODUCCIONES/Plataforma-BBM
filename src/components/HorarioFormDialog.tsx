@@ -25,6 +25,12 @@ interface HorarioFormDialogProps {
   onOpenChange: (open: boolean) => void;
   defaultEmpleadoId?: string;
   children?: React.ReactNode;
+  /** Mode: 'field' = Panel Operaciones (locked employee + today only), 'admin' = Empleados page (full control) */
+  mode?: 'field' | 'admin';
+  /** Lock employee selector (used in field mode) */
+  lockEmpleado?: boolean;
+  /** Lock date to today only (used in field mode) */
+  lockFecha?: boolean;
 }
 
 interface LocationData {
@@ -61,11 +67,24 @@ interface ContingenciaContexto {
 }
 
 
-export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, children }: HorarioFormDialogProps) => {
+export const HorarioFormDialog = ({ 
+  open, 
+  onOpenChange, 
+  defaultEmpleadoId, 
+  children,
+  mode = 'admin',
+  lockEmpleado = false,
+  lockFecha = false
+}: HorarioFormDialogProps) => {
   const { addHorario, updateHorario, refetch } = useHorarios();
   const { projects } = useProjects();
   const { empleados } = useEmpleados();
   const [loading, setLoading] = useState(false);
+  
+  // Derived flags based on mode
+  const isFieldMode = mode === 'field';
+  const isEmpleadoLocked = isFieldMode || lockEmpleado;
+  const isFechaLocked = isFieldMode || lockFecha;
 
   // Form state
   const [empleadoId, setEmpleadoId] = useState<string | null>(null);
@@ -437,6 +456,16 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     if (!oficinaEnabled && !casaEnabled && selectedEventIds.length === 0) {
       toast.error('Selecciona al menos oficina, casa o un evento como contexto');
       return false;
+    }
+
+    // FIELD MODE: Block saving if date is not today
+    if (isFieldMode) {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const selectedDay = format(fecha, 'yyyy-MM-dd');
+      if (selectedDay !== today) {
+        toast.error('En Panel de Operaciones solo puedes registrar el día de hoy');
+        return false;
+      }
     }
 
     const dia = format(fecha, 'yyyy-MM-dd');
@@ -1069,21 +1098,38 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
             <div className="flex-1 space-y-6">
               {/* Nombre - Connected to Empleados (REQUIRED) */}
               <div className="space-y-2">
-                <Label className="text-sm font-bold uppercase">Nombre</Label>
-                <EmpleadoAutocomplete
-                  value={empleadoId || ''}
-                  onChange={(_, id) => {
-                    if (id) {
-                      setEmpleadoId(id);
-                    } else {
-                      setEmpleadoId(null);
-                    }
-                  }}
-                  useEmpleadoId={true}
-                  placeholder="Buscar empleado..."
-                />
-                {!empleadoId && (
+                <Label className="text-sm font-bold uppercase">
+                  Nombre
+                  {isEmpleadoLocked && (
+                    <span className="ml-2 text-xs text-muted-foreground font-normal">(bloqueado)</span>
+                  )}
+                </Label>
+                {isEmpleadoLocked && empleadoId ? (
+                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border border-border">
+                    <span className="font-medium">{empleados.find(e => e.id === empleadoId)?.nombre || 'Empleado'}</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({empleados.find(e => e.id === empleadoId)?.cargo || 'Sin cargo'})
+                    </span>
+                  </div>
+                ) : (
+                  <EmpleadoAutocomplete
+                    value={empleadoId || ''}
+                    onChange={(_, id) => {
+                      if (id) {
+                        setEmpleadoId(id);
+                      } else {
+                        setEmpleadoId(null);
+                      }
+                    }}
+                    useEmpleadoId={true}
+                    placeholder="Buscar empleado..."
+                  />
+                )}
+                {!empleadoId && !isEmpleadoLocked && (
                   <p className="text-xs text-amber-400">* Debes seleccionar un empleado de la lista</p>
+                )}
+                {!empleadoId && isEmpleadoLocked && (
+                  <p className="text-xs text-destructive">* No se pudo cargar el empleado vinculado a tu cuenta</p>
                 )}
               </div>
 
@@ -1566,27 +1612,42 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
             <div className="w-72 border-l border-border pl-6 space-y-6">
               {/* Fecha */}
               <div className="space-y-2">
-                <Label className="text-sm font-bold uppercase">Fecha</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(fecha, "PPP", { locale: es })}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={fecha}
-                      onSelect={(date) => date && setFecha(date)}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Label className="text-sm font-bold uppercase">
+                  Fecha
+                  {isFechaLocked && (
+                    <span className="ml-2 text-xs text-muted-foreground font-normal">(solo hoy)</span>
+                  )}
+                </Label>
+                {isFechaLocked ? (
+                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border border-border">
+                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{format(fecha, "PPP", { locale: es })}</span>
+                  </div>
+                ) : (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(fecha, "PPP", { locale: es })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={fecha}
+                        onSelect={(date) => date && setFecha(date)}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+                {isFechaLocked && (
+                  <p className="text-xs text-muted-foreground">En este panel solo puedes registrar el día de hoy.</p>
+                )}
               </div>
 
               {/* Oficina Toggle */}

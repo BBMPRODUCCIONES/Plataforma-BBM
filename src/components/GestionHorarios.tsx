@@ -554,6 +554,7 @@ export const GestionHorarios = () => {
             if (!open) setEditingHorario(null);
           }}
           defaultEmpleadoId={selectedEmpleadoId}
+          mode="admin"
         >
           <Button size="sm" className="h-7 px-3 text-xs gap-1">
             <Plus className="h-3 w-3" />

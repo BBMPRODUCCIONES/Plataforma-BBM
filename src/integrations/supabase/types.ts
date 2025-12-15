@@ -41,6 +41,8 @@ export type Database = {
           cargo: string
           correo: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
           nombre: string
           numero_cuenta: string
@@ -52,6 +54,8 @@ export type Database = {
           cargo?: string
           correo?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           nombre?: string
           numero_cuenta?: string
@@ -63,6 +67,8 @@ export type Database = {
           cargo?: string
           correo?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           nombre?: string
           numero_cuenta?: string
@@ -490,6 +496,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_employee_name_by_id: {
+        Args: { _employee_id: string }
+        Returns: string
+      }
       get_employees_for_role: {
         Args: never
         Returns: {

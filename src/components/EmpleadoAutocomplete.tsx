@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { User, Check, Search, AlertCircle, Loader2, UserX } from "lucide-react";
@@ -30,9 +30,10 @@ export function EmpleadoAutocomplete({
   placeholder = "Buscar empleado...",
   className,
 }: EmpleadoAutocompleteProps) {
-  const { empleados, loading } = useEmpleados();
+  const { empleados, loading, getEmpleadoNameById } = useEmpleados();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deletedEmployeeName, setDeletedEmployeeName] = useState<string | null>(null);
 
   // Find selected employee
   const selectedEmpleado = useMemo(() => {
@@ -40,10 +41,21 @@ export function EmpleadoAutocomplete({
     return empleados.find(e => e.id === value || e.nombre === value) || null;
   }, [value, empleados]);
 
-  // Check if selected employee was deleted
+  // Check if selected employee was deleted (soft-deleted)
   const empleadoDeleted = useMemo(() => {
     return value && !selectedEmpleado && empleados.length > 0 && !loading;
   }, [value, selectedEmpleado, empleados.length, loading]);
+
+  // Fetch name for deleted employee (from soft-deleted records)
+  useEffect(() => {
+    if (empleadoDeleted && value) {
+      getEmpleadoNameById(value).then(name => {
+        setDeletedEmployeeName(name);
+      });
+    } else {
+      setDeletedEmployeeName(null);
+    }
+  }, [empleadoDeleted, value, getEmpleadoNameById]);
 
   // Filter employees based on search
   const filteredEmpleados = useMemo(() => {
@@ -66,7 +78,10 @@ export function EmpleadoAutocomplete({
     setOpen(false);
   };
 
-  const displayValue = selectedEmpleado?.nombre || (empleadoDeleted ? "Empleado eliminado" : "");
+  // Display the employee name - show deleted employee's real name if available
+  const displayValue = selectedEmpleado?.nombre || 
+    (empleadoDeleted && deletedEmployeeName ? `${deletedEmployeeName} (inactivo)` : 
+    (empleadoDeleted ? "Empleado eliminado" : ""));
 
   // For BBM type or when useEmpleadoId is true: strict selection with Popover
   if (tipoPersonal === "BBM" || useEmpleadoId) {

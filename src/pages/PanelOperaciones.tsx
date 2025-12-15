@@ -23,6 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useEmpleados } from "@/contexts/EmpleadosContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Project, PersonalItem, InventarioItem, CajaMenorItem, ProjectStatus, CalendarViewMode, Attachment } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,12 +121,39 @@ const PanelOperaciones = () => {
   // Check if user is admin
   const isAdmin = role?.toLowerCase() === "administrador";
   
-  // Find the current user's linked employee by email (for Caja Menor permissions)
+  // Find the current user's linked employee using RPC (works for all roles)
   const currentUserEmail = user?.email?.toLowerCase();
-  const currentUserEmpleado = useMemo(() => {
-    if (!currentUserEmail) return null;
-    return empleados.find(e => e.correo?.toLowerCase() === currentUserEmail);
-  }, [empleados, currentUserEmail]);
+  const [currentUserEmpleado, setCurrentUserEmpleado] = useState<{id: string; nombre: string; correo: string; cargo: string} | null>(null);
+  
+  useEffect(() => {
+    const fetchMyEmployee = async () => {
+      if (!user) {
+        setCurrentUserEmpleado(null);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase.rpc('get_my_employee');
+        if (error) {
+          console.error('[PanelOperaciones] Error fetching my employee:', error);
+          return;
+        }
+        if (data && data.length > 0) {
+          setCurrentUserEmpleado(data[0]);
+        } else {
+          // Fallback: try to find in empleados array (for admins)
+          const found = empleados.find(e => e.correo?.toLowerCase() === currentUserEmail);
+          if (found) {
+            setCurrentUserEmpleado({ id: found.id, nombre: found.nombre, correo: found.correo || '', cargo: found.cargo });
+          }
+        }
+      } catch (err) {
+        console.error('[PanelOperaciones] Exception fetching my employee:', err);
+      }
+    };
+    
+    fetchMyEmployee();
+  }, [user, empleados, currentUserEmail]);
   
   // Helper to check if user can edit a Caja Menor record
   const canEditCajaMenorRecord = (record: CajaMenorItem): boolean => {

@@ -514,6 +514,15 @@ export type Database = {
           tipo_cuenta: string
         }[]
       }
+      get_my_employee: {
+        Args: never
+        Returns: {
+          cargo: string
+          correo: string
+          id: string
+          nombre: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

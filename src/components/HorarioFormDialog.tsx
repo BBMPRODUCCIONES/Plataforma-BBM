@@ -726,17 +726,56 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
   // Check if contingency already registered from DB
   const contingenciaRegistered = Boolean(existingRecord?.contingencia_foto || existingRecord?.contingencia_hora);
   
-  // Check if 5 minutes have passed since contingency was registered (context lock)
-  const isContingenciaContextLocked = useMemo(() => {
+  // Grace period countdown state
+  const [graceTimeRemaining, setGraceTimeRemaining] = useState<number | null>(null);
+  
+  // Calculate grace period end time from contingency context timestamp
+  const contingenciaGraceUntil = useMemo(() => {
     const contextoTimestamp = salidaContingencia?.contexto?.timestamp || 
       (existingRecord?.contingencia_contexto as ContingenciaContexto | undefined)?.timestamp;
-    if (!contextoTimestamp) return false;
+    if (!contextoTimestamp) return null;
     
     const savedTime = new Date(contextoTimestamp).getTime();
-    const now = Date.now();
     const fiveMinutes = 5 * 60 * 1000;
-    return (now - savedTime) > fiveMinutes;
+    return savedTime + fiveMinutes;
   }, [salidaContingencia, existingRecord?.contingencia_contexto]);
+  
+  // Check if 5 minutes have passed since contingency was registered (context lock)
+  const isContingenciaContextLocked = useMemo(() => {
+    if (!contingenciaGraceUntil) return false;
+    return Date.now() > contingenciaGraceUntil;
+  }, [contingenciaGraceUntil, graceTimeRemaining]); // graceTimeRemaining triggers recalc
+  
+  // Update countdown timer every second
+  useEffect(() => {
+    if (!contingenciaGraceUntil || isContingenciaContextLocked) {
+      setGraceTimeRemaining(null);
+      return;
+    }
+    
+    const updateTimer = () => {
+      const remaining = contingenciaGraceUntil - Date.now();
+      if (remaining <= 0) {
+        setGraceTimeRemaining(0);
+      } else {
+        setGraceTimeRemaining(remaining);
+      }
+    };
+    
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    
+    return () => clearInterval(interval);
+  }, [contingenciaGraceUntil, isContingenciaContextLocked]);
+  
+  // Format remaining time as MM:SS
+  const formatRemainingTime = (ms: number | null): string => {
+    if (ms === null || ms <= 0) return '00:00';
+    const totalSeconds = Math.ceil(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   // Step 1: Handle contingency photo capture - save foto/hora/ubicacion immediately
   const handleCaptureContingencia = async (file: File) => {
@@ -1341,10 +1380,84 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                       
                       {(salidaContingencia || contingenciaRegistered) && !showContingenciaContextDialog ? (
                         <div className="space-y-3 bg-amber-500/5 p-3 rounded-lg">
-                          {/* Contexto de contingencia chips */}
+                          {/* Grace period banner with countdown */}
+                          {!isContingenciaContextLocked && graceTimeRemaining !== null && graceTimeRemaining > 0 && (
+                            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium text-green-400 flex items-center gap-2">
+                                  ✅ Puedes ajustar Oficina/Casa/Eventos durante los próximos:
+                                </p>
+                                <span className="text-lg font-mono font-bold text-green-400 bg-green-500/20 px-2 py-0.5 rounded">
+                                  {formatRemainingTime(graceTimeRemaining)}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Locked banner */}
+                          {isContingenciaContextLocked && (
+                            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2">
+                              <p className="text-xs text-red-400 text-center">
+                                🔒 Periodo de edición finalizado. El contexto de contingencia ya no puede modificarse.
+                              </p>
+                            </div>
+                          )}
+                          
+                          {/* Editable context during grace period */}
+                          {!isContingenciaContextLocked && graceTimeRemaining !== null && graceTimeRemaining > 0 && (
+                            <div className="space-y-3 border border-green-500/20 rounded-lg p-3">
+                              <Label className="text-xs text-muted-foreground">Editar contexto de contingencia:</Label>
+                              <div className="flex gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <Checkbox 
+                                    checked={contingenciaContexto.oficina}
+                                    onCheckedChange={(checked) => setContingenciaContexto(prev => ({ ...prev, oficina: !!checked }))}
+                                  />
+                                  <Building2 className="h-4 w-4" />
+                                  <span className="text-sm">Oficina</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <Checkbox 
+                                    checked={contingenciaContexto.casa}
+                                    onCheckedChange={(checked) => setContingenciaContexto(prev => ({ ...prev, casa: !!checked }))}
+                                  />
+                                  <Home className="h-4 w-4" />
+                                  <span className="text-sm">Casa</span>
+                                </label>
+                              </div>
+
+                              {filteredEvents.length > 0 && (
+                                <div className="space-y-2">
+                                  <Label className="text-xs">Eventos:</Label>
+                                  <div className="max-h-24 overflow-y-auto border border-border rounded">
+                                    {filteredEvents.map(event => (
+                                      <div
+                                        key={event.id}
+                                        className={cn(
+                                          "flex items-center gap-2 px-2 py-1 hover:bg-muted cursor-pointer text-sm",
+                                          contingenciaContexto.eventos.includes(event.id) && "bg-primary/10"
+                                        )}
+                                        onClick={() => toggleContingenciaEvent(event.id)}
+                                      >
+                                        <Checkbox checked={contingenciaContexto.eventos.includes(event.id)} className="pointer-events-none" />
+                                        <span className="truncate">{event.evento}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              <Button onClick={handleSaveContingenciaContext} disabled={loading} className="w-full gap-2 bg-green-600 hover:bg-green-700">
+                                <Save className="h-4 w-4" />
+                                Guardar cambios (Contingencia)
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {/* Contexto de contingencia chips - shown when locked or as summary */}
                           {(salidaContingencia?.contexto || existingRecord?.contingencia_contexto) && (
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs text-muted-foreground">Contexto:</span>
+                              <span className="text-xs text-muted-foreground">Contexto guardado:</span>
                               {(salidaContingencia?.contexto?.oficina || (existingRecord?.contingencia_contexto as ContingenciaContexto)?.oficina) && (
                                 <span className="inline-flex items-center gap-1 bg-primary/20 text-primary px-2 py-0.5 rounded text-xs">
                                   <Building2 className="h-3 w-3" />Oficina
@@ -1360,12 +1473,6 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                                   <Star className="h-3 w-3" />{nombre}
                                 </span>
                               ))}
-                              {!isContingenciaContextLocked && (
-                                <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setShowContingenciaContextDialog(true)}>
-                                  Editar
-                                </Button>
-                              )}
-                              {isContingenciaContextLocked && <span className="text-[10px] text-muted-foreground">(bloqueado)</span>}
                             </div>
                           )}
                           

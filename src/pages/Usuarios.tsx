@@ -117,6 +117,7 @@ const Usuarios = () => {
   const [showReactivateModal, setShowReactivateModal] = useState(false);
   const [reactivationData, setReactivationData] = useState<ReactivationData | null>(null);
   const [isReactivating, setIsReactivating] = useState(false);
+  const [isDeletingOrphan, setIsDeletingOrphan] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -299,7 +300,8 @@ const Usuarios = () => {
           email: reactivationData.email,
           role: reactivationData.role,
           allowed_panels: reactivationData.allowed_panels,
-          orphanedUserId: reactivationData.orphanedUserId // Pass orphaned user ID for cleanup
+          orphanedUserId: reactivationData.orphanedUserId,
+          action: 'reactivate'
         },
       });
 
@@ -328,6 +330,49 @@ const Usuarios = () => {
       });
     } finally {
       setIsReactivating(false);
+    }
+  };
+
+  const handleDeleteOrphanCompletely = async () => {
+    if (!reactivationData || !reactivationData.orphanedUserId) return;
+
+    setIsDeletingOrphan(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("reactivate-user", {
+        body: {
+          email: reactivationData.email,
+          role: reactivationData.role,
+          allowed_panels: reactivationData.allowed_panels,
+          orphanedUserId: reactivationData.orphanedUserId,
+          action: 'delete_completely'
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast({
+        title: "Usuario eliminado",
+        description: `Se eliminó completamente el usuario huérfano ${reactivationData.email}`,
+      });
+
+      setShowReactivateModal(false);
+      setReactivationData(null);
+      setNewEmail("");
+      setNewRole("operativo");
+      setNewPanels(["general", "operaciones"]);
+
+      fetchData();
+    } catch (error: any) {
+      console.error("Error deleting orphan user:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo eliminar el usuario huérfano",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingOrphan(false);
     }
   };
 
@@ -973,7 +1018,7 @@ const Usuarios = () => {
               </DialogTitle>
               <DialogDescription>
                 {reactivationData?.isOrphanedUser ? (
-                  <>El correo <strong>{reactivationData?.email}</strong> existe en el sistema pero sin rol asignado (datos incompletos). ¿Deseas limpiar y crear nueva invitación?</>
+                  <>El correo <strong>{reactivationData?.email}</strong> existe en el sistema pero sin rol asignado (datos incompletos).</>
                 ) : (
                   <>El correo <strong>{reactivationData?.email}</strong> ya estaba registrado pero fue eliminado. ¿Deseas reactivar este usuario?</>
                 )}
@@ -988,7 +1033,8 @@ const Usuarios = () => {
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Este usuario existe en el sistema de autenticación pero no tiene rol ni permisos asignados. 
-                    Se eliminará el registro incompleto y se creará una nueva invitación.
+                    Puedes reactivarlo (se eliminará el registro incompleto y se creará una nueva invitación) 
+                    o eliminarlo completamente del sistema.
                   </p>
                 </div>
               )}
@@ -1029,17 +1075,38 @@ const Usuarios = () => {
 
               <p className="text-xs text-muted-foreground">
                 {reactivationData?.isOrphanedUser 
-                  ? "Se limpiará el registro incompleto y se generará un nuevo link de invitación."
+                  ? "Al reactivar se limpiará el registro incompleto y se generará un nuevo link de invitación. Al eliminar completamente se borrará toda la información del usuario."
                   : "Al reactivar, se restaurará el empleado (si existe) y se generará un nuevo link de invitación. El usuario deberá crear una nueva contraseña."
                 }
               </p>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={handleCloseReactivateModal} disabled={isReactivating}>
+            <DialogFooter className={reactivationData?.isOrphanedUser ? "flex-col sm:flex-row gap-2" : ""}>
+              <Button variant="outline" onClick={handleCloseReactivateModal} disabled={isReactivating || isDeletingOrphan}>
                 Cancelar
               </Button>
-              <Button onClick={handleReactivateUser} disabled={isReactivating} className="bg-amber-600 hover:bg-amber-700">
+              
+              {reactivationData?.isOrphanedUser && (
+                <Button 
+                  variant="destructive" 
+                  onClick={handleDeleteOrphanCompletely} 
+                  disabled={isReactivating || isDeletingOrphan}
+                >
+                  {isDeletingOrphan ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Eliminando...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Eliminar completamente
+                    </>
+                  )}
+                </Button>
+              )}
+              
+              <Button onClick={handleReactivateUser} disabled={isReactivating || isDeletingOrphan} className="bg-amber-600 hover:bg-amber-700">
                 {isReactivating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1144,8 +1211,22 @@ const Usuarios = () => {
                                 })}
                               </td>
                               <td className="px-4 py-2">
-                                <Badge variant={log.action === "DELETE_USER" ? "destructive" : "secondary"}>
-                                  {log.action === "DELETE_USER" ? "Eliminación" : log.action}
+                                <Badge variant={
+                                  log.action === "DELETE_USER" || log.action === "DELETE_ORPHANED_USER" 
+                                    ? "destructive" 
+                                    : log.action === "INCOMPLETE_DELETION_DETECTED"
+                                    ? "outline"
+                                    : log.action.includes("REACTIVATE")
+                                    ? "default"
+                                    : "secondary"
+                                }>
+                                  {log.action === "DELETE_USER" ? "Eliminación" 
+                                    : log.action === "DELETE_ORPHANED_USER" ? "Eliminación (huérfano)"
+                                    : log.action === "INCOMPLETE_DELETION_DETECTED" ? "Eliminación incompleta"
+                                    : log.action === "CLEANUP_ORPHANED_USER" ? "Limpieza huérfano"
+                                    : log.action === "REACTIVATE_USER" ? "Reactivación"
+                                    : log.action === "REACTIVATE_EMPLOYEE" ? "Reactivación empleado"
+                                    : log.action}
                                 </Badge>
                               </td>
                               <td className="px-4 py-2">{log.actor_email}</td>

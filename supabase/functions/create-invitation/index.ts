@@ -63,7 +63,7 @@ serve(async (req) => {
     // Check if user is admin
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from('user_roles')
-      .select('role')
+      .select('role, email')
       .eq('user_id', user.id)
       .eq('role', 'administrador')
       .single();
@@ -74,6 +74,8 @@ serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const actorEmail = roleData.email || user.email || 'admin@unknown.com';
 
     // Parse and validate request body
     let body;
@@ -137,16 +139,56 @@ serve(async (req) => {
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
-        // User exists in auth but has no role - orphaned user, needs cleanup and reactivation
+        // User exists in auth but has no role - orphaned user
         console.log(`[create-invitation] Found orphaned user (no role): ${email}`);
+        
+        // Get profile info if exists
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('full_name, created_at')
+          .eq('id', existingUser.id)
+          .maybeSingle();
+        
+        // Check if we already logged this orphaned user
+        const { data: existingOrphanLog } = await supabaseAdmin
+          .from('user_audit_log')
+          .select('id')
+          .eq('target_id', existingUser.id)
+          .eq('action', 'INCOMPLETE_DELETION_DETECTED')
+          .maybeSingle();
+        
+        // If not logged yet, log it now
+        if (!existingOrphanLog) {
+          await supabaseAdmin
+            .from('user_audit_log')
+            .insert({
+              action: 'INCOMPLETE_DELETION_DETECTED',
+              actor_id: user.id,
+              actor_email: actorEmail,
+              target_email: email,
+              target_id: existingUser.id,
+              panel: 'usuarios',
+              details: {
+                reason: 'Usuario detectado en auth.users sin registro en user_roles (eliminación incompleta)',
+                detected_at: new Date().toISOString(),
+                full_name: profile?.full_name || email.split('@')[0]
+              }
+            });
+          console.log(`[create-invitation] Logged orphaned user detection for ${email}`);
+        }
+        
         return new Response(
           JSON.stringify({
             needsReactivation: true,
             isOrphanedUser: true,
             orphanedUserId: existingUser.id,
-            deletedUser: { target_email: email, created_at: existingUser.created_at },
+            deletedUser: { 
+              target_email: email, 
+              created_at: existingUser.created_at,
+              full_name: profile?.full_name || null
+            },
             deletedEmployee: null,
-            message: 'Este usuario existe pero no tiene rol asignado (datos incompletos). ¿Deseas limpiar y reinvitar?'
+            message: 'Este usuario existe pero no tiene rol asignado (datos incompletos). ¿Deseas limpiar y reinvitar o eliminar completamente?'
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -184,6 +226,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           needsReactivation: true,
+          isOrphanedUser: false,
           deletedUser: deletedUserLog,
           deletedEmployee: deletedEmployee,
           message: 'Este correo fue previamente eliminado. ¿Deseas reactivar el usuario?'

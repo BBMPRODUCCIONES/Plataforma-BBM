@@ -22,6 +22,7 @@ const reactivateUserSchema = z.object({
   }),
   allowed_panels: z.array(z.enum(validPanels)).optional(),
   orphanedUserId: z.string().uuid().optional(), // For cleaning up orphaned auth users
+  action: z.enum(['reactivate', 'delete_completely']).optional(), // Action type for orphaned users
 });
 
 serve(async (req) => {
@@ -99,15 +100,72 @@ serve(async (req) => {
       );
     }
 
-    const { email, role, allowed_panels, orphanedUserId } = validationResult.data;
+    const { email, role, allowed_panels, orphanedUserId, action } = validationResult.data;
 
-    console.log(`[reactivate-user] Starting reactivation for email: ${email}`);
+    console.log(`[reactivate-user] Starting process for email: ${email}, action: ${action || 'reactivate'}`);
 
     // ============================================
-    // STEP 0: Clean up orphaned auth user if exists
+    // HANDLE DELETE COMPLETELY ACTION
+    // ============================================
+    if (action === 'delete_completely' && orphanedUserId) {
+      console.log(`[reactivate-user] Deleting orphaned user completely: ${orphanedUserId}`);
+      
+      // Delete from profiles first (if exists)
+      await supabaseAdmin
+        .from('profiles')
+        .delete()
+        .eq('id', orphanedUserId);
+      
+      // Delete from auth.users
+      const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(orphanedUserId);
+      if (deleteAuthError) {
+        console.error('[reactivate-user] Error deleting orphaned auth user:', deleteAuthError);
+        return new Response(
+          JSON.stringify({ error: 'Error al eliminar el usuario huérfano' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Log the deletion
+      await supabaseAdmin
+        .from('user_audit_log')
+        .insert({
+          action: 'DELETE_ORPHANED_USER',
+          actor_id: user.id,
+          actor_email: actorEmail,
+          target_email: email,
+          target_id: orphanedUserId,
+          panel: 'usuarios',
+          details: {
+            reason: 'Usuario huérfano eliminado completamente por administrador',
+            deleted_at: new Date().toISOString()
+          }
+        });
+      
+      console.log(`[reactivate-user] Successfully deleted orphaned user: ${orphanedUserId}`);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          action: 'deleted',
+          message: `Usuario huérfano ${email} eliminado completamente del sistema.`
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ============================================
+    // STEP 0: Clean up orphaned auth user if exists (for reactivation)
     // ============================================
     if (orphanedUserId) {
       console.log(`[reactivate-user] Cleaning up orphaned auth user: ${orphanedUserId}`);
+      
+      // Delete from profiles first (if exists)
+      await supabaseAdmin
+        .from('profiles')
+        .delete()
+        .eq('id', orphanedUserId);
+      
       const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(orphanedUserId);
       if (deleteAuthError) {
         console.error('[reactivate-user] Error deleting orphaned auth user:', deleteAuthError);
@@ -126,7 +184,7 @@ serve(async (req) => {
             target_id: orphanedUserId,
             panel: 'usuarios',
             details: {
-              reason: 'User existed in auth.users without role assignment',
+              reason: 'User existed in auth.users without role assignment - cleaned for reactivation',
               cleaned_at: new Date().toISOString()
             }
           });
@@ -276,6 +334,7 @@ serve(async (req) => {
           invitation_id: invitation.id,
           employee_reactivated: employeeReactivated,
           employee_id: linkedEmployeeId,
+          was_orphaned_user: !!orphanedUserId,
           reactivated_at: new Date().toISOString()
         }
       });
@@ -291,11 +350,13 @@ serve(async (req) => {
     console.log(`Link de invitación: ${invitationLink}`);
     console.log(`Empleado reactivado: ${employeeReactivated}`);
     console.log(`Empleado ID: ${linkedEmployeeId}`);
+    console.log(`Era usuario huérfano: ${!!orphanedUserId}`);
     console.log('==========================================');
 
     return new Response(
       JSON.stringify({
         success: true,
+        action: 'reactivated',
         invitation: {
           id: invitation.id,
           email: invitation.email,

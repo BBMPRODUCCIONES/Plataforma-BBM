@@ -309,15 +309,55 @@ export const GestionHorarios = () => {
       }
     });
 
-    // Now compute displayCategoria for each group
+    // Now compute displayCategoria for each group (including contingency context)
     const result: GroupedHorario[] = [];
     grouped.forEach(group => {
-      // Build category display: "Oficina + EVENTO1 + EVENTO2"
+      // Build category display: "Oficina + EVENTO1 + EVENTO2 + [contingencia context]"
       const parts: string[] = [];
       if (group.hasOficina) {
         parts.push('Oficina');
       }
       parts.push(...group.eventos);
+      
+      // Include contingency context if exists
+      group.originalHorarios.forEach(horario => {
+        if (horario.contingencia_contexto) {
+          let contexto: { oficina?: boolean; casa?: boolean; eventos?: string[] } | null = null;
+          
+          // Parse contingencia_contexto
+          if (typeof horario.contingencia_contexto === 'string') {
+            try {
+              contexto = JSON.parse(horario.contingencia_contexto);
+            } catch (e) {
+              console.error('[GestionHorarios] Error parsing contingencia_contexto:', e);
+            }
+          } else if (typeof horario.contingencia_contexto === 'object') {
+            contexto = horario.contingencia_contexto as { oficina?: boolean; casa?: boolean; eventos?: string[] };
+          }
+          
+          if (contexto) {
+            // Add contingency Casa if not already present
+            if (contexto.casa && !parts.some(p => p.toLowerCase() === 'casa')) {
+              parts.push('Casa');
+            }
+            // Add contingency Oficina if not already present
+            if (contexto.oficina && !parts.some(p => p.toLowerCase() === 'oficina')) {
+              parts.push('Oficina');
+            }
+            // Add contingency eventos if not already present
+            if (contexto.eventos && Array.isArray(contexto.eventos)) {
+              contexto.eventos.forEach((eventoId: string) => {
+                // Find project name from ID
+                const project = projects.find(p => p.id === eventoId);
+                const eventoNombre = project?.evento || eventoId;
+                if (!parts.some(p => p.toLowerCase() === eventoNombre.toLowerCase())) {
+                  parts.push(eventoNombre);
+                }
+              });
+            }
+          }
+        }
+      });
       
       group.displayCategoria = parts.length > 0 ? parts.join(' + ') : '-';
       result.push(group);

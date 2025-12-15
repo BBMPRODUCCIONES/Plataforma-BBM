@@ -54,8 +54,12 @@ interface ContingenciaContexto {
   casa: boolean;
   eventos: string[];
   eventoNombres: string[];
-  timestamp?: string; // When context was saved
+  // Persisted in backend inside contingencia_contexto
+  contingencia_timestamp?: string; // ISO when photo was captured
+  contingencia_grace_until?: string; // ISO end of 5-min grace period
+  last_saved_at?: string; // ISO when context was last saved
 }
+
 
 export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, children }: HorarioFormDialogProps) => {
   const { addHorario, updateHorario, refetch } = useHorarios();
@@ -223,11 +227,13 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
         if (record.contingencia_foto || record.contingencia_hora) {
           const rawContexto = record.contingencia_contexto as Record<string, any> | undefined;
           const parsedContexto: ContingenciaContexto = {
-            oficina: rawContexto?.oficina || false,
-            casa: rawContexto?.casa || false,
-            eventos: rawContexto?.eventos || [],
-            eventoNombres: rawContexto?.eventoNombres || [],
-            timestamp: rawContexto?.timestamp,
+            oficina: !!rawContexto?.oficina,
+            casa: !!rawContexto?.casa,
+            eventos: Array.isArray(rawContexto?.eventos) ? rawContexto.eventos : [],
+            eventoNombres: Array.isArray(rawContexto?.eventoNombres) ? rawContexto.eventoNombres : [],
+            contingencia_timestamp: rawContexto?.contingencia_timestamp ?? rawContexto?.timestamp,
+            contingencia_grace_until: rawContexto?.contingencia_grace_until,
+            last_saved_at: rawContexto?.last_saved_at ?? rawContexto?.timestamp,
           };
           
           const contingenciaData: SalidaContingencia = {
@@ -729,15 +735,22 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
   // Grace period countdown state
   const [graceTimeRemaining, setGraceTimeRemaining] = useState<number | null>(null);
   
-  // Calculate grace period end time from contingency context timestamp
+  // Calculate grace period end time (must survive refresh)
+  // Priority: persisted contingencia_grace_until; fallback to contingencia_timestamp + 5min
   const contingenciaGraceUntil = useMemo(() => {
-    const contextoTimestamp = salidaContingencia?.contexto?.timestamp || 
-      (existingRecord?.contingencia_contexto as ContingenciaContexto | undefined)?.timestamp;
-    if (!contextoTimestamp) return null;
-    
-    const savedTime = new Date(contextoTimestamp).getTime();
-    const fiveMinutes = 5 * 60 * 1000;
-    return savedTime + fiveMinutes;
+    const raw = (salidaContingencia?.contexto || (existingRecord?.contingencia_contexto as any | undefined)) as any;
+    const graceUntilIso = raw?.contingencia_grace_until;
+    if (graceUntilIso) {
+      const ms = new Date(graceUntilIso).getTime();
+      return Number.isNaN(ms) ? null : ms;
+    }
+
+    const capturedIso = raw?.contingencia_timestamp ?? raw?.timestamp;
+    if (!capturedIso) return null;
+    const capturedMs = new Date(capturedIso).getTime();
+    if (Number.isNaN(capturedMs)) return null;
+
+    return capturedMs + 5 * 60 * 1000;
   }, [salidaContingencia, existingRecord?.contingencia_contexto]);
   
   // Check if 5 minutes have passed since contingency was registered (context lock)
@@ -839,13 +852,26 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
       ? `https://www.google.com/maps?q=${location.lat},${location.lng}`
       : '';
 
-    // Save foto/hora/ubicacion to database immediately (without context yet)
+    const contingenciaTimestampIso = now.toISOString();
+    const contingenciaGraceUntilIso = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
+
+    // Save foto/hora/ubicacion to database immediately (and start grace window)
     try {
       if (!existingRecord) {
         toast.error('No hay registro existente para agregar contingencia');
         setLoading(false);
         return;
       }
+
+      const initialContingenciaContexto: ContingenciaContexto = {
+        oficina: false,
+        casa: false,
+        eventos: [],
+        eventoNombres: [],
+        contingencia_timestamp: contingenciaTimestampIso,
+        contingencia_grace_until: contingenciaGraceUntilIso,
+        last_saved_at: undefined,
+      };
 
       const { error } = await supabase
         .from('horarios')
@@ -858,7 +884,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
           contingencia_accuracy_m: location?.accuracy || null,
           contingencia_maps_url: mapsUrl,
           contingencia_location_status: location?.status || 'unavailable',
-          // Context will be saved in step 2
+          contingencia_contexto: JSON.parse(JSON.stringify(initialContingenciaContexto)),
         })
         .eq('id', existingRecord.id);
 
@@ -881,26 +907,21 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
         foto: photoUrl,
         horario: timestamp,
         ubicacion: coordsStr,
-        timestamp: now.toISOString(),
+        timestamp: contingenciaTimestampIso,
         lat: location?.lat,
         lng: location?.lng,
         accuracy_m: location?.accuracy,
         maps_url: mapsUrl,
         location_status: location?.status,
-        contexto: undefined, // Will be set after context selection
+        contexto: initialContingenciaContexto,
       });
 
-      // Reset contingency context for selection
-      setContingenciaContexto({
-        oficina: false,
-        casa: false,
-        eventos: [],
-        eventoNombres: [],
-      });
+      // Reset contingency context for selection (but keep grace window persisted)
+      setContingenciaContexto(initialContingenciaContexto);
 
       // Show context selection dialog
       setShowContingenciaContextDialog(true);
-      
+
       toast.success('Foto guardada. Ahora selecciona el contexto de la contingencia.');
     } catch (err) {
       console.error('Error saving contingency to DB:', err);
@@ -933,10 +954,20 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
       if (project) eventoNombres.push(project.evento);
     });
 
+    const baseRaw = (existingRecord.contingencia_contexto as any) || {};
+    const persistedTimestamp = baseRaw.contingencia_timestamp ?? baseRaw.timestamp;
+    const contingenciaTimestampIso = typeof persistedTimestamp === 'string' ? persistedTimestamp : new Date().toISOString();
+    const persistedGraceUntil = baseRaw.contingencia_grace_until;
+    const contingenciaGraceUntilIso = typeof persistedGraceUntil === 'string'
+      ? persistedGraceUntil
+      : new Date(new Date(contingenciaTimestampIso).getTime() + 5 * 60 * 1000).toISOString();
+
     const contextoWithTimestamp: ContingenciaContexto = {
       ...contingenciaContexto,
       eventoNombres,
-      timestamp: new Date().toISOString(), // For 5-minute lock
+      contingencia_timestamp: contingenciaTimestampIso,
+      contingencia_grace_until: contingenciaGraceUntilIso,
+      last_saved_at: new Date().toISOString(),
     };
 
     try {
@@ -975,20 +1006,12 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
 
   // Toggle contingency context events
   const toggleContingenciaEvent = (eventId: string) => {
-    const project = projects.find(p => p.id === eventId);
-    setContingenciaContexto(prev => {
-      const newEventos = prev.eventos.includes(eventId)
+    setContingenciaContexto(prev => ({
+      ...prev,
+      eventos: prev.eventos.includes(eventId)
         ? prev.eventos.filter(id => id !== eventId)
-        : [...prev.eventos, eventId];
-      const newNombres = prev.eventoNombres.filter(n => n !== 'Oficina' && n !== 'Casa' && n !== project?.evento);
-      if (newEventos.includes(eventId) && project) {
-        newNombres.push(project.evento);
-      }
-      return {
-        ...prev,
-        eventos: newEventos,
-      };
-    });
+        : [...prev.eventos, eventId],
+    }));
   };
 
   const resetForm = () => {
@@ -1362,7 +1385,11 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                                     )}
                                     onClick={() => toggleContingenciaEvent(event.id)}
                                   >
-                                    <Checkbox checked={contingenciaContexto.eventos.includes(event.id)} className="pointer-events-none" />
+                                    <Checkbox
+                                      checked={contingenciaContexto.eventos.includes(event.id)}
+                                      onCheckedChange={() => toggleContingenciaEvent(event.id)}
+                                      aria-label={`Seleccionar evento ${event.evento}`}
+                                    />
                                     <span className="truncate">{event.evento}</span>
                                   </div>
                                 ))}
@@ -1439,7 +1466,11 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                                         )}
                                         onClick={() => toggleContingenciaEvent(event.id)}
                                       >
-                                        <Checkbox checked={contingenciaContexto.eventos.includes(event.id)} className="pointer-events-none" />
+                                        <Checkbox
+                                          checked={contingenciaContexto.eventos.includes(event.id)}
+                                          onCheckedChange={() => toggleContingenciaEvent(event.id)}
+                                          aria-label={`Seleccionar evento ${event.evento}`}
+                                        />
                                         <span className="truncate">{event.evento}</span>
                                       </div>
                                     ))}

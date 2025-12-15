@@ -158,6 +158,7 @@ serve(async (req) => {
 
     let employeeLinked = false;
     let linkedEmployeeId: string | null = null;
+    let employeeCreated = false;
 
     if (existingEmployee) {
       // Employee exists with this email - we'll link to this employee
@@ -165,6 +166,34 @@ serve(async (req) => {
       employeeLinked = true;
       linkedEmployeeId = existingEmployee.id;
       console.log(`[create-invitation] Found existing employee with email ${email}, will link invitation to employee ${existingEmployee.id}`);
+    } else {
+      // ============================================
+      // CREATE NEW EMPLOYEE (Caso A: email no existe)
+      // ============================================
+      console.log(`[create-invitation] No existing employee found for ${email}, creating new employee...`);
+      
+      const { data: newEmployee, error: employeeError } = await supabaseAdmin
+        .from('employees')
+        .insert({
+          nombre: email.split('@')[0], // Nombre temporal basado en email
+          correo: email,
+          cargo: role === 'administrador' ? 'Administrador' : (role === 'operativo' ? 'Operativo' : 'Visual'),
+          telefono: '',
+          banco: '',
+          tipo_cuenta: '',
+          numero_cuenta: ''
+        })
+        .select()
+        .single();
+
+      if (employeeError) {
+        console.error('[create-invitation] Error creating employee:', employeeError);
+        // Don't fail the invitation, just log the error
+      } else if (newEmployee) {
+        employeeCreated = true;
+        linkedEmployeeId = newEmployee.id;
+        console.log(`[create-invitation] Created new employee ${newEmployee.id} for email ${email}`);
+      }
     }
 
     // Create invitation with allowed_panels
@@ -204,6 +233,9 @@ serve(async (req) => {
     if (employeeLinked) {
       console.log(`Empleado existente vinculado: ${linkedEmployeeId}`);
     }
+    if (employeeCreated) {
+      console.log(`Nuevo empleado creado: ${linkedEmployeeId}`);
+    }
     console.log('==========================================');
 
     return new Response(
@@ -220,10 +252,13 @@ serve(async (req) => {
         },
         link: invitationLink,
         employeeLinked,
+        employeeCreated,
         linkedEmployeeId,
         message: employeeLinked 
           ? `Invitación creada. Se vinculará al empleado existente (${existingEmployee?.nombre || email}).`
-          : 'Invitación creada. El link ha sido registrado en los logs (simulación de envío de email).'
+          : employeeCreated
+            ? `Invitación creada y empleado creado automáticamente.`
+            : 'Invitación creada. El link ha sido registrado en los logs (simulación de envío de email).'
       }),
       { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

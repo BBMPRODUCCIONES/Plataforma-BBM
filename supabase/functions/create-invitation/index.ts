@@ -120,14 +120,37 @@ serve(async (req) => {
     const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email);
     
     if (existingUser) {
-      // Return 200 with error property so frontend can read it
-      return new Response(
-        JSON.stringify({ 
-          error: 'Este correo ya está registrado como usuario activo. No se puede crear una invitación para un usuario existente.',
-          existingUserId: existingUser.id 
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      // Check if user has a role (active user) or is orphaned (no role)
+      const { data: userRole } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', existingUser.id)
+        .maybeSingle();
+
+      if (userRole) {
+        // User is fully active - cannot create invitation
+        return new Response(
+          JSON.stringify({ 
+            error: 'Este correo ya está registrado como usuario activo. No se puede crear una invitación para un usuario existente.',
+            existingUserId: existingUser.id 
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        // User exists in auth but has no role - orphaned user, needs cleanup and reactivation
+        console.log(`[create-invitation] Found orphaned user (no role): ${email}`);
+        return new Response(
+          JSON.stringify({
+            needsReactivation: true,
+            isOrphanedUser: true,
+            orphanedUserId: existingUser.id,
+            deletedUser: { target_email: email, created_at: existingUser.created_at },
+            deletedEmployee: null,
+            message: 'Este usuario existe pero no tiene rol asignado (datos incompletos). ¿Deseas limpiar y reinvitar?'
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // ============================================

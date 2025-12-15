@@ -21,6 +21,7 @@ const reactivateUserSchema = z.object({
     errorMap: () => ({ message: "Rol inválido. Debe ser: administrador, operativo o visual" })
   }),
   allowed_panels: z.array(z.enum(validPanels)).optional(),
+  orphanedUserId: z.string().uuid().optional(), // For cleaning up orphaned auth users
 });
 
 serve(async (req) => {
@@ -98,9 +99,39 @@ serve(async (req) => {
       );
     }
 
-    const { email, role, allowed_panels } = validationResult.data;
+    const { email, role, allowed_panels, orphanedUserId } = validationResult.data;
 
     console.log(`[reactivate-user] Starting reactivation for email: ${email}`);
+
+    // ============================================
+    // STEP 0: Clean up orphaned auth user if exists
+    // ============================================
+    if (orphanedUserId) {
+      console.log(`[reactivate-user] Cleaning up orphaned auth user: ${orphanedUserId}`);
+      const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(orphanedUserId);
+      if (deleteAuthError) {
+        console.error('[reactivate-user] Error deleting orphaned auth user:', deleteAuthError);
+        // Continue anyway - the user might not exist anymore
+      } else {
+        console.log(`[reactivate-user] Successfully deleted orphaned auth user: ${orphanedUserId}`);
+        
+        // Log the cleanup
+        await supabaseAdmin
+          .from('user_audit_log')
+          .insert({
+            action: 'CLEANUP_ORPHANED_USER',
+            actor_id: user.id,
+            actor_email: actorEmail,
+            target_email: email,
+            target_id: orphanedUserId,
+            panel: 'usuarios',
+            details: {
+              reason: 'User existed in auth.users without role assignment',
+              cleaned_at: new Date().toISOString()
+            }
+          });
+      }
+    }
 
     // Determine allowed panels based on role
     const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores'];

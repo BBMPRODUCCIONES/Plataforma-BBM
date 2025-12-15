@@ -30,6 +30,7 @@ export interface Horario {
   updated_at: string;
   // Joined fields
   empleado_nombre?: string;
+  empleado_deleted?: boolean;
 }
 
 interface HorariosContextType {
@@ -82,15 +83,17 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
         categoria: h.categoria
       })));
       
-      // Fetch employee names
+      // Fetch employee names (including active employees)
       const empleadoIds = [...new Set(data.map(h => h.empleado_id).filter(Boolean))] as string[];
-      let empleadosMap: Record<string, string> = {};
+      let empleadosMap: Record<string, { nombre: string; deleted: boolean }> = {};
       
       if (empleadoIds.length > 0) {
         console.log('[HorariosContext] Fetching employee names for IDs:', empleadoIds);
+        
+        // First, get active employees
         const { data: empleados, error: empError } = await supabase
           .from('employees')
-          .select('id, nombre')
+          .select('id, nombre, deleted_at')
           .in('id', empleadoIds);
         
         if (empError) {
@@ -98,14 +101,43 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
         }
         
         if (empleados) {
-          empleadosMap = empleados.reduce((acc, e) => ({ ...acc, [e.id]: e.nombre }), {});
-          console.log('[HorariosContext] Employee map:', empleadosMap);
+          empleados.forEach(e => {
+            empleadosMap[e.id] = { 
+              nombre: e.nombre, 
+              deleted: !!e.deleted_at 
+            };
+          });
+          console.log('[HorariosContext] Active employee map:', Object.keys(empleadosMap).length);
+        }
+        
+        // Find missing IDs (soft-deleted employees not returned by RLS)
+        const missingIds = empleadoIds.filter(id => !empleadosMap[id]);
+        
+        if (missingIds.length > 0) {
+          console.log('[HorariosContext] Fetching deleted employees via RPC:', missingIds);
+          
+          // Fetch names for deleted employees using the RPC function
+          for (const id of missingIds) {
+            try {
+              const { data: nombre, error: rpcError } = await supabase.rpc('get_employee_name_by_id', { 
+                _employee_id: id 
+              });
+              
+              if (!rpcError && nombre) {
+                empleadosMap[id] = { nombre, deleted: true };
+                console.log('[HorariosContext] Found deleted employee:', id, nombre);
+              }
+            } catch (err) {
+              console.error('[HorariosContext] RPC error for employee:', id, err);
+            }
+          }
         }
       }
 
       const horariosWithNames = data.map(h => ({
         ...h,
-        empleado_nombre: h.empleado_id ? empleadosMap[h.empleado_id] || '' : ''
+        empleado_nombre: h.empleado_id ? empleadosMap[h.empleado_id]?.nombre || '' : '',
+        empleado_deleted: h.empleado_id ? empleadosMap[h.empleado_id]?.deleted || false : false
       })) as Horario[];
 
       console.log('[HorariosContext] Final horarios with names:', horariosWithNames.length, 'records');

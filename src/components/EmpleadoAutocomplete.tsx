@@ -78,9 +78,9 @@ export function EmpleadoAutocomplete({
     setOpen(false);
   };
 
-  // Display the employee name - show deleted employee's real name if available
+  // Display the employee name - show deleted employee's real name if available (without suffix)
   const displayValue = selectedEmpleado?.nombre || 
-    (empleadoDeleted && deletedEmployeeName ? `${deletedEmployeeName} (inactivo)` : 
+    (empleadoDeleted && deletedEmployeeName ? deletedEmployeeName : 
     (empleadoDeleted ? "Empleado eliminado" : ""));
 
   // For BBM type or when useEmpleadoId is true: strict selection with Popover
@@ -95,7 +95,7 @@ export function EmpleadoAutocomplete({
             onClick={(e) => e.stopPropagation()}
             className={cn(
               "w-full justify-between font-normal h-9 px-3 bg-background",
-              empleadoDeleted && "border-destructive text-destructive",
+              empleadoDeleted && "border-red-500 bg-red-500/10 text-red-500 hover:bg-red-500/20",
               !displayValue && "text-muted-foreground",
               className
             )}

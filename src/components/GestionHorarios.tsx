@@ -174,6 +174,7 @@ export const GestionHorarios = () => {
     eventos: string[];
     hasOficina: boolean;
     originalHorarios: Horario[];
+    empleado_deleted?: boolean;
   }
 
   // Filter horarios by selected employee and date range, then GROUP BY DAY
@@ -305,6 +306,7 @@ export const GestionHorarios = () => {
           eventos: eventParts,
           hasOficina,
           originalHorarios: [horario],
+          empleado_deleted: horario.empleado_deleted || false,
         });
       }
     });
@@ -740,9 +742,9 @@ export const GestionHorarios = () => {
                   };
 
                   return (
-                    <TableRow key={`${horario.id}-${index}`}>
-                      <TableCell>{horario.displayCargo}</TableCell>
-                      <TableCell>{horario.displayNombre}</TableCell>
+                    <TableRow key={`${horario.id}-${index}`} className={horario.empleado_deleted ? "bg-red-500/5" : ""}>
+                      <TableCell className={horario.empleado_deleted ? "text-red-500" : ""}>{horario.displayCargo}</TableCell>
+                      <TableCell className={horario.empleado_deleted ? "text-red-500 font-medium" : ""}>{horario.displayNombre}</TableCell>
                       <TableCell className="font-mono">{format(parseISO(horario.dia), 'dd/MM/yyyy')}</TableCell>
                       <TableCell>{renderCategoria(horario.displayCategoria)}</TableCell>
                       <TableCell className="text-center font-mono">{horario.llegada || '—'}</TableCell>

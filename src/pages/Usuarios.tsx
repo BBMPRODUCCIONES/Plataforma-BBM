@@ -55,7 +55,7 @@ const panelLabels: Record<string, string> = {
 };
 
 const Usuarios = () => {
-  const { role: currentUserRole } = useAuth();
+  const { role: currentUserRole, user: currentUser } = useAuth();
   const { toast } = useToast();
   
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -304,30 +304,27 @@ const Usuarios = () => {
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
 
+    if (currentUser?.id && userToDelete.id === currentUser.id) {
+      toast({
+        title: "Acción no permitida",
+        description: "No puedes eliminar tu propio usuario.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsDeleting(true);
     try {
-      // Delete from user_roles
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userToDelete.id);
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { user_id: userToDelete.id },
+      });
 
-      if (roleError) throw roleError;
-
-      // Delete from profiles
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userToDelete.id);
-
-      if (profileError) {
-        console.error("Error deleting profile:", profileError);
-        // Don't fail if profile doesn't exist
-      }
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Usuario eliminado",
-        description: `Se ha eliminado el usuario ${userToDelete.email}`,
+        description: `Se eliminó el usuario ${userToDelete.email}`,
       });
 
       setUserToDelete(null);
@@ -472,27 +469,31 @@ const Usuarios = () => {
       key: "actions",
       header: "Acciones",
       width: "120px",
-      render: (item: UserWithRole) => (
-        <div className="flex items-center gap-1">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => handleEditUser(item)}
-            title="Editar usuario"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => setUserToDelete(item)}
-            title="Eliminar usuario"
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
+      render: (item: UserWithRole) => {
+        const isSelf = !!currentUser?.id && item.id === currentUser.id;
+        return (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEditUser(item)}
+              title="Editar usuario"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setUserToDelete(item)}
+              title={isSelf ? "No puedes eliminar tu propio usuario" : "Eliminar usuario"}
+              disabled={isSelf}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 

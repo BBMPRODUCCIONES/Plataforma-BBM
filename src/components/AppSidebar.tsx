@@ -10,12 +10,14 @@ import {
   UserPlus,
   Building2,
   LogOut,
+  Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sidebar,
   SidebarContent,
@@ -28,7 +30,6 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
 
 const mainNavItems = [
   { title: "Panel Directivo", url: "/panel-directivo", icon: Briefcase, panel: "directivo" },
@@ -45,8 +46,19 @@ const adminNavItems = [
   { title: "Agentes IA", url: "/agentes-ia", icon: Bot, panel: "agentes" },
 ];
 
+function SidebarSkeleton() {
+  return (
+    <div className="space-y-2 px-3">
+      <Skeleton className="h-8 w-full" />
+      <Skeleton className="h-8 w-full" />
+      <Skeleton className="h-8 w-full" />
+      <Skeleton className="h-8 w-3/4" />
+    </div>
+  );
+}
+
 export function AppSidebar() {
-  const { canAccessPanel, canEditStructure, role } = useUserRole();
+  const { canAccessPanel, canEditStructure, role, roleLoading } = useUserRole();
   const { signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -70,97 +82,119 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2">
-            Paneles
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainNavItems.map((item) => {
-                const hasAccess = canAccessPanel(item.panel);
-                // Don't render items user doesn't have access to
-                if (!hasAccess) return null;
-                
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-sidebar-accent"
-                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      >
-                        <item.icon className="w-4 h-4" />
-                        <span className="text-sm">{item.title}</span>
-                        <ChevronRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Admin sections - only visible for administrators */}
-        {canEditStructure() && (
+        {/* Show skeleton while role is loading */}
+        {roleLoading ? (
           <SidebarGroup>
             <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2">
-              Administración
+              Cargando...
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
-                {adminNavItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
+              <SidebarSkeleton />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : (
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2">
+                Paneles
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {mainNavItems.map((item) => {
+                    const hasAccess = canAccessPanel(item.panel);
+                    // Don't render items user doesn't have access to
+                    if (!hasAccess) return null;
+                    
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild>
+                          <NavLink
+                            to={item.url}
+                            className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-sidebar-accent"
+                            activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span className="text-sm">{item.title}</span>
+                            <ChevronRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Admin sections - only visible for administrators */}
+            {canEditStructure() && (
+              <SidebarGroup>
+                <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2">
+                  Administración
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {adminNavItems.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild>
+                          <NavLink
+                            to={item.url}
+                            className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-sidebar-accent"
+                            activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span className="text-sm">{item.title}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {/* Google Calendar - accessible to all roles */}
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2">
+                Herramientas
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <NavLink
-                        to={item.url}
+                        to="/calendar"
                         className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-sidebar-accent"
                         activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                       >
-                        <item.icon className="w-4 h-4" />
-                        <span className="text-sm">{item.title}</span>
+                        <Calendar className="w-4 h-4" />
+                        <span className="text-sm">Google Calendar</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
         )}
-
-        {/* Google Calendar - accessible to all roles */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2">
-            Herramientas
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/calendar"
-                    className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-sidebar-accent"
-                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  >
-                    <Calendar className="w-4 h-4" />
-                    <span className="text-sm">Google Calendar</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-sidebar-border space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-            <span className="text-xs font-medium text-primary">
-              {role?.charAt(0).toUpperCase()}
-            </span>
+            {roleLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            ) : (
+              <span className="text-xs font-medium text-primary">
+                {role?.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
           <div className="flex flex-col">
-            <span className="text-xs font-medium text-sidebar-foreground capitalize">{role}</span>
+            {roleLoading ? (
+              <Skeleton className="h-4 w-20" />
+            ) : (
+              <span className="text-xs font-medium text-sidebar-foreground capitalize">{role}</span>
+            )}
             <span className="text-xs text-muted-foreground">Usuario activo</span>
           </div>
         </div>

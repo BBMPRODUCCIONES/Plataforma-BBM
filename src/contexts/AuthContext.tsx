@@ -23,6 +23,7 @@ interface AuthContextType {
   allowedPanels: string[];
   feedbackPermissions: FeedbackPermissions;
   loading: boolean;
+  roleLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshUserRole: () => Promise<void>;
@@ -35,6 +36,68 @@ const defaultFeedbackPermissions: FeedbackPermissions = {
   puedeEditarFeedback: false,
 };
 
+// Cache key for localStorage
+const ROLE_CACHE_KEY = "bbm_user_role_cache";
+
+interface CachedRoleData {
+  userId: string;
+  role: AppRole;
+  allowedPanels: string[];
+  feedbackPermissions: FeedbackPermissions;
+  timestamp: number;
+}
+
+// Cache duration: 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
+
+function getCachedRole(userId: string): UserRoleData | null {
+  try {
+    const cached = localStorage.getItem(ROLE_CACHE_KEY);
+    if (!cached) return null;
+    
+    const data: CachedRoleData = JSON.parse(cached);
+    
+    // Check if cache is for this user and not expired
+    if (data.userId === userId && (Date.now() - data.timestamp) < CACHE_DURATION) {
+      return {
+        role: data.role,
+        allowedPanels: data.allowedPanels,
+        feedbackPermissions: data.feedbackPermissions,
+      };
+    }
+    
+    // Clear stale cache
+    localStorage.removeItem(ROLE_CACHE_KEY);
+    return null;
+  } catch {
+    localStorage.removeItem(ROLE_CACHE_KEY);
+    return null;
+  }
+}
+
+function setCachedRole(userId: string, roleData: UserRoleData): void {
+  try {
+    const cacheData: CachedRoleData = {
+      userId,
+      role: roleData.role,
+      allowedPanels: roleData.allowedPanels,
+      feedbackPermissions: roleData.feedbackPermissions,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify(cacheData));
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
+function clearCachedRole(): void {
+  try {
+    localStorage.removeItem(ROLE_CACHE_KEY);
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -42,6 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [allowedPanels, setAllowedPanels] = useState<string[]>([]);
   const [feedbackPermissions, setFeedbackPermissions] = useState<FeedbackPermissions>(defaultFeedbackPermissions);
   const [loading, setLoading] = useState(true);
+  const [roleLoading, setRoleLoading] = useState(true);
 
   const fetchUserRole = async (userId: string): Promise<UserRoleData | null> => {
     const { data, error } = await supabase
@@ -57,7 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     if (!data) return null;
     
-    return {
+    const roleData: UserRoleData = {
       role: data.role,
       allowedPanels: data.allowed_panels || [],
       feedbackPermissions: {
@@ -65,66 +129,126 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         puedeEditarFeedback: data.puede_editar_feedback ?? false,
       }
     };
+    
+    // Cache the role data
+    setCachedRole(userId, roleData);
+    
+    return roleData;
+  };
+
+  const applyRoleData = (roleData: UserRoleData | null) => {
+    if (roleData) {
+      setRole(roleData.role);
+      setAllowedPanels(roleData.allowedPanels);
+      setFeedbackPermissions(roleData.feedbackPermissions);
+    } else {
+      setRole(null);
+      setAllowedPanels([]);
+      setFeedbackPermissions(defaultFeedbackPermissions);
+    }
   };
 
   const refreshUserRole = async () => {
     if (user) {
+      setRoleLoading(true);
       const roleData = await fetchUserRole(user.id);
-      if (roleData) {
-        setRole(roleData.role);
-        setAllowedPanels(roleData.allowedPanels);
-        setFeedbackPermissions(roleData.feedbackPermissions);
-      }
+      applyRoleData(roleData);
+      setRoleLoading(false);
     }
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Defer role fetch with setTimeout to avoid deadlock
-        if (session?.user) {
-          setTimeout(() => {
-            fetchUserRole(session.user.id).then((data) => {
-              if (data) {
-                setRole(data.role);
-                setAllowedPanels(data.allowedPanels);
-                setFeedbackPermissions(data.feedbackPermissions);
-              }
-            });
-          }, 0);
-        } else {
-          setRole(null);
-          setAllowedPanels([]);
-          setFeedbackPermissions(defaultFeedbackPermissions);
-        }
-        
-        setLoading(false);
-      }
-    );
+    let isMounted = true;
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initializeAuth = async () => {
+      // Set up auth state listener FIRST
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (!isMounted) return;
+          
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            // First, try to use cached role for instant UI
+            const cachedRole = getCachedRole(session.user.id);
+            if (cachedRole) {
+              applyRoleData(cachedRole);
+              setRoleLoading(false);
+              setLoading(false);
+              
+              // Then refresh from DB in background (non-blocking)
+              setTimeout(async () => {
+                if (isMounted) {
+                  const freshRole = await fetchUserRole(session.user.id);
+                  if (isMounted && freshRole) {
+                    applyRoleData(freshRole);
+                  }
+                }
+              }, 0);
+            } else {
+              // No cache, must wait for DB fetch
+              setRoleLoading(true);
+              const roleData = await fetchUserRole(session.user.id);
+              if (isMounted) {
+                applyRoleData(roleData);
+                setRoleLoading(false);
+                setLoading(false);
+              }
+            }
+          } else {
+            // No session - clear everything
+            applyRoleData(null);
+            clearCachedRole();
+            setRoleLoading(false);
+            setLoading(false);
+          }
+        }
+      );
+
+      // THEN check for existing session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!isMounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserRole(session.user.id).then((data) => {
-          if (data) {
-            setRole(data.role);
-            setAllowedPanels(data.allowedPanels);
-            setFeedbackPermissions(data.feedbackPermissions);
+        // Try cached role first for fast initial render
+        const cachedRole = getCachedRole(session.user.id);
+        if (cachedRole) {
+          applyRoleData(cachedRole);
+          setRoleLoading(false);
+          setLoading(false);
+          
+          // Refresh from DB in background
+          const freshRole = await fetchUserRole(session.user.id);
+          if (isMounted && freshRole) {
+            applyRoleData(freshRole);
           }
-        });
+        } else {
+          // No cache, wait for fetch
+          const roleData = await fetchUserRole(session.user.id);
+          if (isMounted) {
+            applyRoleData(roleData);
+            setRoleLoading(false);
+            setLoading(false);
+          }
+        }
+      } else {
+        setRoleLoading(false);
+        setLoading(false);
       }
-      
-      setLoading(false);
-    });
 
-    return () => subscription.unsubscribe();
+      return () => subscription.unsubscribe();
+    };
+
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -136,6 +260,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    clearCachedRole();
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
@@ -152,6 +277,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       allowedPanels,
       feedbackPermissions,
       loading, 
+      roleLoading,
       signIn, 
       signOut,
       refreshUserRole 

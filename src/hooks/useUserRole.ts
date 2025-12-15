@@ -4,6 +4,7 @@ import { UserRole } from "@/types";
 interface UseUserRoleReturn {
   role: UserRole | null;
   loading: boolean;
+  roleLoading: boolean;
   allowedPanels: string[];
   canAccessPanel: (panel: string) => boolean;
   canEdit: () => boolean;
@@ -24,9 +25,12 @@ const ADMIN_ONLY_SECTIONS = [
 ];
 
 export function useUserRole(): UseUserRoleReturn {
-  const { role, allowedPanels, loading, feedbackPermissions } = useAuth();
+  const { role, allowedPanels, loading, roleLoading, feedbackPermissions } = useAuth();
 
   const canAccessPanel = (panel: string): boolean => {
+    // If still loading, don't deny access yet
+    if (roleLoading) return false;
+    
     if (!role) return false;
     
     const normalizedRole = role.toLowerCase();
@@ -86,6 +90,7 @@ export function useUserRole(): UseUserRoleReturn {
   return {
     role: role as UserRole | null,
     loading,
+    roleLoading,
     allowedPanels,
     canAccessPanel,
     canEdit,

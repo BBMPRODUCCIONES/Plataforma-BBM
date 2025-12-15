@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Mail, Clock, CheckCircle, AlertCircle, Loader2, Copy, Settings, Save, Trash2 } from "lucide-react";
+import { UserPlus, Mail, Clock, CheckCircle, AlertCircle, Loader2, Copy, Settings, Save, Trash2, History } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -37,6 +37,16 @@ interface UserWithRole {
   puede_ver_feedback: boolean;
   puede_editar_feedback: boolean;
   created_at: string | null;
+}
+
+interface AuditLogEntry {
+  id: string;
+  action: string;
+  actor_email: string;
+  target_email: string | null;
+  target_role: string | null;
+  panel: string | null;
+  created_at: string;
 }
 
 const roleLabels: Record<AppRole, string> = {
@@ -82,6 +92,10 @@ const Usuarios = () => {
   const [userToDelete, setUserToDelete] = useState<UserWithRole | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Audit log state
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [showAuditLog, setShowAuditLog] = useState(false);
+
   const fetchData = async () => {
     setIsLoading(true);
     
@@ -126,6 +140,19 @@ const Usuarios = () => {
       });
 
       setUsers(usersWithRoles);
+
+      // Fetch audit logs
+      const { data: auditData, error: auditError } = await supabase
+        .from("user_audit_log")
+        .select("id, action, actor_email, target_email, target_role, panel, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (auditError) {
+        console.error("Error fetching audit logs:", auditError);
+      } else {
+        setAuditLogs(auditData || []);
+      }
     } catch (error: any) {
       console.error("Error fetching data:", error);
       toast({
@@ -874,6 +901,79 @@ const Usuarios = () => {
                 <p className="text-muted-foreground text-sm">
                   No hay usuarios registrados
                 </p>
+              )}
+            </div>
+
+            {/* Audit Log */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Registro de Auditoría
+                </h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAuditLog(!showAuditLog)}
+                >
+                  {showAuditLog ? "Ocultar" : "Mostrar"}
+                </Button>
+              </div>
+              {showAuditLog && (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="px-4 py-2 text-left font-medium">Fecha</th>
+                          <th className="px-4 py-2 text-left font-medium">Acción</th>
+                          <th className="px-4 py-2 text-left font-medium">Ejecutado por</th>
+                          <th className="px-4 py-2 text-left font-medium">Usuario afectado</th>
+                          <th className="px-4 py-2 text-left font-medium">Rol</th>
+                          <th className="px-4 py-2 text-left font-medium">Panel</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {auditLogs.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                              No hay registros de auditoría
+                            </td>
+                          </tr>
+                        ) : (
+                          auditLogs.map((log) => (
+                            <tr key={log.id} className="border-t border-border/50 hover:bg-muted/30">
+                              <td className="px-4 py-2 whitespace-nowrap">
+                                {new Date(log.created_at).toLocaleString("es-ES", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </td>
+                              <td className="px-4 py-2">
+                                <Badge variant={log.action === "DELETE_USER" ? "destructive" : "secondary"}>
+                                  {log.action === "DELETE_USER" ? "Eliminación" : log.action}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-2">{log.actor_email}</td>
+                              <td className="px-4 py-2">{log.target_email || "-"}</td>
+                              <td className="px-4 py-2">
+                                {log.target_role ? (
+                                  <Badge variant="outline">
+                                    {roleLabels[log.target_role as AppRole] || log.target_role}
+                                  </Badge>
+                                ) : "-"}
+                              </td>
+                              <td className="px-4 py-2">{log.panel || "-"}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
             </div>
           </div>

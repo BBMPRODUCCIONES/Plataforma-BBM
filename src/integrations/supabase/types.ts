@@ -416,6 +416,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_audit_log: {
+        Row: {
+          action: string
+          actor_email: string
+          actor_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          panel: string | null
+          target_email: string | null
+          target_id: string | null
+          target_role: string | null
+        }
+        Insert: {
+          action: string
+          actor_email: string
+          actor_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          panel?: string | null
+          target_email?: string | null
+          target_id?: string | null
+          target_role?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string
+          actor_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          panel?: string | null
+          target_email?: string | null
+          target_id?: string | null
+          target_role?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           allowed_panels: string[] | null

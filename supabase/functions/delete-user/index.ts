@@ -101,6 +101,16 @@ serve(async (req) => {
 
     console.log(`[delete-user] Request by ${user.id} to delete ${user_id}`);
 
+    // Get target user info before deletion for audit
+    const { data: targetRole } = await supabaseAdmin
+      .from("user_roles")
+      .select("email, role")
+      .eq("user_id", user_id)
+      .maybeSingle();
+
+    const targetEmail = targetRole?.email || "unknown";
+    const targetRoleValue = targetRole?.role || "unknown";
+
     // Delete auth user
     const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
     if (authDeleteError) {
@@ -123,7 +133,30 @@ serve(async (req) => {
     if (rolesDeleteError) console.error("[delete-user] Error deleting user_roles:", rolesDeleteError);
     if (profileDeleteError) console.error("[delete-user] Error deleting profile:", profileDeleteError);
 
-    console.log(`[delete-user] Deleted user ${user_id} successfully`);
+    // Get actor email for audit
+    const { data: actorRole } = await supabaseAdmin
+      .from("user_roles")
+      .select("email")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    // Log to audit table
+    const { error: auditError } = await supabaseAdmin.from("user_audit_log").insert({
+      action: "DELETE_USER",
+      actor_id: user.id,
+      actor_email: actorRole?.email || user.email || "unknown",
+      target_id: user_id,
+      target_email: targetEmail,
+      target_role: targetRoleValue,
+      panel: "usuarios",
+      details: { deleted_at: new Date().toISOString() },
+    });
+
+    if (auditError) {
+      console.error("[delete-user] Error creating audit log:", auditError);
+    }
+
+    console.log(`[delete-user] Deleted user ${user_id} (${targetEmail}) successfully`);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

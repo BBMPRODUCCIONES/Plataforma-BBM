@@ -1409,55 +1409,6 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                       </p>
                     </div>
                   )}
-                               !(salidaContingencia?.ubicacion || existingRecord?.contingencia_ubicacion || '').includes('no disponible') ? (
-                              <a
-                                href={`https://www.google.com/maps?q=${(salidaContingencia?.ubicacion || existingRecord?.contingencia_ubicacion || '').replace(' ', '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                Ver en Google Maps
-                              </a>
-                            ) : null}
-                          </div>
-                          
-                          {/* Horario contingencia */}
-                          <div className="space-y-2">
-                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Horario
-                            </Label>
-                            <Input
-                              value={salidaContingencia?.horario || existingRecord?.contingencia_hora || ''}
-                              readOnly
-                              className="bg-muted/50 cursor-not-allowed font-mono text-lg font-bold"
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <p className="text-xs text-amber-400 bg-amber-500/10 p-2 rounded">
-                            ⚠️ Antes de registrar, verifica que Oficina/Eventos estén configurados correctamente. El contexto se guardará con la contingencia.
-                          </p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setCameraContingenciaOpen(true)}
-                            disabled={loading || contingenciaRegistered}
-                            className="w-full gap-2 border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
-                          >
-                            <Camera className="h-4 w-4" />
-                            Agregar salida de contingencia
-                          </Button>
-                        </div>
-                      )}
-                      
-                      <p className="text-xs text-muted-foreground">
-                        Usa esta opción si necesitas registrar una salida adicional por contingencia.
-                      </p>
-                    </div>
-                  )}
 
                   {/* Status message */}
                   {llegadaRegistered && salidaRegistered && (

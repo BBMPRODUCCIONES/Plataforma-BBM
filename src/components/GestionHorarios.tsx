@@ -383,8 +383,8 @@ export const GestionHorarios = () => {
     }
   };
 
-  const handleEmpleadoChange = (empleadoId: string) => {
-    setSelectedEmpleadoId(empleadoId);
+  const handleEmpleadoChange = (_nombre: string, empleadoId?: string) => {
+    setSelectedEmpleadoId(empleadoId || '');
   };
 
   const navigatePrevious = () => {

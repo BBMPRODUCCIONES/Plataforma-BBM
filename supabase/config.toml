@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.delete-user]
 verify_jwt = false
+
+[functions.reactivate-user]
+verify_jwt = false

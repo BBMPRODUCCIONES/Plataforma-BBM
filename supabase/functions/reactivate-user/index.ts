@@ -11,8 +11,8 @@ const corsHeaders = {
 const validRoles = ['administrador', 'operativo', 'visual'] as const;
 const validPanels = ['directivo', 'general', 'operaciones', 'proveedores'] as const;
 
-// Schema validation for create invitation
-const createInvitationSchema = z.object({
+// Schema validation for reactivate user
+const reactivateUserSchema = z.object({
   email: z.string()
     .email({ message: "Email inválido" })
     .max(255, "Email muy largo")
@@ -48,7 +48,7 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     });
 
-    // Get current user
+    // Get current user (admin performing the action)
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !user) {
       return new Response(
@@ -63,7 +63,7 @@ serve(async (req) => {
     // Check if user is admin
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from('user_roles')
-      .select('role')
+      .select('role, email')
       .eq('user_id', user.id)
       .eq('role', 'administrador')
       .single();
@@ -74,6 +74,8 @@ serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const actorEmail = roleData.email || user.email || 'admin@unknown.com';
 
     // Parse and validate request body
     let body;
@@ -87,7 +89,7 @@ serve(async (req) => {
     }
 
     // Validate with zod schema
-    const validationResult = createInvitationSchema.safeParse(body);
+    const validationResult = reactivateUserSchema.safeParse(body);
     if (!validationResult.success) {
       const errorMessage = validationResult.error.errors.map(e => e.message).join(', ');
       return new Response(
@@ -98,124 +100,91 @@ serve(async (req) => {
 
     const { email, role, allowed_panels } = validationResult.data;
 
+    console.log(`[reactivate-user] Starting reactivation for email: ${email}`);
+
     // Determine allowed panels based on role
     const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores'];
     let finalAllowedPanels: string[];
     
     if (role === 'administrador') {
-      // Admin always gets all panels
       finalAllowedPanels = ALL_PANELS;
     } else if (allowed_panels && allowed_panels.length > 0) {
-      // Use provided panels but exclude directivo for non-admins
       finalAllowedPanels = allowed_panels.filter((p: string) => p !== 'directivo');
     } else {
-      // Default panels for non-admin roles
       finalAllowedPanels = ['general', 'operaciones'];
     }
 
     // ============================================
-    // VALIDATION 1: Check if email exists in auth.users (existing user)
+    // STEP 1: Check if employee is soft-deleted and reactivate
     // ============================================
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email);
-    
-    if (existingUser) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Este correo ya está registrado como usuario activo. No se puede crear otro usuario/empleado con el mismo correo.',
-          existingUserId: existingUser.id 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // ============================================
-    // NEW: Check if email was previously deleted (in audit log)
-    // ============================================
-    const { data: deletedUserLog } = await supabaseAdmin
-      .from('user_audit_log')
-      .select('*')
-      .eq('action', 'DELETE_USER')
-      .eq('target_email', email)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // ============================================
-    // NEW: Check if employee with this email is soft-deleted
-    // ============================================
-    const { data: deletedEmployee } = await supabaseAdmin
+    const { data: deletedEmployee, error: empQueryError } = await supabaseAdmin
       .from('employees')
       .select('*')
       .eq('correo', email)
       .not('deleted_at', 'is', null)
       .maybeSingle();
 
-    // If we found a deleted user or soft-deleted employee, return needsReactivation
-    if (deletedUserLog || deletedEmployee) {
-      console.log(`[create-invitation] Detected previously deleted user/employee: ${email}`);
-      console.log(`[create-invitation] Deleted user log:`, deletedUserLog);
-      console.log(`[create-invitation] Deleted employee:`, deletedEmployee);
+    let employeeReactivated = false;
+    let reactivatedEmployeeId: string | null = null;
+
+    if (deletedEmployee) {
+      console.log(`[reactivate-user] Found soft-deleted employee: ${deletedEmployee.id}`);
       
-      return new Response(
-        JSON.stringify({
-          needsReactivation: true,
-          deletedUser: deletedUserLog,
-          deletedEmployee: deletedEmployee,
-          message: 'Este correo fue previamente eliminado. ¿Deseas reactivar el usuario?'
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      // Reactivate the employee
+      const { error: updateError } = await supabaseAdmin
+        .from('employees')
+        .update({
+          deleted_at: null,
+          deleted_by: null
+        })
+        .eq('id', deletedEmployee.id);
+
+      if (updateError) {
+        console.error('[reactivate-user] Error reactivating employee:', updateError);
+      } else {
+        employeeReactivated = true;
+        reactivatedEmployeeId = deletedEmployee.id;
+        console.log(`[reactivate-user] Employee ${deletedEmployee.id} reactivated successfully`);
+        
+        // Log employee reactivation
+        await supabaseAdmin
+          .from('user_audit_log')
+          .insert({
+            action: 'REACTIVATE_EMPLOYEE',
+            actor_id: user.id,
+            actor_email: actorEmail,
+            target_email: email,
+            target_id: deletedEmployee.id,
+            panel: 'usuarios',
+            details: {
+              employee_name: deletedEmployee.nombre,
+              reactivated_at: new Date().toISOString()
+            }
+          });
+      }
+    } else {
+      console.log(`[reactivate-user] No soft-deleted employee found for ${email}`);
     }
 
     // ============================================
-    // VALIDATION 2: Check if there's a pending invitation for this email
+    // STEP 2: Check if there's an active employee (maybe just reactivated)
     // ============================================
-    const { data: existingInvitation } = await supabaseAdmin
-      .from('invitations')
-      .select('*')
-      .eq('email', email)
-      .is('accepted_at', null)
-      .gt('expires_at', new Date().toISOString())
-      .single();
-
-    if (existingInvitation) {
-      return new Response(
-        JSON.stringify({ error: 'Ya existe una invitación pendiente para este email' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // ============================================
-    // VALIDATION 3: Check if email exists in employees table (active)
-    // ============================================
-    const { data: existingEmployee } = await supabaseAdmin
+    const { data: activeEmployee } = await supabaseAdmin
       .from('employees')
       .select('*')
       .eq('correo', email)
       .is('deleted_at', null)
       .maybeSingle();
 
-    let employeeLinked = false;
-    let linkedEmployeeId: string | null = null;
-    let employeeCreated = false;
+    let linkedEmployeeId = activeEmployee?.id || null;
 
-    if (existingEmployee) {
-      // Employee exists with this email - we'll link to this employee
-      // Don't create a new employee, just note that we're linking
-      employeeLinked = true;
-      linkedEmployeeId = existingEmployee.id;
-      console.log(`[create-invitation] Found existing employee with email ${email}, will link invitation to employee ${existingEmployee.id}`);
-    } else {
-      // ============================================
-      // CREATE NEW EMPLOYEE (Caso A: email no existe)
-      // ============================================
-      console.log(`[create-invitation] No existing employee found for ${email}, creating new employee...`);
-      
-      const { data: newEmployee, error: employeeError } = await supabaseAdmin
+    // If no active employee exists, create one
+    if (!activeEmployee) {
+      console.log(`[reactivate-user] Creating new employee for ${email}`);
+      const { data: newEmployee, error: createError } = await supabaseAdmin
         .from('employees')
         .insert({
-          nombre: email.split('@')[0], // Nombre temporal basado en email
+          nombre: email.split('@')[0],
           correo: email,
           cargo: role === 'administrador' ? 'Administrador' : (role === 'operativo' ? 'Operativo' : 'Visual'),
           telefono: '',
@@ -226,17 +195,17 @@ serve(async (req) => {
         .select()
         .single();
 
-      if (employeeError) {
-        console.error('[create-invitation] Error creating employee:', employeeError);
-        // Don't fail the invitation, just log the error
+      if (createError) {
+        console.error('[reactivate-user] Error creating employee:', createError);
       } else if (newEmployee) {
-        employeeCreated = true;
         linkedEmployeeId = newEmployee.id;
-        console.log(`[create-invitation] Created new employee ${newEmployee.id} for email ${email}`);
+        console.log(`[reactivate-user] Created new employee: ${newEmployee.id}`);
       }
     }
 
-    // Create invitation with allowed_panels
+    // ============================================
+    // STEP 3: Create new invitation (user must register again)
+    // ============================================
     const { data: invitation, error: invitationError } = await supabaseAdmin
       .from('invitations')
       .insert({
@@ -249,9 +218,9 @@ serve(async (req) => {
       .single();
 
     if (invitationError) {
-      console.error('Error creating invitation:', invitationError);
+      console.error('[reactivate-user] Error creating invitation:', invitationError);
       return new Response(
-        JSON.stringify({ error: 'Error al crear la invitación' }),
+        JSON.stringify({ error: 'Error al crear la invitación de reactivación' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -260,22 +229,37 @@ serve(async (req) => {
     const origin = req.headers.get('origin') || 'https://lovable.dev';
     const invitationLink = `${origin}/crear-cuenta?token=${invitation.token}`;
 
-    // Log the link (simulating email send)
+    // ============================================
+    // STEP 4: Log the reactivation action
+    // ============================================
+    await supabaseAdmin
+      .from('user_audit_log')
+      .insert({
+        action: 'REACTIVATE_USER',
+        actor_id: user.id,
+        actor_email: actorEmail,
+        target_email: email,
+        target_role: role,
+        panel: 'usuarios',
+        details: {
+          invitation_id: invitation.id,
+          employee_reactivated: employeeReactivated,
+          employee_id: linkedEmployeeId,
+          reactivated_at: new Date().toISOString()
+        }
+      });
+
+    // Log the link
     console.log('==========================================');
-    console.log('INVITACIÓN CREADA');
+    console.log('USUARIO REACTIVADO - INVITACIÓN CREADA');
     console.log('==========================================');
     console.log(`Email: ${email}`);
     console.log(`Rol: ${role}`);
     console.log(`Paneles: ${finalAllowedPanels.join(', ')}`);
     console.log(`Token: ${invitation.token}`);
     console.log(`Link de invitación: ${invitationLink}`);
-    console.log(`Expira: ${invitation.expires_at}`);
-    if (employeeLinked) {
-      console.log(`Empleado existente vinculado: ${linkedEmployeeId}`);
-    }
-    if (employeeCreated) {
-      console.log(`Nuevo empleado creado: ${linkedEmployeeId}`);
-    }
+    console.log(`Empleado reactivado: ${employeeReactivated}`);
+    console.log(`Empleado ID: ${linkedEmployeeId}`);
     console.log('==========================================');
 
     return new Response(
@@ -291,20 +275,18 @@ serve(async (req) => {
           created_at: invitation.created_at
         },
         link: invitationLink,
-        employeeLinked,
-        employeeCreated,
+        employeeReactivated,
+        reactivatedEmployeeId,
         linkedEmployeeId,
-        message: employeeLinked 
-          ? `Invitación creada. Se vinculará al empleado existente (${existingEmployee?.nombre || email}).`
-          : employeeCreated
-            ? `Invitación creada y empleado creado automáticamente.`
-            : 'Invitación creada. El link ha sido registrado en los logs (simulación de envío de email).'
+        message: employeeReactivated
+          ? `Usuario y empleado reactivados. Se ha generado un nuevo link de invitación.`
+          : `Usuario reactivado. Se ha generado un nuevo link de invitación.`
       }),
       { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in create-invitation:', error);
+    console.error('Error in reactivate-user:', error);
     return new Response(
       JSON.stringify({ error: 'Error interno del servidor' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

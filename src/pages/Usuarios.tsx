@@ -12,9 +12,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Mail, Clock, CheckCircle, AlertCircle, Loader2, Copy, Settings, Save, Trash2, History } from "lucide-react";
+import { UserPlus, Mail, Clock, CheckCircle, AlertCircle, Loader2, Copy, Settings, Save, Trash2, History, RefreshCw } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { Database } from "@/integrations/supabase/types";
+
+interface ReactivationData {
+  email: string;
+  role: Database["public"]["Enums"]["app_role"];
+  allowed_panels: string[];
+  deletedEmployee: {
+    id: string;
+    nombre: string;
+    deleted_at: string;
+  } | null;
+  deletedUser: {
+    target_email: string;
+    created_at: string;
+  } | null;
+}
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -95,6 +110,11 @@ const Usuarios = () => {
   // Audit log state
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [showAuditLog, setShowAuditLog] = useState(false);
+
+  // Reactivation state
+  const [showReactivateModal, setShowReactivateModal] = useState(false);
+  const [reactivationData, setReactivationData] = useState<ReactivationData | null>(null);
+  const [isReactivating, setIsReactivating] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -196,6 +216,21 @@ const Usuarios = () => {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
+      // Check if needs reactivation
+      if (data.needsReactivation) {
+        setReactivationData({
+          email: newEmail.trim(),
+          role: newRole,
+          allowed_panels: newRole === "administrador" ? ALL_PANELS : newPanels,
+          deletedEmployee: data.deletedEmployee,
+          deletedUser: data.deletedUser
+        });
+        setShowReactivateModal(true);
+        setIsDialogOpen(false);
+        setIsSubmitting(false);
+        return;
+      }
+
       const invitationLink = `${window.location.origin}/crear-cuenta?token=${data.invitation.token}`;
       setGeneratedLink(invitationLink);
 
@@ -239,6 +274,56 @@ const Usuarios = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleReactivateUser = async () => {
+    if (!reactivationData) return;
+
+    setIsReactivating(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("reactivate-user", {
+        body: {
+          email: reactivationData.email,
+          role: reactivationData.role,
+          allowed_panels: reactivationData.allowed_panels
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      const invitationLink = `${window.location.origin}/crear-cuenta?token=${data.invitation.token}`;
+      setGeneratedLink(invitationLink);
+
+      toast({
+        title: data.employeeReactivated ? "Usuario y empleado reactivados" : "Usuario reactivado",
+        description: data.message || `Se ha generado un nuevo link de invitación para ${reactivationData.email}`,
+      });
+
+      setShowReactivateModal(false);
+      setReactivationData(null);
+      setIsDialogOpen(true); // Show the dialog with the generated link
+
+      fetchData();
+    } catch (error: any) {
+      console.error("Error reactivating user:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo reactivar el usuario",
+        variant: "destructive",
+      });
+    } finally {
+      setIsReactivating(false);
+    }
+  };
+
+  const handleCloseReactivateModal = () => {
+    setShowReactivateModal(false);
+    setReactivationData(null);
+    setNewEmail("");
+    setNewRole("operativo");
+    setNewPanels(["general", "operaciones"]);
   };
 
   const handleCopyLink = () => {
@@ -864,6 +949,82 @@ const Usuarios = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Reactivate User Modal */}
+        <Dialog open={showReactivateModal} onOpenChange={(open) => !open && handleCloseReactivateModal()}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5 text-amber-500" />
+                Usuario Previamente Eliminado
+              </DialogTitle>
+              <DialogDescription>
+                El correo <strong>{reactivationData?.email}</strong> ya estaba registrado pero fue eliminado. 
+                ¿Deseas reactivar este usuario?
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {reactivationData?.deletedEmployee && (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                    Empleado encontrado:
+                  </p>
+                  <p className="text-sm mt-1">
+                    <strong>{reactivationData.deletedEmployee.nombre}</strong>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Eliminado: {new Date(reactivationData.deletedEmployee.deleted_at).toLocaleDateString("es-ES")}
+                  </p>
+                </div>
+              )}
+
+              {reactivationData?.deletedUser && !reactivationData?.deletedEmployee && (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                    Usuario previamente eliminado
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Eliminado: {new Date(reactivationData.deletedUser.created_at).toLocaleDateString("es-ES")}
+                  </p>
+                </div>
+              )}
+
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="text-sm">
+                  <strong>Rol asignado:</strong> {roleLabels[reactivationData?.role || "operativo"]}
+                </p>
+                <p className="text-sm mt-1">
+                  <strong>Paneles:</strong> {reactivationData?.allowed_panels.map(p => panelLabels[p] || p).join(", ")}
+                </p>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Al reactivar, se restaurará el empleado (si existe) y se generará un nuevo link de invitación. 
+                El usuario deberá crear una nueva contraseña.
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseReactivateModal} disabled={isReactivating}>
+                Cancelar
+              </Button>
+              <Button onClick={handleReactivateUser} disabled={isReactivating} className="bg-amber-600 hover:bg-amber-700">
+                {isReactivating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Reactivando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reactivar usuario
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {isLoading ? (
           <div className="flex items-center justify-center h-40">

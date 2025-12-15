@@ -13,6 +13,8 @@ interface EmpleadoAutocompleteProps {
   useEmpleadoId?: boolean;
   placeholder?: string;
   className?: string;
+  /** Fallback name to display when employee is deleted and name can't be retrieved */
+  fallbackName?: string;
 }
 
 const normalizeText = (text: string): string => {
@@ -29,6 +31,7 @@ export function EmpleadoAutocomplete({
   useEmpleadoId = false,
   placeholder = "Buscar empleado...",
   className,
+  fallbackName,
 }: EmpleadoAutocompleteProps) {
   const { empleados, loading, getEmpleadoNameById } = useEmpleados();
   const [open, setOpen] = useState(false);
@@ -70,7 +73,8 @@ export function EmpleadoAutocomplete({
 
   const handleSelect = (empleado: typeof empleados[0]) => {
     if (useEmpleadoId) {
-      onChange(empleado.id, empleado.id);
+      // Pass the employee name as first param, ID as second - for proper storage
+      onChange(empleado.nombre, empleado.id);
     } else {
       onChange(empleado.nombre, empleado.id);
     }
@@ -78,10 +82,18 @@ export function EmpleadoAutocomplete({
     setOpen(false);
   };
 
-  // Display the employee name - show deleted employee's real name if available (without suffix)
+  // Display the employee name - show deleted employee's real name if available
+  // Priority: active employee > deleted employee name from RPC > fallbackName prop > truncated ID
+  const getDeletedDisplayName = () => {
+    if (deletedEmployeeName) return deletedEmployeeName;
+    if (fallbackName && fallbackName !== value) return fallbackName; // Use fallback if it's not the UUID
+    // Show truncated UUID as last resort
+    if (value && value.length > 8) return `Usuario (${value.slice(0, 8)}...)`;
+    return "Empleado eliminado";
+  };
+  
   const displayValue = selectedEmpleado?.nombre || 
-    (empleadoDeleted && deletedEmployeeName ? deletedEmployeeName : 
-    (empleadoDeleted ? "Empleado eliminado" : ""));
+    (empleadoDeleted ? getDeletedDisplayName() : "");
 
   // For BBM type or when useEmpleadoId is true: strict selection with Popover
   if (tipoPersonal === "BBM" || useEmpleadoId) {

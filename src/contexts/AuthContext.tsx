@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -24,6 +24,7 @@ interface AuthContextType {
   feedbackPermissions: FeedbackPermissions;
   loading: boolean;
   roleLoading: boolean;
+  roleError: string | null;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshUserRole: () => Promise<void>;
@@ -49,6 +50,9 @@ interface CachedRoleData {
 
 // Cache duration: 5 minutes
 const CACHE_DURATION = 5 * 60 * 1000;
+
+// Timeout for role fetch: 5 seconds
+const ROLE_FETCH_TIMEOUT = 5000;
 
 function getCachedRole(userId: string): UserRoleData | null {
   try {
@@ -106,34 +110,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [feedbackPermissions, setFeedbackPermissions] = useState<FeedbackPermissions>(defaultFeedbackPermissions);
   const [loading, setLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [roleError, setRoleError] = useState<string | null>(null);
+  
+  // Prevent duplicate initialization
+  const initializingRef = useRef(false);
+  const initializedRef = useRef(false);
 
   const fetchUserRole = async (userId: string): Promise<UserRoleData | null> => {
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role, allowed_panels, puede_ver_feedback, puede_editar_feedback")
-      .eq("user_id", userId)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role, allowed_panels, puede_ver_feedback, puede_editar_feedback")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    if (error) {
-      console.error("Error fetching user role:", error);
+      if (error) {
+        console.error("Error fetching user role:", error);
+        return null;
+      }
+      
+      if (!data) return null;
+      
+      const roleData: UserRoleData = {
+        role: data.role,
+        allowedPanels: data.allowed_panels || [],
+        feedbackPermissions: {
+          puedeVerFeedback: data.puede_ver_feedback ?? false,
+          puedeEditarFeedback: data.puede_editar_feedback ?? false,
+        }
+      };
+      
+      // Cache the role data
+      setCachedRole(userId, roleData);
+      
+      return roleData;
+    } catch (error) {
+      console.error("Exception fetching user role:", error);
       return null;
     }
-    
-    if (!data) return null;
-    
-    const roleData: UserRoleData = {
-      role: data.role,
-      allowedPanels: data.allowed_panels || [],
-      feedbackPermissions: {
-        puedeVerFeedback: data.puede_ver_feedback ?? false,
-        puedeEditarFeedback: data.puede_editar_feedback ?? false,
-      }
-    };
-    
-    // Cache the role data
-    setCachedRole(userId, roleData);
-    
-    return roleData;
+  };
+
+  // Fetch with timeout to prevent hanging
+  const fetchUserRoleWithTimeout = async (userId: string): Promise<{ data: UserRoleData | null; timedOut: boolean }> => {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        resolve({ data: null, timedOut: true });
+      }, ROLE_FETCH_TIMEOUT);
+
+      fetchUserRole(userId).then((data) => {
+        clearTimeout(timeout);
+        resolve({ data, timedOut: false });
+      }).catch(() => {
+        clearTimeout(timeout);
+        resolve({ data: null, timedOut: false });
+      });
+    });
   };
 
   const applyRoleData = (roleData: UserRoleData | null) => {
@@ -141,6 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRole(roleData.role);
       setAllowedPanels(roleData.allowedPanels);
       setFeedbackPermissions(roleData.feedbackPermissions);
+      setRoleError(null);
     } else {
       setRole(null);
       setAllowedPanels([]);
@@ -151,51 +183,72 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshUserRole = async () => {
     if (user) {
       setRoleLoading(true);
-      const roleData = await fetchUserRole(user.id);
-      applyRoleData(roleData);
+      setRoleError(null);
+      const { data, timedOut } = await fetchUserRoleWithTimeout(user.id);
+      applyRoleData(data);
+      if (timedOut) {
+        setRoleError("timeout");
+      } else if (!data) {
+        setRoleError("no_role");
+      }
       setRoleLoading(false);
     }
   };
 
   useEffect(() => {
+    // Prevent duplicate initialization
+    if (initializingRef.current || initializedRef.current) return;
+    initializingRef.current = true;
+
     let isMounted = true;
 
     const initializeAuth = async () => {
       // Set up auth state listener FIRST
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
+        (event, currentSession) => {
           if (!isMounted) return;
           
-          setSession(session);
-          setUser(session?.user ?? null);
+          // Clear cache on sign out or token issues
+          if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+            clearCachedRole();
+          }
           
-          if (session?.user) {
-            // First, try to use cached role for instant UI
-            const cachedRole = getCachedRole(session.user.id);
-            if (cachedRole) {
-              applyRoleData(cachedRole);
-              setRoleLoading(false);
-              setLoading(false);
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          
+          if (currentSession?.user) {
+            // Use setTimeout to prevent Supabase deadlock
+            setTimeout(async () => {
+              if (!isMounted) return;
               
-              // Then refresh from DB in background (non-blocking)
-              setTimeout(async () => {
-                if (isMounted) {
-                  const freshRole = await fetchUserRole(session.user.id);
-                  if (isMounted && freshRole) {
-                    applyRoleData(freshRole);
-                  }
-                }
-              }, 0);
-            } else {
-              // No cache, must wait for DB fetch
-              setRoleLoading(true);
-              const roleData = await fetchUserRole(session.user.id);
-              if (isMounted) {
-                applyRoleData(roleData);
+              // First, try to use cached role for instant UI
+              const cachedRole = getCachedRole(currentSession.user.id);
+              if (cachedRole) {
+                applyRoleData(cachedRole);
                 setRoleLoading(false);
                 setLoading(false);
+                
+                // Then refresh from DB in background (non-blocking)
+                const { data: freshRole } = await fetchUserRoleWithTimeout(currentSession.user.id);
+                if (isMounted && freshRole) {
+                  applyRoleData(freshRole);
+                }
+              } else {
+                // No cache, must wait for DB fetch
+                setRoleLoading(true);
+                const { data: roleData, timedOut } = await fetchUserRoleWithTimeout(currentSession.user.id);
+                if (isMounted) {
+                  applyRoleData(roleData);
+                  if (timedOut) {
+                    setRoleError("timeout");
+                  } else if (!roleData) {
+                    setRoleError("no_role");
+                  }
+                  setRoleLoading(false);
+                  setLoading(false);
+                }
               }
-            }
+            }, 0);
           } else {
             // No session - clear everything
             applyRoleData(null);
@@ -207,31 +260,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       );
 
       // THEN check for existing session
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
       
       if (!isMounted) return;
       
-      setSession(session);
-      setUser(session?.user ?? null);
+      setSession(existingSession);
+      setUser(existingSession?.user ?? null);
       
-      if (session?.user) {
+      if (existingSession?.user) {
         // Try cached role first for fast initial render
-        const cachedRole = getCachedRole(session.user.id);
+        const cachedRole = getCachedRole(existingSession.user.id);
         if (cachedRole) {
           applyRoleData(cachedRole);
           setRoleLoading(false);
           setLoading(false);
           
           // Refresh from DB in background
-          const freshRole = await fetchUserRole(session.user.id);
+          const { data: freshRole } = await fetchUserRoleWithTimeout(existingSession.user.id);
           if (isMounted && freshRole) {
             applyRoleData(freshRole);
           }
         } else {
-          // No cache, wait for fetch
-          const roleData = await fetchUserRole(session.user.id);
+          // No cache, wait for fetch with timeout
+          const { data: roleData, timedOut } = await fetchUserRoleWithTimeout(existingSession.user.id);
           if (isMounted) {
             applyRoleData(roleData);
+            if (timedOut) {
+              setRoleError("timeout");
+            } else if (!roleData) {
+              setRoleError("no_role");
+            }
             setRoleLoading(false);
             setLoading(false);
           }
@@ -241,6 +299,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       }
 
+      initializedRef.current = true;
+      
       return () => subscription.unsubscribe();
     };
 
@@ -252,6 +312,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    // Clear any stale cache before signing in
+    clearCachedRole();
+    setRoleError(null);
+    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -261,6 +325,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     clearCachedRole();
+    setRoleError(null);
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
@@ -278,6 +343,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       feedbackPermissions,
       loading, 
       roleLoading,
+      roleError,
       signIn, 
       signOut,
       refreshUserRole 

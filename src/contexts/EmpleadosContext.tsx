@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface Empleado {
   id: string;
@@ -22,6 +23,7 @@ interface EmpleadosContextType {
   updateEmpleado: (id: string, data: Partial<Empleado>) => Promise<void>;
   deleteEmpleado: (id: string) => Promise<void>;
   refetch: () => Promise<void>;
+  getEmpleadoNameById: (id: string) => Promise<string | null>;
 }
 
 const EmpleadosContext = createContext<EmpleadosContextType | undefined>(undefined);
@@ -45,6 +47,7 @@ function dbRowToEmpleado(row: any): Empleado {
 export function EmpleadosProvider({ children }: { children: ReactNode }) {
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   const fetchEmpleados = useCallback(async () => {
     try {
@@ -52,6 +55,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       // Admin gets full access (nombre, cargo, telefono, correo)
       // Operativo gets limited access (nombre, cargo only - telefono/correo are empty strings)
       // Visual gets no access (empty result)
+      // Function also filters out soft-deleted employees (deleted_at IS NULL)
       const { data, error } = await supabase.rpc('get_employees_for_role');
 
       if (error) {
@@ -96,6 +100,28 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       supabase.removeChannel(channel);
     };
   }, [fetchEmpleados]);
+
+  // Get employee name by ID (even if soft-deleted) for historical records
+  const getEmpleadoNameById = useCallback(async (id: string): Promise<string | null> => {
+    if (!id) return null;
+    
+    // First check if it's in our current list
+    const found = empleados.find(e => e.id === id);
+    if (found) return found.nombre;
+    
+    // Otherwise, fetch from DB (may be soft-deleted)
+    try {
+      const { data, error } = await supabase.rpc('get_employee_name_by_id', { _employee_id: id });
+      if (error) {
+        console.error("[EmpleadosContext] Error fetching employee name:", error);
+        return null;
+      }
+      return data || null;
+    } catch (err) {
+      console.error("[EmpleadosContext] Unexpected error fetching employee name:", err);
+      return null;
+    }
+  }, [empleados]);
 
   const addEmpleado = useCallback(async (empleadoData: Omit<Empleado, "id" | "createdAt">): Promise<Empleado | null> => {
     // Note: INSERT is protected by RLS - only admin can insert
@@ -161,15 +187,30 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
+    // Log audit for employee creation
+    if (user && data) {
+      await supabase.from("user_audit_log").insert({
+        action: "employee_created",
+        actor_id: user.id,
+        actor_email: user.email || "",
+        target_id: data.id,
+        target_email: empleadoData.correo || null,
+        panel: "empleados",
+        details: { nombre: empleadoData.nombre, cargo: empleadoData.cargo },
+      });
+    }
+
     // Replace temp empleado with real one
     const realEmpleado = dbRowToEmpleado(data);
     setEmpleados(prev => prev.map(e => e.id === tempId ? realEmpleado : e));
     console.log("[EmpleadosContext] Created new employee:", data.id);
     return realEmpleado;
-  }, [empleados]);
+  }, [empleados, user]);
 
   const updateEmpleado = useCallback(async (id: string, data: Partial<Empleado>) => {
     // Note: UPDATE is protected by RLS - only admin can update
+    const empleadoAntes = empleados.find(e => e.id === id);
+    
     setEmpleados(prev => prev.map(e => 
       e.id === id ? { ...e, ...data } : e
     ));
@@ -195,23 +236,42 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Log audit for employee update
+    if (user && empleadoAntes) {
+      await supabase.from("user_audit_log").insert({
+        action: "employee_updated",
+        actor_id: user.id,
+        actor_email: user.email || "",
+        target_id: id,
+        target_email: empleadoAntes.correo || null,
+        panel: "empleados",
+        details: { 
+          nombre: empleadoAntes.nombre,
+          changes: data 
+        },
+      });
+    }
+
     console.log("[EmpleadosContext] Updated employee:", id);
-  }, [fetchEmpleados]);
+  }, [fetchEmpleados, empleados, user]);
 
   const deleteEmpleado = useCallback(async (id: string) => {
-    // Note: DELETE is protected by RLS - only admin can delete
+    // SOFT DELETE: Mark as deleted instead of physical deletion
     const empleadoToDelete = empleados.find(e => e.id === id);
     
-    // Optimistic update
+    // Optimistic update - remove from visible list
     setEmpleados(prev => prev.filter(e => e.id !== id));
 
     const { error } = await supabase
       .from("employees")
-      .delete()
+      .update({ 
+        deleted_at: new Date().toISOString(),
+        deleted_by: user?.id || null
+      })
       .eq("id", id);
 
     if (error) {
-      console.error("[EmpleadosContext] Error deleting employee:", error);
+      console.error("[EmpleadosContext] Error soft-deleting employee:", error);
       toast.error("Error al eliminar el empleado. Solo administradores pueden eliminar.");
       // Revert optimistic update
       if (empleadoToDelete) {
@@ -220,8 +280,24 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    console.log("[EmpleadosContext] Deleted employee:", id);
-  }, [empleados]);
+    // Log audit for employee deletion
+    if (user && empleadoToDelete) {
+      await supabase.from("user_audit_log").insert({
+        action: "employee_deleted",
+        actor_id: user.id,
+        actor_email: user.email || "",
+        target_id: id,
+        target_email: empleadoToDelete.correo || null,
+        panel: "empleados",
+        details: { 
+          nombre: empleadoToDelete.nombre,
+          cargo: empleadoToDelete.cargo,
+        },
+      });
+    }
+
+    console.log("[EmpleadosContext] Soft-deleted employee:", id);
+  }, [empleados, user]);
 
   return (
     <EmpleadosContext.Provider value={{ 
@@ -231,6 +307,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       updateEmpleado, 
       deleteEmpleado,
       refetch: fetchEmpleados,
+      getEmpleadoNameById,
     }}>
       {children}
     </EmpleadosContext.Provider>

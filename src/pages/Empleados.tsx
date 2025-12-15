@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { Button } from "@/components/ui/button";
@@ -34,11 +34,23 @@ import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { BancoAutocomplete } from "@/components/BancoAutocomplete";
 import { GestionHorarios } from "@/components/GestionHorarios";
-import { Plus, Trash2, Edit, Users, Search, Settings, Loader2, ShieldAlert, Clock } from "lucide-react";
+import { Plus, Trash2, Edit, Users, Search, Settings, Loader2, ShieldAlert, Clock, History, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEmpleados, Empleado } from "@/contexts/EmpleadosContext";
 import { Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+
+interface AuditLogEntry {
+  id: string;
+  action: string;
+  actor_email: string;
+  target_email: string | null;
+  created_at: string;
+  details: any;
+}
 
 export default function Empleados() {
   const { canEditStructure, role } = useUserRole();
@@ -50,6 +62,79 @@ export default function Empleados() {
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"empleados" | "horarios">("empleados");
+  const [showAuditLog, setShowAuditLog] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [loadingAudit, setLoadingAudit] = useState(false);
+
+  // Fetch audit logs for employees panel
+  const fetchAuditLogs = async () => {
+    setLoadingAudit(true);
+    try {
+      const { data, error } = await supabase
+        .from("user_audit_log")
+        .select("*")
+        .eq("panel", "empleados")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      
+      if (error) {
+        console.error("Error fetching audit logs:", error);
+        return;
+      }
+      setAuditLogs(data || []);
+    } catch (err) {
+      console.error("Error fetching audit logs:", err);
+    } finally {
+      setLoadingAudit(false);
+    }
+  };
+
+  // Fetch audit logs when toggle is opened
+  useEffect(() => {
+    if (showAuditLog) {
+      fetchAuditLogs();
+    }
+  }, [showAuditLog]);
+
+  // Subscribe to audit log changes
+  useEffect(() => {
+    if (!showAuditLog) return;
+    
+    const channel = supabase
+      .channel("audit-log-empleados")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "user_audit_log" },
+        (payload) => {
+          if (payload.new && (payload.new as any).panel === "empleados") {
+            setAuditLogs(prev => [payload.new as AuditLogEntry, ...prev.slice(0, 49)]);
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [showAuditLog]);
+
+  const getActionLabel = (action: string) => {
+    switch (action) {
+      case "employee_created": return "Empleado creado";
+      case "employee_updated": return "Empleado actualizado";
+      case "employee_deleted": return "Empleado eliminado";
+      default: return action;
+    }
+  };
+
+  const getActionColor = (action: string) => {
+    switch (action) {
+      case "employee_created": return "text-green-500";
+      case "employee_updated": return "text-blue-500";
+      case "employee_deleted": return "text-destructive";
+      default: return "text-foreground";
+    }
+  };
 
   // SECURITY: Only admin can access this page
   // This page displays sensitive contact information (telefono, correo)
@@ -498,6 +583,65 @@ export default function Empleados() {
                 Cuando seleccione "Tipo = BBM" en el módulo de Personal de un evento, <strong>solo podrá seleccionar</strong> empleados 
                 registrados en este módulo. No es posible escribir nombres manualmente para personal BBM.
               </p>
+            </div>
+
+            {/* Audit Log Section */}
+            <div className="panel-card">
+              <button
+                onClick={() => setShowAuditLog(!showAuditLog)}
+                className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <History className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold">Registro de Auditoría</span>
+                </div>
+                {showAuditLog ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+              
+              {showAuditLog && (
+                <div className="border-t border-border">
+                  {loadingAudit ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : auditLogs.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      No hay registros de auditoría
+                    </div>
+                  ) : (
+                    <div className="max-h-[300px] overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[180px]">Fecha</TableHead>
+                            <TableHead className="w-[150px]">Acción</TableHead>
+                            <TableHead>Actor</TableHead>
+                            <TableHead>Empleado</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {auditLogs.map((log) => (
+                            <TableRow key={log.id}>
+                              <TableCell className="text-xs">
+                                {format(new Date(log.created_at), "dd MMM yyyy HH:mm", { locale: es })}
+                              </TableCell>
+                              <TableCell>
+                                <span className={`text-xs font-medium ${getActionColor(log.action)}`}>
+                                  {getActionLabel(log.action)}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-xs">{log.actor_email}</TableCell>
+                              <TableCell className="text-xs">
+                                {log.details?.nombre || log.target_email || "-"}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </TabsContent>
 

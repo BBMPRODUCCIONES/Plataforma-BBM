@@ -19,6 +19,7 @@ import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDia
 import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useEmpleados } from "@/contexts/EmpleadosContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
@@ -35,7 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printCajaMenor, exportCajaMenorToExcel } from "@/utils/pdfGenerator";
@@ -51,6 +52,7 @@ import { HorarioFormDialog } from "@/components/HorarioFormDialog";
 const PanelOperaciones = () => {
   const navigate = useNavigate();
   const { canEditStructure, role, canViewFeedback, canEditFeedback } = useUserRole();
+  const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { empleados } = useEmpleados();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
@@ -117,6 +119,21 @@ const PanelOperaciones = () => {
 
   // Check if user is admin
   const isAdmin = role?.toLowerCase() === "administrador";
+  
+  // Find the current user's linked employee by email (for Caja Menor permissions)
+  const currentUserEmail = user?.email?.toLowerCase();
+  const currentUserEmpleado = useMemo(() => {
+    if (!currentUserEmail) return null;
+    return empleados.find(e => e.correo?.toLowerCase() === currentUserEmail);
+  }, [empleados, currentUserEmail]);
+  
+  // Helper to check if user can edit a Caja Menor record
+  const canEditCajaMenorRecord = (record: CajaMenorItem): boolean => {
+    if (isAdmin) return true;
+    // Operativo can only edit their own records
+    if (!currentUserEmail) return false;
+    return record.empleadoEmail?.toLowerCase() === currentUserEmail;
+  };
 
   const updateProject = (projectId: string, field: string, value: any) => {
     contextUpdateProject(projectId, field, value);
@@ -529,10 +546,18 @@ const PanelOperaciones = () => {
     }
   };
 
-  // Caja Menor CRUD functions
+  // Caja Menor CRUD functions with permission checks
   const updateCajaMenorItem = (projectId: string, cajaMenorId: string, field: string, value: any) => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
+    
+    // Permission check for non-admins
+    const record = (project.cajaMenor || []).find(c => c.id === cajaMenorId);
+    if (!isAdmin && record && !canEditCajaMenorRecord(record)) {
+      toast.error("No tienes permiso para editar este registro");
+      return;
+    }
+    
     const updatedCajaMenor = (project.cajaMenor || []).map(c =>
       c.id === cajaMenorId ? { ...c, [field]: value } : c
     );
@@ -542,6 +567,14 @@ const PanelOperaciones = () => {
   const deleteCajaMenorItem = async (projectId: string, cajaMenorId: string) => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
+    
+    // Permission check for non-admins
+    const record = (project.cajaMenor || []).find(c => c.id === cajaMenorId);
+    if (!isAdmin && record && !canEditCajaMenorRecord(record)) {
+      toast.error("No tienes permiso para eliminar este registro");
+      return;
+    }
+    
     const updatedCajaMenor = (project.cajaMenor || []).filter(c => c.id !== cajaMenorId);
     try {
       await contextUpdateProject(projectId, 'cajaMenor', updatedCajaMenor);
@@ -849,111 +882,200 @@ const PanelOperaciones = () => {
   ];
   }, [currentProjectData?.id, currentProjectData?.inventario]);
 
-  // Caja Menor columns definition
+  // Caja Menor columns definition with role-based permissions
   const cajaMenorColumns = useMemo(() => {
     const projectId = currentProjectData?.id;
+    
+    // Helper to get employee display name
+    const getEmpleadoName = (c: CajaMenorItem) => {
+      if (c.empleadoNombre) return c.empleadoNombre;
+      if (c.empleadoId) {
+        const emp = empleados.find(e => e.id === c.empleadoId);
+        return emp?.nombre || "Empleado desconocido";
+      }
+      return "Sin empleado";
+    };
+    
     return [
       {
         key: "empleado",
         header: "Empleado",
-        width: "180px",
-        render: (c: CajaMenorItem) => (
-          <EmpleadoAutocomplete
-            value={c.empleadoId || ""}
-            onChange={(nombreValue, empleadoId) => projectId && updateCajaMenorItem(projectId, c.id, "empleadoId", empleadoId || "")}
-            useEmpleadoId
-            placeholder="Seleccionar empleado..."
-          />
-        ),
+        width: "200px",
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          
+          // Admin: can change employee; Operativo: read-only display
+          if (isAdmin) {
+            return (
+              <EmpleadoAutocomplete
+                value={c.empleadoId || ""}
+                onChange={(nombreValue, empleadoId) => {
+                  if (projectId && empleadoId) {
+                    const emp = empleados.find(e => e.id === empleadoId);
+                    // Update all three fields atomically
+                    const project = projects.find(p => p.id === projectId);
+                    if (project) {
+                      const updatedCajaMenor = (project.cajaMenor || []).map(item =>
+                        item.id === c.id ? { 
+                          ...item, 
+                          empleadoId,
+                          empleadoNombre: emp?.nombre || nombreValue,
+                          empleadoEmail: emp?.correo || ""
+                        } : item
+                      );
+                      contextUpdateProject(projectId, 'cajaMenor', updatedCajaMenor);
+                    }
+                  }
+                }}
+                useEmpleadoId
+                placeholder="Seleccionar empleado..."
+              />
+            );
+          }
+          
+          // Operativo: read-only display with lock icon
+          return (
+            <div className="flex items-center gap-2 text-sm">
+              <Lock className="h-3 w-3 text-muted-foreground" />
+              <span className={canEdit ? "text-foreground" : "text-muted-foreground"}>
+                {getEmpleadoName(c)}
+              </span>
+            </div>
+          );
+        },
       },
       {
         key: "concepto",
         header: "Concepto",
         width: "200px",
-        render: (c: CajaMenorItem) => (
-          <EditableCell
-            value={c.concepto}
-            type="text"
-            placeholder="Descripción del concepto..."
-            onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "concepto", value)}
-          />
-        ),
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          if (!canEdit) {
+            return <span className="text-sm text-muted-foreground">{c.concepto || "-"}</span>;
+          }
+          return (
+            <EditableCell
+              value={c.concepto}
+              type="text"
+              placeholder="Descripción del concepto..."
+              onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "concepto", value)}
+            />
+          );
+        },
       },
       {
         key: "imagenes",
         header: "Imágenes",
         width: "120px",
-        render: (c: CajaMenorItem) => (
-          <AttachmentButton
-            attachments={c.imagenes || []}
-            onAttachmentsChange={(attachments) => projectId && updateCajaMenorItem(projectId, c.id, "imagenes", attachments)}
-            multiple
-            projectId={projectId || ""}
-            fieldName={`caja-menor-${c.id}-imagenes`}
-            enableCamera
-          />
-        ),
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          return (
+            <AttachmentButton
+              attachments={c.imagenes || []}
+              onAttachmentsChange={(attachments) => {
+                if (canEdit && projectId) {
+                  updateCajaMenorItem(projectId, c.id, "imagenes", attachments);
+                }
+              }}
+              multiple
+              projectId={projectId || ""}
+              fieldName={`caja-menor-${c.id}-imagenes`}
+              enableCamera={canEdit}
+              disabled={!canEdit}
+            />
+          );
+        },
       },
       {
         key: "valor",
         header: "Valor",
         width: "100px",
-        render: (c: CajaMenorItem) => (
-          <EditableCell
-            value={c.valor}
-            type="number"
-            placeholder="0"
-            onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "valor", value)}
-          />
-        ),
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          if (!canEdit) {
+            return <span className="text-sm text-muted-foreground font-mono">${c.valor?.toLocaleString() || 0}</span>;
+          }
+          return (
+            <EditableCell
+              value={c.valor}
+              type="number"
+              placeholder="0"
+              onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "valor", value)}
+            />
+          );
+        },
       },
       {
         key: "categoria",
         header: "Categoría",
         width: "130px",
-        render: (c: CajaMenorItem) => (
-          <EditableCell
-            value={c.categoria}
-            type="select"
-            options={["Transporte", "Alimentación", "Compras"]}
-            onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "categoria", value)}
-          />
-        ),
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          if (!canEdit) {
+            return <span className="text-sm text-muted-foreground">{c.categoria}</span>;
+          }
+          return (
+            <EditableCell
+              value={c.categoria}
+              type="select"
+              options={["Transporte", "Alimentación", "Compras"]}
+              onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "categoria", value)}
+            />
+          );
+        },
       },
       {
         key: "estado",
         header: "Estado",
         width: "130px",
-        render: (c: CajaMenorItem) => (
-          <CajaMenorEstadoSelect
-            value={c.estado}
-            onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "estado", value)}
-          />
-        ),
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          if (!canEdit) {
+            return (
+              <span className={`text-sm px-2 py-0.5 rounded ${
+                c.estado === "Aprobado" ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"
+              }`}>
+                {c.estado}
+              </span>
+            );
+          }
+          return (
+            <CajaMenorEstadoSelect
+              value={c.estado}
+              onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "estado", value)}
+            />
+          );
+        },
       },
       {
         key: "acciones",
         header: "",
         width: "50px",
-        render: (c: CajaMenorItem) => (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (projectId) {
-                deleteCajaMenorItem(projectId, c.id);
-              }
-            }}
-            title="Eliminar"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        ),
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          if (!canEdit) {
+            return null; // Hide delete button for non-editable records
+          }
+          return (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (projectId) {
+                  deleteCajaMenorItem(projectId, c.id);
+                }
+              }}
+              title="Eliminar"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          );
+        },
       },
     ];
-  }, [currentProjectData?.id, currentProjectData?.cajaMenor]);
+  }, [currentProjectData?.id, currentProjectData?.cajaMenor, empleados, isAdmin, currentUserEmail, canEditCajaMenorRecord, projects]);
 
   if (loading) {
     return (
@@ -1361,9 +1483,12 @@ const PanelOperaciones = () => {
                             variant="outline"
                             size="sm"
                             onClick={async () => {
+                              // Auto-fill with current user's employee
                               const newCajaMenor: CajaMenorItem = {
                                 id: `cm${Date.now()}`,
-                                empleadoId: "",
+                                empleadoId: currentUserEmpleado?.id || "",
+                                empleadoNombre: currentUserEmpleado?.nombre || "",
+                                empleadoEmail: currentUserEmpleado?.correo || currentUserEmail || "",
                                 concepto: "",
                                 imagenes: [],
                                 valor: 0,

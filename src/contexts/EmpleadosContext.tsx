@@ -99,6 +99,22 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
 
   const addEmpleado = useCallback(async (empleadoData: Omit<Empleado, "id" | "createdAt">): Promise<Empleado | null> => {
     // Note: INSERT is protected by RLS - only admin can insert
+    
+    // VALIDATION: Check if email already exists (unique constraint)
+    const emailToCheck = empleadoData.correo?.toLowerCase().trim();
+    if (emailToCheck) {
+      const existingEmpleado = empleados.find(
+        e => e.correo.toLowerCase().trim() === emailToCheck
+      );
+      if (existingEmpleado) {
+        toast.error(`Este correo ya existe. Empleado: ${existingEmpleado.nombre}`, {
+          description: "Use 'Editar empleado existente' en lugar de crear uno nuevo.",
+          duration: 5000,
+        });
+        return null;
+      }
+    }
+    
     const tempId = `temp-${Date.now()}`;
     const optimisticEmpleado: Empleado = {
       id: tempId,
@@ -131,7 +147,15 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error("[EmpleadosContext] Error creating employee:", error);
-      toast.error("Error al crear el empleado. Solo administradores pueden crear empleados.");
+      // Check if it's a unique constraint violation
+      if (error.code === '23505' && error.message?.includes('correo')) {
+        toast.error("Este correo ya existe en el sistema.", {
+          description: "No se pueden crear empleados con correos duplicados.",
+          duration: 5000,
+        });
+      } else {
+        toast.error("Error al crear el empleado. Solo administradores pueden crear empleados.");
+      }
       // Revert optimistic update
       setEmpleados(prev => prev.filter(e => e.id !== tempId));
       return null;
@@ -142,7 +166,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
     setEmpleados(prev => prev.map(e => e.id === tempId ? realEmpleado : e));
     console.log("[EmpleadosContext] Created new employee:", data.id);
     return realEmpleado;
-  }, []);
+  }, [empleados]);
 
   const updateEmpleado = useCallback(async (id: string, data: Partial<Empleado>) => {
     // Note: UPDATE is protected by RLS - only admin can update

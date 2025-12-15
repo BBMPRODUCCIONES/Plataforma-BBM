@@ -113,18 +113,25 @@ serve(async (req) => {
       finalAllowedPanels = ['general', 'operaciones'];
     }
 
-    // Check if email already exists in auth.users
+    // ============================================
+    // VALIDATION 1: Check if email exists in auth.users (existing user)
+    // ============================================
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const emailExists = existingUsers?.users?.some(u => u.email === email);
+    const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email);
     
-    if (emailExists) {
+    if (existingUser) {
       return new Response(
-        JSON.stringify({ error: 'Ya existe un usuario con este email' }),
+        JSON.stringify({ 
+          error: 'Este correo ya está registrado como usuario activo. No se puede crear otro usuario/empleado con el mismo correo.',
+          existingUserId: existingUser.id 
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if there's already a pending invitation for this email
+    // ============================================
+    // VALIDATION 2: Check if there's a pending invitation for this email
+    // ============================================
     const { data: existingInvitation } = await supabaseAdmin
       .from('invitations')
       .select('*')
@@ -138,6 +145,26 @@ serve(async (req) => {
         JSON.stringify({ error: 'Ya existe una invitación pendiente para este email' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // ============================================
+    // VALIDATION 3: Check if email exists in employees table
+    // ============================================
+    const { data: existingEmployee } = await supabaseAdmin
+      .from('employees')
+      .select('*')
+      .eq('correo', email)
+      .maybeSingle();
+
+    let employeeLinked = false;
+    let linkedEmployeeId: string | null = null;
+
+    if (existingEmployee) {
+      // Employee exists with this email - we'll link to this employee
+      // Don't create a new employee, just note that we're linking
+      employeeLinked = true;
+      linkedEmployeeId = existingEmployee.id;
+      console.log(`[create-invitation] Found existing employee with email ${email}, will link invitation to employee ${existingEmployee.id}`);
     }
 
     // Create invitation with allowed_panels
@@ -174,6 +201,9 @@ serve(async (req) => {
     console.log(`Token: ${invitation.token}`);
     console.log(`Link de invitación: ${invitationLink}`);
     console.log(`Expira: ${invitation.expires_at}`);
+    if (employeeLinked) {
+      console.log(`Empleado existente vinculado: ${linkedEmployeeId}`);
+    }
     console.log('==========================================');
 
     return new Response(
@@ -189,7 +219,11 @@ serve(async (req) => {
           created_at: invitation.created_at
         },
         link: invitationLink,
-        message: 'Invitación creada. El link ha sido registrado en los logs (simulación de envío de email).'
+        employeeLinked,
+        linkedEmployeeId,
+        message: employeeLinked 
+          ? `Invitación creada. Se vinculará al empleado existente (${existingEmployee?.nombre || email}).`
+          : 'Invitación creada. El link ha sido registrado en los logs (simulación de envío de email).'
       }),
       { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

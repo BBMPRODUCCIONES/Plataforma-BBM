@@ -167,17 +167,36 @@ const Usuarios = () => {
       const invitationLink = `${window.location.origin}/crear-cuenta?token=${data.invitation.token}`;
       setGeneratedLink(invitationLink);
 
-      toast({
-        title: "Invitación creada",
-        description: `Se ha creado una invitación para ${newEmail}`,
-      });
+      // Show different message if employee was linked
+      if (data.employeeLinked) {
+        toast({
+          title: "Invitación creada (empleado existente vinculado)",
+          description: `Se usará el registro de empleado existente para ${newEmail}`,
+        });
+      } else {
+        toast({
+          title: "Invitación creada",
+          description: `Se ha creado una invitación para ${newEmail}`,
+        });
+      }
 
       fetchData();
     } catch (error: any) {
       console.error("Error creating invitation:", error);
+      
+      // Handle specific error messages for better UX
+      let errorMessage = error.message || "No se pudo crear la invitación";
+      let errorTitle = "Error";
+      
+      if (errorMessage.includes("ya está registrado como usuario activo")) {
+        errorTitle = "Correo duplicado";
+      } else if (errorMessage.includes("invitación pendiente")) {
+        errorTitle = "Invitación existente";
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "No se pudo crear la invitación",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

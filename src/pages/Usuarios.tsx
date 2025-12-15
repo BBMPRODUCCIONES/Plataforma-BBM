@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Mail, Clock, CheckCircle, AlertCircle, Loader2, Copy, Settings, Save } from "lucide-react";
+import { UserPlus, Mail, Clock, CheckCircle, AlertCircle, Loader2, Copy, Settings, Save, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -76,6 +77,10 @@ const Usuarios = () => {
   const [editPuedeVerFeedback, setEditPuedeVerFeedback] = useState(false);
   const [editPuedeEditarFeedback, setEditPuedeEditarFeedback] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Delete user state
+  const [userToDelete, setUserToDelete] = useState<UserWithRole | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -296,6 +301,49 @@ const Usuarios = () => {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      // Delete from user_roles
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userToDelete.id);
+
+      if (roleError) throw roleError;
+
+      // Delete from profiles
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", userToDelete.id);
+
+      if (profileError) {
+        console.error("Error deleting profile:", profileError);
+        // Don't fail if profile doesn't exist
+      }
+
+      toast({
+        title: "Usuario eliminado",
+        description: `Se ha eliminado el usuario ${userToDelete.email}`,
+      });
+
+      setUserToDelete(null);
+      fetchData();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo eliminar el usuario",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handlePanelToggle = (panel: string, checked: boolean, isNew: boolean = false) => {
     if (isNew) {
       setNewPanels(prev => 
@@ -423,16 +471,27 @@ const Usuarios = () => {
     {
       key: "actions",
       header: "Acciones",
-      width: "100px",
+      width: "120px",
       render: (item: UserWithRole) => (
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={() => handleEditUser(item)}
-          title="Editar usuario"
-        >
-          <Settings className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handleEditUser(item)}
+            title="Editar usuario"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setUserToDelete(item)}
+            title="Eliminar usuario"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       ),
     },
   ];
@@ -748,6 +807,35 @@ const Usuarios = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete User Confirmation Dialog */}
+        <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción eliminará permanentemente al usuario <strong>{userToDelete?.email}</strong> y todos sus permisos asociados. Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteUser}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Eliminando...
+                  </>
+                ) : (
+                  "Eliminar"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {isLoading ? (
           <div className="flex items-center justify-center h-40">

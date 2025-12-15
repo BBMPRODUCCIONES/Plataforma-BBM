@@ -5,6 +5,7 @@ interface UseUserRoleReturn {
   role: UserRole | null;
   loading: boolean;
   roleLoading: boolean;
+  roleError: string | null;
   allowedPanels: string[];
   canAccessPanel: (panel: string) => boolean;
   canEdit: () => boolean;
@@ -25,7 +26,7 @@ const ADMIN_ONLY_SECTIONS = [
 ];
 
 export function useUserRole(): UseUserRoleReturn {
-  const { role, allowedPanels, loading, roleLoading, feedbackPermissions } = useAuth();
+  const { role, allowedPanels, loading, roleLoading, roleError, feedbackPermissions } = useAuth();
 
   const canAccessPanel = (panel: string): boolean => {
     // If still loading, don't deny access yet
@@ -91,6 +92,7 @@ export function useUserRole(): UseUserRoleReturn {
     role: role as UserRole | null,
     loading,
     roleLoading,
+    roleError,
     allowedPanels,
     canAccessPanel,
     canEdit,

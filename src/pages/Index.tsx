@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import bbmLogo from "@/assets/bbm-logo.png";
 
 const Index = () => {
-  const { user, loading, signIn } = useAuth();
+  const { user, loading, roleLoading, signIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -22,8 +22,8 @@ const Index = () => {
   const [showResetForm, setShowResetForm] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
 
-  // Redirect authenticated users to /usuarios
-  if (!loading && user) {
+  // Redirect authenticated users to /usuarios ONLY after BOTH loading states are complete
+  if (!loading && !roleLoading && user) {
     return <Navigate to="/usuarios" replace />;
   }
 
@@ -91,10 +91,14 @@ const Index = () => {
     setIsResettingPassword(false);
   };
 
-  if (loading) {
+  // Show loading while auth OR role is loading
+  if (loading || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="text-sm text-muted-foreground">Cargando...</span>
+        </div>
       </div>
     );
   }

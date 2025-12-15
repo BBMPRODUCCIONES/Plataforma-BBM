@@ -46,7 +46,15 @@ interface SalidaContingencia {
   accuracy_m?: number;
   maps_url?: string;
   location_status?: string;
-  contexto?: Record<string, any>;
+  contexto?: ContingenciaContexto;
+}
+
+interface ContingenciaContexto {
+  oficina: boolean;
+  casa: boolean;
+  eventos: string[];
+  eventoNombres: string[];
+  timestamp?: string; // When context was saved
 }
 
 export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, children }: HorarioFormDialogProps) => {
@@ -83,6 +91,25 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
   // Contingency exit state
   const [salidaContingencia, setSalidaContingencia] = useState<SalidaContingencia | null>(null);
   const [cameraContingenciaOpen, setCameraContingenciaOpen] = useState(false);
+  
+  // Contingency context selection (step 2 after photo)
+  const [showContingenciaContextDialog, setShowContingenciaContextDialog] = useState(false);
+  const [contingenciaContexto, setContingenciaContexto] = useState<ContingenciaContexto>({
+    oficina: false,
+    casa: false,
+    eventos: [],
+    eventoNombres: [],
+  });
+  const [pendingContingenciaData, setPendingContingenciaData] = useState<{
+    foto: string;
+    horario: string;
+    ubicacion: string;
+    lat?: number;
+    lng?: number;
+    accuracy_m?: number;
+    maps_url?: string;
+    location_status?: string;
+  } | null>(null);
 
   // Camera dialogs
   const [cameraLlegadaOpen, setCameraLlegadaOpen] = useState(false);
@@ -194,6 +221,15 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
         
         // Load contingency exit if exists
         if (record.contingencia_foto || record.contingencia_hora) {
+          const rawContexto = record.contingencia_contexto as Record<string, any> | undefined;
+          const parsedContexto: ContingenciaContexto = {
+            oficina: rawContexto?.oficina || false,
+            casa: rawContexto?.casa || false,
+            eventos: rawContexto?.eventos || [],
+            eventoNombres: rawContexto?.eventoNombres || [],
+            timestamp: rawContexto?.timestamp,
+          };
+          
           const contingenciaData: SalidaContingencia = {
             foto: record.contingencia_foto || '',
             horario: record.contingencia_hora || '',
@@ -204,11 +240,18 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
             accuracy_m: record.contingencia_accuracy_m || undefined,
             maps_url: record.contingencia_maps_url || '',
             location_status: record.contingencia_location_status || '',
-            contexto: record.contingencia_contexto as Record<string, any> || undefined,
+            contexto: parsedContexto,
           };
           setSalidaContingencia(contingenciaData);
+          setContingenciaContexto(parsedContexto);
         } else {
           setSalidaContingencia(null);
+          setContingenciaContexto({
+            oficina: false,
+            casa: false,
+            eventos: [],
+            eventoNombres: [],
+          });
         }
         
         // Parse context from record
@@ -246,6 +289,14 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
     setSelectedEventIds([]);
     setSalidaContingencia(null);
     setContextModified(false);
+    setContingenciaContexto({
+      oficina: false,
+      casa: false,
+      eventos: [],
+      eventoNombres: [],
+    });
+    setPendingContingenciaData(null);
+    setShowContingenciaContextDialog(false);
   };
 
   // Load record when employee or date changes
@@ -675,7 +726,19 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
   // Check if contingency already registered from DB
   const contingenciaRegistered = Boolean(existingRecord?.contingencia_foto || existingRecord?.contingencia_hora);
   
-  // Handle contingency exit capture - save immediately to DB
+  // Check if 5 minutes have passed since contingency was registered (context lock)
+  const isContingenciaContextLocked = useMemo(() => {
+    const contextoTimestamp = salidaContingencia?.contexto?.timestamp || 
+      (existingRecord?.contingencia_contexto as ContingenciaContexto | undefined)?.timestamp;
+    if (!contextoTimestamp) return false;
+    
+    const savedTime = new Date(contextoTimestamp).getTime();
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+    return (now - savedTime) > fiveMinutes;
+  }, [salidaContingencia, existingRecord?.contingencia_contexto]);
+
+  // Step 1: Handle contingency photo capture - save foto/hora/ubicacion immediately
   const handleCaptureContingencia = async (file: File) => {
     if (!empleadoId) {
       toast.error('Debes seleccionar un empleado de la lista');
@@ -737,22 +800,7 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
       ? `https://www.google.com/maps?q=${location.lat},${location.lng}`
       : '';
 
-    // Build current context for contingency
-    const contextParts: string[] = [];
-    if (oficinaEnabled) contextParts.push('Oficina');
-    if (casaEnabled) contextParts.push('Casa');
-    selectedEventIds.forEach(eventId => {
-      const project = projects.find(p => p.id === eventId);
-      if (project) contextParts.push(project.evento);
-    });
-    const contexto = {
-      oficina: oficinaEnabled,
-      casa: casaEnabled,
-      eventos: selectedEventIds,
-      eventoNombres: contextParts,
-    };
-
-    // Save to database immediately
+    // Save foto/hora/ubicacion to database immediately (without context yet)
     try {
       if (!existingRecord) {
         toast.error('No hay registro existente para agregar contingencia');
@@ -771,14 +819,26 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
           contingencia_accuracy_m: location?.accuracy || null,
           contingencia_maps_url: mapsUrl,
           contingencia_location_status: location?.status || 'unavailable',
-          contingencia_contexto: contexto,
+          // Context will be saved in step 2
         })
         .eq('id', existingRecord.id);
 
       if (error) throw error;
 
-      // Set local state
-      const contingenciaData: SalidaContingencia = {
+      // Store pending data for context dialog
+      setPendingContingenciaData({
+        foto: photoUrl,
+        horario: timestamp,
+        ubicacion: coordsStr,
+        lat: location?.lat,
+        lng: location?.lng,
+        accuracy_m: location?.accuracy,
+        maps_url: mapsUrl,
+        location_status: location?.status,
+      });
+
+      // Set local state for display
+      setSalidaContingencia({
         foto: photoUrl,
         horario: timestamp,
         ubicacion: coordsStr,
@@ -788,21 +848,108 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
         accuracy_m: location?.accuracy,
         maps_url: mapsUrl,
         location_status: location?.status,
-        contexto,
-      };
-      setSalidaContingencia(contingenciaData);
+        contexto: undefined, // Will be set after context selection
+      });
 
-      // Refresh from backend
-      await loadExistingRecord();
-      await refetch();
+      // Reset contingency context for selection
+      setContingenciaContexto({
+        oficina: false,
+        casa: false,
+        eventos: [],
+        eventoNombres: [],
+      });
+
+      // Show context selection dialog
+      setShowContingenciaContextDialog(true);
       
-      toast.success('Salida de contingencia registrada correctamente');
+      toast.success('Foto guardada. Ahora selecciona el contexto de la contingencia.');
     } catch (err) {
       console.error('Error saving contingency to DB:', err);
       toast.error('Error al guardar la salida de contingencia');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Step 2: Save contingency context
+  const handleSaveContingenciaContext = async () => {
+    if (!existingRecord) {
+      toast.error('No hay registro existente');
+      return;
+    }
+
+    if (!contingenciaContexto.oficina && !contingenciaContexto.casa && contingenciaContexto.eventos.length === 0) {
+      toast.error('Selecciona al menos oficina, casa o un evento como contexto');
+      return;
+    }
+
+    setLoading(true);
+
+    // Build event names
+    const eventoNombres: string[] = [];
+    if (contingenciaContexto.oficina) eventoNombres.push('Oficina');
+    if (contingenciaContexto.casa) eventoNombres.push('Casa');
+    contingenciaContexto.eventos.forEach(eventId => {
+      const project = projects.find(p => p.id === eventId);
+      if (project) eventoNombres.push(project.evento);
+    });
+
+    const contextoWithTimestamp: ContingenciaContexto = {
+      ...contingenciaContexto,
+      eventoNombres,
+      timestamp: new Date().toISOString(), // For 5-minute lock
+    };
+
+    try {
+      const { error } = await supabase
+        .from('horarios')
+        .update({
+          contingencia_contexto: JSON.parse(JSON.stringify(contextoWithTimestamp)),
+        })
+        .eq('id', existingRecord.id);
+
+      if (error) throw error;
+
+      // Update local state
+      if (salidaContingencia) {
+        setSalidaContingencia({
+          ...salidaContingencia,
+          contexto: contextoWithTimestamp,
+        });
+      }
+      setContingenciaContexto(contextoWithTimestamp);
+      setShowContingenciaContextDialog(false);
+      setPendingContingenciaData(null);
+
+      // Refresh from backend
+      await loadExistingRecord();
+      await refetch();
+
+      toast.success('Contexto de contingencia guardado correctamente');
+    } catch (err) {
+      console.error('Error saving contingency context:', err);
+      toast.error('Error al guardar el contexto');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Toggle contingency context events
+  const toggleContingenciaEvent = (eventId: string) => {
+    const project = projects.find(p => p.id === eventId);
+    setContingenciaContexto(prev => {
+      const newEventos = prev.eventos.includes(eventId)
+        ? prev.eventos.filter(id => id !== eventId)
+        : [...prev.eventos, eventId];
+      const newNombres = prev.eventoNombres.filter(n => n !== 'Oficina' && n !== 'Casa' && n !== project?.evento);
+      if (newEventos.includes(eventId) && project) {
+        newNombres.push(project.evento);
+      }
+      return {
+        ...prev,
+        eventos: newEventos,
+      };
+    });
   };
 
   const resetForm = () => {
@@ -1137,40 +1284,131 @@ export const HorarioFormDialog = ({ open, onOpenChange, defaultEmpleadoId, child
                         )}
                       </div>
                       
-                      {(salidaContingencia || contingenciaRegistered) ? (
-                        <div className="grid grid-cols-3 gap-4 bg-amber-500/5 p-3 rounded-lg">
-                          {/* Foto contingencia */}
-                          <div className="space-y-2">
-                            <Label className="text-xs text-muted-foreground">Foto</Label>
-                            <img 
-                              src={salidaContingencia?.foto || existingRecord?.contingencia_foto || ''} 
-                              alt="Salida contingencia" 
-                              className="w-full h-20 object-cover rounded" 
-                            />
-                          </div>
+                      {/* Context selection dialog after photo capture */}
+                      {showContingenciaContextDialog && (
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 space-y-4">
+                          <p className="text-sm font-medium text-amber-400">
+                            ✅ Foto guardada. Selecciona el contexto de esta salida de contingencia:
+                          </p>
                           
-                          {/* Ubicación contingencia */}
-                          <div className="space-y-2">
-                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              Ubicación
-                            </Label>
-                            <Input
-                              value={salidaContingencia?.ubicacion || existingRecord?.contingencia_ubicacion || ''}
-                              readOnly
-                              className="bg-muted/50 cursor-not-allowed text-sm"
-                            />
-                            {(salidaContingencia?.maps_url || existingRecord?.contingencia_maps_url) ? (
-                              <a
-                                href={salidaContingencia?.maps_url || existingRecord?.contingencia_maps_url || ''}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                Ver en Google Maps
-                              </a>
-                            ) : (salidaContingencia?.ubicacion || existingRecord?.contingencia_ubicacion) && 
+                          <div className="flex gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <Checkbox 
+                                checked={contingenciaContexto.oficina}
+                                onCheckedChange={(checked) => setContingenciaContexto(prev => ({ ...prev, oficina: !!checked }))}
+                              />
+                              <Building2 className="h-4 w-4" />
+                              <span className="text-sm">Oficina</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <Checkbox 
+                                checked={contingenciaContexto.casa}
+                                onCheckedChange={(checked) => setContingenciaContexto(prev => ({ ...prev, casa: !!checked }))}
+                              />
+                              <Home className="h-4 w-4" />
+                              <span className="text-sm">Casa</span>
+                            </label>
+                          </div>
+
+                          {filteredEvents.length > 0 && (
+                            <div className="space-y-2">
+                              <Label className="text-xs">Eventos:</Label>
+                              <div className="max-h-32 overflow-y-auto border border-border rounded">
+                                {filteredEvents.map(event => (
+                                  <div
+                                    key={event.id}
+                                    className={cn(
+                                      "flex items-center gap-2 px-2 py-1 hover:bg-muted cursor-pointer text-sm",
+                                      contingenciaContexto.eventos.includes(event.id) && "bg-primary/10"
+                                    )}
+                                    onClick={() => toggleContingenciaEvent(event.id)}
+                                  >
+                                    <Checkbox checked={contingenciaContexto.eventos.includes(event.id)} className="pointer-events-none" />
+                                    <span className="truncate">{event.evento}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <Button onClick={handleSaveContingenciaContext} disabled={loading} className="w-full gap-2">
+                            <Save className="h-4 w-4" />
+                            Confirmar Contexto
+                          </Button>
+                          <p className="text-[10px] text-muted-foreground">Tendrás 5 minutos para modificar el contexto después de guardar.</p>
+                        </div>
+                      )}
+                      
+                      {(salidaContingencia || contingenciaRegistered) && !showContingenciaContextDialog ? (
+                        <div className="space-y-3 bg-amber-500/5 p-3 rounded-lg">
+                          {/* Contexto de contingencia chips */}
+                          {(salidaContingencia?.contexto || existingRecord?.contingencia_contexto) && (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs text-muted-foreground">Contexto:</span>
+                              {(salidaContingencia?.contexto?.oficina || (existingRecord?.contingencia_contexto as ContingenciaContexto)?.oficina) && (
+                                <span className="inline-flex items-center gap-1 bg-primary/20 text-primary px-2 py-0.5 rounded text-xs">
+                                  <Building2 className="h-3 w-3" />Oficina
+                                </span>
+                              )}
+                              {(salidaContingencia?.contexto?.casa || (existingRecord?.contingencia_contexto as ContingenciaContexto)?.casa) && (
+                                <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded text-xs">
+                                  <Home className="h-3 w-3" />Casa
+                                </span>
+                              )}
+                              {(salidaContingencia?.contexto?.eventoNombres || (existingRecord?.contingencia_contexto as ContingenciaContexto)?.eventoNombres)?.filter(n => n !== 'Oficina' && n !== 'Casa').map((nombre, i) => (
+                                <span key={i} className="inline-flex items-center gap-1 bg-primary/20 text-primary px-2 py-0.5 rounded text-xs">
+                                  <Star className="h-3 w-3" />{nombre}
+                                </span>
+                              ))}
+                              {!isContingenciaContextLocked && (
+                                <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setShowContingenciaContextDialog(true)}>
+                                  Editar
+                                </Button>
+                              )}
+                              {isContingenciaContextLocked && <span className="text-[10px] text-muted-foreground">(bloqueado)</span>}
+                            </div>
+                          )}
+                          
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs text-muted-foreground">Foto</Label>
+                              <img src={salidaContingencia?.foto || existingRecord?.contingencia_foto || ''} alt="Contingencia" className="w-full h-20 object-cover rounded" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />Ubicación</Label>
+                              <Input value={salidaContingencia?.ubicacion || existingRecord?.contingencia_ubicacion || ''} readOnly className="bg-muted/50 cursor-not-allowed text-sm" />
+                              {(salidaContingencia?.maps_url || existingRecord?.contingencia_maps_url) && (
+                                <a href={salidaContingencia?.maps_url || existingRecord?.contingencia_maps_url || ''} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                                  <ExternalLink className="h-3 w-3" />Ver en Maps
+                                </a>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />Horario</Label>
+                              <Input value={salidaContingencia?.horario || existingRecord?.contingencia_hora || ''} readOnly className="bg-muted/50 cursor-not-allowed font-mono text-lg font-bold" />
+                            </div>
+                          </div>
+                        </div>
+                      ) : !showContingenciaContextDialog && (
+                        <div className="space-y-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setCameraContingenciaOpen(true)}
+                            disabled={loading || contingenciaRegistered}
+                            className="w-full gap-2 border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
+                          >
+                            <Camera className="h-4 w-4" />
+                            Agregar salida de contingencia
+                          </Button>
+                        </div>
+                      )}
+                      
+                      <p className="text-xs text-muted-foreground">
+                        Usa esta opción si necesitas registrar una salida adicional por contingencia.
+                      </p>
+                    </div>
+                  )}
                                !(salidaContingencia?.ubicacion || existingRecord?.contingencia_ubicacion || '').includes('no disponible') ? (
                               <a
                                 href={`https://www.google.com/maps?q=${(salidaContingencia?.ubicacion || existingRecord?.contingencia_ubicacion || '').replace(' ', '')}`}

@@ -12,14 +12,18 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredPanel, adminOnly = false }: ProtectedRouteProps) {
-  const { user, loading: authLoading } = useAuth();
-  const { role, loading: roleLoading, canAccessPanel, canEditStructure } = useUserRole();
+  const { user, loading: authLoading, roleLoading } = useAuth();
+  const { role, canAccessPanel, canEditStructure } = useUserRole();
 
-  // Show loading while checking auth
+  // Show loading while checking BOTH auth AND role
+  // This is critical - we must wait for role before showing access denied
   if (authLoading || roleLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="text-sm text-muted-foreground">Cargando permisos...</span>
+        </div>
       </div>
     );
   }
@@ -29,6 +33,9 @@ export function ProtectedRoute({ children, requiredPanel, adminOnly = false }: P
     return <Navigate to="/" replace />;
   }
 
+  // Only check permissions AFTER role is confirmed loaded
+  // At this point, roleLoading is false, so role should be available
+  
   // Check admin-only routes
   if (adminOnly && !canEditStructure()) {
     return (

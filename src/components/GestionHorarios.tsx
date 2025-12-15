@@ -744,7 +744,16 @@ export const GestionHorarios = () => {
                   return (
                     <TableRow key={`${horario.id}-${index}`} className={horario.empleado_deleted ? "bg-red-500/5" : ""}>
                       <TableCell className={horario.empleado_deleted ? "text-red-500" : ""}>{horario.displayCargo}</TableCell>
-                      <TableCell className={horario.empleado_deleted ? "text-red-500 font-medium" : ""}>{horario.displayNombre}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className={horario.empleado_deleted ? "text-red-500 font-medium" : ""}>{horario.displayNombre}</span>
+                          {horario.empleado_deleted && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-500/20 text-red-500 rounded uppercase">
+                              ELIMINADO
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="font-mono">{format(parseISO(horario.dia), 'dd/MM/yyyy')}</TableCell>
                       <TableCell>{renderCategoria(horario.displayCategoria)}</TableCell>
                       <TableCell className="text-center font-mono">{horario.llegada || '—'}</TableCell>

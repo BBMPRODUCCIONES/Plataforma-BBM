@@ -147,6 +147,61 @@ serve(async (req) => {
       );
     }
 
+    // ============================================
+    // AUTO-CREATE EMPLOYEE (1:1 linking by email)
+    // ============================================
+    let employeeId: string | null = null;
+    let employeeCreated = false;
+    let employeeReactivated = false;
+
+    // Check if employee exists (active or soft-deleted)
+    const { data: existingEmployee } = await supabase
+      .from('employees')
+      .select('id, deleted_at')
+      .eq('correo', invitation.email)
+      .maybeSingle();
+
+    if (existingEmployee) {
+      employeeId = existingEmployee.id;
+      
+      // If soft-deleted, reactivate
+      if (existingEmployee.deleted_at) {
+        const { error: reactivateError } = await supabase
+          .from('employees')
+          .update({ deleted_at: null, deleted_by: null })
+          .eq('id', existingEmployee.id);
+        
+        if (!reactivateError) {
+          employeeReactivated = true;
+          console.log(`[accept-invitation] Reactivated employee ${existingEmployee.id}`);
+        }
+      }
+    } else {
+      // Create new employee
+      const { data: newEmployee, error: empError } = await supabase
+        .from('employees')
+        .insert({
+          nombre: full_name || invitation.email.split('@')[0],
+          correo: invitation.email,
+          cargo: invitation.role === 'administrador' ? 'Administrador' : 
+                 (invitation.role === 'operativo' ? 'Operativo' : 'Visual'),
+          telefono: '',
+          banco: '',
+          tipo_cuenta: '',
+          numero_cuenta: ''
+        })
+        .select('id')
+        .single();
+
+      if (!empError && newEmployee) {
+        employeeId = newEmployee.id;
+        employeeCreated = true;
+        console.log(`[accept-invitation] Created employee ${newEmployee.id} for ${invitation.email}`);
+      } else {
+        console.error('[accept-invitation] Error creating employee:', empError);
+      }
+    }
+
     // Mark invitation as accepted
     const { error: updateError } = await supabase
       .from('invitations')
@@ -155,7 +210,6 @@ serve(async (req) => {
 
     if (updateError) {
       console.error('Error updating invitation:', updateError);
-      // Don't fail, user is already created
     }
 
     console.log('==========================================');
@@ -165,6 +219,9 @@ serve(async (req) => {
     console.log(`Rol: ${invitation.role}`);
     console.log(`Paneles: ${allowedPanels.join(', ')}`);
     console.log(`User ID: ${userId}`);
+    console.log(`Employee ID: ${employeeId}`);
+    console.log(`Employee Created: ${employeeCreated}`);
+    console.log(`Employee Reactivated: ${employeeReactivated}`);
     console.log('==========================================');
 
     return new Response(

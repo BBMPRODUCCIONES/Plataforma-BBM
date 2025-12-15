@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface Horario {
   id: string;
@@ -47,13 +48,11 @@ const HorariosContext = createContext<HorariosContextType | undefined>(undefined
 export const HorariosProvider = ({ children }: { children: ReactNode }) => {
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
+  const dataLoadedRef = useRef(false);
 
   const fetchHorarios = async () => {
     console.log('[HorariosContext] Fetching horarios...');
-    
-    // Log current auth status
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log('[HorariosContext] Current user:', user?.id, user?.email);
     
     try {
       const { data, error, status } = await supabase
@@ -64,72 +63,43 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
       console.log('[HorariosContext] Query response - Status:', status, 'Records:', data?.length);
       
       if (error) {
-        console.error('[HorariosContext] DB error:', error.message, error.code, error.details);
+        console.error('[HorariosContext] DB error:', error.message, error.code);
         throw error;
       }
       
       if (!data || data.length === 0) {
-        console.log('[HorariosContext] No horarios found in database');
+        console.log('[HorariosContext] No horarios found');
         setHorarios([]);
         setLoading(false);
         return;
       }
       
-      console.log('[HorariosContext] Raw horarios data:', data.map(h => ({
-        id: h.id,
-        empleado_id: h.empleado_id,
-        dia: h.dia,
-        evento_nombre: h.evento_nombre,
-        categoria: h.categoria
-      })));
-      
-      // Fetch employee names (including active employees)
+      // Fetch employee names (including deleted employees)
       const empleadoIds = [...new Set(data.map(h => h.empleado_id).filter(Boolean))] as string[];
       let empleadosMap: Record<string, { nombre: string; deleted: boolean }> = {};
       
       if (empleadoIds.length > 0) {
-        console.log('[HorariosContext] Fetching employee names for IDs:', empleadoIds);
-        
-        // First, get active employees
-        const { data: empleados, error: empError } = await supabase
+        const { data: empleados } = await supabase
           .from('employees')
           .select('id, nombre, deleted_at')
           .in('id', empleadoIds);
         
-        if (empError) {
-          console.error('[HorariosContext] Error fetching employees:', empError);
-        }
-        
         if (empleados) {
           empleados.forEach(e => {
-            empleadosMap[e.id] = { 
-              nombre: e.nombre, 
-              deleted: !!e.deleted_at 
-            };
+            empleadosMap[e.id] = { nombre: e.nombre, deleted: !!e.deleted_at };
           });
-          console.log('[HorariosContext] Active employee map:', Object.keys(empleadosMap).length);
         }
         
-        // Find missing IDs (soft-deleted employees not returned by RLS)
+        // Fetch deleted employees via RPC
         const missingIds = empleadoIds.filter(id => !empleadosMap[id]);
-        
-        if (missingIds.length > 0) {
-          console.log('[HorariosContext] Fetching deleted employees via RPC:', missingIds);
-          
-          // Fetch names for deleted employees using the RPC function
-          for (const id of missingIds) {
-            try {
-              const { data: nombre, error: rpcError } = await supabase.rpc('get_employee_name_by_id', { 
-                _employee_id: id 
-              });
-              
-              if (!rpcError && nombre) {
-                empleadosMap[id] = { nombre, deleted: true };
-                console.log('[HorariosContext] Found deleted employee:', id, nombre);
-              }
-            } catch (err) {
-              console.error('[HorariosContext] RPC error for employee:', id, err);
+        for (const id of missingIds) {
+          try {
+            const { data: nombre } = await supabase.rpc('get_employee_name_by_id', { _employee_id: id });
+            if (nombre) {
+              empleadosMap[id] = { nombre, deleted: true };
             }
+          } catch (err) {
+            console.error('[HorariosContext] RPC error:', id, err);
           }
         }
       }
@@ -140,7 +110,7 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
         empleado_deleted: h.empleado_id ? empleadosMap[h.empleado_id]?.deleted || false : false
       })) as Horario[];
 
-      console.log('[HorariosContext] Final horarios with names:', horariosWithNames.length, 'records');
+      console.log('[HorariosContext] Loaded', horariosWithNames.length, 'horarios');
       setHorarios(horariosWithNames);
     } catch (error) {
       console.error('[HorariosContext] Error fetching horarios:', error);
@@ -150,7 +120,21 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Conditional fetch: only when user is authenticated
   useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      setLoading(false);
+      setHorarios([]);
+      dataLoadedRef.current = false;
+      return;
+    }
+
+    if (dataLoadedRef.current) return;
+
+    console.log('[HorariosContext] User authenticated, fetching horarios...');
+    dataLoadedRef.current = true;
     fetchHorarios();
 
     const channel = supabase
@@ -158,16 +142,14 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'horarios' },
-        () => {
-          fetchHorarios();
-        }
+        () => fetchHorarios()
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user, authLoading]);
 
   const addHorario = async (horario: Omit<Horario, 'id' | 'created_at' | 'updated_at'>): Promise<Horario | null> => {
     try {

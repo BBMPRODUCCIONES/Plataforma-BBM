@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Proveedor } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProveedoresContextType {
   proveedores: Proveedor[];
@@ -58,6 +59,8 @@ const fieldToColumn = (field: string): string => {
 export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
+  const dataLoadedRef = useRef(false);
 
   const fetchProveedores = async () => {
     try {
@@ -72,6 +75,7 @@ export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setProveedores((data || []).map(dbRowToProveedor));
+      console.log('[ProveedoresContext] Loaded', (data || []).length, 'proveedores');
     } catch (err) {
       console.error('[ProveedoresContext] Exception fetching proveedores:', err);
     } finally {
@@ -79,17 +83,30 @@ export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Conditional fetch: only when user is authenticated
   useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      setLoading(false);
+      setProveedores([]);
+      dataLoadedRef.current = false;
+      return;
+    }
+
+    if (dataLoadedRef.current) return;
+
+    console.log('[ProveedoresContext] User authenticated, fetching proveedores...');
+    dataLoadedRef.current = true;
     fetchProveedores();
 
-    // Real-time subscription
     const channel = supabase
       .channel('suppliers-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'suppliers' },
-        (payload) => {
-          console.log('[ProveedoresContext] Realtime update:', payload);
+        () => {
+          console.log('[ProveedoresContext] Realtime update');
           fetchProveedores();
         }
       )
@@ -98,7 +115,7 @@ export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user, authLoading]);
 
   const addProveedor = async (proveedor: Omit<Proveedor, 'id'>): Promise<Proveedor | null> => {
     // Create optimistic proveedor with temporary ID

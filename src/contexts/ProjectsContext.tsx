@@ -1,8 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from "react";
 import { Project } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
+import { useAuth } from "@/contexts/AuthContext";
 interface ProjectsContextType {
   projects: Project[];
   loading: boolean;
@@ -129,6 +129,8 @@ function fieldToColumn(field: string): string {
 export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
+  const dataLoadedRef = useRef(false);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -145,7 +147,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
       const projectsList = (data || []).map(dbRowToProject);
       setProjects(projectsList);
-      console.log("[ProjectsContext] Loaded", projectsList.length, "projects from database");
+      console.log("[ProjectsContext] Loaded", projectsList.length, "projects");
     } catch (err) {
       console.error("[ProjectsContext] Unexpected error:", err);
     } finally {
@@ -153,11 +155,27 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Initial fetch and realtime subscription
+  // Conditional fetch: only when user is authenticated
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+    
+    // If no user, skip loading data
+    if (!user) {
+      setLoading(false);
+      setProjects([]);
+      dataLoadedRef.current = false;
+      return;
+    }
+
+    // Avoid re-fetching if already loaded for this session
+    if (dataLoadedRef.current) return;
+
+    console.log("[ProjectsContext] User authenticated, fetching projects...");
+    dataLoadedRef.current = true;
     fetchProjects();
 
-    // Subscribe to realtime changes
+    // Subscribe to realtime changes only when authenticated
     const channel = supabase
       .channel("projects-changes")
       .on(
@@ -183,7 +201,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchProjects]);
+  }, [user, authLoading, fetchProjects]);
 
   const addProject = useCallback(async (projectData: Partial<Project>): Promise<Project | null> => {
     // Create optimistic project with temporary ID

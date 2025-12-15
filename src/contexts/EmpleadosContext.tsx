@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,21 +47,15 @@ function dbRowToEmpleado(row: any): Empleado {
 export function EmpleadosProvider({ children }: { children: ReactNode }) {
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const dataLoadedRef = useRef(false);
 
   const fetchEmpleados = useCallback(async () => {
     try {
-      // SECURITY: Always use the secure function that filters based on user role
-      // Admin gets full access (nombre, cargo, telefono, correo)
-      // Operativo gets limited access (nombre, cargo only - telefono/correo are empty strings)
-      // Visual gets no access (empty result)
-      // Function also filters out soft-deleted employees (deleted_at IS NULL)
       const { data, error } = await supabase.rpc('get_employees_for_role');
 
       if (error) {
         console.error("[EmpleadosContext] Error fetching employees:", error);
-        // Do NOT fallback to direct table access - this would bypass security
-        // If the function fails, we show an error and return empty list
         toast.error("Error al cargar empleados. Verifique sus permisos.");
         setEmpleados([]);
         return;
@@ -69,7 +63,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
 
       const empleadosList = (data || []).map(dbRowToEmpleado);
       setEmpleados(empleadosList);
-      console.log("[EmpleadosContext] Loaded", empleadosList.length, "employees via secure function");
+      console.log("[EmpleadosContext] Loaded", empleadosList.length, "employees");
     } catch (err) {
       console.error("[EmpleadosContext] Unexpected error:", err);
       setEmpleados([]);
@@ -78,19 +72,30 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Initial fetch and realtime subscription
+  // Conditional fetch: only when user is authenticated
   useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      setLoading(false);
+      setEmpleados([]);
+      dataLoadedRef.current = false;
+      return;
+    }
+
+    if (dataLoadedRef.current) return;
+
+    console.log("[EmpleadosContext] User authenticated, fetching employees...");
+    dataLoadedRef.current = true;
     fetchEmpleados();
 
-    // Subscribe to realtime changes
     const channel = supabase
       .channel("employees-changes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "employees" },
-        (payload) => {
-          console.log("[EmpleadosContext] Realtime event:", payload.eventType);
-          // Refetch to get role-filtered data (secure function will filter appropriately)
+        () => {
+          console.log("[EmpleadosContext] Realtime event, refetching...");
           fetchEmpleados();
         }
       )
@@ -99,7 +104,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchEmpleados]);
+  }, [user, authLoading, fetchEmpleados]);
 
   // Get employee name by ID (even if soft-deleted) for historical records
   const getEmpleadoNameById = useCallback(async (id: string): Promise<string | null> => {

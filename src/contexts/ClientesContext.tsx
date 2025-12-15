@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Cliente } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ClientesContextType {
   clientes: Cliente[];
@@ -27,6 +28,8 @@ function dbRowToCliente(row: any): Cliente {
 export function ClientesProvider({ children }: { children: ReactNode }) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
+  const dataLoadedRef = useRef(false);
 
   const fetchClientes = useCallback(async () => {
     try {
@@ -43,7 +46,7 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
 
       const clientesList = (data || []).map(dbRowToCliente);
       setClientes(clientesList);
-      console.log("[ClientesContext] Loaded", clientesList.length, "clients from database");
+      console.log("[ClientesContext] Loaded", clientesList.length, "clients");
     } catch (err) {
       console.error("[ClientesContext] Unexpected error:", err);
     } finally {
@@ -51,11 +54,23 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Initial fetch and realtime subscription
+  // Conditional fetch: only when user is authenticated
   useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      setLoading(false);
+      setClientes([]);
+      dataLoadedRef.current = false;
+      return;
+    }
+
+    if (dataLoadedRef.current) return;
+
+    console.log("[ClientesContext] User authenticated, fetching clients...");
+    dataLoadedRef.current = true;
     fetchClientes();
 
-    // Subscribe to realtime changes
     const channel = supabase
       .channel("clients-changes")
       .on(
@@ -81,7 +96,7 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchClientes]);
+  }, [user, authLoading, fetchClientes]);
 
   const addCliente = useCallback(async (clienteData: Omit<Cliente, "id" | "createdAt">): Promise<Cliente | null> => {
     // Create optimistic cliente with temporary ID

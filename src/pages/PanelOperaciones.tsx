@@ -603,13 +603,14 @@ const PanelOperaciones = () => {
           if (p.tipoPersonal === "BBM") {
             return (
               <EmpleadoAutocomplete
-                value={p.nombre}
+                value={p.empleadoId || ""}
                 tipoPersonal="BBM"
                 useEmpleadoId
-                onChange={(value, empleadoId) => {
+                fallbackName={p.nombre}
+                onChange={(nombreValue, empleadoId) => {
                   if (projectId) {
                     updatePersonalItemMultiple(projectId, p.id, {
-                      nombre: value,
+                      nombre: nombreValue,
                       empleadoId: empleadoId
                     });
                   }
@@ -859,7 +860,7 @@ const PanelOperaciones = () => {
         render: (c: CajaMenorItem) => (
           <EmpleadoAutocomplete
             value={c.empleadoId || ""}
-            onChange={(empleadoId) => projectId && updateCajaMenorItem(projectId, c.id, "empleadoId", empleadoId)}
+            onChange={(nombreValue, empleadoId) => projectId && updateCajaMenorItem(projectId, c.id, "empleadoId", empleadoId || "")}
             useEmpleadoId
             placeholder="Seleccionar empleado..."
           />

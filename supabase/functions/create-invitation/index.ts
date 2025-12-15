@@ -120,12 +120,13 @@ serve(async (req) => {
     const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email);
     
     if (existingUser) {
+      // Return 200 with error property so frontend can read it
       return new Response(
         JSON.stringify({ 
-          error: 'Este correo ya está registrado como usuario activo. No se puede crear otro usuario/empleado con el mismo correo.',
+          error: 'Este correo ya está registrado como usuario activo. No se puede crear una invitación para un usuario existente.',
           existingUserId: existingUser.id 
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -182,7 +183,7 @@ serve(async (req) => {
     if (existingInvitation) {
       return new Response(
         JSON.stringify({ error: 'Ya existe una invitación pendiente para este email' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

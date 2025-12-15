@@ -213,8 +213,16 @@ const Usuarios = () => {
         },
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      // Handle edge function errors - check data.error first as it contains the actual message
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+      
+      if (error) {
+        // Try to extract error message from the response
+        const errorMsg = error.message || "No se pudo crear la invitación";
+        throw new Error(errorMsg);
+      }
 
       // Check if needs reactivation
       if (data.needsReactivation) {

@@ -18,6 +18,7 @@ import PanelDirectivo from "./pages/PanelDirectivo";
 import PanelGeneral from "./pages/PanelGeneral";
 import PanelOperaciones from "./pages/PanelOperaciones";
 import Proveedores from "./pages/Proveedores";
+import HistorialCotizaciones from "./pages/HistorialCotizaciones";
 import Constructor from "./pages/Constructor";
 import AgentesIA from "./pages/AgentesIA";
 import GoogleCalendar from "./pages/GoogleCalendar";
@@ -68,6 +69,11 @@ const App = () => (
                   <Route path="/proveedores" element={
                     <ProtectedRoute requiredPanel="proveedores">
                       <Proveedores />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/historial-cotizaciones" element={
+                    <ProtectedRoute requiredPanel="proveedores">
+                      <HistorialCotizaciones />
                     </ProtectedRoute>
                   } />
 

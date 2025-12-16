@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
@@ -21,14 +22,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Phone, Mail, FileText, Tag, Columns, Loader2 } from "lucide-react";
+import { Search, Plus, Phone, Mail, FileText, Tag, Columns, Loader2, History } from "lucide-react";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { EditableCell } from "@/components/EditableCell";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CotizacionesDialog } from "@/components/CotizacionesDialog";
+import { CotizacionesDialogWithHistory } from "@/components/CotizacionesDialogWithHistory";
 import { BancoAutocomplete } from "@/components/BancoAutocomplete";
 
 const baseColumnDefs = [
@@ -43,6 +44,7 @@ const baseColumnDefs = [
 ];
 
 const Proveedores = () => {
+  const navigate = useNavigate();
   const { proveedores, loading, addProveedor, updateProveedor } = useProveedores();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("todas");
@@ -342,6 +344,14 @@ const Proveedores = () => {
           ]}
           actions={
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/historial-cotizaciones")}
+              >
+                <History className="h-4 w-4 mr-2" />
+                Historial Cotizaciones
+              </Button>
               {isAdmin && (
                 <Button
                   variant="outline"
@@ -611,13 +621,12 @@ const Proveedores = () => {
           panelName="Proveedores"
         />
 
-        {/* Cotizaciones Dialog */}
+        {/* Cotizaciones Dialog with History */}
         {cotizacionesProveedor && (
-          <CotizacionesDialog
+          <CotizacionesDialogWithHistory
             open={!!cotizacionesProveedor}
             onOpenChange={(open) => !open && setCotizacionesProveedor(null)}
-            proveedorId={cotizacionesProveedor.id}
-            proveedorNombre={cotizacionesProveedor.nombre}
+            proveedor={cotizacionesProveedor}
             cotizaciones={cotizacionesProveedor.cotizacionesAnteriores || []}
             onCotizacionesChange={(cotizaciones) => {
               handleUpdateProveedor(cotizacionesProveedor.id, 'cotizacionesAnteriores', cotizaciones);

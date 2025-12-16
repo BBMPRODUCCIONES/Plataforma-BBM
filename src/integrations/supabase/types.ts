@@ -389,6 +389,90 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_cotizacion_history: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_by_email: string | null
+          evento_id: string | null
+          fecha: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_url: string
+          id: string
+          proveedor_categoria: string
+          proveedor_correo: string
+          proveedor_id: string
+          proveedor_nombre: string
+          proveedor_telefono: string
+          proveedor_tipo_producto_servicio: string
+          updated_at: string
+          uploaded_by: string | null
+          uploaded_by_email: string | null
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_by_email?: string | null
+          evento_id?: string | null
+          fecha?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          proveedor_categoria?: string
+          proveedor_correo?: string
+          proveedor_id: string
+          proveedor_nombre: string
+          proveedor_telefono?: string
+          proveedor_tipo_producto_servicio?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_email?: string | null
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_by_email?: string | null
+          evento_id?: string | null
+          fecha?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          proveedor_categoria?: string
+          proveedor_correo?: string
+          proveedor_id?: string
+          proveedor_nombre?: string
+          proveedor_telefono?: string
+          proveedor_tipo_producto_servicio?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_cotizacion_history_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_cotizacion_history_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           banco: string

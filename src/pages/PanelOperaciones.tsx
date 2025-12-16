@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { HorarioFormDialog } from "@/components/HorarioFormDialog";
+import { CajaMenorStatusIcon } from "@/components/CajaMenorStatusIcon";
 
 const PanelOperaciones = () => {
   const navigate = useNavigate();
@@ -271,12 +272,15 @@ const PanelOperaciones = () => {
           );
         case "evento":
           return (
-            <EditableCell
-              value={p.evento}
-              type="text"
-              onChange={(value) => updateProject(p.id, "evento", value)}
-              className="font-medium"
-            />
+            <div className="flex items-center gap-2">
+              <CajaMenorStatusIcon cajaMenor={p.cajaMenor || []} />
+              <EditableCell
+                value={p.evento}
+                type="text"
+                onChange={(value) => updateProject(p.id, "evento", value)}
+                className="font-medium"
+              />
+            </div>
           );
         case "avanzada":
           return (

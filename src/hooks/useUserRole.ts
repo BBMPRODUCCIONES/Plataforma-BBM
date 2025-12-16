@@ -13,6 +13,7 @@ interface UseUserRoleReturn {
   isAdminOnly: (section: string) => boolean;
   canViewFeedback: () => boolean;
   canEditFeedback: () => boolean;
+  canApproveCajaMenor: () => boolean;
 }
 
 // Admin-only sections that require administrador role
@@ -26,7 +27,7 @@ const ADMIN_ONLY_SECTIONS = [
 ];
 
 export function useUserRole(): UseUserRoleReturn {
-  const { role, allowedPanels, loading, roleLoading, roleError, feedbackPermissions } = useAuth();
+  const { role, allowedPanels, loading, roleLoading, roleError, feedbackPermissions, cajaMenorPermissions } = useAuth();
 
   const canAccessPanel = (panel: string): boolean => {
     // If still loading, don't deny access yet
@@ -88,6 +89,17 @@ export function useUserRole(): UseUserRoleReturn {
     return feedbackPermissions?.puedeEditarFeedback ?? false;
   };
 
+  const canApproveCajaMenor = (): boolean => {
+    if (!role) return false;
+    // Administrador with permission flag OR explicit permission
+    if (role.toLowerCase() === "administrador") {
+      // Admin also needs explicit permission unless they have it
+      return cajaMenorPermissions?.puedeAprobarCajaMenor ?? false;
+    }
+    // For other roles, permission is NOT available
+    return false;
+  };
+
   return {
     role: role as UserRole | null,
     loading,
@@ -100,5 +112,6 @@ export function useUserRole(): UseUserRoleReturn {
     isAdminOnly,
     canViewFeedback,
     canEditFeedback,
+    canApproveCajaMenor,
   };
 }

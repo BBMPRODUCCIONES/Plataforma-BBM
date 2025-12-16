@@ -53,6 +53,7 @@ interface UserWithRole {
   allowed_panels: string[];
   puede_ver_feedback: boolean;
   puede_editar_feedback: boolean;
+  puede_aprobar_caja_menor: boolean;
   created_at: string | null;
 }
 
@@ -103,6 +104,7 @@ const Usuarios = () => {
   const [editName, setEditName] = useState("");
   const [editPuedeVerFeedback, setEditPuedeVerFeedback] = useState(false);
   const [editPuedeEditarFeedback, setEditPuedeEditarFeedback] = useState(false);
+  const [editPuedeAprobarCajaMenor, setEditPuedeAprobarCajaMenor] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Delete user state
@@ -135,7 +137,7 @@ const Usuarios = () => {
       // Fetch users with roles and panels (now includes email and feedback permissions)
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback");
+        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor");
 
       if (rolesError) throw rolesError;
 
@@ -158,6 +160,7 @@ const Usuarios = () => {
           allowed_panels: roleRecord.allowed_panels || [],
           puede_ver_feedback: roleRecord.puede_ver_feedback ?? false,
           puede_editar_feedback: roleRecord.puede_editar_feedback ?? false,
+          puede_aprobar_caja_menor: roleRecord.puede_aprobar_caja_menor ?? false,
           created_at: profile?.created_at || null,
         };
       });
@@ -405,7 +408,7 @@ const Usuarios = () => {
     setEditRole(user.role);
     setEditPanels(user.allowed_panels);
     setEditName(user.full_name || "");
-    // For admin, always show true; for others, use stored values
+    // For admin, always show true for feedback; for others, use stored values
     if (user.role === "administrador") {
       setEditPuedeVerFeedback(true);
       setEditPuedeEditarFeedback(true);
@@ -413,6 +416,8 @@ const Usuarios = () => {
       setEditPuedeVerFeedback(user.puede_ver_feedback);
       setEditPuedeEditarFeedback(user.puede_editar_feedback);
     }
+    // Caja Menor permission - only for admins, stored value
+    setEditPuedeAprobarCajaMenor(user.puede_aprobar_caja_menor);
   };
 
   const handleSaveUser = async () => {
@@ -428,15 +433,19 @@ const Usuarios = () => {
       // Determine feedback permissions based on role
       const finalPuedeVerFeedback = editRole === "administrador" ? true : editPuedeVerFeedback;
       const finalPuedeEditarFeedback = editRole === "administrador" ? true : editPuedeEditarFeedback;
+      
+      // Caja Menor permission - only admins can have this
+      const finalPuedeAprobarCajaMenor = editRole === "administrador" ? editPuedeAprobarCajaMenor : false;
 
-      // Update user roles with feedback permissions
+      // Update user roles with all permissions
       const { error: roleError } = await supabase
         .from("user_roles")
         .update({ 
           role: editRole,
           allowed_panels: finalPanels,
           puede_ver_feedback: finalPuedeVerFeedback,
-          puede_editar_feedback: finalPuedeEditarFeedback
+          puede_editar_feedback: finalPuedeEditarFeedback,
+          puede_aprobar_caja_menor: finalPuedeAprobarCajaMenor
         })
         .eq("user_id", editingUser.id);
 
@@ -900,9 +909,35 @@ const Usuarios = () => {
               )}
 
               {editRole === "administrador" && (
-                <p className="text-sm text-muted-foreground p-3 bg-muted/20 rounded-md">
-                  Los administradores tienen acceso completo a todos los paneles y funciones, incluyendo Feedback.
-                </p>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground p-3 bg-muted/20 rounded-md">
+                    Los administradores tienen acceso completo a todos los paneles y funciones, incluyendo Feedback.
+                  </p>
+                  
+                  {/* Caja Menor Approval Permission - only for admins */}
+                  <div className="space-y-2">
+                    <Label>Permisos Especiales de Caja Menor</Label>
+                    <div className="space-y-2 p-3 border rounded-md bg-amber-500/10 border-amber-500/30">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="edit-puede-aprobar-caja-menor"
+                          checked={editPuedeAprobarCajaMenor}
+                          onCheckedChange={(checked) => setEditPuedeAprobarCajaMenor(checked as boolean)}
+                          disabled={isSaving}
+                        />
+                        <Label 
+                          htmlFor="edit-puede-aprobar-caja-menor"
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          Puede aprobar/desaprobar registros de Caja Menor
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Solo los usuarios con este permiso pueden cambiar el estado (Aprobado/No aprobado) de los registros de Caja Menor.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Feedback Permissions - only for non-admin roles */}

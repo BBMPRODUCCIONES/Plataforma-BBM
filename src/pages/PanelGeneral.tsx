@@ -28,7 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { CajaMenorStatusIcon } from "@/components/CajaMenorStatusIcon";
+
 
 const PanelGeneral = () => {
   const navigate = useNavigate();
@@ -186,15 +186,12 @@ const PanelGeneral = () => {
         );
       case "evento":
         return (p: Project) => (
-          <div className="flex items-center gap-2">
-            <CajaMenorStatusIcon cajaMenor={p.cajaMenor || []} />
-            <EditableCell
-              value={p.evento}
-              type="text"
-              onChange={(value) => updateProject(p.id, "evento", value)}
-              className="font-medium"
-            />
-          </div>
+          <EditableCell
+            value={p.evento}
+            type="text"
+            onChange={(value) => updateProject(p.id, "evento", value)}
+            className="font-medium"
+          />
         );
       case "avanzada":
         return (p: Project) => (

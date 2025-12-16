@@ -520,6 +520,7 @@ export type Database = {
         Returns: {
           banco: string
           cargo: string
+          cedula: string
           correo: string
           created_at: string
           id: string

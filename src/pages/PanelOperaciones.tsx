@@ -687,11 +687,13 @@ const PanelOperaciones = () => {
                 tipoPersonal="BBM"
                 useEmpleadoId
                 fallbackName={p.nombre}
-                onChange={(nombreValue, empleadoId) => {
+                onChange={(nombreValue, empleadoId, cedula) => {
                   if (projectId) {
                     updatePersonalItemMultiple(projectId, p.id, {
                       nombre: nombreValue,
-                      empleadoId: empleadoId
+                      empleadoId: empleadoId,
+                      cedula: cedula || "",
+                      cedulaOrigen: "empleado"
                     });
                   }
                 }}
@@ -706,12 +708,50 @@ const PanelOperaciones = () => {
                 if (projectId) {
                   updatePersonalItemMultiple(projectId, p.id, {
                     nombre: value,
-                    proveedorId: proveedorId
+                    proveedorId: proveedorId,
+                    cedulaOrigen: "manual"
                   });
                 }
               }}
               placeholder={p.tipoPersonal === "Transporte" ? "Buscar transporte..." : "Buscar proveedor..."}
             />
+          );
+        },
+      },
+      {
+        key: "cedula",
+        header: "Cédula",
+        width: "140px",
+        render: (p: PersonalItem) => {
+          // BBM: Auto-filled from employee, read-only
+          if (p.tipoPersonal === "BBM") {
+            return (
+              <div className="flex items-center gap-1" title="Cédula desde Creación de Empleados">
+                <span className={`text-sm truncate ${!p.cedula ? "text-muted-foreground italic" : ""}`}>
+                  {p.cedula || "Sin cédula"}
+                </span>
+                <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              </div>
+            );
+          }
+          // Proveedor/Transporte: Manual editable with validation
+          return (
+            <div className={`rounded ${!p.cedula ? "ring-2 ring-destructive/50" : ""}`}>
+              <EditableCell
+                value={p.cedula || ""}
+                type="text"
+                placeholder="Cédula *"
+                onChange={(value) => {
+                  if (projectId) {
+                    updatePersonalItemMultiple(projectId, p.id, {
+                      cedula: value,
+                      cedulaOrigen: "manual"
+                    });
+                  }
+                }}
+                className={!p.cedula ? "border-destructive" : ""}
+              />
+            </div>
           );
         },
       },

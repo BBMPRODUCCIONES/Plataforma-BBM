@@ -37,7 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, RotateCcw } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printCajaMenor, exportCajaMenorToExcel } from "@/utils/pdfGenerator";
@@ -54,7 +54,7 @@ const PanelOperaciones = () => {
   const navigate = useNavigate();
   const { canEditStructure, role, canViewFeedback, canEditFeedback } = useUserRole();
   const { user } = useAuth();
-  const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
+  const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple, softDeleteProject, restoreProject } = useProjects();
   const { empleados } = useEmpleados();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const [searchTerm, setSearchTerm] = useState("");
@@ -88,7 +88,7 @@ const PanelOperaciones = () => {
   
   // Calendar filter state - using global context
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
-  
+  const [showDeleted, setShowDeleted] = useState(false);
   // Computed dateRange from global context
   const dateRange = globalDateRange?.from && globalDateRange?.to 
     ? { start: globalDateRange.from, end: globalDateRange.to } 

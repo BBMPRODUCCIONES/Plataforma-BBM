@@ -38,6 +38,11 @@ export interface Project {
   feedbackAdjuntos?: Attachment[];
   // Caja Menor section (Panel Operaciones only)
   cajaMenor?: CajaMenorItem[];
+  // Soft delete fields
+  isDeleted?: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
+  deletedByEmail?: string;
   createdAt: string;
   updatedAt: string;
 }

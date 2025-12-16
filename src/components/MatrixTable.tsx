@@ -17,6 +17,8 @@ interface MatrixTableProps<T extends { id: string }> {
   highlightedId?: string;
   /** If true, table will not scroll horizontally and columns will flex */
   noHorizontalScroll?: boolean;
+  /** Custom class name generator for rows */
+  getRowClassName?: (item: T) => string;
 }
 
 export function MatrixTable<T extends { id: string }>({
@@ -26,6 +28,7 @@ export function MatrixTable<T extends { id: string }>({
   className,
   highlightedId,
   noHorizontalScroll = false,
+  getRowClassName,
 }: MatrixTableProps<T>) {
   return (
     <div className={cn(
@@ -56,7 +59,8 @@ export function MatrixTable<T extends { id: string }>({
               onClick={() => onRowClick?.(item)}
               className={cn(
                 onRowClick && "cursor-pointer",
-                highlightedId === item.id && "bg-primary/20 ring-2 ring-primary ring-inset"
+                highlightedId === item.id && "bg-primary/20 ring-2 ring-primary ring-inset",
+                getRowClassName?.(item)
               )}
             >
               {columns.map((col) => (

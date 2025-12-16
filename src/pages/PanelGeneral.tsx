@@ -21,19 +21,36 @@ import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, ExternalLink, Settings, Loader2 } from "lucide-react";
+import { Search, ExternalLink, Settings, Loader2, Trash2, RotateCcw } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 const PanelGeneral = () => {
   const navigate = useNavigate();
   const { canEditStructure, role } = useUserRole();
-  const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
+  const { user } = useAuth();
+  const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple, softDeleteProject, restoreProject } = useProjects();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const isAdmin = role?.toLowerCase() === "administrador";
   const [searchTerm, setSearchTerm] = useState("");
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   // Initialize with base columns - persisted to localStorage
   const defaultColumns: ColumnConfig[] = [
     { key: "centroCostos", header: "Centro de Costos", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
@@ -86,6 +103,9 @@ const PanelGeneral = () => {
   };
 
   const filteredProjects = projects.filter((p) => {
+    // Filter deleted unless showDeleted is enabled
+    const matchesDeleted = showDeleted || !p.isDeleted;
+    
     const matchesSearch =
       p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -101,8 +121,24 @@ const PanelGeneral = () => {
       isWithinInterval(projectEnd, range) ||
       (projectStart <= range.start && projectEnd >= range.end);
 
-    return matchesSearch && matchesStatus && matchesDate;
+    return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
   });
+
+  const handleSoftDelete = async (project: Project) => {
+    if (!user) return;
+    await softDeleteProject(project.id, user.email || "", user.id);
+  };
+
+  const handleRestore = async (project: Project) => {
+    await restoreProject(project.id);
+  };
+
+  const getRowClassName = (project: Project) => {
+    if (project.isDeleted) {
+      return "bg-red-500/10 border-l-4 border-l-red-500";
+    }
+    return "";
+  };
 
   const handleGanttProjectClick = (projectId: string) => {
     setHighlightedProjectId(projectId);
@@ -295,10 +331,15 @@ const PanelGeneral = () => {
 
   const panelColumn = {
     key: "acciones",
-    header: "Paneles",
-    width: "180px",
+    header: "Acciones",
+    width: "240px",
     render: (p: Project) => (
-      <div className="flex gap-1">
+      <div className="flex gap-1 items-center">
+        {p.isDeleted && (
+          <Badge variant="destructive" className="text-[10px] px-1 py-0 mr-1">
+            ELIMINADO
+          </Badge>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -320,21 +361,54 @@ const PanelGeneral = () => {
             navigate(`/panel-operaciones?proyecto=${p.id}`);
           }}
         >
-          Operaciones
+          Ops
           <ExternalLink className="h-2.5 w-2.5 ml-1" />
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-6 px-2 text-[10px]"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate("/proveedores");
-          }}
-        >
-          Proveedores
-          <ExternalLink className="h-2.5 w-2.5 ml-1" />
-        </Button>
+        {isAdmin && !p.isDeleted && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar evento?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  El evento "{p.evento}" será marcado como eliminado. Podrás restaurarlo más tarde si es necesario.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => handleSoftDelete(p)}
+                >
+                  Eliminar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        {isAdmin && p.isDeleted && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-1.5 text-green-600 hover:text-green-600 hover:bg-green-500/10"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRestore(p);
+            }}
+            title="Restaurar evento"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
     ),
   };
@@ -398,10 +472,24 @@ const PanelGeneral = () => {
 
         <Tabs defaultValue="matriz" className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <TabsList>
-              <TabsTrigger value="matriz">Matriz</TabsTrigger>
-              <TabsTrigger value="gantt">Gantt</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-4">
+              <TabsList>
+                <TabsTrigger value="matriz">Matriz</TabsTrigger>
+                <TabsTrigger value="gantt">Gantt</TabsTrigger>
+              </TabsList>
+              {isAdmin && (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="show-deleted-general"
+                    checked={showDeleted}
+                    onCheckedChange={setShowDeleted}
+                  />
+                  <Label htmlFor="show-deleted-general" className="text-sm text-muted-foreground cursor-pointer">
+                    Mostrar eliminados
+                  </Label>
+                </div>
+              )}
+            </div>
 
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -421,6 +509,7 @@ const PanelGeneral = () => {
                 data={filteredProjects}
                 columns={columns}
                 highlightedId={highlightedProjectId}
+                getRowClassName={getRowClassName}
               />
             </div>
           </TabsContent>

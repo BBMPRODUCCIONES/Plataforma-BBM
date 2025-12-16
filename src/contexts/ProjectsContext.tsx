@@ -10,6 +10,8 @@ interface ProjectsContextType {
   updateProject: (projectId: string, field: string, value: any) => Promise<void>;
   updateProjectMultiple: (projectId: string, updates: Partial<Project>) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
+  softDeleteProject: (projectId: string, userEmail: string, userId: string) => Promise<void>;
+  restoreProject: (projectId: string) => Promise<void>;
   getProject: (projectId: string) => Project | undefined;
   refetch: () => Promise<void>;
 }
@@ -52,6 +54,11 @@ function dbRowToProject(row: any): Project {
     feedback: row.feedback || "",
     feedbackAdjuntos: row.feedback_adjuntos || [],
     cajaMenor: row.caja_menor || [],
+    // Soft delete fields
+    isDeleted: row.is_deleted || false,
+    deletedAt: row.deleted_at || null,
+    deletedBy: row.deleted_by || null,
+    deletedByEmail: row.deleted_by_email || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -360,6 +367,64 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     console.log("[ProjectsContext] Deleted project:", projectId);
   }, [projects]);
 
+  const softDeleteProject = useCallback(async (projectId: string, userEmail: string, userId: string) => {
+    // Optimistic update - mark as deleted locally
+    setProjects(prev => prev.map(p => 
+      p.id === projectId 
+        ? { ...p, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: userId, deletedByEmail: userEmail }
+        : p
+    ));
+
+    const { error } = await supabase
+      .from("projects")
+      .update({ 
+        is_deleted: true, 
+        deleted_at: new Date().toISOString(),
+        deleted_by: userId,
+        deleted_by_email: userEmail
+      })
+      .eq("id", projectId);
+
+    if (error) {
+      console.error("[ProjectsContext] Error soft-deleting project:", error);
+      toast.error("Error al eliminar el evento");
+      await fetchProjects(); // Revert on error
+      return;
+    }
+
+    toast.success("Evento eliminado correctamente");
+    console.log("[ProjectsContext] Soft-deleted project:", projectId);
+  }, [fetchProjects]);
+
+  const restoreProject = useCallback(async (projectId: string) => {
+    // Optimistic update - restore locally
+    setProjects(prev => prev.map(p => 
+      p.id === projectId 
+        ? { ...p, isDeleted: false, deletedAt: undefined, deletedBy: undefined, deletedByEmail: undefined }
+        : p
+    ));
+
+    const { error } = await supabase
+      .from("projects")
+      .update({ 
+        is_deleted: false, 
+        deleted_at: null,
+        deleted_by: null,
+        deleted_by_email: null
+      })
+      .eq("id", projectId);
+
+    if (error) {
+      console.error("[ProjectsContext] Error restoring project:", error);
+      toast.error("Error al restaurar el evento");
+      await fetchProjects(); // Revert on error
+      return;
+    }
+
+    toast.success("Evento restaurado correctamente");
+    console.log("[ProjectsContext] Restored project:", projectId);
+  }, [fetchProjects]);
+
   const getProject = useCallback((projectId: string) => {
     return projects.find(p => p.id === projectId);
   }, [projects]);
@@ -372,6 +437,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       updateProject,
       updateProjectMultiple,
       deleteProject,
+      softDeleteProject,
+      restoreProject,
       getProject,
       refetch: fetchProjects,
     }}>

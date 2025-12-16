@@ -102,7 +102,7 @@ const PanelOperaciones = () => {
   
   // Calendar filter state - using global context
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
-  const [showDeleted, setShowDeleted] = useState(false);
+  const [hideDeleted, setHideDeleted] = useState(false);
   // Computed dateRange from global context
   const dateRange = globalDateRange?.from && globalDateRange?.to 
     ? { start: globalDateRange.from, end: globalDateRange.to } 
@@ -227,14 +227,14 @@ const PanelOperaciones = () => {
   // Row className for deleted projects (red styling)
   const getRowClassName = (project: Project) => {
     if (project.isDeleted) {
-      return "bg-red-500/10 border-l-4 border-l-red-500";
+      return "row-deleted";
     }
     return "";
   };
 
   const filteredProjects = projects.filter((p) => {
-    // Filter by deleted status
-    const matchesDeleted = showDeleted || !p.isDeleted;
+    // Show all by default, hide deleted only when hideDeleted is enabled
+    const matchesDeleted = !hideDeleted || !p.isDeleted;
     
     const matchesSearch =
       p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1198,18 +1198,16 @@ const PanelOperaciones = () => {
             </TabsList>
 
             <div className="flex items-center gap-4">
-              {isAdmin && (
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="show-deleted-operaciones"
-                    checked={showDeleted}
-                    onCheckedChange={setShowDeleted}
-                  />
-                  <Label htmlFor="show-deleted-operaciones" className="text-sm text-muted-foreground cursor-pointer">
-                    Mostrar eliminados
-                  </Label>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="hide-deleted-operaciones"
+                  checked={hideDeleted}
+                  onCheckedChange={setHideDeleted}
+                />
+                <Label htmlFor="hide-deleted-operaciones" className="text-sm text-muted-foreground cursor-pointer">
+                  Ocultar eliminados
+                </Label>
+              </div>
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input

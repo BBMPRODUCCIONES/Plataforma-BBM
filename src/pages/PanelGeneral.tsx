@@ -50,7 +50,7 @@ const PanelGeneral = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
-  const [showDeleted, setShowDeleted] = useState(false);
+  const [hideDeleted, setHideDeleted] = useState(false);
   // Initialize with base columns - persisted to localStorage
   const defaultColumns: ColumnConfig[] = [
     { key: "centroCostos", header: "Centro de Costos", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
@@ -103,8 +103,8 @@ const PanelGeneral = () => {
   };
 
   const filteredProjects = projects.filter((p) => {
-    // Filter deleted unless showDeleted is enabled
-    const matchesDeleted = showDeleted || !p.isDeleted;
+    // Show all by default, hide deleted only when hideDeleted is enabled
+    const matchesDeleted = !hideDeleted || !p.isDeleted;
     
     const matchesSearch =
       p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -135,7 +135,7 @@ const PanelGeneral = () => {
 
   const getRowClassName = (project: Project) => {
     if (project.isDeleted) {
-      return "bg-red-500/10 border-l-4 border-l-red-500";
+      return "row-deleted";
     }
     return "";
   };
@@ -477,18 +477,16 @@ const PanelGeneral = () => {
                 <TabsTrigger value="matriz">Matriz</TabsTrigger>
                 <TabsTrigger value="gantt">Gantt</TabsTrigger>
               </TabsList>
-              {isAdmin && (
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="show-deleted-general"
-                    checked={showDeleted}
-                    onCheckedChange={setShowDeleted}
-                  />
-                  <Label htmlFor="show-deleted-general" className="text-sm text-muted-foreground cursor-pointer">
-                    Mostrar eliminados
-                  </Label>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="hide-deleted-general"
+                  checked={hideDeleted}
+                  onCheckedChange={setHideDeleted}
+                />
+                <Label htmlFor="hide-deleted-general" className="text-sm text-muted-foreground cursor-pointer">
+                  Ocultar eliminados
+                </Label>
+              </div>
             </div>
 
             <div className="relative w-64">

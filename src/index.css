@@ -204,6 +204,18 @@
   .panel-content {
     @apply p-4;
   }
+
+  /* Deleted row styling */
+  .row-deleted {
+    background: hsl(0 84% 60% / 0.10) !important;
+    border: 1px solid hsl(0 84% 60% / 0.35);
+  }
+
+  .row-deleted td {
+    text-decoration: underline;
+    text-decoration-color: hsl(0 84% 60% / 0.85);
+    text-decoration-thickness: 2px;
+  }
 }
 
 @layer utilities {

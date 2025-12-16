@@ -104,17 +104,18 @@ export function EditableCell({
           if (!disabled) setIsEditing(true);
         }}
         className={cn(
-          "text-xs cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 min-h-[24px] flex items-center truncate",
+          "cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 min-h-[24px] flex items-center truncate",
           type === "number" && "font-mono",
           !value && "text-muted-foreground",
           disabled && "cursor-default",
+          !className && "text-xs",
           className
         )}
       >
         <span className="truncate">
           {type === "number" && value !== undefined && value !== null
             ? typeof value === "number"
-              ? value.toLocaleString()
+              ? `$ ${value.toLocaleString('es-CO')}`
               : value
             : value || placeholder}
         </span>

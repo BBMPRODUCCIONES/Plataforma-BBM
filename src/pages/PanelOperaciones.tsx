@@ -1033,12 +1033,13 @@ const PanelOperaciones = () => {
       },
       {
         key: "valor",
-        header: "Valor",
-        width: "100px",
+        header: "VALOR (COP)",
+        width: "130px",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
+          const formattedValue = `$ ${(c.valor || 0).toLocaleString('es-CO')}`;
           if (!canEdit) {
-            return <span className="text-sm text-muted-foreground font-mono">${c.valor?.toLocaleString() || 0}</span>;
+            return <span className="text-base font-semibold font-mono text-foreground">{formattedValue}</span>;
           }
           return (
             <EditableCell
@@ -1046,6 +1047,7 @@ const PanelOperaciones = () => {
               type="number"
               placeholder="0"
               onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "valor", value)}
+              className="text-base font-semibold"
             />
           );
         },

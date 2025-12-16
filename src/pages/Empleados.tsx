@@ -405,7 +405,9 @@ export default function Empleados() {
                           id="cargo"
                           placeholder="Ej: Coordinador de Logística"
                           value={formData.cargo}
-                          onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, cargo: e.target.value }))
+                          }
                         />
                       </div>
 
@@ -415,7 +417,9 @@ export default function Empleados() {
                           id="nombre"
                           placeholder="Ej: Juan Pérez"
                           value={formData.nombre}
-                          onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, nombre: e.target.value }))
+                          }
                         />
                       </div>
 
@@ -425,7 +429,9 @@ export default function Empleados() {
                           id="telefono"
                           placeholder="Ej: +57 300 123 4567"
                           value={formData.telefono}
-                          onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, telefono: e.target.value }))
+                          }
                         />
                       </div>
 
@@ -436,7 +442,9 @@ export default function Empleados() {
                           type="email"
                           placeholder="Ej: empleado@empresa.com"
                           value={formData.correo}
-                          onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, correo: e.target.value }))
+                          }
                         />
                       </div>
 
@@ -446,7 +454,9 @@ export default function Empleados() {
                           id="cedula"
                           placeholder="Ej: 1234567890"
                           value={formData.cedula}
-                          onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, cedula: e.target.value }))
+                          }
                         />
                       </div>
                     </div>
@@ -459,7 +469,9 @@ export default function Empleados() {
                           <Label htmlFor="banco" className="text-xs">BANCO</Label>
                           <BancoAutocomplete
                             value={formData.banco}
-                            onChange={(value) => setFormData({ ...formData, banco: value })}
+                            onChange={(value) =>
+                              setFormData((prev) => ({ ...prev, banco: value }))
+                            }
                             placeholder="Buscar banco..."
                           />
                         </div>
@@ -467,7 +479,9 @@ export default function Empleados() {
                           <Label htmlFor="tipoCuenta" className="text-xs">CUENTA</Label>
                           <Select 
                             value={formData.tipoCuenta} 
-                            onValueChange={(value) => setFormData({ ...formData, tipoCuenta: value })}
+                            onValueChange={(value) =>
+                              setFormData((prev) => ({ ...prev, tipoCuenta: value }))
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Seleccionar..." />
@@ -484,7 +498,9 @@ export default function Empleados() {
                             id="numeroCuenta"
                             placeholder="Ej: 1234567890"
                             value={formData.numeroCuenta}
-                            onChange={(e) => setFormData({ ...formData, numeroCuenta: e.target.value })}
+                            onChange={(e) =>
+                              setFormData((prev) => ({ ...prev, numeroCuenta: e.target.value }))
+                            }
                           />
                         </div>
                       </div>

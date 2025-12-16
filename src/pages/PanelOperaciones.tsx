@@ -35,23 +35,12 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, RotateCcw } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printCajaMenor, exportCajaMenorToExcel } from "@/utils/pdfGenerator";
@@ -68,7 +57,7 @@ const PanelOperaciones = () => {
   const navigate = useNavigate();
   const { canEditStructure, role, canViewFeedback, canEditFeedback } = useUserRole();
   const { user } = useAuth();
-  const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple, softDeleteProject, restoreProject } = useProjects();
+  const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { empleados } = useEmpleados();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const [searchTerm, setSearchTerm] = useState("");
@@ -214,15 +203,6 @@ const PanelOperaciones = () => {
     }
   };
 
-  // Soft delete handlers
-  const handleSoftDelete = async (project: Project) => {
-    if (!user) return;
-    await softDeleteProject(project.id, user.email || "", user.id);
-  };
-
-  const handleRestore = async (project: Project) => {
-    await restoreProject(project.id);
-  };
 
   // Row className for deleted projects (red styling)
   const getRowClassName = (project: Project) => {
@@ -1227,56 +1207,6 @@ const PanelOperaciones = () => {
                 data={filteredProjects}
                 columns={[
                   ...columns,
-                  {
-                    key: "acciones",
-                    header: "Acciones",
-                    width: "100px",
-                    render: (p: Project) => (
-                      <div className="flex items-center gap-1">
-                        {p.isDeleted && (
-                          <Badge variant="destructive" className="text-[10px] px-1 py-0">
-                            ELIMINADO
-                          </Badge>
-                        )}
-                        {isAdmin && !p.isDeleted && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 px-1.5 text-destructive hover:text-destructive">
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>¿Eliminar evento?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  El evento "{p.evento}" será marcado como eliminado. Podrás restaurarlo después si lo necesitas.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleSoftDelete(p)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Eliminar
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                        {isAdmin && p.isDeleted && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-1.5 text-green-600 hover:text-green-700"
-                            onClick={() => handleRestore(p)}
-                          >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    ),
-                  },
                 ]}
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}

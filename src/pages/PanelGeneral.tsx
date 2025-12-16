@@ -21,30 +21,19 @@ import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, ExternalLink, Settings, Loader2, Trash2, RotateCcw } from "lucide-react";
+import { Search, ExternalLink, Settings, Loader2 } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 const PanelGeneral = () => {
   const navigate = useNavigate();
   const { canEditStructure, role } = useUserRole();
   const { user } = useAuth();
-  const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple, softDeleteProject, restoreProject } = useProjects();
+  const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const isAdmin = role?.toLowerCase() === "administrador";
   const [searchTerm, setSearchTerm] = useState("");
@@ -124,14 +113,6 @@ const PanelGeneral = () => {
     return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
   });
 
-  const handleSoftDelete = async (project: Project) => {
-    if (!user) return;
-    await softDeleteProject(project.id, user.email || "", user.id);
-  };
-
-  const handleRestore = async (project: Project) => {
-    await restoreProject(project.id);
-  };
 
   const getRowClassName = (project: Project) => {
     if (project.isDeleted) {
@@ -364,51 +345,6 @@ const PanelGeneral = () => {
           Ops
           <ExternalLink className="h-2.5 w-2.5 ml-1" />
         </Button>
-        {isAdmin && !p.isDeleted && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-              <AlertDialogHeader>
-                <AlertDialogTitle>¿Eliminar evento?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  El evento "{p.evento}" será marcado como eliminado. Podrás restaurarlo más tarde si es necesario.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  onClick={() => handleSoftDelete(p)}
-                >
-                  Eliminar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-        {isAdmin && p.isDeleted && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-1.5 text-green-600 hover:text-green-600 hover:bg-green-500/10"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRestore(p);
-            }}
-            title="Restaurar evento"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </Button>
-        )}
       </div>
     ),
   };

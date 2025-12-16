@@ -41,6 +41,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { CajaMenorStatusIcon } from "@/components/CajaMenorStatusIcon";
 
 const PanelDirectivo = () => {
   const navigate = useNavigate();
@@ -218,11 +219,14 @@ const PanelDirectivo = () => {
         );
       case "evento":
         return (p: Project) => (
-          <EditableCell
-            value={p.evento}
-            type="text"
-            onChange={(value) => updateProject(p.id, "evento", value)}
-          />
+          <div className="flex items-center gap-2">
+            <CajaMenorStatusIcon cajaMenor={p.cajaMenor || []} />
+            <EditableCell
+              value={p.evento}
+              type="text"
+              onChange={(value) => updateProject(p.id, "evento", value)}
+            />
+          </div>
         );
       case "avanzada":
         return (p: Project) => (

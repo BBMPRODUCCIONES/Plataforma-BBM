@@ -53,7 +53,7 @@ const PanelDirectivo = () => {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
-  const [showDeleted, setShowDeleted] = useState(false);
+  const [hideDeleted, setHideDeleted] = useState(false);
   
   // Column management state - persisted to localStorage
   const defaultColumns: ColumnConfig[] = [
@@ -106,8 +106,8 @@ const PanelDirectivo = () => {
   };
 
   const filteredProjects = projects.filter((p) => {
-    // Filter deleted unless showDeleted is enabled
-    const matchesDeleted = showDeleted || !p.isDeleted;
+    // Show all by default, hide deleted only when hideDeleted is enabled
+    const matchesDeleted = !hideDeleted || !p.isDeleted;
     
     const matchesSearch =
       p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -138,7 +138,7 @@ const PanelDirectivo = () => {
 
   const getRowClassName = (project: Project) => {
     if (project.isDeleted) {
-      return "bg-red-500/10 border-l-4 border-l-red-500";
+      return "row-deleted";
     }
     return "";
   };
@@ -544,18 +544,16 @@ const PanelDirectivo = () => {
                 <TabsTrigger value="gantt">Gantt</TabsTrigger>
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
               </TabsList>
-              {isAdmin && (
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="show-deleted"
-                    checked={showDeleted}
-                    onCheckedChange={setShowDeleted}
-                  />
-                  <Label htmlFor="show-deleted" className="text-sm text-muted-foreground cursor-pointer">
-                    Mostrar eliminados
-                  </Label>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="hide-deleted"
+                  checked={hideDeleted}
+                  onCheckedChange={setHideDeleted}
+                />
+                <Label htmlFor="hide-deleted" className="text-sm text-muted-foreground cursor-pointer">
+                  Ocultar eliminados
+                </Label>
+              </div>
             </div>
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

@@ -382,6 +382,8 @@ const generateCajaMenorSection = (project: Project, empleados: EmpleadoBasic[]):
       <td>${(c.imagenes || []).length} imagen(es)</td>
       <td>$${(c.valor || 0).toLocaleString('es-CO')}</td>
       <td>${c.categoria || '-'}</td>
+      <td>${c.recursos || '-'}</td>
+      <td>${c.contingencia || 'No'}</td>
       <td><span class="badge ${c.estado === 'Aprobado' ? 'badge-aprobado' : 'badge-no-aprobado'}">${c.estado || '-'}</span></td>
     </tr>
   `).join('');
@@ -396,11 +398,13 @@ const generateCajaMenorSection = (project: Project, empleados: EmpleadoBasic[]):
           <th>Imágenes</th>
           <th>Valor</th>
           <th>Categoría</th>
+          <th>Recursos</th>
+          <th>Contingencia</th>
           <th>Estado</th>
         </tr>
       </thead>
       <tbody>
-        ${tableRows || '<tr><td colspan="6" style="text-align: center;">No hay registros de caja menor</td></tr>'}
+        ${tableRows || '<tr><td colspan="8" style="text-align: center;">No hay registros de caja menor</td></tr>'}
       </tbody>
     </table>
   `;
@@ -434,7 +438,7 @@ export const exportCajaMenorToExcel = async (project: Project, empleados: Emplea
   const cajaMenor = project.cajaMenor || [];
   
   // Header row
-  const headers = ['Empleado', 'Concepto', 'Imágenes', 'Valor', 'Categoría', 'Estado'];
+  const headers = ['Empleado', 'Concepto', 'Imágenes', 'Valor', 'Categoría', 'Recursos', 'Contingencia', 'Estado'];
   
   // Data rows with resolved employee names
   const data = cajaMenor.map(c => ({
@@ -443,6 +447,8 @@ export const exportCajaMenorToExcel = async (project: Project, empleados: Emplea
     'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
     'Valor': c.valor || 0,
     'Categoría': c.categoria || '',
+    'Recursos': c.recursos || '',
+    'Contingencia': c.contingencia || 'No',
     'Estado': c.estado || ''
   }));
   
@@ -456,6 +462,8 @@ export const exportCajaMenorToExcel = async (project: Project, empleados: Emplea
     { wch: 15 }, // Imágenes
     { wch: 12 }, // Valor
     { wch: 15 }, // Categoría
+    { wch: 18 }, // Recursos
+    { wch: 15 }, // Contingencia
     { wch: 15 }, // Estado
   ];
   

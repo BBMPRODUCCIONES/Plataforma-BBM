@@ -1070,6 +1070,59 @@ const PanelOperaciones = () => {
         },
       },
       {
+        key: "recursos",
+        header: "Recursos *",
+        width: "140px",
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          const isEmpty = !c.recursos;
+          if (!canEdit) {
+            return (
+              <span className={`text-sm ${isEmpty ? "text-destructive italic" : "text-muted-foreground"}`}>
+                {c.recursos || "Sin seleccionar"}
+              </span>
+            );
+          }
+          return (
+            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded" : ""}>
+              <EditableCell
+                value={c.recursos || ""}
+                type="select"
+                options={["Recursos propios", "BBM", "Anticipo BBM"]}
+                placeholder="Seleccionar..."
+                onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "recursos", value)}
+              />
+            </div>
+          );
+        },
+      },
+      {
+        key: "contingencia",
+        header: "Contingencia",
+        width: "120px",
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          const value = c.contingencia || "No";
+          if (!canEdit) {
+            return (
+              <span className={`text-sm px-2 py-0.5 rounded ${
+                value === "Sí" ? "bg-amber-500/10 text-amber-500" : "text-muted-foreground"
+              }`}>
+                {value}
+              </span>
+            );
+          }
+          return (
+            <EditableCell
+              value={value}
+              type="select"
+              options={["Sí", "No"]}
+              onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "contingencia", value)}
+            />
+          );
+        },
+      },
+      {
         key: "estado",
         header: "Estado",
         width: "130px",
@@ -1555,8 +1608,11 @@ const PanelOperaciones = () => {
                                 imagenes: [],
                                 valor: 0,
                                 categoria: "Compras",
+                                recursos: "",
+                                contingencia: "No",
                                 estado: "No aprobado",
                               };
+                              toast.info("Recuerda seleccionar el tipo de recursos");
                               try {
                                 await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);
                                 toast.success("Registro de caja menor agregado");

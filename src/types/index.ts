@@ -102,6 +102,8 @@ export interface CajaMenorItem {
   imagenes?: Attachment[];
   valor: number;
   categoria: 'Transporte' | 'Alimentación' | 'Compras';
+  recursos: 'Recursos propios' | 'BBM' | 'Anticipo BBM' | ''; // Obligatorio
+  contingencia: 'Sí' | 'No'; // Default: 'No'
   estado: 'Aprobado' | 'No aprobado';
 }
 

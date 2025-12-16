@@ -31,6 +31,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -200,7 +214,28 @@ const PanelOperaciones = () => {
     }
   };
 
+  // Soft delete handlers
+  const handleSoftDelete = async (project: Project) => {
+    if (!user) return;
+    await softDeleteProject(project.id, user.email || "", user.id);
+  };
+
+  const handleRestore = async (project: Project) => {
+    await restoreProject(project.id);
+  };
+
+  // Row className for deleted projects (red styling)
+  const getRowClassName = (project: Project) => {
+    if (project.isDeleted) {
+      return "bg-red-500/10 border-l-4 border-l-red-500";
+    }
+    return "";
+  };
+
   const filteredProjects = projects.filter((p) => {
+    // Filter by deleted status
+    const matchesDeleted = showDeleted || !p.isDeleted;
+    
     const matchesSearch =
       p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -216,7 +251,7 @@ const PanelOperaciones = () => {
       isWithinInterval(projectEnd, range) ||
       (projectStart <= range.start && projectEnd >= range.end);
 
-    return matchesSearch && matchesStatus && matchesDate;
+    return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
   });
 
   const handleGanttProjectClick = (projectId: string) => {
@@ -1162,14 +1197,28 @@ const PanelOperaciones = () => {
               <TabsTrigger value="gantt">Gantt</TabsTrigger>
             </TabsList>
 
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-9"
-              />
+            <div className="flex items-center gap-4">
+              {isAdmin && (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="show-deleted-operaciones"
+                    checked={showDeleted}
+                    onCheckedChange={setShowDeleted}
+                  />
+                  <Label htmlFor="show-deleted-operaciones" className="text-sm text-muted-foreground cursor-pointer">
+                    Mostrar eliminados
+                  </Label>
+                </div>
+              )}
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 h-9"
+                />
+              </div>
             </div>
           </div>
 
@@ -1178,8 +1227,61 @@ const PanelOperaciones = () => {
               <MatrixTable
                 key={tableKey}
                 data={filteredProjects}
-                columns={columns}
+                columns={[
+                  ...columns,
+                  {
+                    key: "acciones",
+                    header: "Acciones",
+                    width: "100px",
+                    render: (p: Project) => (
+                      <div className="flex items-center gap-1">
+                        {p.isDeleted && (
+                          <Badge variant="destructive" className="text-[10px] px-1 py-0">
+                            ELIMINADO
+                          </Badge>
+                        )}
+                        {isAdmin && !p.isDeleted && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-6 px-1.5 text-destructive hover:text-destructive">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar evento?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  El evento "{p.evento}" será marcado como eliminado. Podrás restaurarlo después si lo necesitas.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleSoftDelete(p)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        {isAdmin && p.isDeleted && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-1.5 text-green-600 hover:text-green-700"
+                            onClick={() => handleRestore(p)}
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    ),
+                  },
+                ]}
                 highlightedId={highlightedProjectId}
+                getRowClassName={getRowClassName}
               />
             </div>
           </TabsContent>

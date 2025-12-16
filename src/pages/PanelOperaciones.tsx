@@ -272,15 +272,12 @@ const PanelOperaciones = () => {
           );
         case "evento":
           return (
-            <div className="flex items-center gap-2">
-              <CajaMenorStatusIcon cajaMenor={p.cajaMenor || []} />
-              <EditableCell
-                value={p.evento}
-                type="text"
-                onChange={(value) => updateProject(p.id, "evento", value)}
-                className="font-medium"
-              />
-            </div>
+            <EditableCell
+              value={p.evento}
+              type="text"
+              onChange={(value) => updateProject(p.id, "evento", value)}
+              className="font-medium"
+            />
           );
         case "avanzada":
           return (
@@ -471,19 +468,22 @@ const PanelOperaciones = () => {
           );
         case "cajaMenor":
           return (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-xs"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedProject(p);
-                setSelectedSection("cajaMenor");
-              }}
-            >
-              <Wallet className="h-3 w-3 mr-1" />
-              {p.cajaMenor?.length || 0}
-            </Button>
+            <div className="flex items-center gap-2">
+              <CajaMenorStatusIcon cajaMenor={p.cajaMenor || []} />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedProject(p);
+                  setSelectedSection("cajaMenor");
+                }}
+              >
+                <Wallet className="h-3 w-3 mr-1" />
+                {p.cajaMenor?.length || 0}
+              </Button>
+            </div>
           );
         case "panelGeneral":
           return (

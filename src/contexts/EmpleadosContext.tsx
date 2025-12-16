@@ -149,6 +149,8 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
     }
     
     const tempId = `temp-${Date.now()}`;
+    const cedula = (empleadoData.cedula ?? "").trim();
+
     const optimisticEmpleado: Empleado = {
       id: tempId,
       cargo: empleadoData.cargo || "",
@@ -158,7 +160,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       banco: empleadoData.banco || "",
       tipoCuenta: empleadoData.tipoCuenta || "",
       numeroCuenta: empleadoData.numeroCuenta || "",
-      cedula: empleadoData.cedula || "",
+      cedula,
       createdAt: new Date().toISOString(),
     };
 
@@ -175,7 +177,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
         banco: empleadoData.banco,
         tipo_cuenta: empleadoData.tipoCuenta,
         numero_cuenta: empleadoData.numeroCuenta,
-        cedula: empleadoData.cedula,
+        cedula,
       })
       .select()
       .single();
@@ -232,7 +234,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
     if (data.banco !== undefined) updateData.banco = data.banco;
     if (data.tipoCuenta !== undefined) updateData.tipo_cuenta = data.tipoCuenta;
     if (data.numeroCuenta !== undefined) updateData.numero_cuenta = data.numeroCuenta;
-    if (data.cedula !== undefined) updateData.cedula = data.cedula;
+    if (data.cedula !== undefined) updateData.cedula = (data.cedula ?? "").trim();
 
     const { error } = await supabase
       .from("employees")

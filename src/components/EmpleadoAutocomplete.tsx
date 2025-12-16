@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 interface EmpleadoAutocompleteProps {
   value: string;
-  onChange: (value: string, empleadoId?: string) => void;
+  onChange: (value: string, empleadoId?: string, cedula?: string) => void;
   tipoPersonal?: "BBM" | "Proveedor" | "Transporte";
   useEmpleadoId?: boolean;
   placeholder?: string;
@@ -72,12 +72,8 @@ export function EmpleadoAutocomplete({
   }, [empleados, searchTerm]);
 
   const handleSelect = (empleado: typeof empleados[0]) => {
-    if (useEmpleadoId) {
-      // Pass the employee name as first param, ID as second - for proper storage
-      onChange(empleado.nombre, empleado.id);
-    } else {
-      onChange(empleado.nombre, empleado.id);
-    }
+    // Pass: nombre, empleadoId, cedula
+    onChange(empleado.nombre, empleado.id, empleado.cedula || "");
     setSearchTerm("");
     setOpen(false);
   };
@@ -247,7 +243,7 @@ export function EmpleadoAutocomplete({
             <div
               key={empleado.id}
               onClick={() => {
-                onChange(empleado.nombre, empleado.id);
+                onChange(empleado.nombre, empleado.id, empleado.cedula || "");
                 setSearchTerm("");
                 setOpen(false);
               }}

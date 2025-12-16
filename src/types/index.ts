@@ -78,6 +78,8 @@ export interface PersonalItem {
   cargo: string;
   telefono: string;
   tipoPersonal: 'BBM' | 'Proveedor' | 'Transporte';
+  cedula?: string; // Cédula del personal (BBM: auto desde DB, Proveedor/Transporte: manual)
+  cedulaOrigen?: 'empleado' | 'manual'; // Para auditoría: origen de la cédula
   notas?: string;
   rutaTransporte?: string; // Campo para la ruta cuando es Transporte
   adjuntos?: Attachment[]; // Archivos adjuntos (solo para Proveedor y Transporte)

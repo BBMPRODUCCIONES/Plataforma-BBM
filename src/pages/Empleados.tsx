@@ -146,9 +146,10 @@ export default function Empleados() {
   const defaultColumns: ColumnConfig[] = [
     { key: "cargo", header: "CARGO", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 0 },
     { key: "nombre", header: "NOMBRE", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 1 },
-    { key: "telefono", header: "TELÉFONO", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 2 },
-    { key: "correo", header: "CORREO", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 3 },
-    { key: "acciones", header: "ACCIONES", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 4 },
+    { key: "cedula", header: "CÉDULA", type: "text" as CellType, width: "140px", visible: true, isCustom: false, order: 2 },
+    { key: "telefono", header: "TELÉFONO", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 3 },
+    { key: "correo", header: "CORREO", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 4 },
+    { key: "acciones", header: "ACCIONES", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 5 },
   ];
   const [managedColumns, setManagedColumns] = usePersistedColumns("empleados-columns", defaultColumns);
 
@@ -163,13 +164,14 @@ export default function Empleados() {
     nombre: "",
     telefono: "",
     correo: "",
+    cedula: "",
     banco: "",
     tipoCuenta: "",
     numeroCuenta: "",
   });
 
   const resetForm = () => {
-    setFormData({ cargo: "", nombre: "", telefono: "", correo: "", banco: "", tipoCuenta: "", numeroCuenta: "" });
+    setFormData({ cargo: "", nombre: "", telefono: "", correo: "", cedula: "", banco: "", tipoCuenta: "", numeroCuenta: "" });
     setEditingEmpleado(null);
   };
 
@@ -213,6 +215,7 @@ export default function Empleados() {
       nombre: empleado.nombre,
       telefono: empleado.telefono,
       correo: empleado.correo,
+      cedula: empleado.cedula || "",
       banco: empleado.banco || "",
       tipoCuenta: empleado.tipoCuenta || "",
       numeroCuenta: empleado.numeroCuenta || "",
@@ -238,9 +241,10 @@ export default function Empleados() {
   const baseColumnDefs: ColumnConfig[] = [
     { key: "cargo", header: "Cargo", type: "text" as CellType, width: "180px", visible: true, isCustom: false, order: 0 },
     { key: "nombre", header: "Nombre", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 1 },
-    { key: "telefono", header: "Teléfono", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 2 },
-    { key: "correo", header: "Correo Electrónico", type: "text" as CellType, width: "220px", visible: true, isCustom: false, order: 3 },
-    { key: "createdAt", header: "Fecha de Registro", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 4 },
+    { key: "cedula", header: "Cédula", type: "text" as CellType, width: "140px", visible: true, isCustom: false, order: 2 },
+    { key: "telefono", header: "Teléfono", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 3 },
+    { key: "correo", header: "Correo Electrónico", type: "text" as CellType, width: "220px", visible: true, isCustom: false, order: 4 },
+    { key: "createdAt", header: "Fecha de Registro", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 5 },
   ];
 
   const allColumnConfigs = managedColumns.length > 0 ? managedColumns : baseColumnDefs;
@@ -289,6 +293,14 @@ export default function Empleados() {
             value={e.correo}
             type="text"
             onChange={(value) => handleUpdateEmpleado(e.id, "correo", value)}
+          />
+        );
+      case "cedula":
+        return (
+          <EditableCell
+            value={e.cedula || ""}
+            type="text"
+            onChange={(value) => handleUpdateEmpleado(e.id, "cedula", value)}
           />
         );
       case "createdAt":
@@ -425,6 +437,16 @@ export default function Empleados() {
                           placeholder="Ej: empleado@empresa.com"
                           value={formData.correo}
                           onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="cedula">Cédula</Label>
+                        <Input
+                          id="cedula"
+                          placeholder="Ej: 1234567890"
+                          value={formData.cedula}
+                          onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
                         />
                       </div>
                     </div>

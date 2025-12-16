@@ -12,6 +12,7 @@ export interface Empleado {
   banco: string;
   tipoCuenta: string;
   numeroCuenta: string;
+  cedula: string;
   createdAt: string;
   [key: string]: any;
 }
@@ -40,6 +41,7 @@ function dbRowToEmpleado(row: any): Empleado {
     banco: row.banco || "",
     tipoCuenta: row.tipo_cuenta || "",
     numeroCuenta: row.numero_cuenta || "",
+    cedula: row.cedula || "",
     createdAt: row.created_at,
   };
 }
@@ -156,6 +158,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       banco: empleadoData.banco || "",
       tipoCuenta: empleadoData.tipoCuenta || "",
       numeroCuenta: empleadoData.numeroCuenta || "",
+      cedula: empleadoData.cedula || "",
       createdAt: new Date().toISOString(),
     };
 
@@ -172,6 +175,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
         banco: empleadoData.banco,
         tipo_cuenta: empleadoData.tipoCuenta,
         numero_cuenta: empleadoData.numeroCuenta,
+        cedula: empleadoData.cedula,
       })
       .select()
       .single();
@@ -228,6 +232,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
     if (data.banco !== undefined) updateData.banco = data.banco;
     if (data.tipoCuenta !== undefined) updateData.tipo_cuenta = data.tipoCuenta;
     if (data.numeroCuenta !== undefined) updateData.numero_cuenta = data.numeroCuenta;
+    if (data.cedula !== undefined) updateData.cedula = data.cedula;
 
     const { error } = await supabase
       .from("employees")

@@ -149,6 +149,7 @@ const generatePersonalSection = (project: Project): string => {
   const tableRows = personal.map(p => `
     <tr>
       <td>${p.nombre}</td>
+      <td>${p.cedula || '-'}</td>
       <td>${p.cargo}</td>
       <td>${p.telefono}</td>
       <td><span class="badge badge-${p.tipoPersonal.toLowerCase()}">${p.tipoPersonal}</span></td>
@@ -163,6 +164,7 @@ const generatePersonalSection = (project: Project): string => {
       <thead>
         <tr>
           <th>Nombre</th>
+          <th>Cédula</th>
           <th>Cargo</th>
           <th>Teléfono</th>
           <th>Tipo</th>
@@ -171,7 +173,7 @@ const generatePersonalSection = (project: Project): string => {
         </tr>
       </thead>
       <tbody>
-        ${tableRows || '<tr><td colspan="6" style="text-align: center;">No hay personal asignado</td></tr>'}
+        ${tableRows || '<tr><td colspan="7" style="text-align: center;">No hay personal asignado</td></tr>'}
       </tbody>
     </table>
   `;

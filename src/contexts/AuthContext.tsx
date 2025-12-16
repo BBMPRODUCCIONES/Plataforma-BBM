@@ -10,10 +10,15 @@ interface FeedbackPermissions {
   puedeEditarFeedback: boolean;
 }
 
+interface CajaMenorPermissions {
+  puedeAprobarCajaMenor: boolean;
+}
+
 interface UserRoleData {
   role: AppRole;
   allowedPanels: string[];
   feedbackPermissions: FeedbackPermissions;
+  cajaMenorPermissions: CajaMenorPermissions;
 }
 
 interface AuthContextType {
@@ -22,6 +27,7 @@ interface AuthContextType {
   role: AppRole | null;
   allowedPanels: string[];
   feedbackPermissions: FeedbackPermissions;
+  cajaMenorPermissions: CajaMenorPermissions;
   loading: boolean;
   roleLoading: boolean;
   roleError: string | null;
@@ -37,6 +43,10 @@ const defaultFeedbackPermissions: FeedbackPermissions = {
   puedeEditarFeedback: false,
 };
 
+const defaultCajaMenorPermissions: CajaMenorPermissions = {
+  puedeAprobarCajaMenor: false,
+};
+
 // Cache key for localStorage
 const ROLE_CACHE_KEY = "bbm_user_role_cache";
 
@@ -45,6 +55,7 @@ interface CachedRoleData {
   role: AppRole;
   allowedPanels: string[];
   feedbackPermissions: FeedbackPermissions;
+  cajaMenorPermissions: CajaMenorPermissions;
   timestamp: number;
 }
 
@@ -67,6 +78,7 @@ function getCachedRole(userId: string): UserRoleData | null {
         role: data.role,
         allowedPanels: data.allowedPanels,
         feedbackPermissions: data.feedbackPermissions,
+        cajaMenorPermissions: data.cajaMenorPermissions || { puedeAprobarCajaMenor: false },
       };
     }
     
@@ -86,6 +98,7 @@ function setCachedRole(userId: string, roleData: UserRoleData): void {
       role: roleData.role,
       allowedPanels: roleData.allowedPanels,
       feedbackPermissions: roleData.feedbackPermissions,
+      cajaMenorPermissions: roleData.cajaMenorPermissions,
       timestamp: Date.now(),
     };
     localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify(cacheData));
@@ -108,6 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<AppRole | null>(null);
   const [allowedPanels, setAllowedPanels] = useState<string[]>([]);
   const [feedbackPermissions, setFeedbackPermissions] = useState<FeedbackPermissions>(defaultFeedbackPermissions);
+  const [cajaMenorPermissions, setCajaMenorPermissions] = useState<CajaMenorPermissions>(defaultCajaMenorPermissions);
   const [loading, setLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
   const [roleError, setRoleError] = useState<string | null>(null);
@@ -120,7 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role, allowed_panels, puede_ver_feedback, puede_editar_feedback")
+        .select("role, allowed_panels, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -137,6 +151,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         feedbackPermissions: {
           puedeVerFeedback: data.puede_ver_feedback ?? false,
           puedeEditarFeedback: data.puede_editar_feedback ?? false,
+        },
+        cajaMenorPermissions: {
+          puedeAprobarCajaMenor: data.puede_aprobar_caja_menor ?? false,
         }
       };
       
@@ -172,11 +189,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRole(roleData.role);
       setAllowedPanels(roleData.allowedPanels);
       setFeedbackPermissions(roleData.feedbackPermissions);
+      setCajaMenorPermissions(roleData.cajaMenorPermissions);
       setRoleError(null);
     } else {
       setRole(null);
       setAllowedPanels([]);
       setFeedbackPermissions(defaultFeedbackPermissions);
+      setCajaMenorPermissions(defaultCajaMenorPermissions);
     }
   };
 
@@ -332,6 +351,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRole(null);
     setAllowedPanels([]);
     setFeedbackPermissions(defaultFeedbackPermissions);
+    setCajaMenorPermissions(defaultCajaMenorPermissions);
   };
 
   return (
@@ -341,6 +361,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       role, 
       allowedPanels,
       feedbackPermissions,
+      cajaMenorPermissions,
       loading, 
       roleLoading,
       roleError,

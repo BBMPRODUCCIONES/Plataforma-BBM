@@ -478,6 +478,7 @@ export type Database = {
           allowed_panels: string[] | null
           email: string | null
           id: string
+          puede_aprobar_caja_menor: boolean | null
           puede_editar_feedback: boolean | null
           puede_ver_feedback: boolean | null
           role: Database["public"]["Enums"]["app_role"]
@@ -487,6 +488,7 @@ export type Database = {
           allowed_panels?: string[] | null
           email?: string | null
           id?: string
+          puede_aprobar_caja_menor?: boolean | null
           puede_editar_feedback?: boolean | null
           puede_ver_feedback?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
@@ -496,6 +498,7 @@ export type Database = {
           allowed_panels?: string[] | null
           email?: string | null
           id?: string
+          puede_aprobar_caja_menor?: boolean | null
           puede_editar_feedback?: boolean | null
           puede_ver_feedback?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]

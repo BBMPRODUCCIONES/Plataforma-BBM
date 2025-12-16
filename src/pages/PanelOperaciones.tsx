@@ -55,7 +55,7 @@ import { HorarioFormDialog } from "@/components/HorarioFormDialog";
 
 const PanelOperaciones = () => {
   const navigate = useNavigate();
-  const { canEditStructure, role, canViewFeedback, canEditFeedback } = useUserRole();
+  const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { empleados } = useEmpleados();
@@ -1129,14 +1129,19 @@ const PanelOperaciones = () => {
         header: "Estado",
         width: "130px",
         render: (c: CajaMenorItem) => {
-          const canEdit = canEditCajaMenorRecord(c);
-          if (!canEdit) {
+          // Only users with canApproveCajaMenor permission can change Estado
+          const canChangeEstado = canApproveCajaMenor();
+          
+          if (!canChangeEstado) {
             return (
-              <span className={`text-sm px-2 py-0.5 rounded ${
-                c.estado === "Aprobado" ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"
-              }`}>
-                {c.estado}
-              </span>
+              <div className="flex items-center gap-1">
+                <Lock className="h-3 w-3 text-muted-foreground" />
+                <span className={`text-sm px-2 py-0.5 rounded ${
+                  c.estado === "Aprobado" ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"
+                }`}>
+                  {c.estado}
+                </span>
+              </div>
             );
           }
           return (
@@ -1175,7 +1180,7 @@ const PanelOperaciones = () => {
         },
       },
     ];
-  }, [currentProjectData?.id, currentProjectData?.cajaMenor, empleados, isAdmin, currentUserEmail, canEditCajaMenorRecord, projects]);
+  }, [currentProjectData?.id, currentProjectData?.cajaMenor, empleados, isAdmin, currentUserEmail, canEditCajaMenorRecord, projects, canApproveCajaMenor]);
 
   if (loading) {
     return (

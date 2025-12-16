@@ -1107,15 +1107,20 @@ const PanelOperaciones = () => {
         header: "Contingencia",
         width: "120px",
         render: (c: CajaMenorItem) => {
-          const canEdit = canEditCajaMenorRecord(c);
           const value = c.contingencia || "No";
-          if (!canEdit) {
+          // Only Administrador can edit Contingencia column
+          const isAdmin = role?.toLowerCase() === "administrador";
+          
+          if (!isAdmin) {
             return (
-              <span className={`text-sm px-2 py-0.5 rounded ${
-                value === "Sí" ? "bg-amber-500/10 text-amber-500" : "text-muted-foreground"
-              }`}>
-                {value}
-              </span>
+              <div className="flex items-center gap-1" title="Solo el rol administrativo puede modificar este campo">
+                <span className={`text-sm px-2 py-0.5 rounded ${
+                  value === "Sí" ? "bg-amber-500/10 text-amber-500" : "text-muted-foreground"
+                }`}>
+                  {value}
+                </span>
+                <Lock className="h-3 w-3 text-muted-foreground" />
+              </div>
             );
           }
           return (

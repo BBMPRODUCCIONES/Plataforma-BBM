@@ -1134,10 +1134,12 @@ const PanelOperaciones = () => {
                 <Clock className="h-4 w-4 mr-2" />
                 Gestión de Horarios
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
-                <Settings className="h-4 w-4 mr-2" />
-                Gestionar Columnas
-              </Button>
+              {canEditStructure() && (
+                <Button variant="outline" size="sm" onClick={() => setColumnManagerOpen(true)}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Gestionar Columnas
+                </Button>
+              )}
             </div>
           }
         />

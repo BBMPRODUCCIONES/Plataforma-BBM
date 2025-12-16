@@ -373,15 +373,6 @@ const HistorialCotizaciones = () => {
             <div className="flex items-center justify-center h-32">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
-          ) : records.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
-              <FileText className="h-8 w-8 mb-2" />
-              <p className="text-sm">
-                {selectedProveedorId
-                  ? "Este proveedor no tiene cotizaciones registradas"
-                  : "Selecciona un proveedor para ver su historial de cotizaciones"}
-              </p>
-            </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -398,7 +389,21 @@ const HistorialCotizaciones = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {records.map((record) => (
+                  {records.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="h-32 text-center">
+                        <div className="flex flex-col items-center justify-center text-muted-foreground">
+                          <FileText className="h-8 w-8 mb-2" />
+                          <p className="text-sm">
+                            {selectedProveedorId
+                              ? "Este proveedor no tiene cotizaciones registradas"
+                              : "Selecciona un proveedor para ver su historial de cotizaciones"}
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    records.map((record) => (
                     <TableRow key={record.id} className="hover:bg-muted/30">
                       <TableCell className="text-xs">
                         {formatDate(record.fecha)}
@@ -463,7 +468,8 @@ const HistorialCotizaciones = () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                  )}
                 </TableBody>
               </Table>
             </div>

@@ -271,6 +271,9 @@ export type Database = {
           cotizaciones: Json
           cotizaciones_proveedor: Json
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_by_email: string | null
           estado: string
           evento: string
           fecha_ejecucion_fin: string
@@ -287,6 +290,7 @@ export type Database = {
           ingreso_bruto: number
           ingreso_total: number
           inventario: Json
+          is_deleted: boolean
           jefe_operaciones: string
           notas: string
           notas_cotizacion_proveedor: string
@@ -308,6 +312,9 @@ export type Database = {
           cotizaciones?: Json
           cotizaciones_proveedor?: Json
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_by_email?: string | null
           estado?: string
           evento?: string
           fecha_ejecucion_fin?: string
@@ -324,6 +331,7 @@ export type Database = {
           ingreso_bruto?: number
           ingreso_total?: number
           inventario?: Json
+          is_deleted?: boolean
           jefe_operaciones?: string
           notas?: string
           notas_cotizacion_proveedor?: string
@@ -345,6 +353,9 @@ export type Database = {
           cotizaciones?: Json
           cotizaciones_proveedor?: Json
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_by_email?: string | null
           estado?: string
           evento?: string
           fecha_ejecucion_fin?: string
@@ -361,6 +372,7 @@ export type Database = {
           ingreso_bruto?: number
           ingreso_total?: number
           inventario?: Json
+          is_deleted?: boolean
           jefe_operaciones?: string
           notas?: string
           notas_cotizacion_proveedor?: string

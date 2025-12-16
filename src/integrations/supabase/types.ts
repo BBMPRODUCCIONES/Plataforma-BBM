@@ -39,6 +39,7 @@ export type Database = {
         Row: {
           banco: string
           cargo: string
+          cedula: string
           correo: string
           created_at: string
           deleted_at: string | null
@@ -52,6 +53,7 @@ export type Database = {
         Insert: {
           banco?: string
           cargo?: string
+          cedula?: string
           correo?: string
           created_at?: string
           deleted_at?: string | null
@@ -65,6 +67,7 @@ export type Database = {
         Update: {
           banco?: string
           cargo?: string
+          cedula?: string
           correo?: string
           created_at?: string
           deleted_at?: string | null

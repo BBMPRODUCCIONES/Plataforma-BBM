@@ -29,7 +29,7 @@ import { EditableCell } from "@/components/EditableCell";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CotizacionesDialogWithHistory } from "@/components/CotizacionesDialogWithHistory";
+import { CotizacionesDialog } from "@/components/CotizacionesDialog";
 import { BancoAutocomplete } from "@/components/BancoAutocomplete";
 
 const baseColumnDefs = [
@@ -621,12 +621,13 @@ const Proveedores = () => {
           panelName="Proveedores"
         />
 
-        {/* Cotizaciones Dialog with History */}
+        {/* Cotizaciones Dialog */}
         {cotizacionesProveedor && (
-          <CotizacionesDialogWithHistory
+          <CotizacionesDialog
             open={!!cotizacionesProveedor}
             onOpenChange={(open) => !open && setCotizacionesProveedor(null)}
-            proveedor={cotizacionesProveedor}
+            proveedorId={cotizacionesProveedor.id}
+            proveedorNombre={cotizacionesProveedor.nombre}
             cotizaciones={cotizacionesProveedor.cotizacionesAnteriores || []}
             onCotizacionesChange={(cotizaciones) => {
               handleUpdateProveedor(cotizacionesProveedor.id, 'cotizacionesAnteriores', cotizaciones);

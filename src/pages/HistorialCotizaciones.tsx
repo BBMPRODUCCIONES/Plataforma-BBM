@@ -185,17 +185,32 @@ const HistorialCotizaciones = () => {
     }
   };
 
+  const parseStorageRef = (filePath: string): { bucket: string; path: string } => {
+    const knownBuckets = new Set(["supplier-cotizaciones", "project-attachments", "notes-images"]);
+
+    if (!filePath) {
+      return { bucket: "supplier-cotizaciones", path: "" };
+    }
+
+    const [first, ...rest] = filePath.split("/");
+    if (rest.length > 0 && knownBuckets.has(first)) {
+      return { bucket: first, path: rest.join("/") };
+    }
+
+    // Legacy fallback (older records stored only the path)
+    return { bucket: "supplier-cotizaciones", path: filePath };
+  };
+
   const loadSignedUrls = async (records: CotizacionHistoryRecord[]) => {
     const newSignedUrls: Record<string, string> = {};
 
     for (const record of records) {
       try {
+        const { bucket, path } = parseStorageRef(record.file_path);
+        if (!path) continue;
+
         const { data, error } = await supabase.functions.invoke("get-signed-url", {
-          body: {
-            bucket: "supplier-cotizaciones",
-            path: record.file_path,
-            expiresIn: 3600,
-          },
+          body: { bucket, path, expiresIn: 3600 },
         });
 
         if (!error && data?.signedUrl) {
@@ -211,19 +226,18 @@ const HistorialCotizaciones = () => {
 
   const handleView = async (record: CotizacionHistoryRecord) => {
     let url = signedUrls[record.id];
+
     if (!url) {
+      const { bucket, path } = parseStorageRef(record.file_path);
       const { data, error } = await supabase.functions.invoke("get-signed-url", {
-        body: {
-          bucket: "supplier-cotizaciones",
-          path: record.file_path,
-          expiresIn: 3600,
-        },
+        body: { bucket, path, expiresIn: 3600 },
       });
       if (!error && data?.signedUrl) {
         url = data.signedUrl;
         setSignedUrls((prev) => ({ ...prev, [record.id]: url }));
       }
     }
+
     if (url) {
       window.open(url, "_blank");
     } else {
@@ -233,21 +247,19 @@ const HistorialCotizaciones = () => {
 
   const handleDownload = async (record: CotizacionHistoryRecord) => {
     let url = signedUrls[record.id];
+
     if (!url) {
+      const { bucket, path } = parseStorageRef(record.file_path);
       const { data, error } = await supabase.functions.invoke("get-signed-url", {
-        body: {
-          bucket: "supplier-cotizaciones",
-          path: record.file_path,
-          expiresIn: 3600,
-        },
+        body: { bucket, path, expiresIn: 3600 },
       });
       if (!error && data?.signedUrl) {
         url = data.signedUrl;
         setSignedUrls((prev) => ({ ...prev, [record.id]: url }));
       }
     }
+
     if (url) {
-      // Create a temporary link to download
       const a = document.createElement("a");
       a.href = url;
       a.download = record.file_name;

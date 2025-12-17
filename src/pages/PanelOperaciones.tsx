@@ -530,67 +530,76 @@ const PanelOperaciones = () => {
 
   // Helper function to create cotizacion history records when attachments are added
   const createCotizacionHistoryFromAttachments = async (
-    projectId: string, 
-    personalItem: PersonalItem, 
+    projectId: string,
+    personalItem: PersonalItem,
     newAttachments: Attachment[],
     previousAttachments: Attachment[]
   ) => {
     // Only process for Proveedor or Transporte types with proveedorId
-    if (!personalItem.proveedorId || (personalItem.tipoPersonal !== 'Proveedor' && personalItem.tipoPersonal !== 'Transporte')) {
+    if (!personalItem.proveedorId || (personalItem.tipoPersonal !== "Proveedor" && personalItem.tipoPersonal !== "Transporte")) {
       return;
     }
 
+    const getAttachmentKey = (a: Attachment) => {
+      // IMPORTANT: url is often empty for private files; filePath is the stable unique identifier.
+      if (a.bucket && a.filePath) return `${a.bucket}:${a.filePath}`;
+      if (a.filePath) return `:${a.filePath}`;
+      if (a.id) return `id:${a.id}`;
+      return `${a.name || "archivo"}:${a.uploadedAt || ""}`;
+    };
+
     // Find truly new attachments (not in previous)
-    const previousUrls = new Set((previousAttachments || []).map(a => a.url));
-    const addedAttachments = (newAttachments || []).filter(a => !previousUrls.has(a.url));
-    
+    const previousKeys = new Set((previousAttachments || []).map(getAttachmentKey));
+    const addedAttachments = (newAttachments || []).filter((a) => !previousKeys.has(getAttachmentKey(a)));
+
     if (addedAttachments.length === 0) return;
 
     // Get proveedor data for snapshot
     const { data: proveedorData, error: provError } = await supabase
-      .from('suppliers')
-      .select('*')
-      .eq('id', personalItem.proveedorId)
+      .from("suppliers")
+      .select("*")
+      .eq("id", personalItem.proveedorId)
       .single();
 
     if (provError || !proveedorData) {
-      console.error('[PanelOperaciones] Error fetching proveedor for history:', provError);
+      console.error("[PanelOperaciones] Error fetching proveedor for history:", provError);
       return;
     }
-
-    const project = projects.find(p => p.id === projectId);
 
     // Create history record for each new attachment
     for (const attachment of addedAttachments) {
       try {
+        const storageRef = attachment.bucket && attachment.filePath
+          ? `${attachment.bucket}/${attachment.filePath}`
+          : (attachment.filePath || "");
+
         const historyRecord = {
           proveedor_id: personalItem.proveedorId,
           evento_id: projectId,
           fecha: new Date().toISOString(),
-          proveedor_nombre: proveedorData.nombre || '',
-          proveedor_categoria: proveedorData.categoria || '',
-          proveedor_telefono: proveedorData.telefono || '',
-          proveedor_correo: proveedorData.correo || '',
-          proveedor_tipo_producto_servicio: proveedorData.tipo_producto_servicio || '',
-          file_name: attachment.name || 'archivo',
-          file_url: attachment.url || '',
-          file_path: attachment.filePath || attachment.url || '',
+          proveedor_nombre: proveedorData.nombre || "",
+          proveedor_categoria: proveedorData.categoria || "",
+          proveedor_telefono: proveedorData.telefono || "",
+          proveedor_correo: proveedorData.correo || "",
+          proveedor_tipo_producto_servicio: proveedorData.tipo_producto_servicio || "",
+          file_name: attachment.name || "archivo",
+          file_url: attachment.url || "",
+          // Store as "bucket/path" to be able to generate signed URLs reliably
+          file_path: storageRef,
           file_size: attachment.size || 0,
           uploaded_by: user?.id || null,
           uploaded_by_email: user?.email || null,
         };
 
-        const { error } = await supabase
-          .from('supplier_cotizacion_history')
-          .insert(historyRecord);
+        const { error } = await supabase.from("supplier_cotizacion_history").insert(historyRecord);
 
         if (error) {
-          console.error('[PanelOperaciones] Error creating cotizacion history:', error);
+          console.error("[PanelOperaciones] Error creating cotizacion history:", error);
         } else {
-          console.log('[PanelOperaciones] Created cotizacion history for:', attachment.name);
+          console.log("[PanelOperaciones] Created cotizacion history for:", attachment.name);
         }
       } catch (err) {
-        console.error('[PanelOperaciones] Exception creating cotizacion history:', err);
+        console.error("[PanelOperaciones] Exception creating cotizacion history:", err);
       }
     }
   };

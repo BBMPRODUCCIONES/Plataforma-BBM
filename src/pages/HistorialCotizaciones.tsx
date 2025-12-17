@@ -21,10 +21,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Search, Download, Eye, Trash2, Loader2, ArrowLeft, FileText } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, Download, Eye, Trash2, Loader2, ArrowLeft, FileText, Filter, X, Info } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Badge } from "@/components/ui/badge";
 
 interface CotizacionHistoryRecord {
   id: string;
@@ -58,12 +66,48 @@ const HistorialCotizaciones = () => {
   const isAdmin = role?.toLowerCase() === "administrador";
   const canEditFiles = canEdit();
 
+  // Search & filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProveedorId, setSelectedProveedorId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [eventoFilter, setEventoFilter] = useState<string>("todos");
+  const [categoriaFilter, setCategoriaFilter] = useState<string>("todos");
+  const [tipoProductoFilter, setTipoProductoFilter] = useState<string>("todos");
+  
   const [records, setRecords] = useState<CotizacionHistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+
+  // Get unique values for filters
+  const uniqueEventos = useMemo(() => {
+    const eventos = new Set<string>();
+    records.forEach(r => {
+      if (r.evento_nombre && r.evento_nombre !== "Sin evento") {
+        eventos.add(r.evento_nombre);
+      }
+    });
+    return Array.from(eventos).sort();
+  }, [records]);
+
+  const uniqueCategorias = useMemo(() => {
+    const categorias = new Set<string>();
+    records.forEach(r => {
+      if (r.proveedor_categoria) {
+        categorias.add(r.proveedor_categoria);
+      }
+    });
+    return Array.from(categorias).sort();
+  }, [records]);
+
+  const uniqueTiposProducto = useMemo(() => {
+    const tipos = new Set<string>();
+    records.forEach(r => {
+      if (r.proveedor_tipo_producto_servicio) {
+        tipos.add(r.proveedor_tipo_producto_servicio);
+      }
+    });
+    return Array.from(tipos).sort();
+  }, [records]);
 
   // Filter proveedores for autocomplete
   const filteredProveedores = useMemo(() => {
@@ -71,7 +115,11 @@ const HistorialCotizaciones = () => {
     const normalizedSearch = searchTerm.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return proveedores.filter((p) => {
       const normalizedName = p.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      return normalizedName.includes(normalizedSearch);
+      const normalizedCorreo = (p.correo || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const normalizedTipo = (p.tipoProductoServicio || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return normalizedName.includes(normalizedSearch) || 
+             normalizedCorreo.includes(normalizedSearch) ||
+             normalizedTipo.includes(normalizedSearch);
     });
   }, [proveedores, searchTerm]);
 
@@ -83,6 +131,16 @@ const HistorialCotizaciones = () => {
   useEffect(() => {
     fetchRecords();
   }, [selectedProveedorId]);
+
+  // Apply additional filters to records
+  const filteredRecords = useMemo(() => {
+    return records.filter(r => {
+      if (eventoFilter !== "todos" && r.evento_nombre !== eventoFilter) return false;
+      if (categoriaFilter !== "todos" && r.proveedor_categoria !== categoriaFilter) return false;
+      if (tipoProductoFilter !== "todos" && r.proveedor_tipo_producto_servicio !== tipoProductoFilter) return false;
+      return true;
+    });
+  }, [records, eventoFilter, categoriaFilter, tipoProductoFilter]);
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -259,6 +317,16 @@ const HistorialCotizaciones = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const clearFilters = () => {
+    setSelectedProveedorId(null);
+    setSearchTerm("");
+    setEventoFilter("todos");
+    setCategoriaFilter("todos");
+    setTipoProductoFilter("todos");
+  };
+
+  const hasActiveFilters = selectedProveedorId || eventoFilter !== "todos" || categoriaFilter !== "todos" || tipoProductoFilter !== "todos";
+
   if (proveedoresLoading) {
     return (
       <Layout>
@@ -274,7 +342,7 @@ const HistorialCotizaciones = () => {
       <div className="space-y-6">
         <PanelHeader
           title="Historial de Cotizaciones"
-          description="Historial completo de cotizaciones por proveedor"
+          description="Historial automático de cotizaciones vinculadas desde Panel de Operaciones"
           panelLinks={[
             { label: "Volver a Proveedores", to: "/proveedores" },
           ]}
@@ -290,15 +358,30 @@ const HistorialCotizaciones = () => {
           }
         />
 
-        {/* Search by Proveedor */}
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
+        {/* Info Banner */}
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border">
+          <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-muted-foreground">
+            <p className="font-medium text-foreground mb-1">Historial automático</p>
+            <p>
+              Este historial se genera automáticamente cuando se agregan adjuntos a personal tipo{" "}
+              <Badge variant="secondary" className="mx-1">Proveedor</Badge> o{" "}
+              <Badge variant="secondary" className="mx-1">Transporte</Badge>{" "}
+              en el Panel de Operaciones. No se pueden crear registros manualmente.
+            </p>
+          </div>
+        </div>
+
+        {/* Search & Filters */}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Search by Proveedor */}
+          <div className="relative flex-1 min-w-[250px] max-w-md">
             <Popover open={searchOpen} onOpenChange={setSearchOpen}>
               <PopoverTrigger asChild>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar proveedor por nombre..."
+                    placeholder="Buscar por nombre, correo o tipo..."
                     value={selectedProveedor ? selectedProveedor.nombre : searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
@@ -321,7 +404,7 @@ const HistorialCotizaciones = () => {
                       setSearchOpen(false);
                     }}
                   >
-                    <span className="text-sm font-medium">Mostrar todos los registros</span>
+                    <span className="text-sm font-medium">Mostrar todos los proveedores</span>
                   </div>
                   
                   {filteredProveedores.length === 0 ? (
@@ -343,6 +426,7 @@ const HistorialCotizaciones = () => {
                       >
                         <div className="text-sm font-medium">{p.nombre}</div>
                         <div className="text-xs text-muted-foreground">
+                          {p.correo && <span>{p.correo} • </span>}
                           {p.categoria} • {p.tipoProductoServicio}
                         </div>
                       </div>
@@ -353,16 +437,54 @@ const HistorialCotizaciones = () => {
             </Popover>
           </div>
 
-          {selectedProveedor && (
+          {/* Evento Filter */}
+          <Select value={eventoFilter} onValueChange={setEventoFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Evento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los eventos</SelectItem>
+              {uniqueEventos.map((evento) => (
+                <SelectItem key={evento} value={evento}>{evento}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Categoria Filter */}
+          <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Categoría" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas</SelectItem>
+              {uniqueCategorias.map((cat) => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Tipo Producto Filter */}
+          <Select value={tipoProductoFilter} onValueChange={setTipoProductoFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Tipo producto" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los tipos</SelectItem>
+              {uniqueTiposProducto.map((tipo) => (
+                <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {hasActiveFilters && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                setSelectedProveedorId(null);
-                setSearchTerm("");
-              }}
+              onClick={clearFilters}
+              className="gap-1"
             >
-              Limpiar filtro
+              <X className="h-4 w-4" />
+              Limpiar filtros
             </Button>
           )}
         </div>
@@ -389,27 +511,36 @@ const HistorialCotizaciones = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {records.length === 0 ? (
+                  {filteredRecords.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="h-32 text-center">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                           <FileText className="h-8 w-8 mb-2" />
-                          <p className="text-sm">
-                            {selectedProveedorId
-                              ? "Este proveedor no tiene cotizaciones registradas"
-                              : "Selecciona un proveedor para ver su historial de cotizaciones"}
+                          <p className="text-sm font-medium mb-1">
+                            {records.length === 0 
+                              ? "No hay cotizaciones registradas"
+                              : "No hay registros con los filtros seleccionados"
+                            }
+                          </p>
+                          <p className="text-xs max-w-md">
+                            {records.length === 0 
+                              ? "Las cotizaciones se crean automáticamente al agregar adjuntos a personal tipo Proveedor o Transporte en Panel de Operaciones."
+                              : "Prueba ajustando los filtros para ver más resultados."
+                            }
                           </p>
                         </div>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    records.map((record) => (
+                    filteredRecords.map((record) => (
                     <TableRow key={record.id} className="hover:bg-muted/30">
                       <TableCell className="text-xs">
                         {formatDate(record.fecha)}
                       </TableCell>
                       <TableCell className="text-xs">
-                        {record.evento_nombre || "Sin evento"}
+                        <Badge variant="outline" className="font-normal">
+                          {record.evento_nombre || "Sin evento"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-xs">
                         {record.proveedor_categoria || "-"}
@@ -453,7 +584,7 @@ const HistorialCotizaciones = () => {
                             >
                               <Download className="h-3.5 w-3.5" />
                             </Button>
-                            {canEditFiles && (
+                            {isAdmin && (
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -477,9 +608,9 @@ const HistorialCotizaciones = () => {
         </div>
 
         {/* Summary */}
-        {records.length > 0 && (
+        {filteredRecords.length > 0 && (
           <div className="text-sm text-muted-foreground">
-            Mostrando {records.length} registro(s)
+            Mostrando {filteredRecords.length} de {records.length} registro(s)
             {selectedProveedor && ` para ${selectedProveedor.nombre}`}
           </div>
         )}

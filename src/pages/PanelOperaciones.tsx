@@ -528,9 +528,80 @@ const PanelOperaciones = () => {
   // Generate a unique key for the table to force re-renders when columns change
   const tableKey = `table-${allColumnConfigs.map(c => `${c.key}-${c.visible}-${c.order}`).join('_')}`;
 
-  const updatePersonalItem = (projectId: string, personalId: string, field: string, value: any) => {
+  // Helper function to create cotizacion history records when attachments are added
+  const createCotizacionHistoryFromAttachments = async (
+    projectId: string, 
+    personalItem: PersonalItem, 
+    newAttachments: Attachment[],
+    previousAttachments: Attachment[]
+  ) => {
+    // Only process for Proveedor or Transporte types with proveedorId
+    if (!personalItem.proveedorId || (personalItem.tipoPersonal !== 'Proveedor' && personalItem.tipoPersonal !== 'Transporte')) {
+      return;
+    }
+
+    // Find truly new attachments (not in previous)
+    const previousUrls = new Set((previousAttachments || []).map(a => a.url));
+    const addedAttachments = (newAttachments || []).filter(a => !previousUrls.has(a.url));
+    
+    if (addedAttachments.length === 0) return;
+
+    // Get proveedor data for snapshot
+    const { data: proveedorData, error: provError } = await supabase
+      .from('suppliers')
+      .select('*')
+      .eq('id', personalItem.proveedorId)
+      .single();
+
+    if (provError || !proveedorData) {
+      console.error('[PanelOperaciones] Error fetching proveedor for history:', provError);
+      return;
+    }
+
+    const project = projects.find(p => p.id === projectId);
+
+    // Create history record for each new attachment
+    for (const attachment of addedAttachments) {
+      try {
+        const historyRecord = {
+          proveedor_id: personalItem.proveedorId,
+          evento_id: projectId,
+          fecha: new Date().toISOString(),
+          proveedor_nombre: proveedorData.nombre || '',
+          proveedor_categoria: proveedorData.categoria || '',
+          proveedor_telefono: proveedorData.telefono || '',
+          proveedor_correo: proveedorData.correo || '',
+          proveedor_tipo_producto_servicio: proveedorData.tipo_producto_servicio || '',
+          file_name: attachment.name || 'archivo',
+          file_url: attachment.url || '',
+          file_path: attachment.filePath || attachment.url || '',
+          file_size: attachment.size || 0,
+          uploaded_by: user?.id || null,
+          uploaded_by_email: user?.email || null,
+        };
+
+        const { error } = await supabase
+          .from('supplier_cotizacion_history')
+          .insert(historyRecord);
+
+        if (error) {
+          console.error('[PanelOperaciones] Error creating cotizacion history:', error);
+        } else {
+          console.log('[PanelOperaciones] Created cotizacion history for:', attachment.name);
+        }
+      } catch (err) {
+        console.error('[PanelOperaciones] Exception creating cotizacion history:', err);
+      }
+    }
+  };
+
+  const updatePersonalItem = async (projectId: string, personalId: string, field: string, value: any) => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
+    
+    // Get current personal item for comparison
+    const currentItem = (project.personal || []).find(p => p.id === personalId);
+    
     const updatedPersonal = (project.personal || []).map(p => {
       if (p.id !== personalId) return p;
       const updated = { ...p, [field]: value };
@@ -539,7 +610,19 @@ const PanelOperaciones = () => {
       }
       return updated;
     });
+    
+    // Update project first
     contextUpdateProject(projectId, 'personal', updatedPersonal);
+    
+    // If adjuntos field is being updated, create history records automatically
+    if (field === 'adjuntos' && currentItem && (currentItem.tipoPersonal === 'Proveedor' || currentItem.tipoPersonal === 'Transporte')) {
+      await createCotizacionHistoryFromAttachments(
+        projectId,
+        { ...currentItem, [field]: value },
+        value as Attachment[],
+        currentItem.adjuntos || []
+      );
+    }
   };
 
   // Atomic update for multiple fields - prevents stale closure issues

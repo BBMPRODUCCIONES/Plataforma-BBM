@@ -28,11 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Download, Eye, Trash2, Loader2, ArrowLeft, FileText, Filter, X, Info } from "lucide-react";
+import { Search, Download, Eye, Trash2, Loader2, ArrowLeft, FileText, Filter, X, Info, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
+import * as XLSX from "xlsx";
 
 interface CotizacionHistoryRecord {
   id: string;
@@ -327,6 +328,65 @@ const HistorialCotizaciones = () => {
 
   const hasActiveFilters = selectedProveedorId || eventoFilter !== "todos" || categoriaFilter !== "todos" || tipoProductoFilter !== "todos";
 
+  // Excel export function
+  const exportToExcel = () => {
+    if (filteredRecords.length === 0) {
+      toast.error("No hay registros para exportar");
+      return;
+    }
+
+    try {
+      // Prepare data for export
+      const exportData = filteredRecords.map((record) => ({
+        "FECHA": formatDate(record.fecha),
+        "EVENTO": record.evento_nombre || "Sin evento",
+        "CATEGORÍA": record.proveedor_categoria || "-",
+        "NOMBRE": record.proveedor_nombre,
+        "TELÉFONO": record.proveedor_telefono || "-",
+        "CORREO": record.proveedor_correo || "-",
+        "TIPO DE PRODUCTO O SERVICIO": record.proveedor_tipo_producto_servicio || "-",
+        "ARCHIVO": record.file_name,
+        "TAMAÑO": formatFileSize(record.file_size),
+        "SUBIDO POR": record.uploaded_by_email || "-",
+      }));
+
+      // Create workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Historial Cotizaciones");
+
+      // Set column widths
+      const colWidths = [
+        { wch: 18 }, // Fecha
+        { wch: 25 }, // Evento
+        { wch: 15 }, // Categoría
+        { wch: 25 }, // Nombre
+        { wch: 15 }, // Teléfono
+        { wch: 30 }, // Correo
+        { wch: 30 }, // Tipo Producto
+        { wch: 35 }, // Archivo
+        { wch: 12 }, // Tamaño
+        { wch: 25 }, // Subido por
+      ];
+      ws["!cols"] = colWidths;
+
+      // Generate filename with date and filters
+      const dateStr = format(new Date(), "yyyy-MM-dd");
+      let filename = `historial_cotizaciones_${dateStr}`;
+      if (selectedProveedor) {
+        filename += `_${selectedProveedor.nombre.replace(/[^a-zA-Z0-9]/g, "_")}`;
+      }
+      filename += ".xlsx";
+
+      // Download file
+      XLSX.writeFile(wb, filename);
+      toast.success(`Exportado ${filteredRecords.length} registro(s) a Excel`);
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      toast.error("Error al exportar a Excel");
+    }
+  };
+
   if (proveedoresLoading) {
     return (
       <Layout>
@@ -347,14 +407,25 @@ const HistorialCotizaciones = () => {
             { label: "Volver a Proveedores", to: "/proveedores" },
           ]}
           actions={
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.history.back()}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToExcel}
+                disabled={filteredRecords.length === 0}
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Exportar Excel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.history.back()}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver
+              </Button>
+            </div>
           }
         />
 

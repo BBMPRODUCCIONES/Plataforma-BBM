@@ -53,6 +53,7 @@ const Proveedores = () => {
   const [newProveedorOpen, setNewProveedorOpen] = useState(false);
   const [cotizacionesProveedor, setCotizacionesProveedor] = useState<Proveedor | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [newProveedor, setNewProveedor] = useState({
     categoria: "",
     nombre: "",
@@ -114,9 +115,15 @@ const Proveedores = () => {
     if (!newProveedor.nombre.trim()) {
       errors.nombre = "Campo obligatorio";
     }
-    if (!newProveedor.telefono.trim()) {
+    
+    // Validar teléfono: exactamente 10 dígitos
+    const telefonoDigits = newProveedor.telefono.replace(/\D/g, "");
+    if (!telefonoDigits) {
       errors.telefono = "Campo obligatorio";
+    } else if (telefonoDigits.length !== 10) {
+      errors.telefono = "Debe tener exactamente 10 dígitos";
     }
+    
     if (!newProveedor.tipoProductoServicio.trim()) {
       errors.tipoProductoServicio = "Campo obligatorio";
     }
@@ -125,12 +132,16 @@ const Proveedores = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleCreateProveedor = async () => {
+  const handleConfirmSave = () => {
     if (!validateNewProveedor()) {
       toast.error("Por favor completa todos los campos obligatorios para crear el proveedor");
       return;
     }
+    setConfirmDialogOpen(true);
+  };
 
+  const handleCreateProveedor = async () => {
+    setConfirmDialogOpen(false);
     setSaving(true);
     try {
       await addProveedor({
@@ -496,19 +507,29 @@ const Proveedores = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Teléfono *</Label>
+                  <Label>Teléfono * (10 dígitos)</Label>
                   <Input
                     value={newProveedor.telefono}
                     onChange={(e) => {
-                      setNewProveedor(prev => ({ ...prev, telefono: e.target.value }));
+                      // Solo permitir números
+                      const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      setNewProveedor(prev => ({ ...prev, telefono: value }));
                       if (formErrors.telefono) setFormErrors(prev => ({ ...prev, telefono: "" }));
                     }}
-                    placeholder="Teléfono"
+                    placeholder="3001234567"
+                    maxLength={10}
                     className={formErrors.telefono ? "border-destructive" : ""}
                   />
-                  {formErrors.telefono && (
-                    <p className="text-xs text-destructive">{formErrors.telefono}</p>
-                  )}
+                  <div className="flex justify-between">
+                    {formErrors.telefono ? (
+                      <p className="text-xs text-destructive">{formErrors.telefono}</p>
+                    ) : (
+                      <span></span>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {newProveedor.telefono.length}/10
+                    </p>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Correo</Label>
@@ -589,9 +610,38 @@ const Proveedores = () => {
               <Button variant="outline" onClick={() => setNewProveedorOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleCreateProveedor} disabled={saving}>
+              <Button onClick={handleConfirmSave} disabled={saving}>
                 {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Guardar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirmation Dialog */}
+        <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Confirmar información</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-muted-foreground">
+                ¿Está seguro de que la información ingresada es correcta?
+              </p>
+              <div className="mt-4 p-3 bg-muted rounded-md text-sm space-y-1">
+                <p><strong>Categoría:</strong> {newProveedor.categoria}</p>
+                <p><strong>Nombre:</strong> {newProveedor.nombre}</p>
+                <p><strong>Teléfono:</strong> {newProveedor.telefono}</p>
+                <p><strong>Tipo:</strong> {newProveedor.tipoProductoServicio}</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
+                Revisar
+              </Button>
+              <Button onClick={handleCreateProveedor} disabled={saving}>
+                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Confirmar
               </Button>
             </DialogFooter>
           </DialogContent>

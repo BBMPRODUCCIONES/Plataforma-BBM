@@ -64,6 +64,7 @@ const Proveedores = () => {
     tipoCuenta: "",
     numeroCuenta: "",
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { role } = useUserRole();
   const isAdmin = role?.toLowerCase() === "administrador";
 
@@ -104,9 +105,29 @@ const Proveedores = () => {
     }
   };
 
-  const handleCreateProveedor = async () => {
+  const validateNewProveedor = () => {
+    const errors: Record<string, string> = {};
+    
+    if (!newProveedor.categoria.trim()) {
+      errors.categoria = "Campo obligatorio";
+    }
     if (!newProveedor.nombre.trim()) {
-      toast.error("El nombre es requerido");
+      errors.nombre = "Campo obligatorio";
+    }
+    if (!newProveedor.telefono.trim()) {
+      errors.telefono = "Campo obligatorio";
+    }
+    if (!newProveedor.tipoProductoServicio.trim()) {
+      errors.tipoProductoServicio = "Campo obligatorio";
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleCreateProveedor = async () => {
+    if (!validateNewProveedor()) {
+      toast.error("Por favor completa todos los campos obligatorios para crear el proveedor");
       return;
     }
 
@@ -129,6 +150,7 @@ const Proveedores = () => {
         tipoCuenta: "",
         numeroCuenta: "",
       });
+      setFormErrors({});
     } catch (err) {
       console.error('[Proveedores] Error creating proveedor:', err);
       toast.error("Error al crear proveedor");
@@ -441,31 +463,52 @@ const Proveedores = () => {
 
             <div className="space-y-4 mt-4">
               <div className="space-y-2">
-                <Label>Nombre *</Label>
+                <Label>Categoría *</Label>
                 <Input
-                  value={newProveedor.nombre}
-                  onChange={(e) => setNewProveedor(prev => ({ ...prev, nombre: e.target.value }))}
-                  placeholder="Nombre del proveedor"
+                  value={newProveedor.categoria}
+                  onChange={(e) => {
+                    setNewProveedor(prev => ({ ...prev, categoria: e.target.value }));
+                    if (formErrors.categoria) setFormErrors(prev => ({ ...prev, categoria: "" }));
+                  }}
+                  placeholder="Ej: Transporte, Equipos, Catering..."
+                  className={formErrors.categoria ? "border-destructive" : ""}
                 />
+                {formErrors.categoria && (
+                  <p className="text-xs text-destructive">{formErrors.categoria}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label>Categoría</Label>
+                <Label>Nombre *</Label>
                 <Input
-                  value={newProveedor.categoria}
-                  onChange={(e) => setNewProveedor(prev => ({ ...prev, categoria: e.target.value }))}
-                  placeholder="Ej: Transporte, Equipos, Catering..."
+                  value={newProveedor.nombre}
+                  onChange={(e) => {
+                    setNewProveedor(prev => ({ ...prev, nombre: e.target.value }));
+                    if (formErrors.nombre) setFormErrors(prev => ({ ...prev, nombre: "" }));
+                  }}
+                  placeholder="Nombre del proveedor"
+                  className={formErrors.nombre ? "border-destructive" : ""}
                 />
+                {formErrors.nombre && (
+                  <p className="text-xs text-destructive">{formErrors.nombre}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Teléfono</Label>
+                  <Label>Teléfono *</Label>
                   <Input
                     value={newProveedor.telefono}
-                    onChange={(e) => setNewProveedor(prev => ({ ...prev, telefono: e.target.value }))}
+                    onChange={(e) => {
+                      setNewProveedor(prev => ({ ...prev, telefono: e.target.value }));
+                      if (formErrors.telefono) setFormErrors(prev => ({ ...prev, telefono: "" }));
+                    }}
                     placeholder="Teléfono"
+                    className={formErrors.telefono ? "border-destructive" : ""}
                   />
+                  {formErrors.telefono && (
+                    <p className="text-xs text-destructive">{formErrors.telefono}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Correo</Label>
@@ -479,12 +522,19 @@ const Proveedores = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Tipo de Producto o Servicio</Label>
+                <Label>Tipo de Producto o Servicio *</Label>
                 <Input
                   value={newProveedor.tipoProductoServicio}
-                  onChange={(e) => setNewProveedor(prev => ({ ...prev, tipoProductoServicio: e.target.value }))}
+                  onChange={(e) => {
+                    setNewProveedor(prev => ({ ...prev, tipoProductoServicio: e.target.value }));
+                    if (formErrors.tipoProductoServicio) setFormErrors(prev => ({ ...prev, tipoProductoServicio: "" }));
+                  }}
                   placeholder="Descripción del producto/servicio"
+                  className={formErrors.tipoProductoServicio ? "border-destructive" : ""}
                 />
+                {formErrors.tipoProductoServicio && (
+                  <p className="text-xs text-destructive">{formErrors.tipoProductoServicio}</p>
+                )}
               </div>
 
               <div className="space-y-2">

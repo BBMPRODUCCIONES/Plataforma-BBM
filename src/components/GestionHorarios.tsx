@@ -12,11 +12,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Search, Plus, CalendarIcon, Pencil, Trash2, ChevronLeft, ChevronRight, User, AlertCircle, RefreshCw } from 'lucide-react';
+import { Search, Plus, CalendarIcon, Pencil, Trash2, ChevronLeft, ChevronRight, User, AlertCircle, RefreshCw, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Project, PersonalItem } from '@/types';
 import { EmpleadoAutocomplete } from '@/components/EmpleadoAutocomplete';
 import { HorarioFormDialog } from '@/components/HorarioFormDialog';
+import { DateRange } from 'react-day-picker';
 
 type ViewMode = 'day' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 
@@ -50,6 +51,8 @@ export const GestionHorarios = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | undefined>();
+  const [tempRange, setTempRange] = useState<DateRange | undefined>();
+  const [isRangePopoverOpen, setIsRangePopoverOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Dialog state
@@ -478,33 +481,116 @@ export const GestionHorarios = () => {
         </div>
 
         {/* Custom range button */}
-        <Popover>
+        <Popover open={isRangePopoverOpen} onOpenChange={setIsRangePopoverOpen}>
           <PopoverTrigger asChild>
             <Button
               variant={viewMode === 'custom' ? 'secondary' : 'outline'}
               size="sm"
               className="h-7 px-3 text-xs gap-1"
-              onClick={() => setViewMode('custom')}
+              onClick={() => {
+                setTempRange(dateRange ? { from: dateRange.from, to: dateRange.to } : undefined);
+                setIsRangePopoverOpen(true);
+              }}
             >
               <CalendarIcon className="h-3 w-3" />
-              Rango
+              {viewMode === 'custom' && dateRange ? (
+                <span>{format(dateRange.from, 'd MMM', { locale: es })} - {format(dateRange.to, 'd MMM', { locale: es })}</span>
+              ) : (
+                'Rango'
+              )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              selected={dateRange}
-              onSelect={(range) => {
-                if (range?.from && range?.to) {
-                  setDateRange({ from: range.from, to: range.to });
-                  setViewMode('custom');
-                }
-              }}
-              locale={es}
-              className="pointer-events-auto"
-            />
+          <PopoverContent 
+            className="w-auto p-0 z-[100] bg-popover border border-border shadow-lg" 
+            align="start"
+            sideOffset={4}
+            onInteractOutside={(e) => {
+              // Prevent closing when clicking inside the calendar
+              e.preventDefault();
+            }}
+          >
+            <div className="p-3 space-y-3">
+              <Calendar
+                mode="range"
+                selected={tempRange}
+                onSelect={(range) => {
+                  setTempRange(range);
+                }}
+                locale={es}
+                numberOfMonths={1}
+                className="pointer-events-auto"
+              />
+              
+              {/* Range status indicator */}
+              <div className="text-xs text-muted-foreground text-center border-t border-border pt-2">
+                {!tempRange?.from && 'Selecciona fecha inicio'}
+                {tempRange?.from && !tempRange?.to && (
+                  <span className="text-primary font-medium">
+                    Inicio: {format(tempRange.from, 'd MMM yyyy', { locale: es })} — Selecciona fecha fin
+                  </span>
+                )}
+                {tempRange?.from && tempRange?.to && (
+                  <span className="text-green-600 font-medium">
+                    {format(tempRange.from, 'd MMM', { locale: es })} — {format(tempRange.to, 'd MMM yyyy', { locale: es })}
+                  </span>
+                )}
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex gap-2 pt-2 border-t border-border">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-8 text-xs"
+                  onClick={() => {
+                    setTempRange(undefined);
+                    setDateRange(undefined);
+                    setViewMode('month');
+                    setIsRangePopoverOpen(false);
+                  }}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Limpiar
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1 h-8 text-xs"
+                  disabled={!tempRange?.from || !tempRange?.to}
+                  onClick={() => {
+                    if (tempRange?.from && tempRange?.to) {
+                      // Ensure from <= to (swap if needed)
+                      const from = tempRange.from <= tempRange.to ? tempRange.from : tempRange.to;
+                      const to = tempRange.from <= tempRange.to ? tempRange.to : tempRange.from;
+                      setDateRange({ from, to });
+                      setViewMode('custom');
+                      setIsRangePopoverOpen(false);
+                      toast.success(`Rango aplicado: ${format(from, 'd MMM', { locale: es })} - ${format(to, 'd MMM yyyy', { locale: es })}`);
+                    }
+                  }}
+                >
+                  Aplicar
+                </Button>
+              </div>
+            </div>
           </PopoverContent>
         </Popover>
+        
+        {/* Clear range button (visible when custom range is active) */}
+        {viewMode === 'custom' && dateRange && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+            onClick={() => {
+              setDateRange(undefined);
+              setTempRange(undefined);
+              setViewMode('month');
+              toast.info('Rango eliminado');
+            }}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        )}
 
         {/* Navigation */}
         <div className="flex items-center gap-1 ml-auto">

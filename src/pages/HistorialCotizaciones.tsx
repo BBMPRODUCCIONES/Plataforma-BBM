@@ -39,6 +39,7 @@ interface CotizacionHistoryRecord {
   id: string;
   proveedor_id: string;
   evento_id: string | null;
+  personal_item_id: string | null;
   fecha: string;
   proveedor_nombre: string;
   proveedor_categoria: string;
@@ -57,6 +58,29 @@ interface CotizacionHistoryRecord {
   created_at: string;
   // Joined from projects
   evento_nombre?: string;
+}
+
+interface FileInfo {
+  id: string;
+  name: string;
+  path: string;
+  size: number;
+  uploadedAt: string;
+}
+
+interface GroupedCotizacionRecord {
+  groupKey: string;
+  proveedor_id: string;
+  proveedor_nombre: string;
+  proveedor_categoria: string;
+  proveedor_telefono: string;
+  proveedor_correo: string;
+  proveedor_tipo_producto_servicio: string;
+  evento_id: string | null;
+  evento_nombre: string;
+  personal_item_id: string | null;
+  latestDate: string;
+  files: FileInfo[];
 }
 
 const HistorialCotizaciones = () => {
@@ -133,15 +157,69 @@ const HistorialCotizaciones = () => {
     fetchRecords();
   }, [selectedProveedorId]);
 
-  // Apply additional filters to records
+  // Group records by evento+proveedor+personal_item
+  const groupRecords = (records: CotizacionHistoryRecord[]): GroupedCotizacionRecord[] => {
+    const groups = new Map<string, GroupedCotizacionRecord>();
+    
+    records.forEach(record => {
+      // Grouping key: evento + proveedor + personal_item (legacy records use fallback)
+      const key = `${record.evento_id || 'sin-evento'}-${record.proveedor_id}-${record.personal_item_id || 'legacy-' + record.id}`;
+      
+      if (!groups.has(key)) {
+        groups.set(key, {
+          groupKey: key,
+          proveedor_id: record.proveedor_id,
+          proveedor_nombre: record.proveedor_nombre,
+          proveedor_categoria: record.proveedor_categoria,
+          proveedor_telefono: record.proveedor_telefono,
+          proveedor_correo: record.proveedor_correo,
+          proveedor_tipo_producto_servicio: record.proveedor_tipo_producto_servicio,
+          evento_id: record.evento_id,
+          evento_nombre: record.evento_nombre || "Sin evento",
+          personal_item_id: record.personal_item_id,
+          latestDate: record.fecha,
+          files: []
+        });
+      }
+      
+      const group = groups.get(key)!;
+      group.files.push({
+        id: record.id,
+        name: record.file_name,
+        path: record.file_path,
+        size: record.file_size,
+        uploadedAt: record.fecha
+      });
+      
+      // Update to latest date
+      if (record.fecha > group.latestDate) {
+        group.latestDate = record.fecha;
+      }
+    });
+    
+    // Sort groups by latest date descending, and files within each group
+    return Array.from(groups.values())
+      .sort((a, b) => new Date(b.latestDate).getTime() - new Date(a.latestDate).getTime())
+      .map(group => ({
+        ...group,
+        files: group.files.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
+      }));
+  };
+
+  // Apply additional filters to records and group them
   const filteredRecords = useMemo(() => {
-    return records.filter(r => {
+    const filtered = records.filter(r => {
       if (eventoFilter !== "todos" && r.evento_nombre !== eventoFilter) return false;
       if (categoriaFilter !== "todos" && r.proveedor_categoria !== categoriaFilter) return false;
       if (tipoProductoFilter !== "todos" && r.proveedor_tipo_producto_servicio !== tipoProductoFilter) return false;
       return true;
     });
+    return filtered;
   }, [records, eventoFilter, categoriaFilter, tipoProductoFilter]);
+
+  const groupedRecords = useMemo(() => {
+    return groupRecords(filteredRecords);
+  }, [filteredRecords]);
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -238,17 +316,17 @@ const HistorialCotizaciones = () => {
     setSignedUrls(newSignedUrls);
   };
 
-  const handleView = async (record: CotizacionHistoryRecord) => {
-    let url = signedUrls[record.id];
+  const handleViewFile = async (file: FileInfo) => {
+    let url = signedUrls[file.id];
 
     if (!url) {
-      const { bucket, path } = parseStorageRef(record.file_path);
+      const { bucket, path } = parseStorageRef(file.path);
       const { data, error } = await supabase.functions.invoke("get-signed-url", {
         body: { bucket, path, expiresIn: 3600 },
       });
       if (!error && data?.signedUrl) {
         url = data.signedUrl;
-        setSignedUrls((prev) => ({ ...prev, [record.id]: url }));
+        setSignedUrls((prev) => ({ ...prev, [file.id]: url }));
       }
     }
 
@@ -259,30 +337,91 @@ const HistorialCotizaciones = () => {
     }
   };
 
-  const handleDownload = async (record: CotizacionHistoryRecord) => {
-    let url = signedUrls[record.id];
+  const handleDownloadFile = async (file: FileInfo) => {
+    let url = signedUrls[file.id];
 
     if (!url) {
-      const { bucket, path } = parseStorageRef(record.file_path);
+      const { bucket, path } = parseStorageRef(file.path);
       const { data, error } = await supabase.functions.invoke("get-signed-url", {
         body: { bucket, path, expiresIn: 3600 },
       });
       if (!error && data?.signedUrl) {
         url = data.signedUrl;
-        setSignedUrls((prev) => ({ ...prev, [record.id]: url }));
+        setSignedUrls((prev) => ({ ...prev, [file.id]: url }));
       }
     }
 
     if (url) {
       const a = document.createElement("a");
       a.href = url;
-      a.download = record.file_name;
+      a.download = file.name;
       a.target = "_blank";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
     } else {
       toast.error("Error al descargar el archivo");
+    }
+  };
+
+  const handleView = async (record: CotizacionHistoryRecord) => {
+    await handleViewFile({
+      id: record.id,
+      name: record.file_name,
+      path: record.file_path,
+      size: record.file_size,
+      uploadedAt: record.fecha
+    });
+  };
+
+  const handleDownload = async (record: CotizacionHistoryRecord) => {
+    await handleDownloadFile({
+      id: record.id,
+      name: record.file_name,
+      path: record.file_path,
+      size: record.file_size,
+      uploadedAt: record.fecha
+    });
+  };
+
+  const handleDeleteFile = async (fileId: string, fileName: string, group: GroupedCotizacionRecord) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar "${fileName}"?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("supplier_cotizacion_history")
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: user?.id || null,
+          deleted_by_email: user?.email || null,
+        })
+        .eq("id", fileId);
+
+      if (error) {
+        console.error("Error deleting record:", error);
+        toast.error("Error al eliminar el registro");
+        return;
+      }
+
+      await supabase.from("user_audit_log").insert({
+        action: "DELETE_COTIZACION_HISTORY",
+        actor_id: user?.id || "",
+        actor_email: user?.email || "",
+        target_id: fileId,
+        panel: "historial-cotizaciones",
+        details: {
+          proveedor_id: group.proveedor_id,
+          proveedor_nombre: group.proveedor_nombre,
+          file_name: fileName,
+          evento_id: group.evento_id,
+        },
+      });
+
+      toast.success("Archivo eliminado");
+      fetchRecords();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al eliminar el archivo");
     }
   };
 
@@ -608,7 +747,7 @@ const HistorialCotizaciones = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRecords.length === 0 ? (
+                  {groupedRecords.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="h-32 text-center">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
@@ -629,71 +768,134 @@ const HistorialCotizaciones = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredRecords.map((record) => (
-                    <TableRow key={record.id} className="hover:bg-muted/30">
+                    groupedRecords.map((group) => (
+                    <TableRow key={group.groupKey} className="hover:bg-muted/30">
                       <TableCell className="text-xs">
-                        {formatDate(record.fecha)}
+                        {formatDate(group.latestDate)}
                       </TableCell>
                       <TableCell className="text-xs">
                         <Badge variant="outline" className="font-normal">
-                          {record.evento_nombre || "Sin evento"}
+                          {group.evento_nombre || "Sin evento"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs">
-                        {record.proveedor_categoria || "-"}
+                        {group.proveedor_categoria || "-"}
                       </TableCell>
                       <TableCell className="text-xs font-medium">
-                        {record.proveedor_nombre}
+                        {group.proveedor_nombre}
                       </TableCell>
                       <TableCell className="text-xs">
-                        {record.proveedor_telefono || "-"}
+                        {group.proveedor_telefono || "-"}
                       </TableCell>
                       <TableCell className="text-xs">
-                        {record.proveedor_correo || "-"}
+                        {group.proveedor_correo || "-"}
                       </TableCell>
                       <TableCell className="text-xs">
-                        {record.proveedor_tipo_producto_servicio || "-"}
+                        {group.proveedor_tipo_producto_servicio || "-"}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs truncate max-w-[100px]" title={record.file_name}>
-                            {record.file_name}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            ({formatFileSize(record.file_size)})
-                          </span>
-                          <div className="flex items-center gap-1 ml-auto">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleView(record)}
-                              title="Ver"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleDownload(record)}
-                              title="Descargar"
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                            </Button>
-                            {isAdmin && (
+                        {group.files.length === 1 ? (
+                          // Single file: show inline
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs truncate max-w-[100px]" title={group.files[0].name}>
+                              {group.files[0].name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              ({formatFileSize(group.files[0].size)})
+                            </span>
+                            <div className="flex items-center gap-1 ml-auto">
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-destructive hover:text-destructive"
-                                onClick={() => handleDelete(record)}
-                                title="Eliminar"
+                                className="h-7 w-7"
+                                onClick={() => handleViewFile(group.files[0])}
+                                title="Ver"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Eye className="h-3.5 w-3.5" />
                               </Button>
-                            )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => handleDownloadFile(group.files[0])}
+                                title="Descargar"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                              </Button>
+                              {isAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                  onClick={() => handleDeleteFile(group.files[0].id, group.files[0].name, group)}
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          // Multiple files: show dropdown
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-7 gap-1.5">
+                                <FileText className="h-3.5 w-3.5" />
+                                <span className="text-xs">{group.files.length} archivos</span>
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[320px] p-0" align="start">
+                              <div className="p-2 border-b bg-muted/30">
+                                <span className="text-xs font-medium">{group.files.length} archivos adjuntos</span>
+                              </div>
+                              <div className="max-h-[250px] overflow-y-auto">
+                                {group.files.map((file) => (
+                                  <div key={file.id} className="flex items-center justify-between px-3 py-2 border-b last:border-b-0 hover:bg-muted/30">
+                                    <div className="flex-1 min-w-0 mr-2">
+                                      <p className="text-xs font-medium truncate" title={file.name}>
+                                        {file.name}
+                                      </p>
+                                      <p className="text-[10px] text-muted-foreground">
+                                        {formatFileSize(file.size)} • {formatDate(file.uploadedAt)}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => handleViewFile(file)}
+                                        title="Ver"
+                                      >
+                                        <Eye className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => handleDownloadFile(file)}
+                                        title="Descargar"
+                                      >
+                                        <Download className="h-3 w-3" />
+                                      </Button>
+                                      {isAdmin && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 text-destructive hover:text-destructive"
+                                          onClick={() => handleDeleteFile(file.id, file.name, group)}
+                                          title="Eliminar"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
@@ -705,9 +907,9 @@ const HistorialCotizaciones = () => {
         </div>
 
         {/* Summary */}
-        {filteredRecords.length > 0 && (
+        {groupedRecords.length > 0 && (
           <div className="text-sm text-muted-foreground">
-            Mostrando {filteredRecords.length} de {records.length} registro(s)
+            Mostrando {groupedRecords.length} grupo(s) ({filteredRecords.length} archivo(s)) de {records.length} registro(s)
             {selectedProveedor && ` para ${selectedProveedor.nombre}`}
           </div>
         )}

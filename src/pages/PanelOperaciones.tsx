@@ -607,6 +607,7 @@ const PanelOperaciones = () => {
         const historyRecord = {
           proveedor_id: personalItem.proveedorId,
           evento_id: projectId,
+          personal_item_id: personalItem.id || null, // Link to personal row for grouping
           fecha: new Date().toISOString(),
           proveedor_nombre: proveedorData.nombre || "",
           proveedor_categoria: proveedorData.categoria || "",

@@ -189,16 +189,30 @@ const HistorialCotizaciones = () => {
     const knownBuckets = new Set(["supplier-cotizaciones", "project-attachments", "notes-images"]);
 
     if (!filePath) {
-      return { bucket: "supplier-cotizaciones", path: "" };
+      return { bucket: "project-attachments", path: "" };
     }
 
     const [first, ...rest] = filePath.split("/");
+    
+    // Si el primer segmento es un bucket conocido
     if (rest.length > 0 && knownBuckets.has(first)) {
       return { bucket: first, path: rest.join("/") };
     }
 
-    // Legacy fallback (older records stored only the path)
-    return { bucket: "supplier-cotizaciones", path: filePath };
+    // Detectar patrón de AttachmentManager: {uuid}/personal-*-adjuntos/{filename}
+    // Este patrón indica que el archivo está en project-attachments
+    if (filePath.includes("/personal-") && filePath.includes("-adjuntos/")) {
+      return { bucket: "project-attachments", path: filePath };
+    }
+
+    // Detectar patrón UUID como primer segmento (archivos de proyectos)
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidPattern.test(first) && rest.length > 0) {
+      return { bucket: "project-attachments", path: filePath };
+    }
+
+    // Default para adjuntos del panel de operaciones
+    return { bucket: "project-attachments", path: filePath };
   };
 
   const loadSignedUrls = async (records: CotizacionHistoryRecord[]) => {

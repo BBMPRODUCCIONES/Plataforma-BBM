@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useHorarios, Horario } from '@/contexts/HorariosContext';
 import { useEmpleados } from '@/contexts/EmpleadosContext';
 import { useProjects } from '@/contexts/ProjectsContext';
@@ -787,25 +788,101 @@ export const GestionHorarios = () => {
                     return "bg-green-500/20 text-green-400";
                   };
 
-                  // Render category as tags/pills
-                  const renderCategoria = (categoria: string) => {
+                  // Render category as tags/pills with clickable events
+                  const renderCategoria = (categoria: string, originalHorarios: Horario[]) => {
                     const parts = categoria.split(' + ').map(p => p.trim()).filter(Boolean);
                     if (parts.length === 0) return <span className="text-muted-foreground">—</span>;
+                    
+                    // Build a map of event names to project IDs from originalHorarios
+                    const eventToProjectId = new Map<string, string>();
+                    originalHorarios.forEach(h => {
+                      if (h.evento_id && h.evento_nombre) {
+                        eventToProjectId.set(h.evento_nombre.toLowerCase(), h.evento_id);
+                      }
+                      // Also check contingencia_contexto for event IDs
+                      if (h.contingencia_contexto) {
+                        let contexto: { eventos?: string[] } | null = null;
+                        if (typeof h.contingencia_contexto === 'string') {
+                          try {
+                            contexto = JSON.parse(h.contingencia_contexto);
+                          } catch (e) {}
+                        } else if (typeof h.contingencia_contexto === 'object') {
+                          contexto = h.contingencia_contexto as { eventos?: string[] };
+                        }
+                        if (contexto?.eventos) {
+                          contexto.eventos.forEach(eventId => {
+                            const project = projects.find(p => p.id === eventId);
+                            if (project) {
+                              eventToProjectId.set(project.evento.toLowerCase(), project.id);
+                            }
+                          });
+                        }
+                      }
+                    });
+                    
+                    // Also look up project by name if not found in horarios
+                    const navigate = useNavigate();
+                    
+                    const handleEventClick = (eventName: string) => {
+                      const lowercaseName = eventName.toLowerCase();
+                      let projectId = eventToProjectId.get(lowercaseName);
+                      
+                      // If not in horario map, try to find in projects by name
+                      if (!projectId) {
+                        const project = projects.find(p => p.evento.toLowerCase() === lowercaseName);
+                        if (project) {
+                          projectId = project.id;
+                        }
+                      }
+                      
+                      if (projectId) {
+                        navigate(`/panel-operaciones?eventId=${projectId}`);
+                      }
+                    };
                     
                     return (
                       <div className="flex flex-wrap gap-1">
                         {parts.map((part, i) => {
                           const isOficina = part.toLowerCase() === 'oficina';
+                          const isCasa = part.toLowerCase() === 'casa';
+                          const isStatic = isOficina || isCasa;
+                          
+                          // Check if this is a clickable event
+                          const lowercasePart = part.toLowerCase();
+                          const hasProjectId = eventToProjectId.has(lowercasePart) || 
+                            projects.some(p => p.evento.toLowerCase() === lowercasePart);
+                          
+                          if (isStatic) {
+                            return (
+                              <span
+                                key={i}
+                                className={cn(
+                                  "px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap",
+                                  isOficina ? "bg-blue-500/20 text-blue-400" : "bg-amber-500/20 text-amber-400"
+                                )}
+                              >
+                                {part}
+                              </span>
+                            );
+                          }
+                          
                           return (
-                            <span
+                            <button
                               key={i}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEventClick(part);
+                              }}
                               className={cn(
-                                "px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap",
-                                isOficina ? "bg-blue-500/20 text-blue-400" : "bg-green-500/20 text-green-400"
+                                "px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap transition-all",
+                                "bg-green-500/20 text-green-400",
+                                hasProjectId && "cursor-pointer hover:ring-2 hover:ring-green-500/50 hover:bg-green-500/30"
                               )}
+                              title={hasProjectId ? "Clic para ver evento" : undefined}
                             >
                               {part}
-                            </span>
+                            </button>
                           );
                         })}
                       </div>
@@ -842,7 +919,7 @@ export const GestionHorarios = () => {
                         </div>
                       </TableCell>
                       <TableCell className="font-mono">{format(parseISO(horario.dia), 'dd/MM/yyyy')}</TableCell>
-                      <TableCell>{renderCategoria(horario.displayCategoria)}</TableCell>
+                      <TableCell>{renderCategoria(horario.displayCategoria, horario.originalHorarios)}</TableCell>
                       <TableCell className="text-center font-mono">{horario.llegada || '—'}</TableCell>
                       <TableCell className="text-center">{renderUbicacion(horario.ubicacion_llegada)}</TableCell>
                       <TableCell className="text-center font-mono">{horario.salida || '—'}</TableCell>

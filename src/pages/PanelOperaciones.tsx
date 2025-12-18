@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
@@ -56,6 +56,7 @@ import { CajaMenorStatusIcon } from "@/components/CajaMenorStatusIcon";
 
 const PanelOperaciones = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
@@ -65,6 +66,7 @@ const PanelOperaciones = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
+  const eventIdHandledRef = useRef<string | null>(null);
   // Initialize with base columns - persisted to localStorage
   const defaultColumns: ColumnConfig[] = [
     { key: "centroCostos", header: "CC", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 0 },
@@ -121,6 +123,47 @@ const PanelOperaciones = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProject?.id]);
+
+  // Handle eventId URL parameter - auto-highlight and scroll to event
+  useEffect(() => {
+    const eventId = searchParams.get("eventId");
+    if (!eventId || loading || projects.length === 0) return;
+    
+    // Prevent handling the same eventId multiple times
+    if (eventIdHandledRef.current === eventId) return;
+    eventIdHandledRef.current = eventId;
+    
+    // Find the project
+    const project = projects.find(p => p.id === eventId);
+    if (project) {
+      // Highlight the project row
+      setHighlightedProjectId(eventId);
+      
+      // Switch to matrix tab
+      setTimeout(() => {
+        const tabTrigger = document.querySelector('[value="matriz"]') as HTMLElement;
+        if (tabTrigger) tabTrigger.click();
+      }, 100);
+      
+      // Scroll to the row after a short delay
+      setTimeout(() => {
+        const rowElement = document.querySelector(`[data-project-id="${eventId}"]`);
+        if (rowElement) {
+          rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 300);
+      
+      // Clear the URL param after handling
+      setTimeout(() => {
+        setSearchParams({}, { replace: true });
+      }, 500);
+      
+      // Remove highlight after 3 seconds
+      setTimeout(() => {
+        setHighlightedProjectId(null);
+      }, 3000);
+    }
+  }, [searchParams, loading, projects, setSearchParams]);
 
   // Check if user is admin
   const isAdmin = role?.toLowerCase() === "administrador";

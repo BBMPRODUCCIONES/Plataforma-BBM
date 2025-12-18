@@ -280,6 +280,10 @@ export function GanttChart({
               <span className="text-muted-foreground">Ejecución</span>
             </div>
             <div className="flex items-center gap-2">
+              <div className="w-4 h-3 rounded-sm bg-destructive/40 border border-dashed border-destructive" />
+              <span className="text-muted-foreground">Eliminado</span>
+            </div>
+            <div className="flex items-center gap-2">
               <div className="w-4 h-3 rounded-sm bg-orange-500/30" />
               <span className="text-muted-foreground">Festivo</span>
             </div>
@@ -383,19 +387,31 @@ export function GanttChart({
             projects.map((project) => {
               const montajeBar = getBarPosition(project.fechaMontajeInicio, project.fechaMontajeFin);
               const ejecucionBar = getBarPosition(project.fechaEjecucionInicio, project.fechaEjecucionFin);
+              const isDeleted = project.isDeleted;
 
               return (
                 <div 
                   key={project.id} 
                   className={cn(
                     "flex border-b border-border hover:bg-table-row-hover transition-colors",
-                    onProjectClick && "cursor-pointer"
+                    onProjectClick && "cursor-pointer",
+                    isDeleted && "gantt-row-deleted"
                   )}
                   onClick={() => onProjectClick?.(project.id)}
                 >
-                  <div className="w-48 min-w-48 px-3 py-3 border-r border-border bg-card sticky left-0 z-10">
-                    <div className="text-xs font-medium truncate">{project.evento}</div>
-                    <div className="text-[10px] text-muted-foreground truncate">{project.cliente}</div>
+                  <div className={cn(
+                    "w-48 min-w-48 px-3 py-3 border-r border-border bg-card sticky left-0 z-10",
+                    isDeleted && "border-l-2 border-l-destructive bg-destructive/5"
+                  )}>
+                    <div className="flex items-center gap-1.5">
+                      <div className={cn("text-xs font-medium truncate", isDeleted && "text-destructive/80")}>{project.evento}</div>
+                      {isDeleted && (
+                        <span className="text-[9px] px-1 py-0.5 rounded bg-destructive/20 text-destructive font-medium whitespace-nowrap">
+                          ELIMINADO
+                        </span>
+                      )}
+                    </div>
+                    <div className={cn("text-[10px] text-muted-foreground truncate", isDeleted && "text-destructive/60")}>{project.cliente}</div>
                   </div>
                   <div className="relative py-2" style={{ width: totalWidth }}>
                     {/* Grid lines */}
@@ -424,26 +440,38 @@ export function GanttChart({
                     <div className="relative h-12 px-1">
                       {montajeBar && (
                         <div
-                          className="absolute top-1 h-4 gantt-bar gantt-bar-montaje rounded-sm shadow-sm"
+                          className={cn(
+                            "absolute top-1 h-4 gantt-bar rounded-sm shadow-sm",
+                            isDeleted ? "gantt-bar-deleted" : "gantt-bar-montaje"
+                          )}
                           style={{ left: montajeBar.left, width: Math.max(montajeBar.width - 2, 4) }}
-                          title={`Montaje: ${format(parseISO(project.fechaMontajeInicio), "d MMM", { locale: es })} - ${format(parseISO(project.fechaMontajeFin), "d MMM", { locale: es })}`}
+                          title={`${isDeleted ? "[ELIMINADO] " : ""}Montaje: ${format(parseISO(project.fechaMontajeInicio), "d MMM", { locale: es })} - ${format(parseISO(project.fechaMontajeFin), "d MMM", { locale: es })}`}
                         >
                           {montajeBar.width > 60 && (
-                            <span className="absolute inset-0 flex items-center justify-center text-[9px] text-white/90 font-medium truncate px-1">
-                              Montaje
+                            <span className={cn(
+                              "absolute inset-0 flex items-center justify-center text-[9px] font-medium truncate px-1",
+                              isDeleted ? "text-destructive" : "text-white/90"
+                            )}>
+                              {isDeleted ? "Eliminado" : "Montaje"}
                             </span>
                           )}
                         </div>
                       )}
                       {ejecucionBar && (
                         <div
-                          className="absolute bottom-1 h-4 gantt-bar gantt-bar-ejecucion rounded-sm shadow-sm"
+                          className={cn(
+                            "absolute bottom-1 h-4 gantt-bar rounded-sm shadow-sm",
+                            isDeleted ? "gantt-bar-deleted" : "gantt-bar-ejecucion"
+                          )}
                           style={{ left: ejecucionBar.left, width: Math.max(ejecucionBar.width - 2, 4) }}
-                          title={`Ejecución: ${format(parseISO(project.fechaEjecucionInicio), "d MMM", { locale: es })} - ${format(parseISO(project.fechaEjecucionFin), "d MMM", { locale: es })}`}
+                          title={`${isDeleted ? "[ELIMINADO] " : ""}Ejecución: ${format(parseISO(project.fechaEjecucionInicio), "d MMM", { locale: es })} - ${format(parseISO(project.fechaEjecucionFin), "d MMM", { locale: es })}`}
                         >
                           {ejecucionBar.width > 60 && (
-                            <span className="absolute inset-0 flex items-center justify-center text-[9px] text-white/90 font-medium truncate px-1">
-                              Ejecución
+                            <span className={cn(
+                              "absolute inset-0 flex items-center justify-center text-[9px] font-medium truncate px-1",
+                              isDeleted ? "text-destructive" : "text-white/90"
+                            )}>
+                              {isDeleted ? "Eliminado" : "Ejecución"}
                             </span>
                           )}
                         </div>

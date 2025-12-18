@@ -569,9 +569,11 @@ const PanelOperaciones = () => {
     // Create history record for each new attachment
     for (const attachment of addedAttachments) {
       try {
-        const storageRef = attachment.bucket && attachment.filePath
-          ? `${attachment.bucket}/${attachment.filePath}`
-          : (attachment.filePath || "");
+        // Always ensure bucket prefix is included - default to project-attachments
+        const bucket = attachment.bucket || "project-attachments";
+        const storageRef = attachment.filePath 
+          ? `${bucket}/${attachment.filePath}`
+          : "";
 
         const historyRecord = {
           proveedor_id: personalItem.proveedorId,

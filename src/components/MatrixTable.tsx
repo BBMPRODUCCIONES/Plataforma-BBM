@@ -56,10 +56,11 @@ export function MatrixTable<T extends { id: string }>({
           {data.map((item, idx) => (
             <tr
               key={item.id}
+              data-project-id={item.id}
               onClick={() => onRowClick?.(item)}
               className={cn(
                 onRowClick && "cursor-pointer",
-                highlightedId === item.id && "bg-primary/20 ring-2 ring-primary ring-inset",
+                highlightedId === item.id && "bg-primary/20 ring-2 ring-primary ring-inset animate-pulse",
                 getRowClassName?.(item)
               )}
             >

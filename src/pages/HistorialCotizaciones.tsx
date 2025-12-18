@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +7,7 @@ import { useProveedores } from "@/contexts/ProveedoresContext";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { EventLink } from "@/components/EventLink";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -788,9 +790,17 @@ const HistorialCotizaciones = () => {
                         {formatDate(group.latestDate)}
                       </TableCell>
                       <TableCell className="text-xs">
-                        <Badge variant="outline" className="font-normal">
-                          {group.evento_nombre || "Sin evento"}
-                        </Badge>
+                        {group.evento_id ? (
+                          <EventLink
+                            eventId={group.evento_id}
+                            eventName={group.evento_nombre || "Sin evento"}
+                            variant="badge"
+                          />
+                        ) : (
+                          <Badge variant="outline" className="font-normal">
+                            Sin evento
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-xs">
                         {group.proveedor_categoria || "-"}

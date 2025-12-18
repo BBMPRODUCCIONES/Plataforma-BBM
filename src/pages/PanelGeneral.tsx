@@ -13,6 +13,7 @@ import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
+import { EventLink } from "@/components/EventLink";
 import { usePersistedColumns } from "@/hooks/usePersistedColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjects } from "@/contexts/ProjectsContext";
@@ -186,10 +187,10 @@ const PanelGeneral = () => {
         );
       case "evento":
         return (p: Project) => (
-          <EditableCell
-            value={p.evento}
-            type="text"
-            onChange={(value) => updateProject(p.id, "evento", value)}
+          <EventLink
+            eventId={p.id}
+            eventName={p.evento}
+            isDeleted={p.isDeleted}
             className="font-medium"
           />
         );

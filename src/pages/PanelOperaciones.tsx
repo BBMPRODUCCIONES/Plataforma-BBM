@@ -65,6 +65,7 @@ const PanelOperaciones = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"matriz" | "gantt">("matriz");
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const eventIdHandledRef = useRef<string | null>(null);
   // Initialize with base columns - persisted to localStorage
@@ -128,41 +129,39 @@ const PanelOperaciones = () => {
   useEffect(() => {
     const eventId = searchParams.get("eventId");
     if (!eventId || loading || projects.length === 0) return;
-    
-    // Prevent handling the same eventId multiple times
+
+    // Prevent handling the same eventId multiple times in a row
     if (eventIdHandledRef.current === eventId) return;
     eventIdHandledRef.current = eventId;
-    
+
     // Find the project
-    const project = projects.find(p => p.id === eventId);
-    if (project) {
-      // Highlight the project row
-      setHighlightedProjectId(eventId);
-      
-      // Switch to matrix tab
-      setTimeout(() => {
-        const tabTrigger = document.querySelector('[value="matriz"]') as HTMLElement;
-        if (tabTrigger) tabTrigger.click();
-      }, 100);
-      
-      // Scroll to the row after a short delay
-      setTimeout(() => {
-        const rowElement = document.querySelector(`[data-project-id="${eventId}"]`);
-        if (rowElement) {
-          rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 300);
-      
-      // Clear the URL param after handling
-      setTimeout(() => {
-        setSearchParams({}, { replace: true });
-      }, 500);
-      
-      // Remove highlight after 3 seconds
-      setTimeout(() => {
-        setHighlightedProjectId(null);
-      }, 3000);
-    }
+    const project = projects.find((p) => p.id === eventId);
+    if (!project) return;
+
+    // Highlight the project row
+    setHighlightedProjectId(eventId);
+
+    // Switch to matrix tab (reliable, no DOM click)
+    setActiveTab("matriz");
+
+    // Scroll to the row after a short delay (wait for tab content to mount)
+    setTimeout(() => {
+      const rowElement = document.querySelector(`[data-project-id="${eventId}"]`);
+      if (rowElement) {
+        rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 300);
+
+    // Clear the URL param after handling, and allow clicking the same event again
+    setTimeout(() => {
+      setSearchParams({}, { replace: true });
+      eventIdHandledRef.current = null;
+    }, 500);
+
+    // Remove highlight after 3 seconds
+    setTimeout(() => {
+      setHighlightedProjectId(null);
+    }, 3000);
   }, [searchParams, loading, projects, setSearchParams]);
 
   // Check if user is admin
@@ -280,8 +279,15 @@ const PanelOperaciones = () => {
 
   const handleGanttProjectClick = (projectId: string) => {
     setHighlightedProjectId(projectId);
-    const tabTrigger = document.querySelector('[value="matriz"]') as HTMLElement;
-    if (tabTrigger) tabTrigger.click();
+    setActiveTab("matriz");
+
+    // Scroll to the row after switching tabs
+    setTimeout(() => {
+      const rowElement = document.querySelector(`[data-project-id="${projectId}"]`);
+      if (rowElement) {
+        rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 300);
   };
 
   // Function to get render for each column type
@@ -1452,7 +1458,7 @@ const PanelOperaciones = () => {
           onStatusChange={setStatusFilter}
         />
 
-        <Tabs defaultValue="matriz" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "matriz" | "gantt")} className="space-y-4">
           <div className="flex items-center justify-between">
             <TabsList>
               <TabsTrigger value="matriz">Matriz Operaciones</TabsTrigger>

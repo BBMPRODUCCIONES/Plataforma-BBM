@@ -29,6 +29,7 @@ import {
 import { es } from "date-fns/locale";
 import { ZoomIn, ZoomOut, MoveHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EventLink } from "@/components/EventLink";
 
 interface GanttChartProps {
   projects: Project[];
@@ -404,7 +405,12 @@ export function GanttChart({
                     isDeleted && "border-l-2 border-l-destructive bg-destructive/5"
                   )}>
                     <div className="flex items-center gap-1.5">
-                      <div className={cn("text-xs font-medium truncate", isDeleted && "text-destructive/80")}>{project.evento}</div>
+                      <EventLink 
+                        eventId={project.id}
+                        eventName={project.evento}
+                        isDeleted={isDeleted}
+                        className="text-xs font-medium truncate"
+                      />
                       {isDeleted && (
                         <span className="text-[9px] px-1 py-0.5 rounded bg-destructive/20 text-destructive font-medium whitespace-nowrap">
                           ELIMINADO

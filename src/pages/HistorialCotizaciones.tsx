@@ -157,13 +157,23 @@ const HistorialCotizaciones = () => {
     fetchRecords();
   }, [selectedProveedorId]);
 
-  // Group records by evento+proveedor+personal_item
+  // Extract personal_item_id from file_path pattern: .../personal-<ID>-adjuntos/...
+  const extractPersonalItemIdFromPath = (filePath: string): string | null => {
+    if (!filePath) return null;
+    const match = filePath.match(/personal-([^/]+)-adjuntos/);
+    return match ? match[1] : null;
+  };
+
+  // Group records by evento+proveedor+personal_item (inferred from file_path if needed)
   const groupRecords = (records: CotizacionHistoryRecord[]): GroupedCotizacionRecord[] => {
     const groups = new Map<string, GroupedCotizacionRecord>();
     
     records.forEach(record => {
-      // Grouping key: evento + proveedor + personal_item (legacy records use fallback)
-      const key = `${record.evento_id || 'sin-evento'}-${record.proveedor_id}-${record.personal_item_id || 'legacy-' + record.id}`;
+      // Get personal_item_id: first from DB field, fallback to extracting from file_path
+      const personalItemId = record.personal_item_id || extractPersonalItemIdFromPath(record.file_path);
+      
+      // Grouping key: evento + proveedor + personal_item
+      const key = `${record.evento_id || 'sin-evento'}-${record.proveedor_id}-${personalItemId || 'legacy-' + record.id}`;
       
       if (!groups.has(key)) {
         groups.set(key, {
@@ -176,7 +186,7 @@ const HistorialCotizaciones = () => {
           proveedor_tipo_producto_servicio: record.proveedor_tipo_producto_servicio,
           evento_id: record.evento_id,
           evento_nombre: record.evento_nombre || "Sin evento",
-          personal_item_id: record.personal_item_id,
+          personal_item_id: personalItemId,
           latestDate: record.fecha,
           files: []
         });

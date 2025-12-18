@@ -207,8 +207,33 @@
 
   /* Deleted row styling */
   .row-deleted {
-    background: hsl(0 84% 60% / 0.10) !important;
-    border: 1px solid hsl(0 84% 60% / 0.35);
+    @apply opacity-80;
+    background: linear-gradient(90deg, 
+      hsl(var(--destructive) / 0.15) 0%, 
+      hsl(var(--destructive) / 0.08) 50%,
+      hsl(var(--destructive) / 0.03) 100%) !important;
+    border-left: 3px solid hsl(var(--destructive)) !important;
+  }
+
+  .row-deleted:hover {
+    background: linear-gradient(90deg, 
+      hsl(var(--destructive) / 0.2) 0%, 
+      hsl(var(--destructive) / 0.1) 50%,
+      hsl(var(--destructive) / 0.05) 100%) !important;
+  }
+
+  /* Gantt bar styles for deleted projects */
+  .gantt-bar-deleted {
+    background: hsl(var(--destructive) / 0.4) !important;
+    opacity: 0.7;
+    border: 1px dashed hsl(var(--destructive));
+  }
+
+  .gantt-row-deleted {
+    background: linear-gradient(90deg, 
+      hsl(var(--destructive) / 0.1) 0%, 
+      hsl(var(--destructive) / 0.05) 50%,
+      transparent 100%) !important;
   }
 }
 

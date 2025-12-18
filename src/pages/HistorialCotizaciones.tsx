@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Download, Eye, Trash2, Loader2, ArrowLeft, FileText, Filter, X, Info, FileSpreadsheet } from "lucide-react";
+import { MigrationDialog } from "@/components/MigrationDialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -583,6 +584,9 @@ const HistorialCotizaciones = () => {
           ]}
           actions={
             <div className="flex items-center gap-2">
+              {isAdmin && (
+                <MigrationDialog onComplete={fetchRecords} />
+              )}
               <Button
                 variant="outline"
                 size="sm"

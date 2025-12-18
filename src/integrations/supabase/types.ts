@@ -402,6 +402,8 @@ export type Database = {
           file_size: number | null
           file_url: string
           id: string
+          migrated: boolean | null
+          migrated_at: string | null
           personal_item_id: string | null
           proveedor_categoria: string
           proveedor_correo: string
@@ -425,6 +427,8 @@ export type Database = {
           file_size?: number | null
           file_url: string
           id?: string
+          migrated?: boolean | null
+          migrated_at?: string | null
           personal_item_id?: string | null
           proveedor_categoria?: string
           proveedor_correo?: string
@@ -448,6 +452,8 @@ export type Database = {
           file_size?: number | null
           file_url?: string
           id?: string
+          migrated?: boolean | null
+          migrated_at?: string | null
           personal_item_id?: string | null
           proveedor_categoria?: string
           proveedor_correo?: string

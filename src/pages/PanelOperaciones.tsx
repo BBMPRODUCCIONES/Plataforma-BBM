@@ -537,22 +537,46 @@ const PanelOperaciones = () => {
   ) => {
     // Only process for Proveedor or Transporte types with proveedorId
     if (!personalItem.proveedorId || (personalItem.tipoPersonal !== "Proveedor" && personalItem.tipoPersonal !== "Transporte")) {
+      console.log("[CotizacionHistory] Skipping - not Proveedor/Transporte or no proveedorId");
       return;
     }
 
-    const getAttachmentKey = (a: Attachment) => {
-      // IMPORTANT: url is often empty for private files; filePath is the stable unique identifier.
-      if (a.bucket && a.filePath) return `${a.bucket}:${a.filePath}`;
-      if (a.filePath) return `:${a.filePath}`;
+    console.log("[CotizacionHistory] Processing attachments:", {
+      newCount: newAttachments?.length || 0,
+      previousCount: previousAttachments?.length || 0,
+      tipoPersonal: personalItem.tipoPersonal,
+      proveedorId: personalItem.proveedorId
+    });
+
+    const getAttachmentKey = (a: Attachment): string => {
+      // Primary identifier: unique id
       if (a.id) return `id:${a.id}`;
-      return `${a.name || "archivo"}:${a.uploadedAt || ""}`;
+      // Secondary: bucket + filePath combination
+      if (a.filePath) return `path:${a.bucket || 'default'}:${a.filePath}`;
+      // Fallback: name + uploadedAt + size for uniqueness
+      return `fallback:${a.name || "archivo"}:${a.uploadedAt || ""}:${a.size || 0}`;
     };
 
     // Find truly new attachments (not in previous)
-    const previousKeys = new Set((previousAttachments || []).map(getAttachmentKey));
-    const addedAttachments = (newAttachments || []).filter((a) => !previousKeys.has(getAttachmentKey(a)));
+    const previousKeys = new Set((previousAttachments || []).map(a => {
+      const key = getAttachmentKey(a);
+      console.log("[CotizacionHistory] Previous key:", key);
+      return key;
+    }));
+    
+    const addedAttachments = (newAttachments || []).filter((a) => {
+      const key = getAttachmentKey(a);
+      const isNew = !previousKeys.has(key);
+      console.log("[CotizacionHistory] New attachment check:", { key, isNew, name: a.name });
+      return isNew;
+    });
 
-    if (addedAttachments.length === 0) return;
+    console.log("[CotizacionHistory] Added attachments count:", addedAttachments.length);
+
+    if (addedAttachments.length === 0) {
+      console.log("[CotizacionHistory] No new attachments to process");
+      return;
+    }
 
     // Get proveedor data for snapshot
     const { data: proveedorData, error: provError } = await supabase
@@ -562,18 +586,23 @@ const PanelOperaciones = () => {
       .single();
 
     if (provError || !proveedorData) {
-      console.error("[PanelOperaciones] Error fetching proveedor for history:", provError);
+      console.error("[CotizacionHistory] Error fetching proveedor for history:", provError);
       return;
     }
 
-    // Create history record for each new attachment
-    for (const attachment of addedAttachments) {
+    // Create history record for each new attachment - use Promise.all for parallel inserts
+    const insertPromises = addedAttachments.map(async (attachment, index) => {
       try {
         // Always ensure bucket prefix is included - default to project-attachments
         const bucket = attachment.bucket || "project-attachments";
         const storageRef = attachment.filePath 
           ? `${bucket}/${attachment.filePath}`
           : "";
+
+        console.log(`[CotizacionHistory] Creating record ${index + 1}/${addedAttachments.length}:`, {
+          name: attachment.name,
+          filePath: storageRef
+        });
 
         const historyRecord = {
           proveedor_id: personalItem.proveedorId,
@@ -586,7 +615,6 @@ const PanelOperaciones = () => {
           proveedor_tipo_producto_servicio: proveedorData.tipo_producto_servicio || "",
           file_name: attachment.name || "archivo",
           file_url: attachment.url || "",
-          // Store as "bucket/path" to be able to generate signed URLs reliably
           file_path: storageRef,
           file_size: attachment.size || 0,
           uploaded_by: user?.id || null,
@@ -596,14 +624,21 @@ const PanelOperaciones = () => {
         const { error } = await supabase.from("supplier_cotizacion_history").insert(historyRecord);
 
         if (error) {
-          console.error("[PanelOperaciones] Error creating cotizacion history:", error);
+          console.error("[CotizacionHistory] Error creating record:", error, attachment.name);
+          return { success: false, name: attachment.name, error };
         } else {
-          console.log("[PanelOperaciones] Created cotizacion history for:", attachment.name);
+          console.log("[CotizacionHistory] Created record successfully:", attachment.name);
+          return { success: true, name: attachment.name };
         }
       } catch (err) {
-        console.error("[PanelOperaciones] Exception creating cotizacion history:", err);
+        console.error("[CotizacionHistory] Exception creating record:", err, attachment.name);
+        return { success: false, name: attachment.name, error: err };
       }
-    }
+    });
+
+    const results = await Promise.all(insertPromises);
+    const successCount = results.filter(r => r.success).length;
+    console.log(`[CotizacionHistory] Completed: ${successCount}/${addedAttachments.length} records created`);
   };
 
   const updatePersonalItem = async (projectId: string, personalId: string, field: string, value: any) => {

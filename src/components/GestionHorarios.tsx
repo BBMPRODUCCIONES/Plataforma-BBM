@@ -43,6 +43,7 @@ interface EventoAsignado {
 }
 
 export const GestionHorarios = () => {
+  const navigate = useNavigate();
   const { horarios, loading, deleteHorario, refetch } = useHorarios();
   const { empleados } = useEmpleados();
   const { projects } = useProjects();
@@ -819,9 +820,6 @@ export const GestionHorarios = () => {
                         }
                       }
                     });
-                    
-                    // Also look up project by name if not found in horarios
-                    const navigate = useNavigate();
                     
                     const handleEventClick = (eventName: string) => {
                       const lowercaseName = eventName.toLowerCase();

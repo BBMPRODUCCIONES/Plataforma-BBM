@@ -1748,6 +1748,7 @@ const PanelOperaciones = () => {
                             <MatrixTable
                               data={currentProjectData.inventario || []}
                               columns={inventarioColumns}
+                              noHorizontalScroll
                             />
                           ) : (
                             <p className="text-sm text-muted-foreground">No hay materiales en inventario. Haga clic en "Agregar Material" para comenzar.</p>

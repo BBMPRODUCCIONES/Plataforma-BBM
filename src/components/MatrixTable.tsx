@@ -143,7 +143,7 @@ export function MatrixTable<T extends { id: string }>({
     );
   }
 
-  // Desktop render (unchanged)
+  // Desktop render - when noHorizontalScroll, columns distribute proportionally (no fixed widths)
   return (
     <div className={cn(
       noHorizontalScroll ? "overflow-hidden w-full" : "overflow-x-auto scrollbar-thin", 
@@ -158,7 +158,8 @@ export function MatrixTable<T extends { id: string }>({
             {columns.map((col) => (
               <th
                 key={col.key}
-                style={{ width: col.width, minWidth: col.width }}
+                // Only apply fixed widths when horizontal scroll is enabled
+                style={noHorizontalScroll ? undefined : { width: col.width, minWidth: col.width }}
                 className={cn(col.className)}
               >
                 {col.header}
@@ -181,7 +182,8 @@ export function MatrixTable<T extends { id: string }>({
               {columns.map((col) => (
                 <td 
                   key={col.key} 
-                  style={{ width: col.width }} 
+                  // Only apply fixed widths when horizontal scroll is enabled
+                  style={noHorizontalScroll ? undefined : { width: col.width }}
                   className={cn("touch-manipulation", col.className)}
                 >
                   {col.render

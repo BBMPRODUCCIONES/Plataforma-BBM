@@ -260,4 +260,32 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
   }
+
+  /* Mobile touch optimization */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Ensure minimum touch targets on mobile */
+  @media (max-width: 768px) {
+    .matrix-table td button,
+    .matrix-table td [role="button"] {
+      min-height: 32px;
+      min-width: 32px;
+    }
+
+    /* Ensure status icons remain visible */
+    .matrix-table [role="status"] {
+      display: inline-flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    /* Prevent text truncation on critical elements */
+    .status-badge {
+      flex-shrink: 0;
+      overflow: visible;
+    }
+  }
 }

@@ -32,7 +32,7 @@ export function StatusSelect({ value, onChange, className }: StatusSelectProps) 
     >
       <SelectTrigger 
         className={cn(
-          "h-7 text-xs w-[120px] border-border",
+          "h-7 text-xs w-[120px] border-border min-w-[100px] touch-manipulation",
           currentOption?.className,
           className
         )}
@@ -40,12 +40,12 @@ export function StatusSelect({ value, onChange, className }: StatusSelectProps) 
       >
         <SelectValue placeholder="Seleccionar" />
       </SelectTrigger>
-      <SelectContent className="bg-popover border-border z-50">
+      <SelectContent className="bg-popover border-border z-[100]">
         {STATUS_OPTIONS.map((option) => (
           <SelectItem 
             key={option.value} 
             value={option.value}
-            className={cn("text-xs", option.className)}
+            className={cn("text-xs touch-manipulation", option.className)}
           >
             {option.label}
           </SelectItem>

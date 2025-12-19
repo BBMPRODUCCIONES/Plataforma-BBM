@@ -59,13 +59,17 @@ export function MatrixTable<T extends { id: string }>({
               data-project-id={item.id}
               onClick={() => onRowClick?.(item)}
               className={cn(
-                onRowClick && "cursor-pointer",
+                onRowClick && "cursor-pointer touch-manipulation",
                 highlightedId === item.id && "bg-primary/20 ring-2 ring-primary ring-inset animate-pulse",
                 getRowClassName?.(item)
               )}
             >
               {columns.map((col) => (
-                <td key={col.key} style={{ width: col.width }} className={cn(col.className)}>
+                <td 
+                  key={col.key} 
+                  style={{ width: col.width }} 
+                  className={cn("touch-manipulation", col.className)}
+                >
                   {col.render
                     ? col.render(item, idx)
                     : (item as Record<string, unknown>)[col.key]?.toString() || "-"}

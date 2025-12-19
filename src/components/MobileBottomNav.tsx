@@ -69,15 +69,15 @@ export function MobileBottomNav() {
               key={item.url}
               onClick={() => handleNavigation(item.url)}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 min-w-[60px] h-12 px-2 rounded-lg transition-all duration-200 touch-manipulation",
+                "flex flex-col items-center justify-center gap-px min-w-[52px] h-10 px-1.5 rounded-md transition-all duration-200 touch-manipulation",
                 isActive 
                   ? "text-primary bg-primary/10" 
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
             >
-              <item.icon className={cn("h-5 w-5 transition-transform", isActive && "scale-110")} />
+              <item.icon className={cn("h-4 w-4 transition-transform", isActive && "scale-110")} />
               <span className={cn(
-                "text-[10px] font-medium transition-all",
+                "text-[9px] font-medium leading-tight",
                 isActive ? "text-primary" : "text-muted-foreground"
               )}>
                 {item.title}
@@ -91,15 +91,15 @@ export function MobileBottomNav() {
           <SheetTrigger asChild>
             <button
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 min-w-[60px] h-12 px-2 rounded-lg transition-all duration-200 touch-manipulation",
+                "flex flex-col items-center justify-center gap-px min-w-[52px] h-10 px-1.5 rounded-md transition-all duration-200 touch-manipulation",
                 isMoreActive 
                   ? "text-primary bg-primary/10" 
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
             >
-              <MoreHorizontal className={cn("h-5 w-5 transition-transform", isMoreActive && "scale-110")} />
+              <MoreHorizontal className={cn("h-4 w-4 transition-transform", isMoreActive && "scale-110")} />
               <span className={cn(
-                "text-[10px] font-medium",
+                "text-[9px] font-medium leading-tight",
                 isMoreActive ? "text-primary" : "text-muted-foreground"
               )}>
                 Más

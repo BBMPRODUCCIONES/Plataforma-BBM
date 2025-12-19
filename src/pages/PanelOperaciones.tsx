@@ -1049,7 +1049,7 @@ const PanelOperaciones = () => {
       { 
         key: "nombreMaterial", 
         header: "Material", 
-        width: "65%",
+        width: "280px",
         className: "align-top",
         render: (i: InventarioItem) => {
           const text = i.nombreMaterial || "";
@@ -1080,7 +1080,7 @@ const PanelOperaciones = () => {
       { 
         key: "cantidad", 
         header: "Cantidad", 
-        width: "8%",
+        width: "100px",
         render: (i: InventarioItem) => (
           <div className="flex flex-col gap-1">
             <EditableCell
@@ -1102,7 +1102,7 @@ const PanelOperaciones = () => {
       {
         key: "recibido",
         header: "Recibido",
-        width: "7%",
+        width: "80px",
         render: (i: InventarioItem) => (
           <EditableCell
             value={i.recibido}
@@ -1114,7 +1114,7 @@ const PanelOperaciones = () => {
       { 
         key: "notasAdicionales", 
         header: "Notas Adicionales", 
-        width: "17%",
+        width: "200px",
         render: (i: InventarioItem) => (
           <EditableCell
             value={i.notasAdicionales}
@@ -1127,7 +1127,7 @@ const PanelOperaciones = () => {
       {
         key: "acciones",
         header: "",
-        width: "3%",
+        width: "50px",
         render: (i: InventarioItem) => (
           <Button
             variant="ghost"
@@ -1720,12 +1720,11 @@ const PanelOperaciones = () => {
                             Agregar Material
                           </Button>
                         </CardHeader>
-                        <CardContent className="pt-0 overflow-hidden">
+                        <CardContent className="pt-0">
                           {(currentProjectData.inventario || []).length > 0 ? (
                             <MatrixTable
                               data={currentProjectData.inventario || []}
                               columns={inventarioColumns}
-                              noHorizontalScroll
                             />
                           ) : (
                             <p className="text-sm text-muted-foreground">No hay materiales en inventario. Haga clic en "Agregar Material" para comenzar.</p>

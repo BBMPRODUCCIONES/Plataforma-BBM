@@ -23,8 +23,8 @@ const Layout = ({ children }: LayoutProps) => {
     return (
       <div className="app-root flex flex-col w-full bg-background">
         <MobileHeader />
-        <div className="content-scroll-area flex-1 overflow-y-auto overflow-x-hidden min-w-0 pb-20">
-          <div className="p-4 pb-safe">
+        <div className="content-scroll-area flex-1 overflow-y-auto overflow-x-hidden min-w-0 pb-16">
+          <div className="pb-safe">
             {children}
           </div>
         </div>

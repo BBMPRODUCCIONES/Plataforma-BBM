@@ -1143,6 +1143,86 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
+  /* ============================================
+     MOBILE APP-LIKE EXPERIENCE
+     ============================================ */
+
+  /* Compact mobile content wrapper */
+  @media (max-width: 768px) {
+    /* Reduce padding for more content space */
+    .content-scroll-area > div {
+      padding: 12px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Panel cards - tighter on mobile */
+    .panel-card {
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    /* Panel headers - more compact */
+    .panel-header {
+      padding: 10px 12px;
+    }
+
+    /* Panel content - less padding */
+    .panel-content {
+      padding: 8px;
+    }
+
+    /* Collapsible filters container */
+    .mobile-filter-content {
+      background: hsl(var(--muted) / 0.3);
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 4px;
+    }
+
+    /* Tab triggers - compact and scrollable */
+    [role="tablist"] {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    [role="tablist"]::-webkit-scrollbar {
+      display: none;
+    }
+
+    [role="tab"] {
+      min-height: 40px;
+      padding: 8px 14px;
+      font-size: 12px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Primary action buttons - larger */
+    .primary-action-btn {
+      min-height: 48px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    /* Search inputs - app-like */
+    .search-input-mobile {
+      height: 40px;
+      border-radius: 20px;
+      padding-left: 40px;
+      font-size: 15px;
+      background: hsl(var(--muted) / 0.5);
+      border: none;
+    }
+
+    .search-input-mobile:focus {
+      background: hsl(var(--background));
+      border: 1px solid hsl(var(--border));
+      box-shadow: 0 2px 8px hsl(var(--foreground) / 0.08);
+    }
+  }
+
   /* Page transition animations for app-like feel */
   .page-transition-enter {
     opacity: 0;
@@ -1167,14 +1247,16 @@
   }
 
   /* Smooth content transitions */
-  .content-scroll-area {
-    animation: fadeSlideIn 200ms ease-out;
+  @media (max-width: 768px) {
+    .content-scroll-area {
+      animation: fadeSlideIn 180ms ease-out;
+    }
   }
 
   @keyframes fadeSlideIn {
     from {
-      opacity: 0.8;
-      transform: translateY(8px);
+      opacity: 0.85;
+      transform: translateY(6px);
     }
     to {
       opacity: 1;
@@ -1191,6 +1273,11 @@
   /* Active nav item animation */
   .mobile-bottom-nav button {
     position: relative;
+    transition: color 100ms ease, transform 100ms ease;
+  }
+
+  .mobile-bottom-nav button:active {
+    transform: scale(0.92);
   }
 
   .mobile-bottom-nav button::before {
@@ -1199,10 +1286,10 @@
     top: 0;
     left: 50%;
     transform: translateX(-50%) scaleX(0);
-    width: 32px;
+    width: 28px;
     height: 3px;
     background: hsl(var(--primary));
-    border-radius: 0 0 4px 4px;
+    border-radius: 0 0 3px 3px;
     transition: transform 150ms ease-out;
   }
 
@@ -1215,10 +1302,45 @@
   [data-vaul-drawer]::before {
     content: "";
     display: block;
-    width: 40px;
+    width: 36px;
     height: 4px;
-    background: hsl(var(--muted-foreground) / 0.3);
+    background: hsl(var(--muted-foreground) / 0.35);
     border-radius: 2px;
-    margin: 8px auto 16px;
+    margin: 6px auto 12px;
+  }
+
+  /* ============================================
+     MOBILE TOUCH RESPONSE ENHANCEMENTS
+     ============================================ */
+  
+  @media (max-width: 768px) {
+    /* All interactive elements - immediate feedback */
+    button, 
+    [role="button"], 
+    a, 
+    input, 
+    select, 
+    [data-radix-select-trigger],
+    [data-radix-dropdown-menu-trigger] {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    /* Card hover states become active states */
+    .panel-card:active {
+      background: hsl(var(--accent) / 0.3);
+    }
+
+    /* Smooth scroll behavior */
+    .content-scroll-area,
+    .mobile-scroll-container {
+      scroll-behavior: smooth;
+      overscroll-behavior: contain;
+    }
+
+    /* No overscroll on body */
+    body {
+      overscroll-behavior-y: none;
+    }
   }
 }

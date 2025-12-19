@@ -289,19 +289,82 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* CRITICAL: Mobile parity - ensure all elements visible */
+  /* ============================================
+     MOBILE/PWA TABLE SYSTEM
+     ============================================ */
+  
+  /* Mobile scroll container - enables momentum scrolling */
+  .mobile-scroll-container {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    width: 100%;
+    position: relative;
+  }
+
+  .mobile-scroll-inner {
+    display: inline-block;
+    min-width: max-content;
+  }
+
+  /* Mobile table specific styles */
+  .mobile-matrix-table {
+    border-collapse: collapse;
+    width: auto;
+    min-width: 100%;
+  }
+
+  .mobile-matrix-table th,
+  .mobile-matrix-table td {
+    white-space: nowrap;
+  }
+
+  /* Mobile table cells */
+  .mobile-table-th,
+  .mobile-table-td {
+    padding: 8px 12px;
+    vertical-align: middle;
+  }
+
+  /* ============================================
+     MOBILE RESPONSIVE RULES (PWA)
+     ============================================ */
   @media (max-width: 768px) {
-    /* Minimum touch targets */
+    /* Force horizontal scroll on all table containers */
+    .panel-card,
+    .matrix-table-container,
+    .overflow-x-auto {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Minimum touch targets - WCAG compliant */
     .matrix-table td button,
-    .matrix-table td [role="button"] {
-      min-height: 36px;
-      min-width: 36px;
+    .matrix-table td [role="button"],
+    .mobile-matrix-table td button,
+    .mobile-matrix-table td [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+      padding: 8px;
+    }
+
+    /* Inputs and selects - touch friendly */
+    .matrix-table td input,
+    .matrix-table td select,
+    .mobile-matrix-table td input,
+    .mobile-matrix-table td select,
+    [data-radix-select-trigger] {
+      min-height: 44px;
+      font-size: 16px; /* Prevents iOS zoom on focus */
+      touch-action: manipulation;
     }
 
     /* NEVER hide status icons on mobile */
     [role="status"],
     .status-icon,
-    .caja-menor-status {
+    .caja-menor-status,
+    .caja-menor-status-icon {
       display: inline-flex !important;
       visibility: visible !important;
       opacity: 1 !important;
@@ -322,23 +385,20 @@
 
     /* Ensure action buttons remain visible */
     .matrix-table td .flex,
-    .matrix-table td .inline-flex {
-      flex-wrap: wrap;
+    .matrix-table td .inline-flex,
+    .mobile-matrix-table td .flex,
+    .mobile-matrix-table td .inline-flex {
+      flex-wrap: nowrap;
       gap: 4px;
-    }
-
-    /* Touch-friendly select triggers */
-    [data-radix-select-trigger] {
-      min-height: 36px;
-      touch-action: manipulation;
     }
 
     /* Ensure event links are tappable */
     .event-link,
     [data-event-link] {
-      min-height: 32px;
+      min-height: 44px;
       display: inline-flex;
       align-items: center;
+      padding: 8px 4px;
     }
 
     /* Calendar filter mobile adjustments */
@@ -349,11 +409,94 @@
     .calendar-filter-container > * {
       flex-shrink: 0;
     }
+
+    /* Mobile scroll hint - visual indicator */
+    .mobile-scroll-container::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 40px;
+      background: linear-gradient(to right, transparent, hsl(var(--background) / 0.8));
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    .mobile-scroll-container.scrolled-right::after {
+      opacity: 0;
+    }
+
+    /* Table cells - ensure content doesn't collapse */
+    .matrix-table td,
+    .mobile-matrix-table td {
+      min-width: fit-content;
+      white-space: nowrap;
+    }
+
+    /* Dropdown and popover fixes for mobile */
+    [data-radix-popper-content-wrapper] {
+      z-index: 9999 !important;
+    }
+
+    [data-radix-select-content],
+    [data-radix-dropdown-menu-content],
+    [data-radix-popover-content] {
+      background-color: hsl(var(--popover)) !important;
+      z-index: 9999 !important;
+    }
+
+    /* Mobile table row padding */
+    .matrix-table tr td:first-child,
+    .mobile-matrix-table tr td:first-child {
+      position: sticky;
+      left: 0;
+      background: hsl(var(--card));
+      z-index: 5;
+    }
+
+    .matrix-table tr th:first-child,
+    .mobile-matrix-table tr th:first-child {
+      position: sticky;
+      left: 0;
+      background: hsl(var(--table-header));
+      z-index: 15;
+    }
+
+    /* Personal and Inventario tables in modals */
+    .dialog-content .matrix-table,
+    [role="dialog"] .matrix-table {
+      min-width: max-content;
+    }
+
+    /* Specific fixes for Caja Menor status icon */
+    .caja-menor-status svg,
+    [class*="CajaMenor"] svg {
+      width: 20px !important;
+      height: 20px !important;
+      min-width: 20px;
+      display: inline-block !important;
+    }
   }
 
   /* Ensure PWA doesn't cache hide rules */
   .mobile-visible {
     display: flex !important;
     visibility: visible !important;
+  }
+
+  /* Scrollbar for mobile scroll containers */
+  .mobile-scroll-container::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .mobile-scroll-container::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.3);
+    border-radius: 2px;
+  }
+
+  .mobile-scroll-container::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.5);
+    border-radius: 2px;
   }
 }

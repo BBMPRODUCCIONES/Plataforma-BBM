@@ -201,6 +201,17 @@
     @apply px-4 py-3 border-b border-border flex items-center justify-between;
   }
 
+  /* Mobile panel header: stack vertically */
+  @media (max-width: 640px) {
+    .panel-header {
+      @apply flex-col items-stretch gap-3 py-3;
+    }
+    
+    .panel-header > h3 {
+      @apply text-center;
+    }
+  }
+
   .panel-content {
     @apply p-4;
   }
@@ -301,11 +312,18 @@
     scroll-behavior: smooth;
     width: 100%;
     position: relative;
+    overscroll-behavior-x: contain; /* Prevent page scroll when scrolling table */
   }
 
   .mobile-scroll-inner {
     display: inline-block;
     min-width: max-content;
+  }
+  
+  /* Better touch scrolling for Gantt */
+  .gantt-scroll-container {
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Mobile table specific styles */
@@ -404,10 +422,41 @@
     /* Calendar filter mobile adjustments */
     .calendar-filter-container {
       flex-wrap: wrap !important;
+      gap: 8px !important;
+      padding: 12px !important;
     }
 
     .calendar-filter-container > * {
       flex-shrink: 0;
+    }
+    
+    /* View mode tabs: scrollable on mobile */
+    .calendar-filter-container .bg-muted {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      max-width: 100%;
+      flex-shrink: 1;
+    }
+    
+    /* Dialogs: full-width content on mobile */
+    [data-radix-dialog-content] {
+      max-width: calc(100vw - 16px) !important;
+    }
+    
+    /* Form grid adjustments for mobile dialogs */
+    [data-radix-dialog-content] .grid-cols-2,
+    [role="dialog"] .grid-cols-2 {
+      grid-template-columns: 1fr !important;
+    }
+    
+    /* GestionHorarios specific mobile fixes */
+    .gestion-horarios-controls {
+      flex-direction: column !important;
+      gap: 12px !important;
+    }
+    
+    .gestion-horarios-controls > * {
+      width: 100% !important;
     }
 
     /* Mobile scroll hint - visual indicator */

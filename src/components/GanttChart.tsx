@@ -247,53 +247,55 @@ export function GanttChart({
 
   return (
     <div className="panel-card overflow-hidden">
-      <div className="panel-header">
+      {/* Mobile-optimized header */}
+      <div className="panel-header flex-col sm:flex-row gap-2 sm:gap-0">
         <h3 className="text-sm font-semibold">Gantt Universal</h3>
-        <div className="flex items-center gap-4">
-          {/* Zoom controls */}
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-center sm:justify-end w-full sm:w-auto">
+          {/* Zoom controls - always visible */}
           <div className="flex items-center gap-1 border border-border rounded-md">
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0"
+              className="h-8 w-8 sm:h-7 sm:w-7 p-0 touch-manipulation"
               onClick={() => setZoomLevel((prev) => Math.max(0.5, prev - 0.25))}
             >
-              <ZoomOut className="h-3.5 w-3.5" />
+              <ZoomOut className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
             </Button>
-            <span className="text-xs text-muted-foreground w-12 text-center">
+            <span className="text-xs text-muted-foreground w-10 sm:w-12 text-center">
               {Math.round(zoomLevel * 100)}%
             </span>
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0"
+              className="h-8 w-8 sm:h-7 sm:w-7 p-0 touch-manipulation"
               onClick={() => setZoomLevel((prev) => Math.min(3, prev + 0.25))}
             >
-              <ZoomIn className="h-3.5 w-3.5" />
+              <ZoomIn className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
             </Button>
           </div>
           
-          {/* Legend */}
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-2">
+          {/* Legend - compact on mobile, only show color squares with text hidden on xs */}
+          <div className="flex items-center gap-2 sm:gap-4 text-xs">
+            <div className="flex items-center gap-1 sm:gap-2" title="Montaje">
               <div className="w-4 h-3 rounded-sm bg-gantt-montaje" />
-              <span className="text-muted-foreground">Montaje</span>
+              <span className="text-muted-foreground hidden sm:inline">Montaje</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2" title="Ejecución">
               <div className="w-4 h-3 rounded-sm bg-gantt-ejecucion" />
-              <span className="text-muted-foreground">Ejecución</span>
+              <span className="text-muted-foreground hidden sm:inline">Ejecución</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 hidden sm:flex" title="Eliminado">
               <div className="w-4 h-3 rounded-sm bg-destructive/40 border border-dashed border-destructive" />
               <span className="text-muted-foreground">Eliminado</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2" title="Festivo">
               <div className="w-4 h-3 rounded-sm bg-orange-500/30" />
-              <span className="text-muted-foreground">Festivo</span>
+              <span className="text-muted-foreground hidden sm:inline">Festivo</span>
             </div>
           </div>
           
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          {/* Drag hint - hidden on mobile (touch is implicit) */}
+          <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground">
             <MoveHorizontal className="h-3.5 w-3.5" />
             <span>Arrastrar para navegar</span>
           </div>

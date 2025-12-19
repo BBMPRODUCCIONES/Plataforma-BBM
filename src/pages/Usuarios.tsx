@@ -1174,6 +1174,8 @@ const Usuarios = () => {
                 <MatrixTable
                   columns={invitationColumns}
                   data={pendingInvitations}
+                  mobileTitleKey="email"
+                  mobileSubtitleKey="role"
                 />
               ) : (
                 <p className="text-muted-foreground text-sm">
@@ -1189,7 +1191,13 @@ const Usuarios = () => {
                 Usuarios Registrados ({users.length})
               </h3>
               {users.length > 0 ? (
-                <MatrixTable columns={userColumns} data={users} />
+                <MatrixTable 
+                  columns={userColumns} 
+                  data={users}
+                  mobileTitleKey="email"
+                  mobileSubtitleKey="full_name"
+                  mobileBadgeKey="role"
+                />
               ) : (
                 <p className="text-muted-foreground text-sm">
                   No hay usuarios registrados

@@ -222,7 +222,12 @@ export default function Clientes() {
             <h3 className="text-sm font-semibold">Listado de Clientes</h3>
             <span className="text-xs text-muted-foreground">{filteredClientes.length} clientes registrados</span>
           </div>
-          <MatrixTable data={filteredClientes} columns={columns} />
+          <MatrixTable 
+            data={filteredClientes} 
+            columns={columns}
+            mobileTitleKey="nombre"
+            mobileSubtitleKey="nit"
+          />
         </div>
 
         <div className="p-4 bg-muted/30 rounded-lg border border-border">

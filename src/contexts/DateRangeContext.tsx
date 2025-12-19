@@ -15,7 +15,7 @@ const DateRangeContext = createContext<DateRangeContextType | undefined>(undefin
 
 export const DateRangeProvider = ({ children }: { children: ReactNode }) => {
   const [globalDateRange, setGlobalDateRange] = useState<DateRange | undefined>(undefined);
-  const [globalViewMode, setGlobalViewMode] = useState<CalendarViewMode>("month");
+  const [globalViewMode, setGlobalViewMode] = useState<CalendarViewMode>("week");
   const [globalSelectedDate, setGlobalSelectedDate] = useState<Date>(new Date());
 
   return (

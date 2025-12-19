@@ -119,12 +119,76 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
+  /* Safe area CSS variables for iPhone notch/home indicator */
+  :root {
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
   }
 
   html {
     @apply scroll-smooth;
+    /* Prevent pull-to-refresh and elastic scroll on iOS */
+    overscroll-behavior: none;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    /* Lock body to prevent page-level scroll */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile-specific: lock viewport to prevent bounce/elastic scroll */
+  @media (max-width: 768px) {
+    html, body {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: manipulation;
+    }
+
+    #root {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: hidden;
+    }
+  }
+
+  /* App root container - full viewport, no scroll */
+  .app-root {
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile */
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Fixed header with safe area padding */
+  .app-header {
+    padding-top: var(--safe-area-top);
+  }
+
+  /* Content scroll area - only this scrolls */
+  .content-scroll-area {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain; /* Prevent page scroll propagation */
+  }
+
+  /* Safe area bottom padding utility */
+  .pb-safe {
+    padding-bottom: max(1rem, var(--safe-area-bottom));
+  }
+
+  .pt-safe {
+    padding-top: var(--safe-area-top);
   }
 }
 

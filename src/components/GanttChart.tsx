@@ -305,9 +305,14 @@ export function GanttChart({
       <div 
         ref={containerRef}
         className={cn(
-          "overflow-x-auto scrollbar-thin select-none",
+          "overflow-x-auto scrollbar-thin select-none gantt-scroll-container",
           isDragging && "cursor-grabbing"
         )}
+        style={{
+          overscrollBehavior: 'contain',
+          touchAction: 'pan-x pan-y',
+          WebkitOverflowScrolling: 'touch'
+        }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}

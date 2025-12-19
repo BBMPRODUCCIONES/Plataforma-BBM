@@ -1499,9 +1499,6 @@ const PanelOperaciones = () => {
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
                 onRowClick={(item) => setSelectedProject(item as Project)}
-                mobileTitleKey="evento"
-                mobileSubtitleKey="cliente"
-                mobileBadgeKey="estado"
               />
             </div>
           </TabsContent>
@@ -1680,7 +1677,6 @@ const PanelOperaciones = () => {
                               data={currentProjectData.personal || []}
                               columns={personalColumns}
                               noHorizontalScroll
-                              forceTableOnMobile
                             />
                           ) : (
                             <p className="text-sm text-muted-foreground">No hay personal asignado. Haga clic en "Agregar Personal" para comenzar.</p>
@@ -1727,7 +1723,6 @@ const PanelOperaciones = () => {
                               data={currentProjectData.inventario || []}
                               columns={inventarioColumns}
                               noHorizontalScroll
-                              forceTableOnMobile
                             />
                           ) : (
                             <p className="text-sm text-muted-foreground">No hay materiales en inventario. Haga clic en "Agregar Material" para comenzar.</p>
@@ -1874,7 +1869,6 @@ const PanelOperaciones = () => {
                             data={currentProjectData.cajaMenor || []}
                             columns={cajaMenorColumns}
                             noHorizontalScroll
-                            forceTableOnMobile
                           />
                         ) : (
                           <p className="text-sm text-muted-foreground">No hay registros de caja menor. Haga clic en "Agregar Registro" para comenzar.</p>

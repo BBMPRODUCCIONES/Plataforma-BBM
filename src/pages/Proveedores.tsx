@@ -438,9 +438,6 @@ const Proveedores = () => {
             data={filteredProveedores}
             columns={columns}
             onRowClick={(p) => setSelectedProveedor(p)}
-            mobileTitleKey="nombre"
-            mobileSubtitleKey="categoria"
-            mobileBadgeKey="tipoProductoServicio"
           />
         </div>
 

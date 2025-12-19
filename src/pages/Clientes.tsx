@@ -225,8 +225,6 @@ export default function Clientes() {
           <MatrixTable 
             data={filteredClientes} 
             columns={columns}
-            mobileTitleKey="nombre"
-            mobileSubtitleKey="nit"
           />
         </div>
 

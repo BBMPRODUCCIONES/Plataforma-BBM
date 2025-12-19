@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Plus, ExternalLink, Settings, Loader2, Trash2, RotateCcw } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
@@ -51,6 +52,7 @@ const PanelDirectivo = () => {
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple, addProject, softDeleteProject, restoreProject } = useProjects();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const isAdmin = role?.toLowerCase() === "administrador";
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
@@ -502,7 +504,7 @@ const PanelDirectivo = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className={isMobile ? "space-y-2 px-2 pt-1" : "space-y-6"}>
         <PanelHeader
           title="Panel Directivo"
           description="Gestión ejecutiva de proyectos y control de ingresos"
@@ -512,16 +514,25 @@ const PanelDirectivo = () => {
             { label: "Proveedores", to: "/proveedores" },
           ]}
           actions={
-            <div className="flex gap-2">
+            <div className={`flex ${isMobile ? 'flex-col gap-1.5' : 'gap-2'}`}>
               {isAdmin && (
-                <Button variant="outline" size="sm" onClick={initializeColumns}>
-                  <Settings className="h-4 w-4 mr-2" />
-                  Gestionar Columnas
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={initializeColumns}
+                  className={isMobile ? 'h-8 text-xs px-2.5' : ''}
+                >
+                  <Settings className={isMobile ? 'h-3.5 w-3.5 mr-1' : 'h-4 w-4 mr-2'} />
+                  {isMobile ? 'Columnas' : 'Gestionar Columnas'}
                 </Button>
               )}
-              <Button size="sm" onClick={() => setNewProjectOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo Proyecto
+              <Button 
+                size="sm" 
+                onClick={() => setNewProjectOpen(true)}
+                className={isMobile ? 'h-8 text-xs px-2.5' : ''}
+              >
+                <Plus className={isMobile ? 'h-3.5 w-3.5 mr-1' : 'h-4 w-4 mr-2'} />
+                {isMobile ? 'Nuevo' : 'Nuevo Proyecto'}
               </Button>
             </div>
           }
@@ -539,37 +550,38 @@ const PanelDirectivo = () => {
           onStatusChange={setStatusFilter}
         />
 
-        <Tabs defaultValue="tabla" className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              <TabsList>
-                <TabsTrigger value="tabla">Tabla</TabsTrigger>
-                <TabsTrigger value="gantt">Gantt</TabsTrigger>
-                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+        <Tabs defaultValue="tabla" className={isMobile ? "space-y-2" : "space-y-4"}>
+          <div className={`flex items-center justify-between flex-wrap ${isMobile ? 'gap-2' : 'gap-4'}`}>
+            <div className={`flex items-center ${isMobile ? 'gap-2 flex-wrap' : 'gap-4'}`}>
+              <TabsList className={isMobile ? 'h-8' : ''}>
+                <TabsTrigger value="tabla" className={isMobile ? 'h-7 text-xs px-2.5' : ''}>Tabla</TabsTrigger>
+                <TabsTrigger value="gantt" className={isMobile ? 'h-7 text-xs px-2.5' : ''}>Gantt</TabsTrigger>
+                <TabsTrigger value="dashboard" className={isMobile ? 'h-7 text-xs px-2.5' : ''}>Dashboard</TabsTrigger>
               </TabsList>
               <div className="flex items-center gap-2">
                 <Switch
                   id="hide-deleted"
                   checked={hideDeleted}
                   onCheckedChange={setHideDeleted}
+                  className={isMobile ? 'scale-90' : ''}
                 />
-                <Label htmlFor="hide-deleted" className="text-sm text-muted-foreground cursor-pointer">
-                  Ocultar eliminados
+                <Label htmlFor="hide-deleted" className={`cursor-pointer ${isMobile ? 'text-xs text-muted-foreground' : 'text-sm text-muted-foreground'}`}>
+                  {isMobile ? 'Ocultar eliminados' : 'Ocultar eliminados'}
                 </Label>
               </div>
             </div>
-            <div className="relative w-64">
+            <div className={isMobile ? 'relative w-full' : 'relative w-64'}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar proyecto..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-9"
+                className={isMobile ? 'pl-9 h-8 text-sm' : 'pl-9 h-9'}
               />
             </div>
           </div>
 
-          <TabsContent value="tabla" className="mt-4">
+          <TabsContent value="tabla" className={isMobile ? "mt-2" : "mt-4"}>
             <div className="panel-card">
               <MatrixTable
                 key={`table-${allColumnConfigs.map(c => `${c.key}-${c.visible}-${c.order}`).join('_')}`}

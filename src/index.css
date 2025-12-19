@@ -1344,3 +1344,87 @@
     }
   }
 }
+
+/* ============================================
+   MOBILE UX AWC - LAYOUT REDISTRIBUTION
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* Compact mobile app header */
+  .mobile-app-header {
+    height: 40px !important;
+    padding-left: 12px !important;
+    padding-right: 8px !important;
+    border-bottom-color: hsl(var(--border) / 0.3) !important;
+  }
+
+  /* Reduce content scroll area top padding */
+  .content-scroll-area {
+    padding-top: 0 !important;
+  }
+
+  /* Panel header compact styling */
+  .animate-fade-in > .flex.items-start.justify-between {
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  /* Panel card minimal padding on mobile */
+  .panel-card {
+    padding: 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* Tabs compact on mobile */
+  [role="tablist"] {
+    height: 32px !important;
+    padding: 2px !important;
+    gap: 2px !important;
+  }
+
+  [role="tab"] {
+    height: 28px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+  }
+
+  /* Calendar filter compact */
+  .calendar-filter-container {
+    padding: 8px !important;
+    gap: 6px !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* Switch and label compact */
+  .content-scroll-area .flex.items-center.gap-2 label {
+    font-size: 11px !important;
+  }
+
+  /* Search input compact */
+  .content-scroll-area input[type="text"] {
+    height: 32px !important;
+    font-size: 13px !important;
+  }
+
+  /* MatrixTable compact wrapper */
+  .panel-card > .matrix-table-wrapper,
+  .panel-card > div > .matrix-table-wrapper {
+    margin: 0 !important;
+  }
+
+  /* TabsContent reduced margin */
+  [role="tabpanel"] {
+    margin-top: 8px !important;
+  }
+
+  /* Bottom nav - ensure no duplication of active panel */
+  .mobile-bottom-nav {
+    height: 60px !important;
+  }
+
+  .mobile-bottom-nav .flex {
+    height: 56px !important;
+  }
+}

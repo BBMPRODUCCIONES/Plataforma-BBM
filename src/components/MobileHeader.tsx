@@ -74,46 +74,33 @@ export function MobileHeader() {
   };
 
   return (
-    <header className="mobile-app-header h-12 border-b border-border/50 flex items-center justify-between px-3 bg-card/98 backdrop-blur-xl shrink-0 z-40 supports-[backdrop-filter]:bg-card/90">
+    <header className="mobile-app-header h-10 border-b border-border/40 flex items-center justify-between px-3 bg-card/98 backdrop-blur-xl shrink-0 z-40 supports-[backdrop-filter]:bg-card/90">
       {/* Left side: Back or Icon + Title */}
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex items-center gap-1.5 min-w-0 flex-1">
         {canGoBack ? (
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-9 w-9 shrink-0 -ml-1 touch-manipulation"
+            className="h-8 w-8 shrink-0 -ml-1 touch-manipulation"
             onClick={handleBack}
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-4 w-4" />
           </Button>
         ) : (
-          <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-            <Icon className="w-3.5 h-3.5 text-primary" />
+          <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+            <Icon className="w-3 h-3 text-primary" />
           </div>
         )}
-        <span className="font-semibold text-sm text-foreground truncate">
+        <span className="font-semibold text-xs text-foreground truncate">
           {config.title}
         </span>
       </div>
 
-      {/* Right side: Primary action + More */}
-      <div className="flex items-center gap-1 shrink-0">
-        {config.primaryAction && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 px-3 text-xs font-medium text-primary touch-manipulation gap-1.5"
-          >
-            {(() => {
-              const ActionIcon = config.primaryAction!.icon;
-              return <ActionIcon className="h-4 w-4" />;
-            })()}
-            <span className="hidden xs:inline">{config.primaryAction.label}</span>
-          </Button>
-        )}
+      {/* Right side: More menu only */}
+      <div className="flex items-center shrink-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 touch-manipulation">
+            <Button variant="ghost" size="icon" className="h-8 w-8 touch-manipulation">
               <MoreVertical className="h-4 w-4 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>

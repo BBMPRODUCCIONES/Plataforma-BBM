@@ -261,6 +261,13 @@
     background: hsl(var(--muted-foreground) / 0.5);
   }
 
+  /* Gantt chart alignment fixes - prevent cell compression */
+  .gantt-day-cell,
+  .gantt-project-column {
+    flex-shrink: 0 !important;
+    box-sizing: border-box;
+  }
+
   /* Mobile touch optimization */
   .touch-manipulation {
     touch-action: manipulation;

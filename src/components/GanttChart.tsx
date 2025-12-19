@@ -49,6 +49,9 @@ const getDayAbbreviation = (date: Date): string => {
   return abbreviations[dayOfWeek];
 };
 
+// Consistent project column width (replaces w-48 which can vary)
+const PROJECT_COLUMN_WIDTH = 192;
+
 // Dynamic column widths based on view mode
 const VIEW_MODE_CONFIG: Record<string, { dayWidth: number; showDayNames: boolean; showHours: boolean }> = {
   day: { dayWidth: 80, showDayNames: true, showHours: true },
@@ -308,10 +311,13 @@ export function GanttChart({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        <div style={{ width: 192 + totalWidth, minWidth: "100%" }}>
+        <div style={{ width: PROJECT_COLUMN_WIDTH + totalWidth, minWidth: "100%" }}>
           {/* Month Headers */}
           <div className="flex border-b border-border sticky top-0 z-20 bg-card">
-            <div className="w-48 min-w-48 px-3 py-2 bg-table-header border-r border-border">
+            <div 
+              className="px-3 py-2 bg-table-header border-r border-border flex-shrink-0"
+              style={{ width: PROJECT_COLUMN_WIDTH, minWidth: PROJECT_COLUMN_WIDTH }}
+            >
               <span className="text-xs font-medium text-muted-foreground">Proyecto</span>
             </div>
             <div className="flex" style={{ width: totalWidth }}>
@@ -331,7 +337,10 @@ export function GanttChart({
 
           {/* Day Headers */}
           <div className="flex border-b border-border sticky top-[41px] z-20 bg-card">
-            <div className="w-48 min-w-48 px-3 py-2 bg-table-header border-r border-border" />
+            <div 
+              className="px-3 py-2 bg-table-header border-r border-border flex-shrink-0" 
+              style={{ width: PROJECT_COLUMN_WIDTH, minWidth: PROJECT_COLUMN_WIDTH }}
+            />
             <div className="flex" style={{ width: totalWidth }}>
               {allDays.map((day, idx) => {
                 const dateStr = format(day, "yyyy-MM-dd");
@@ -347,7 +356,7 @@ export function GanttChart({
                       getDayClass(day),
                       today && "bg-primary/20 ring-2 ring-primary ring-inset"
                     )}
-                    style={{ width: effectiveDayWidth, minWidth: effectiveDayWidth }}
+                    style={{ width: effectiveDayWidth, minWidth: effectiveDayWidth, flexShrink: 0 }}
                     title={HOLIDAYS[dateStr] || format(day, "EEEE d MMMM yyyy", { locale: es })}
                   >
                     {/* Day abbreviation on top */}
@@ -400,10 +409,13 @@ export function GanttChart({
                   )}
                   onClick={() => onProjectClick?.(project.id)}
                 >
-                  <div className={cn(
-                    "w-48 min-w-48 px-3 py-3 border-r border-border bg-card sticky left-0 z-10",
-                    isDeleted && "border-l-2 border-l-destructive bg-destructive/5"
-                  )}>
+                  <div 
+                    className={cn(
+                      "px-3 py-3 border-r border-border bg-card sticky left-0 z-10 flex-shrink-0",
+                      isDeleted && "border-l-2 border-l-destructive bg-destructive/5"
+                    )}
+                    style={{ width: PROJECT_COLUMN_WIDTH, minWidth: PROJECT_COLUMN_WIDTH }}
+                  >
                     <div className="flex items-center gap-1.5">
                       <EventLink 
                         eventId={project.id}
@@ -429,7 +441,7 @@ export function GanttChart({
                             "border-r border-border/20",
                             getDayClass(day)
                           )}
-                          style={{ width: effectiveDayWidth }}
+                          style={{ width: effectiveDayWidth, flexShrink: 0 }}
                         />
                       ))}
                     </div>

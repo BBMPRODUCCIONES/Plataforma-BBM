@@ -51,10 +51,11 @@ export const EventLink = ({
       type="button"
       onClick={handleClick}
       className={cn(
-        "text-left font-medium transition-colors hover:text-primary hover:underline underline-offset-2 cursor-pointer",
+        "text-left font-medium transition-colors hover:text-primary hover:underline underline-offset-2 cursor-pointer touch-manipulation min-h-[32px] inline-flex items-center",
         isDeleted && "text-destructive",
         className
       )}
+      data-event-link={eventId}
     >
       {eventName}
     </button>

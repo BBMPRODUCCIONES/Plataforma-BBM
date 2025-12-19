@@ -19,8 +19,9 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
   
   return (
     <span 
-      className={cn("status-badge whitespace-nowrap", config.className, className)}
+      className={cn("status-badge whitespace-nowrap mobile-visible", config.className, className)}
       role="status"
+      data-status-badge={status}
     >
       {config.label}
     </span>

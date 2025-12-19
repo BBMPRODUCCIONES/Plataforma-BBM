@@ -240,16 +240,16 @@ export function CalendarFilter({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3 p-3 bg-card border border-border rounded-lg">
+    <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-card border border-border rounded-lg calendar-filter-container">
       {/* View Mode Tabs */}
-      <div className="flex items-center bg-muted rounded-md p-0.5">
+      <div className="flex items-center bg-muted rounded-md p-0.5 overflow-x-auto">
         {(["day", "week", "month", "quarter", "year"] as CalendarViewMode[]).map((mode) => (
           <Button
             key={mode}
             variant="ghost"
             size="sm"
             className={cn(
-              "h-7 px-2.5 text-xs rounded-sm",
+              "h-8 sm:h-7 px-2 sm:px-2.5 text-xs rounded-sm touch-manipulation flex-shrink-0",
               viewMode === mode && "bg-background shadow-sm"
             )}
             onClick={() => handleViewModeChange(mode)}
@@ -346,15 +346,15 @@ export function CalendarFilter({
       </Popover>
 
       {/* Navigation */}
-      <div className="flex items-center gap-1">
-        <Button variant="outline" size="icon" className="h-7 w-7" onClick={navigatePrevious}>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <Button variant="outline" size="icon" className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation" onClick={navigatePrevious}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-7 px-3 min-w-[200px] justify-start text-xs">
-              <CalendarIcon className="h-3 w-3 mr-2" />
-              <span className="capitalize">{getDateRangeLabel()}</span>
+            <Button variant="outline" size="sm" className="h-8 sm:h-7 px-2 sm:px-3 min-w-[140px] sm:min-w-[200px] justify-start text-xs touch-manipulation">
+              <CalendarIcon className="h-3 w-3 mr-1 sm:mr-2 flex-shrink-0" />
+              <span className="capitalize truncate">{getDateRangeLabel()}</span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 bg-popover border border-border shadow-lg z-50" align="start">
@@ -372,22 +372,22 @@ export function CalendarFilter({
             />
           </PopoverContent>
         </Popover>
-        <Button variant="outline" size="icon" className="h-7 w-7" onClick={navigateNext}>
+        <Button variant="outline" size="icon" className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation" onClick={navigateNext}>
           <ChevronRight className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={goToToday}>
+        <Button variant="ghost" size="sm" className="h-8 sm:h-7 px-2 text-xs touch-manipulation" onClick={goToToday}>
           Hoy
         </Button>
       </div>
 
       {/* Status Filter */}
       <Select value={statusFilter} onValueChange={(v) => onStatusChange(v as ProjectStatus | "todos")}>
-        <SelectTrigger className="w-[160px] h-7 text-xs bg-background">
+        <SelectTrigger className="w-[130px] sm:w-[160px] h-8 sm:h-7 text-xs bg-background touch-manipulation flex-shrink-0">
           <SelectValue placeholder="Estado" />
         </SelectTrigger>
         <SelectContent className="bg-popover border border-border shadow-lg z-50">
           {STATUS_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem key={option.value} value={option.value} className="touch-manipulation">
               {option.label}
             </SelectItem>
           ))}

@@ -37,9 +37,10 @@ export function MatrixTable<T extends { id: string }>({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasScrolledRight, setHasScrolledRight] = useState(false);
 
-  // Calculate minimum table width for proper horizontal scroll (mobile uses mobileWidth if available)
+  // Calculate minimum table width for proper horizontal scroll
+  // Mobile uses mobileWidth if available, desktop ALWAYS uses width only
   const totalWidth = columns.reduce((acc, col) => {
-    const widthStr = col.mobileWidth || col.width;
+    const widthStr = isMobile ? (col.mobileWidth || col.width) : col.width;
     const width = widthStr ? parseInt(widthStr) : 100;
     return acc + width;
   }, 0);

@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
-import { usePersistedColumns } from "@/hooks/usePersistedColumns";
+import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { BancoAutocomplete } from "@/components/BancoAutocomplete";
 import { GestionHorarios } from "@/components/GestionHorarios";
@@ -151,7 +151,7 @@ export default function Empleados() {
     { key: "correo", header: "CORREO", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 4 },
     { key: "acciones", header: "ACCIONES", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 5 },
   ];
-  const [managedColumns, setManagedColumns] = usePersistedColumns("empleados-columns", defaultColumns);
+  const { columns: managedColumns, setColumns: setManagedColumns, isAdmin: canModifyStructure } = useGlobalColumns("empleados", defaultColumns);
 
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
     console.log('[Empleados] Received column changes:', newColumns.length, newColumns);
@@ -692,9 +692,10 @@ export default function Empleados() {
         <ColumnManagerDialog
           open={columnManagerOpen}
           onOpenChange={setColumnManagerOpen}
-          columns={allColumnConfigs}
-          onColumnsChange={handleColumnsChange}
-          panelName="Creación de Empleados"
+          columns={managedColumns}
+          onColumnsChange={setManagedColumns}
+          panelName="Empleados"
+          readOnly={!canModifyStructure}
         />
       </div>
     </Layout>

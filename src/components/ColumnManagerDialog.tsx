@@ -62,6 +62,7 @@ interface ColumnManagerDialogProps {
   columns: ColumnConfig[];
   onColumnsChange: (columns: ColumnConfig[]) => void;
   panelName: string;
+  readOnly?: boolean;
 }
 
 const columnTypes: { value: CellType; label: string }[] = [
@@ -87,6 +88,7 @@ export function ColumnManagerDialog({
   columns,
   onColumnsChange,
   panelName,
+  readOnly = false,
 }: ColumnManagerDialogProps) {
   const [activeTab, setActiveTab] = useState("list");
   const [editingColumn, setEditingColumn] = useState<ColumnConfig | null>(null);
@@ -286,23 +288,37 @@ export function ColumnManagerDialog({
             <Columns className="h-5 w-5" />
             Gestionar Columnas - {panelName}
           </DialogTitle>
+          {!readOnly && (
+            <p className="text-xs text-muted-foreground mt-1">
+              🌐 Los cambios se aplicarán a todos los usuarios
+            </p>
+          )}
+          {readOnly && (
+            <p className="text-xs text-amber-500 mt-1">
+              🔒 Solo lectura - Solo los administradores pueden modificar la estructura
+            </p>
+          )}
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className={cn("grid w-full", readOnly ? "grid-cols-1" : "grid-cols-2")}>
             <TabsTrigger value="list">Columnas</TabsTrigger>
-            <TabsTrigger value="edit">
-              {isCreating ? "Nueva Columna" : editingColumn ? "Editar Columna" : "Nueva Columna"}
-            </TabsTrigger>
+            {!readOnly && (
+              <TabsTrigger value="edit">
+                {isCreating ? "Nueva Columna" : editingColumn ? "Editar Columna" : "Nueva Columna"}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="list" className="mt-4">
-            <div className="flex justify-end mb-4">
-              <Button size="sm" onClick={startCreating}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nueva Columna
-              </Button>
-            </div>
+            {!readOnly && (
+              <div className="flex justify-end mb-4">
+                <Button size="sm" onClick={startCreating}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva Columna
+                </Button>
+              </div>
+            )}
 
             <div className="max-h-[50vh] overflow-y-auto pr-2">
               <div className="space-y-2">
@@ -336,84 +352,93 @@ export function ColumnManagerDialog({
                     </div>
 
                     <div className="flex items-center gap-1">
-                      <Popover>
-                        <PopoverTrigger asChild>
+                      {!readOnly && (
+                        <>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                title="Configurar visibilidad por rol"
+                              >
+                                <Settings2 className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-4" align="end">
+                              <div className="space-y-4">
+                                <div className="font-medium text-sm">Visibilidad por Rol</div>
+                                
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">Administrador</span>
+                                    <Checkbox checked disabled className="opacity-50" />
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span>Operativo</span>
+                                    <Checkbox
+                                      checked={column.roleVisibility?.operativo ?? true}
+                                      onCheckedChange={(checked) =>
+                                        handleRoleVisibilityChange(column.key, "operativo", !!checked)
+                                      }
+                                    />
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span>Visual</span>
+                                    <Checkbox
+                                      checked={column.roleVisibility?.visual ?? true}
+                                      onCheckedChange={(checked) =>
+                                        handleRoleVisibilityChange(column.key, "visual", !!checked)
+                                      }
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <p className="text-[11px] text-muted-foreground">
+                                  El Administrador siempre puede ver todas las columnas.
+                                </p>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            title="Configurar visibilidad por rol"
+                            onClick={() => startEditing(column)}
+                            title="Editar columna"
                           >
-                            <Settings2 className="h-4 w-4" />
+                            <Pencil className="h-4 w-4" />
                           </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-4" align="end">
-                          <div className="space-y-4">
-                            <div className="font-medium text-sm">Visibilidad por Rol</div>
-                            
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Administrador</span>
-                                <Checkbox checked disabled className="opacity-50" />
-                              </div>
-                              
-                              <div className="flex items-center justify-between text-sm">
-                                <span>Operativo</span>
-                                <Checkbox
-                                  checked={column.roleVisibility?.operativo ?? true}
-                                  onCheckedChange={(checked) =>
-                                    handleRoleVisibilityChange(column.key, "operativo", !!checked)
-                                  }
-                                />
-                              </div>
-                              
-                              <div className="flex items-center justify-between text-sm">
-                                <span>Visual</span>
-                                <Checkbox
-                                  checked={column.roleVisibility?.visual ?? true}
-                                  onCheckedChange={(checked) =>
-                                    handleRoleVisibilityChange(column.key, "visual", !!checked)
-                                  }
-                                />
-                              </div>
-                            </div>
-                            
-                            <p className="text-[11px] text-muted-foreground">
-                              El Administrador siempre puede ver todas las columnas.
-                            </p>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => startEditing(column)}
-                        title="Editar columna"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDeleteColumn(column)}
-                        title="Eliminar columna"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleToggleVisibility(column.key)}
-                        title={column.visible ? "Ocultar columna" : "Mostrar columna"}
-                      >
-                        {column.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                      </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteColumn(column)}
+                            title="Eliminar columna"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleToggleVisibility(column.key)}
+                            title={column.visible ? "Ocultar columna" : "Mostrar columna"}
+                          >
+                            {column.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                          </Button>
+                        </>
+                      )}
+                      {readOnly && (
+                        <span className="text-xs text-muted-foreground px-2">
+                          {column.visible ? "Visible" : "Oculta"}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}

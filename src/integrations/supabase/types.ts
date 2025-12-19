@@ -245,6 +245,36 @@ export type Database = {
         }
         Relationships: []
       }
+      panel_column_configs: {
+        Row: {
+          columns: Json
+          created_at: string
+          id: string
+          panel_key: string
+          updated_at: string
+          updated_by: string | null
+          updated_by_email: string | null
+        }
+        Insert: {
+          columns?: Json
+          created_at?: string
+          id?: string
+          panel_key: string
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_email?: string | null
+        }
+        Update: {
+          columns?: Json
+          created_at?: string
+          id?: string
+          panel_key?: string
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_email?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null

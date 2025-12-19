@@ -16,7 +16,7 @@ import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { EventLink } from "@/components/EventLink";
-import { usePersistedColumns } from "@/hooks/usePersistedColumns";
+import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
@@ -73,7 +73,7 @@ const PanelDirectivo = () => {
     { key: "notas", header: "Notas", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 11 },
     { key: "panelGeneral", header: "Ver en Panel", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 12 },
   ];
-  const [managedColumns, setManagedColumns] = usePersistedColumns("panel-directivo-columns", defaultColumns);
+  const { columns: managedColumns, setColumns: setManagedColumns, loading: columnsLoading, isAdmin: canModifyStructure } = useGlobalColumns("panel-directivo", defaultColumns);
   
   // Calendar filter state - using global context
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
@@ -607,9 +607,10 @@ const PanelDirectivo = () => {
         <ColumnManagerDialog
           open={columnManagerOpen}
           onOpenChange={setColumnManagerOpen}
-          columns={managedColumns.length > 0 ? managedColumns : baseColumnDefs}
-          onColumnsChange={handleColumnsChange}
+          columns={managedColumns.length > 0 ? managedColumns : defaultColumns}
+          onColumnsChange={setManagedColumns}
           panelName="Panel Directivo"
+          readOnly={!canModifyStructure}
         />
       </div>
     </Layout>

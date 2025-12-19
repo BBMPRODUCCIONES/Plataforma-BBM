@@ -60,7 +60,7 @@ interface ColumnManagerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   columns: ColumnConfig[];
-  onColumnsChange: (columns: ColumnConfig[]) => void;
+  onColumnsChange: (columns: ColumnConfig[]) => void | Promise<void>;
   panelName: string;
   readOnly?: boolean;
 }
@@ -129,23 +129,32 @@ export function ColumnManagerDialog({
   };
 
   // Helper to update both local and parent state - ensure new references
-  const updateColumns = (newColumns: ColumnConfig[]) => {
+  const updateColumns = async (newColumns: ColumnConfig[], closeAfter = false): Promise<boolean> => {
     const updatedColumns = newColumns.map(col => ({ ...col })); // Deep copy each column
     console.log('[ColumnManager] Updating columns:', updatedColumns.length);
-    console.log('[ColumnManager] onColumnsChange type:', typeof onColumnsChange);
     setLocalColumns(updatedColumns);
     
-    // Call parent callback synchronously
+    // Call parent callback and wait for it
     if (typeof onColumnsChange === 'function') {
       console.log('[ColumnManager] Calling onColumnsChange...');
-      onColumnsChange(updatedColumns);
-      console.log('[ColumnManager] onColumnsChange called successfully');
+      try {
+        await onColumnsChange(updatedColumns);
+        console.log('[ColumnManager] onColumnsChange completed successfully');
+        if (closeAfter) {
+          onOpenChange(false);
+        }
+        return true;
+      } catch (error) {
+        console.error('[ColumnManager] Error in onColumnsChange:', error);
+        return false;
+      }
     } else {
       console.error('[ColumnManager] onColumnsChange is not a function!');
+      return false;
     }
   };
 
-  const handleCreateColumn = () => {
+  const handleCreateColumn = async () => {
     if (!columnName.trim()) return;
 
     const key = columnName
@@ -168,13 +177,11 @@ export function ColumnManagerDialog({
         : {}),
     };
 
-    updateColumns([...localColumns, newColumn]);
+    await updateColumns([...localColumns, newColumn], true);
     resetForm();
-    // Close dialog after create to force parent to update
-    onOpenChange(false);
   };
 
-  const handleEditColumn = () => {
+  const handleEditColumn = async () => {
     if (!editingColumn || !columnName.trim()) return;
 
     const updatedColumns = localColumns.map((col) =>
@@ -191,10 +198,8 @@ export function ColumnManagerDialog({
         : col
     );
 
-    updateColumns(updatedColumns);
+    await updateColumns(updatedColumns, true);
     resetForm();
-    // Close dialog after edit to force parent to update
-    onOpenChange(false);
   };
 
   const handleDeleteColumn = (column: ColumnConfig) => {
@@ -202,14 +207,12 @@ export function ColumnManagerDialog({
     setDeleteConfirmOpen(true);
   };
 
-  const confirmDeleteColumn = () => {
+  const confirmDeleteColumn = async () => {
     if (columnToDelete) {
       const filteredColumns = localColumns.filter((col) => col.key !== columnToDelete.key);
-      updateColumns(filteredColumns);
+      await updateColumns(filteredColumns, true);
       setColumnToDelete(null);
       setDeleteConfirmOpen(false);
-      // Close dialog after delete to force parent to update
-      onOpenChange(false);
     }
   };
 

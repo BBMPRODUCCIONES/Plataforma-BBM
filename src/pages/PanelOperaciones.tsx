@@ -826,6 +826,7 @@ const PanelOperaciones = () => {
         key: "tipoPersonal", 
         header: "Tipo", 
         width: "120px",
+        mobileWidth: "120px",
         render: (p: PersonalItem) => (
           <EditableCell
             value={p.tipoPersonal}
@@ -857,6 +858,7 @@ const PanelOperaciones = () => {
         key: "nombre", 
         header: "Personal", 
         width: "200px",
+        mobileWidth: "200px",
         render: (p: PersonalItem) => {
           // BBM uses EmpleadoAutocomplete, Proveedor/Transporte use ProveedorAutocomplete
           if (p.tipoPersonal === "BBM") {
@@ -901,6 +903,7 @@ const PanelOperaciones = () => {
         key: "cedula",
         header: "Cédula",
         width: "140px",
+        mobileWidth: "140px",
         render: (p: PersonalItem) => {
           // BBM: Auto-filled from employee, read-only
           if (p.tipoPersonal === "BBM") {
@@ -938,6 +941,7 @@ const PanelOperaciones = () => {
         key: "cargo", 
         header: "Cargo", 
         width: "120px",
+        mobileWidth: "120px",
         render: (p: PersonalItem) => (
           <EditableCell
             value={p.cargo}
@@ -950,6 +954,7 @@ const PanelOperaciones = () => {
         key: "telefono", 
         header: "Teléfono", 
         width: "130px",
+        mobileWidth: "130px",
         render: (p: PersonalItem) => (
           <EditableCell
             value={p.telefono}
@@ -962,6 +967,7 @@ const PanelOperaciones = () => {
         key: "notas", 
         header: "Notas", 
         width: "200px",
+        mobileWidth: "200px",
         render: (p: PersonalItem) => (
           <EditableCell
             value={p.notas}
@@ -978,6 +984,7 @@ const PanelOperaciones = () => {
       key: "acciones",
       header: "",
       width: "50px",
+      mobileWidth: "50px",
       render: (p: PersonalItem) => (
         <Button
           variant="ghost"
@@ -1002,6 +1009,7 @@ const PanelOperaciones = () => {
         key: "rutaTransporte",
         header: "Ruta Realizada *",
         width: "200px",
+        mobileWidth: "200px",
         render: (p: PersonalItem) => (
           p.tipoPersonal === "Transporte" ? (
             <div className={`rounded ${!p.rutaTransporte ? "bg-destructive/20 ring-2 ring-destructive/50" : ""}`}>
@@ -1024,6 +1032,7 @@ const PanelOperaciones = () => {
         key: "adjuntos",
         header: "Adjuntos",
         width: "100px",
+        mobileWidth: "100px",
         render: (p: PersonalItem) => (
           (p.tipoPersonal === "Proveedor" || p.tipoPersonal === "Transporte") ? (
             <AttachmentButton
@@ -1049,7 +1058,7 @@ const PanelOperaciones = () => {
       { 
         key: "nombreMaterial", 
         header: "Material", 
-        width: "65%",
+        width: "280px",
         mobileWidth: "280px",
         className: "align-top",
         render: (i: InventarioItem) => {
@@ -1081,7 +1090,7 @@ const PanelOperaciones = () => {
       { 
         key: "cantidad", 
         header: "Cantidad", 
-        width: "8%",
+        width: "100px",
         mobileWidth: "100px",
         render: (i: InventarioItem) => (
           <div className="flex flex-col gap-1">
@@ -1104,7 +1113,7 @@ const PanelOperaciones = () => {
       {
         key: "recibido",
         header: "Recibido",
-        width: "7%",
+        width: "80px",
         mobileWidth: "80px",
         render: (i: InventarioItem) => (
           <EditableCell
@@ -1117,7 +1126,7 @@ const PanelOperaciones = () => {
       { 
         key: "notasAdicionales", 
         header: "Notas Adicionales", 
-        width: "17%",
+        width: "200px",
         mobileWidth: "200px",
         render: (i: InventarioItem) => (
           <EditableCell
@@ -1131,7 +1140,7 @@ const PanelOperaciones = () => {
       {
         key: "acciones",
         header: "",
-        width: "3%",
+        width: "50px",
         mobileWidth: "50px",
         render: (i: InventarioItem) => (
           <Button

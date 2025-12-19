@@ -48,6 +48,8 @@ export default defineConfig(({ mode }) => ({
         clientsClaim: true,
         // Clean old caches
         cleanupOutdatedCaches: true,
+        // Disable precaching for faster updates
+        navigateFallback: null,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -56,12 +58,24 @@ export default defineConfig(({ mode }) => ({
               cacheName: "supabase-api",
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24
+                maxAgeSeconds: 60 * 60 // 1 hour instead of 24
               },
               cacheableResponse: {
                 statuses: [0, 200]
               },
-              networkTimeoutSeconds: 10
+              networkTimeoutSeconds: 5 // Faster fallback
+            }
+          },
+          {
+            // Cache static assets but revalidate frequently
+            urlPattern: /\.(js|css|png|jpg|jpeg|svg|gif|woff2?)$/i,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "static-assets",
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 2 // 2 hours
+              }
             }
           }
         ]

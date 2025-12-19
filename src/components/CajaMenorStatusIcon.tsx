@@ -34,15 +34,18 @@ export function CajaMenorStatusIcon({ cajaMenor }: CajaMenorStatusIconProps) {
           <div
             className={`
               inline-flex items-center justify-center
-              w-6 h-6 min-w-[24px] min-h-[24px]
+              w-7 h-7 min-w-[28px] min-h-[28px]
               rounded-full
               ${isApproved ? 'bg-green-500' : 'bg-red-500'}
               cursor-default
               flex-shrink-0
               touch-manipulation
+              mobile-visible
+              caja-menor-status
             `}
             role="status"
             aria-label={tooltipText}
+            data-status-badge="caja-menor"
           >
             <span className="text-black font-bold text-xs select-none">$</span>
           </div>

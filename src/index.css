@@ -267,25 +267,71 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Ensure minimum touch targets on mobile */
+  /* CRITICAL: Mobile parity - ensure all elements visible */
   @media (max-width: 768px) {
+    /* Minimum touch targets */
     .matrix-table td button,
     .matrix-table td [role="button"] {
-      min-height: 32px;
-      min-width: 32px;
+      min-height: 36px;
+      min-width: 36px;
     }
 
-    /* Ensure status icons remain visible */
-    .matrix-table [role="status"] {
+    /* NEVER hide status icons on mobile */
+    [role="status"],
+    .status-icon,
+    .caja-menor-status {
       display: inline-flex !important;
       visibility: visible !important;
       opacity: 1 !important;
+      flex-shrink: 0 !important;
     }
 
-    /* Prevent text truncation on critical elements */
-    .status-badge {
+    /* Prevent hiding of badges */
+    .status-badge,
+    [data-status-badge],
+    .badge {
+      display: inline-flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
       flex-shrink: 0;
       overflow: visible;
+      white-space: nowrap;
     }
+
+    /* Ensure action buttons remain visible */
+    .matrix-table td .flex,
+    .matrix-table td .inline-flex {
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    /* Touch-friendly select triggers */
+    [data-radix-select-trigger] {
+      min-height: 36px;
+      touch-action: manipulation;
+    }
+
+    /* Ensure event links are tappable */
+    .event-link,
+    [data-event-link] {
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* Calendar filter mobile adjustments */
+    .calendar-filter-container {
+      flex-wrap: wrap !important;
+    }
+
+    .calendar-filter-container > * {
+      flex-shrink: 0;
+    }
+  }
+
+  /* Ensure PWA doesn't cache hide rules */
+  .mobile-visible {
+    display: flex !important;
+    visibility: visible !important;
   }
 }

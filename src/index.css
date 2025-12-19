@@ -241,6 +241,13 @@
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
   }
 
+  /* Mobile-optimized status badges */
+  @media (max-width: 768px) {
+    .status-badge {
+      @apply px-2.5 py-1 text-[11px] font-semibold tracking-wide shadow-sm;
+    }
+  }
+
   .status-active {
     @apply bg-status-active/20 text-status-active;
   }
@@ -255,6 +262,25 @@
 
   .status-cancelled {
     @apply bg-status-cancelled/20 text-status-cancelled;
+  }
+
+  /* Mobile enhanced status visibility */
+  @media (max-width: 768px) {
+    .status-active {
+      @apply bg-status-active/25 ring-1 ring-status-active/30;
+    }
+    
+    .status-pending {
+      @apply bg-status-pending/25 ring-1 ring-status-pending/30;
+    }
+    
+    .status-completed {
+      @apply bg-status-completed/25 ring-1 ring-status-completed/30;
+    }
+    
+    .status-cancelled {
+      @apply bg-status-cancelled/25 ring-1 ring-status-cancelled/30;
+    }
   }
 
   .panel-card {
@@ -297,6 +323,25 @@
       hsl(var(--destructive) / 0.05) 100%) !important;
   }
 
+  /* Mobile-enhanced deleted row styling - more visible */
+  @media (max-width: 768px) {
+    .row-deleted {
+      background: linear-gradient(90deg, 
+        hsl(var(--destructive) / 0.2) 0%, 
+        hsl(var(--destructive) / 0.12) 50%,
+        hsl(var(--destructive) / 0.06) 100%) !important;
+      border-left: 4px solid hsl(var(--destructive)) !important;
+    }
+
+    .row-deleted td {
+      color: hsl(var(--destructive)) !important;
+    }
+
+    .row-deleted td:first-child {
+      font-weight: 500;
+    }
+  }
+
   /* Gantt bar styles for deleted projects */
   .gantt-bar-deleted {
     background: hsl(var(--destructive) / 0.4) !important;
@@ -309,6 +354,22 @@
       hsl(var(--destructive) / 0.1) 0%, 
       hsl(var(--destructive) / 0.05) 50%,
       transparent 100%) !important;
+  }
+
+  /* Mobile Gantt deleted visibility */
+  @media (max-width: 768px) {
+    .gantt-bar-deleted {
+      background: hsl(var(--destructive) / 0.5) !important;
+      opacity: 0.8;
+      border: 2px dashed hsl(var(--destructive));
+    }
+
+    .gantt-row-deleted {
+      background: linear-gradient(90deg, 
+        hsl(var(--destructive) / 0.15) 0%, 
+        hsl(var(--destructive) / 0.08) 50%,
+        transparent 100%) !important;
+    }
   }
 }
 
@@ -463,7 +524,8 @@
 
   /* Mobile table specific styles */
   .mobile-matrix-table {
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     width: auto;
     min-width: 100%;
   }
@@ -473,11 +535,39 @@
     white-space: nowrap;
   }
 
-  /* Mobile table cells */
-  .mobile-table-th,
-  .mobile-table-td {
-    padding: 8px 12px;
+  /* Mobile table cells - compact density */
+  .mobile-table-th {
+    padding: 10px 10px;
     vertical-align: middle;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+    background: hsl(var(--table-header));
+    border-bottom: 2px solid hsl(var(--border));
+  }
+
+  .mobile-table-td {
+    padding: 8px 10px;
+    vertical-align: middle;
+    font-size: 13px;
+    line-height: 1.4;
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  /* Alternate row subtle striping for readability */
+  .mobile-matrix-table tbody tr:nth-child(even) td {
+    background-color: hsl(var(--muted) / 0.3);
+  }
+
+  .mobile-matrix-table tbody tr:nth-child(even) td:first-child {
+    background-color: hsl(var(--card));
+  }
+
+  /* Row hover/focus states */
+  .mobile-matrix-table tbody tr:focus-within td {
+    background-color: hsl(var(--accent) / 0.4);
   }
 
   /* ============================================
@@ -492,16 +582,45 @@
       -webkit-overflow-scrolling: touch;
     }
 
+    /* ========== MOBILE TYPOGRAPHY HIERARCHY ========== */
+
+    /* Event/main column - primary emphasis */
+    .mobile-matrix-table tr td:first-child {
+      font-weight: 500;
+      font-size: 13px;
+      color: hsl(var(--foreground));
+    }
+
+    /* Secondary columns - dates, numbers */
+    .mobile-matrix-table td {
+      font-size: 12px;
+      color: hsl(var(--foreground) / 0.9);
+    }
+
+    /* Compact icons in mobile */
+    .mobile-matrix-table td svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* Action buttons - smaller but touchable */
+    .mobile-matrix-table td button svg {
+      width: 18px;
+      height: 18px;
+    }
+
     /* ========== STICKY COLUMN & HEADER SYSTEM ========== */
     
-    /* First column sticky (Evento/Nombre) */
+    /* First column sticky (Evento/Nombre) - enhanced */
     .matrix-table tr td:first-child,
     .mobile-matrix-table tr td:first-child {
       position: sticky;
       left: 0;
       background: hsl(var(--card));
       z-index: 5;
-      box-shadow: 2px 0 4px -2px hsl(var(--foreground) / 0.1);
+      box-shadow: 3px 0 8px -3px hsl(var(--foreground) / 0.15);
+      border-right: 1px solid hsl(var(--border) / 0.3);
     }
 
     .matrix-table tr th:first-child,
@@ -510,8 +629,9 @@
       left: 0;
       top: 0;
       background: hsl(var(--table-header));
-      z-index: 20; /* Higher than other sticky elements */
-      box-shadow: 2px 0 4px -2px hsl(var(--foreground) / 0.15);
+      z-index: 20;
+      box-shadow: 3px 0 8px -3px hsl(var(--foreground) / 0.2);
+      border-right: 1px solid hsl(var(--border) / 0.3);
     }
 
     /* Header row sticky */
@@ -528,19 +648,22 @@
       top: 0;
       background: hsl(var(--table-header));
       z-index: 10;
+      border-bottom: 2px solid hsl(var(--border));
     }
 
     /* ========== EXPANDED TOUCH TARGETS ========== */
     
-    /* Minimum touch targets - WCAG compliant */
+    /* Minimum touch targets - visually compact but touch-friendly */
     .matrix-table td button,
     .matrix-table td [role="button"],
     .mobile-matrix-table td button,
     .mobile-matrix-table td [role="button"] {
-      min-height: 44px;
-      min-width: 44px;
-      padding: 8px;
+      min-height: 36px;
+      min-width: 36px;
+      padding: 6px;
       position: relative;
+      border-radius: 6px;
+      transition: all 100ms ease;
     }
 
     /* Expanded hit area for small buttons without visual change */
@@ -548,34 +671,36 @@
     .mobile-matrix-table td button::before {
       content: "";
       position: absolute;
-      top: -6px;
-      left: -6px;
-      right: -6px;
-      bottom: -6px;
+      top: -8px;
+      left: -8px;
+      right: -8px;
+      bottom: -8px;
     }
 
-    /* Inputs and selects - touch friendly */
+    /* Inputs and selects - compact but touch friendly */
     .matrix-table td input,
     .matrix-table td select,
     .mobile-matrix-table td input,
     .mobile-matrix-table td select,
     [data-radix-select-trigger] {
-      min-height: 44px;
-      font-size: 16px; /* Prevents iOS zoom on focus */
+      min-height: 36px;
+      font-size: 14px;
+      padding: 6px 10px;
       touch-action: manipulation;
+      border-radius: 6px;
     }
 
     /* ========== TOUCH FEEDBACK STATES ========== */
     
-    /* Row touch feedback */
+    /* Row touch feedback - smooth transitions */
     .matrix-table tbody tr,
     .mobile-matrix-table tbody tr {
-      transition: background-color 100ms ease;
+      transition: background-color 120ms ease, transform 100ms ease;
     }
 
     .matrix-table tbody tr:active,
     .mobile-matrix-table tbody tr:active {
-      background-color: hsl(var(--accent) / 0.3) !important;
+      background-color: hsl(var(--accent) / 0.4) !important;
     }
 
     /* Cell touch feedback */
@@ -586,19 +711,19 @@
 
     .matrix-table td:active,
     .mobile-matrix-table td:active {
-      background-color: hsl(var(--primary) / 0.08);
+      background-color: hsl(var(--primary) / 0.1);
     }
 
     /* Don't override sticky column background on active */
     .matrix-table tr td:first-child:active,
     .mobile-matrix-table tr td:first-child:active {
-      background-color: hsl(var(--accent) / 0.3);
+      background-color: hsl(var(--accent) / 0.4);
     }
 
-    /* Button active state (replaces hover) */
+    /* Button active state - subtle scale and color */
     .matrix-table td button:active,
     .mobile-matrix-table td button:active {
-      transform: scale(0.95);
+      transform: scale(0.92);
       background-color: hsl(var(--accent));
     }
 
@@ -606,6 +731,24 @@
     [data-radix-select-trigger]:active {
       background-color: hsl(var(--accent));
       transform: scale(0.98);
+    }
+
+    /* ========== CLEANER ACTION ICONS ========== */
+
+    /* Action buttons - cleaner look */
+    .mobile-matrix-table td .flex.gap-1,
+    .mobile-matrix-table td .flex.gap-2 {
+      gap: 4px;
+    }
+
+    .mobile-matrix-table td button:not([class*="bg-"]) {
+      background: transparent;
+      color: hsl(var(--muted-foreground));
+    }
+
+    .mobile-matrix-table td button:not([class*="bg-"]):active {
+      background: hsl(var(--accent));
+      color: hsl(var(--foreground));
     }
 
     /* ========== STATUS ICONS & BADGES ========== */
@@ -658,9 +801,9 @@
       border-radius: 4px;
     }
 
-    /* ========== SCROLL INDICATORS ========== */
+    /* ========== SCROLL INDICATORS - REFINED ========== */
 
-    /* Mobile scroll hint - visual indicator that table scrolls */
+    /* Mobile scroll hint - subtle visual indicator */
     .mobile-scroll-container {
       position: relative;
     }
@@ -671,16 +814,16 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      width: 24px;
+      width: 20px;
       pointer-events: none;
       z-index: 6;
-      transition: opacity 200ms ease;
+      transition: opacity 300ms ease;
     }
 
     /* Right edge fade - indicates more content */
     .mobile-scroll-container::after {
       right: 0;
-      background: linear-gradient(to right, transparent, hsl(var(--background) / 0.9));
+      background: linear-gradient(to right, transparent, hsl(var(--background) / 0.85));
       opacity: 1;
     }
 
@@ -699,12 +842,20 @@
       opacity: 1;
     }
 
-    /* ========== TABLE CELL FORMATTING ========== */
+    /* ========== TABLE CELL FORMATTING - COMPACT ========== */
 
-    /* Table cells - ensure content doesn't collapse */
+    /* Table cells - compact but readable */
     .matrix-table td,
     .mobile-matrix-table td {
       min-width: fit-content;
+      white-space: nowrap;
+    }
+
+    /* Text truncation with tooltip for long content */
+    .mobile-matrix-table td .truncate {
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
@@ -713,14 +864,32 @@
     /* Prevent viewport jump when keyboard opens */
     .matrix-table td input:focus,
     .mobile-matrix-table td input:focus {
-      scroll-margin: 100px;
-      scroll-padding: 100px;
+      scroll-margin: 80px;
+      scroll-padding: 80px;
+      outline: 2px solid hsl(var(--primary) / 0.5);
+      outline-offset: 2px;
     }
 
     /* Center input in viewport on focus */
     .mobile-input-focused {
-      scroll-margin-top: 40vh;
-      scroll-margin-bottom: 40vh;
+      scroll-margin-top: 35vh;
+      scroll-margin-bottom: 35vh;
+    }
+
+    /* ========== ROW SEPARATORS - SUBTLE ========== */
+
+    /* Subtle separators between rows */
+    .mobile-matrix-table tbody tr {
+      border-bottom: 1px solid hsl(var(--border) / 0.4);
+    }
+
+    .mobile-matrix-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    /* Column separators - very subtle */
+    .mobile-matrix-table td:not(:first-child) {
+      border-left: 1px solid hsl(var(--border) / 0.15);
     }
 
     /* ========== DROPDOWN & POPOVER FIXES ========== */

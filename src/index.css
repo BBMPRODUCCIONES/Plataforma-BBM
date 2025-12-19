@@ -349,11 +349,9 @@
     border: 1px dashed hsl(var(--destructive));
   }
 
+  /* Gantt row deleted - NO background on the row itself to prevent timeline overlap */
   .gantt-row-deleted {
-    background: linear-gradient(90deg, 
-      hsl(var(--destructive) / 0.1) 0%, 
-      hsl(var(--destructive) / 0.05) 50%,
-      transparent 100%) !important;
+    /* Background is now ONLY on the sticky project column, not the entire row */
   }
 
   /* Mobile Gantt deleted visibility */
@@ -362,13 +360,6 @@
       background: hsl(var(--destructive) / 0.5) !important;
       opacity: 0.8;
       border: 2px dashed hsl(var(--destructive));
-    }
-
-    .gantt-row-deleted {
-      background: linear-gradient(90deg, 
-        hsl(var(--destructive) / 0.15) 0%, 
-        hsl(var(--destructive) / 0.08) 50%,
-        transparent 100%) !important;
     }
   }
 }
@@ -409,13 +400,29 @@
     box-sizing: border-box !important;
   }
 
-  /* PWA/Mobile specific Gantt fixes */
+  /* PWA/Mobile specific Gantt fixes - STICKY PROJECT COLUMN */
   @media (max-width: 768px) {
     .gantt-day-cell,
     .gantt-project-column,
     .gantt-bar-container {
       flex-shrink: 0 !important;
       box-sizing: border-box !important;
+    }
+
+    /* Critical: Make project column sticky and properly layered on mobile */
+    .gantt-project-column {
+      position: sticky !important;
+      left: 0 !important;
+      z-index: 20 !important;
+      background-color: hsl(var(--card)) !important;
+      box-shadow: 2px 0 4px hsl(var(--border) / 0.3) !important;
+    }
+
+    /* Ensure header columns are above everything */
+    .gantt-scroll-container .sticky.top-0 .gantt-project-column,
+    .gantt-scroll-container .sticky.top-\\[41px\\] .gantt-project-column {
+      z-index: 40 !important;
+      background-color: hsl(var(--table-header)) !important;
     }
   }
 

@@ -551,12 +551,14 @@ const PanelDirectivo = () => {
         />
 
         <Tabs defaultValue="tabla" className={isMobile ? "space-y-2" : "space-y-4"}>
-          <div className={`flex items-center justify-between flex-wrap ${isMobile ? 'gap-2' : 'gap-4'}`}>
-            <div className={`flex items-center ${isMobile ? 'gap-2 flex-wrap' : 'gap-4'}`}>
-              <TabsList className={isMobile ? 'h-8' : ''}>
-                <TabsTrigger value="tabla" className={isMobile ? 'h-7 text-xs px-2.5' : ''}>Tabla</TabsTrigger>
-                <TabsTrigger value="gantt" className={isMobile ? 'h-7 text-xs px-2.5' : ''}>Gantt</TabsTrigger>
-                <TabsTrigger value="dashboard" className={isMobile ? 'h-7 text-xs px-2.5' : ''}>Dashboard</TabsTrigger>
+          {/* Mobile-optimized: toggle visible without scroll */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {/* Toggle always visible first on mobile */}
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+              <TabsList className={isMobile ? 'w-full h-8' : ''}>
+                <TabsTrigger value="tabla" className={isMobile ? 'flex-1 h-7 text-xs px-2.5' : ''}>Tabla</TabsTrigger>
+                <TabsTrigger value="gantt" className={isMobile ? 'flex-1 h-7 text-xs px-2.5' : ''}>Gantt</TabsTrigger>
+                <TabsTrigger value="dashboard" className={isMobile ? 'flex-1 h-7 text-xs px-2.5' : ''}>Dashboard</TabsTrigger>
               </TabsList>
               <div className="flex items-center gap-2">
                 <Switch
@@ -565,8 +567,8 @@ const PanelDirectivo = () => {
                   onCheckedChange={setHideDeleted}
                   className={isMobile ? 'scale-90' : ''}
                 />
-                <Label htmlFor="hide-deleted" className={`cursor-pointer ${isMobile ? 'text-xs text-muted-foreground' : 'text-sm text-muted-foreground'}`}>
-                  {isMobile ? 'Ocultar eliminados' : 'Ocultar eliminados'}
+                <Label htmlFor="hide-deleted" className={`cursor-pointer whitespace-nowrap ${isMobile ? 'text-xs text-muted-foreground' : 'text-sm text-muted-foreground'}`}>
+                  Ocultar eliminados
                 </Label>
               </div>
             </div>

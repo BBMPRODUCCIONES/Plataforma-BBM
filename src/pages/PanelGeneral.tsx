@@ -409,11 +409,13 @@ const PanelGeneral = () => {
         />
 
         <Tabs defaultValue="matriz" className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              <TabsList>
-                <TabsTrigger value="matriz">Matriz</TabsTrigger>
-                <TabsTrigger value="gantt">Gantt</TabsTrigger>
+          {/* Mobile-optimized controls: toggle visible without scroll */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {/* Toggle always visible first */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <TabsList className="w-full sm:w-auto">
+                <TabsTrigger value="matriz" className="flex-1 sm:flex-none">Matriz</TabsTrigger>
+                <TabsTrigger value="gantt" className="flex-1 sm:flex-none">Gantt</TabsTrigger>
               </TabsList>
               <div className="flex items-center gap-2">
                 <Switch
@@ -421,13 +423,13 @@ const PanelGeneral = () => {
                   checked={hideDeleted}
                   onCheckedChange={setHideDeleted}
                 />
-                <Label htmlFor="hide-deleted-general" className="text-sm text-muted-foreground cursor-pointer">
+                <Label htmlFor="hide-deleted-general" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
                   Ocultar eliminados
                 </Label>
               </div>
             </div>
 
-            <div className="relative w-64">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar..."

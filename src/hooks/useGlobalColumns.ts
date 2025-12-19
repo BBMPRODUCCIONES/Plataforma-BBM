@@ -153,18 +153,21 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
     };
   }, [panelKey, defaultColumns]);
 
-  // Save columns to database (admin only)
-  const setColumns = useCallback(async (newColumns: ColumnConfig[]) => {
+  // Save columns to database (admin only) - returns true on success, false on failure
+  const setColumns = useCallback(async (newColumns: ColumnConfig[]): Promise<boolean> => {
     if (!isAdmin) {
       toast.error("Solo los administradores pueden modificar la estructura");
-      return;
+      return false;
     }
 
     if (!user) {
       toast.error("Debe iniciar sesión para guardar cambios");
-      return;
+      return false;
     }
 
+    // Store previous state for rollback
+    const previousColumns = state.columns;
+    
     // Optimistic update
     setState(prev => ({ ...prev, columns: newColumns }));
 
@@ -183,20 +186,22 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
 
       if (error) {
         console.error("[useGlobalColumns] Error saving:", error);
-        toast.error("Error al guardar la configuración");
+        toast.error("Error al guardar la configuración: " + error.message);
         // Revert on error
-        fetchColumns();
-        return;
+        setState(prev => ({ ...prev, columns: previousColumns }));
+        return false;
       }
 
       console.log(`[useGlobalColumns] Saved ${newColumns.length} columns for ${panelKey}`);
       toast.success("Estructura actualizada para todos los usuarios");
+      return true;
     } catch (err) {
       console.error("[useGlobalColumns] Unexpected save error:", err);
       toast.error("Error inesperado al guardar");
-      fetchColumns();
+      setState(prev => ({ ...prev, columns: previousColumns }));
+      return false;
     }
-  }, [isAdmin, user, panelKey, fetchColumns]);
+  }, [isAdmin, user, panelKey, state.columns]);
 
   return {
     columns: state.columns,

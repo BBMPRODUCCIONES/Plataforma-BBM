@@ -60,7 +60,7 @@ interface ColumnManagerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   columns: ColumnConfig[];
-  onColumnsChange: (columns: ColumnConfig[]) => void | Promise<void>;
+  onColumnsChange: (columns: ColumnConfig[]) => boolean | Promise<boolean> | void | Promise<void>;
   panelName: string;
   readOnly?: boolean;
 }
@@ -131,6 +131,8 @@ export function ColumnManagerDialog({
   // Helper to update both local and parent state - ensure new references
   const updateColumns = async (newColumns: ColumnConfig[], closeAfter = false): Promise<boolean> => {
     const updatedColumns = newColumns.map(col => ({ ...col })); // Deep copy each column
+    const previousColumns = [...localColumns]; // Store for rollback
+    
     console.log('[ColumnManager] Updating columns:', updatedColumns.length);
     setLocalColumns(updatedColumns);
     
@@ -138,7 +140,15 @@ export function ColumnManagerDialog({
     if (typeof onColumnsChange === 'function') {
       console.log('[ColumnManager] Calling onColumnsChange...');
       try {
-        await onColumnsChange(updatedColumns);
+        const result = await onColumnsChange(updatedColumns);
+        
+        // Check if the save was successful (false means failure)
+        if (result === false) {
+          console.error('[ColumnManager] onColumnsChange returned false - reverting');
+          setLocalColumns(previousColumns);
+          return false;
+        }
+        
         console.log('[ColumnManager] onColumnsChange completed successfully');
         if (closeAfter) {
           onOpenChange(false);
@@ -146,10 +156,12 @@ export function ColumnManagerDialog({
         return true;
       } catch (error) {
         console.error('[ColumnManager] Error in onColumnsChange:', error);
+        setLocalColumns(previousColumns);
         return false;
       }
     } else {
       console.error('[ColumnManager] onColumnsChange is not a function!');
+      setLocalColumns(previousColumns);
       return false;
     }
   };

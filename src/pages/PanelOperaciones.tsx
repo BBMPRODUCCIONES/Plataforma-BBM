@@ -1049,7 +1049,8 @@ const PanelOperaciones = () => {
       { 
         key: "nombreMaterial", 
         header: "Material", 
-        width: "280px",
+        width: "65%",
+        mobileWidth: "280px",
         className: "align-top",
         render: (i: InventarioItem) => {
           const text = i.nombreMaterial || "";
@@ -1080,7 +1081,8 @@ const PanelOperaciones = () => {
       { 
         key: "cantidad", 
         header: "Cantidad", 
-        width: "100px",
+        width: "8%",
+        mobileWidth: "100px",
         render: (i: InventarioItem) => (
           <div className="flex flex-col gap-1">
             <EditableCell
@@ -1102,7 +1104,8 @@ const PanelOperaciones = () => {
       {
         key: "recibido",
         header: "Recibido",
-        width: "80px",
+        width: "7%",
+        mobileWidth: "80px",
         render: (i: InventarioItem) => (
           <EditableCell
             value={i.recibido}
@@ -1114,7 +1117,8 @@ const PanelOperaciones = () => {
       { 
         key: "notasAdicionales", 
         header: "Notas Adicionales", 
-        width: "200px",
+        width: "17%",
+        mobileWidth: "200px",
         render: (i: InventarioItem) => (
           <EditableCell
             value={i.notasAdicionales}
@@ -1127,7 +1131,8 @@ const PanelOperaciones = () => {
       {
         key: "acciones",
         header: "",
-        width: "50px",
+        width: "3%",
+        mobileWidth: "50px",
         render: (i: InventarioItem) => (
           <Button
             variant="ghost"

@@ -6,6 +6,8 @@ interface Column<T> {
   key: string;
   header: string;
   width?: string;
+  /** Mobile-specific width (used only in ACW/mobile view) */
+  mobileWidth?: string;
   render?: (item: T, index: number) => ReactNode;
   className?: string;
 }
@@ -35,9 +37,10 @@ export function MatrixTable<T extends { id: string }>({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasScrolledRight, setHasScrolledRight] = useState(false);
 
-  // Calculate minimum table width for proper horizontal scroll
+  // Calculate minimum table width for proper horizontal scroll (mobile uses mobileWidth if available)
   const totalWidth = columns.reduce((acc, col) => {
-    const width = col.width ? parseInt(col.width) : 100;
+    const widthStr = col.mobileWidth || col.width;
+    const width = widthStr ? parseInt(widthStr) : 100;
     return acc + width;
   }, 0);
 
@@ -88,15 +91,19 @@ export function MatrixTable<T extends { id: string }>({
           <table className="matrix-table mobile-matrix-table">
             <thead>
               <tr>
-                {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    style={{ width: col.width, minWidth: col.width }}
-                    className={cn("mobile-table-th", col.className)}
-                  >
-                    {col.header}
-                  </th>
-                ))}
+                {columns.map((col) => {
+                  // Use mobileWidth if available, otherwise fall back to width
+                  const mobileW = col.mobileWidth || col.width;
+                  return (
+                    <th
+                      key={col.key}
+                      style={{ width: mobileW, minWidth: mobileW }}
+                      className={cn("mobile-table-th", col.className)}
+                    >
+                      {col.header}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -112,17 +119,20 @@ export function MatrixTable<T extends { id: string }>({
                     getRowClassName?.(item)
                   )}
                 >
-                  {columns.map((col) => (
-                    <td 
-                      key={col.key} 
-                      style={{ width: col.width, minWidth: col.width }} 
-                      className={cn("mobile-table-td touch-manipulation mobile-touch-cell", col.className)}
-                    >
-                      {col.render
-                        ? col.render(item, idx)
-                        : (item as Record<string, unknown>)[col.key]?.toString() || "-"}
-                    </td>
-                  ))}
+                  {columns.map((col) => {
+                    const mobileW = col.mobileWidth || col.width;
+                    return (
+                      <td 
+                        key={col.key} 
+                        style={{ width: mobileW, minWidth: mobileW }} 
+                        className={cn("mobile-table-td touch-manipulation mobile-touch-cell", col.className)}
+                      >
+                        {col.render
+                          ? col.render(item, idx)
+                          : (item as Record<string, unknown>)[col.key]?.toString() || "-"}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>

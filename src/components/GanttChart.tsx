@@ -446,16 +446,16 @@ export function GanttChart({
                       ))}
                     </div>
                     
-                    {/* Today line */}
+                    {/* Today line - z-0 to stay behind bars */}
                     {todayPosition !== null && (
                       <div 
-                        className="absolute top-0 bottom-0 w-0.5 bg-primary z-10 pointer-events-none"
+                        className="absolute top-0 bottom-0 w-0.5 bg-primary z-0 pointer-events-none"
                         style={{ left: todayPosition }}
                       />
                     )}
                     
-                    {/* Bars */}
-                    <div className="relative h-12 gantt-bar-container">
+                    {/* Bars - z-10 to stay above today line */}
+                    <div className="relative h-12 gantt-bar-container z-10">
                       {montajeBar && (
                         <div
                           className={cn(

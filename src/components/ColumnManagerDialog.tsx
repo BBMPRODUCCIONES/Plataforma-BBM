@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Columns, Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Settings2 } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Columns, Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Settings2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,6 +119,7 @@ export function ColumnManagerDialog({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [columnToDelete, setColumnToDelete] = useState<ColumnConfig | null>(null);
+  const [showHiddenColumns, setShowHiddenColumns] = useState(false);
 
   const resetForm = () => {
     setColumnName("");
@@ -306,7 +307,29 @@ export function ColumnManagerDialog({
     setDraggedIndex(null);
   };
 
-  const sortedColumns = [...localColumns].sort((a, b) => a.order - b.order);
+  // Filter out hidden system columns from the main list (custom columns always show)
+  const sortedColumns = useMemo(() => 
+    [...localColumns]
+      .filter(col => col.visible || col.isCustom)
+      .sort((a, b) => a.order - b.order),
+    [localColumns]
+  );
+
+  // Hidden system columns that can be restored
+  const hiddenSystemColumns = useMemo(() => 
+    localColumns.filter(col => !col.visible && !col.isCustom),
+    [localColumns]
+  );
+
+  const handleRestoreColumn = async (key: string) => {
+    const updatedColumns = localColumns.map(col =>
+      col.key === key ? { ...col, visible: true } : col
+    );
+    const ok = await updateColumns(updatedColumns);
+    if (ok) {
+      toast.success("Columna restaurada");
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -472,6 +495,45 @@ export function ColumnManagerDialog({
                 ))}
               </div>
             </div>
+
+            {/* Hidden columns section */}
+            {!readOnly && hiddenSystemColumns.length > 0 && (
+              <div className="mt-4 border-t pt-4">
+                <button
+                  onClick={() => setShowHiddenColumns(!showHiddenColumns)}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {showHiddenColumns ? "Ocultar" : "Mostrar"} columnas quitadas ({hiddenSystemColumns.length})
+                </button>
+                
+                {showHiddenColumns && (
+                  <div className="mt-3 space-y-2">
+                    {hiddenSystemColumns.map((column) => (
+                      <div
+                        key={column.key}
+                        className="flex items-center justify-between p-2 rounded-lg border border-dashed bg-muted/30"
+                      >
+                        <div>
+                          <span className="text-sm font-medium">{column.header}</span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {columnTypes.find((t) => t.value === column.type)?.label}
+                          </span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRestoreColumn(column.key)}
+                        >
+                          <RotateCcw className="h-3 w-3 mr-1" />
+                          Restaurar
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <p className="text-xs text-muted-foreground mt-4">
               Arrastra las columnas para reordenarlas. Usa el ícono de configuración para definir visibilidad por rol. Las columnas del sistema se pueden ocultar; las columnas personalizadas sí se pueden eliminar.

@@ -41,7 +41,7 @@ export function MatrixTable<T extends { id: string }>({
     return acc + width;
   }, 0);
 
-  // Track scroll position for visual indicator
+  // Track scroll position for visual indicators (left and right edges)
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || !isMobile) return;
@@ -49,10 +49,20 @@ export function MatrixTable<T extends { id: string }>({
     const handleScroll = () => {
       const { scrollLeft, scrollWidth, clientWidth } = container;
       const isScrolledToEnd = scrollLeft + clientWidth >= scrollWidth - 20;
+      const isScrolledFromStart = scrollLeft > 10;
+      
       setHasScrolledRight(isScrolledToEnd);
+      
+      // Toggle left scroll indicator class
+      if (isScrolledFromStart) {
+        container.classList.add("scrolled-left");
+      } else {
+        container.classList.remove("scrolled-left");
+      }
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll(); // Initial check
     return () => container.removeEventListener("scroll", handleScroll);
   }, [isMobile]);
 
@@ -96,6 +106,7 @@ export function MatrixTable<T extends { id: string }>({
                   data-project-id={item.id}
                   onClick={() => onRowClick?.(item)}
                   className={cn(
+                    "mobile-touch-row",
                     onRowClick && "cursor-pointer touch-manipulation",
                     highlightedId === item.id && "bg-primary/20 ring-2 ring-primary ring-inset animate-pulse",
                     getRowClassName?.(item)
@@ -105,7 +116,7 @@ export function MatrixTable<T extends { id: string }>({
                     <td 
                       key={col.key} 
                       style={{ width: col.width, minWidth: col.width }} 
-                      className={cn("mobile-table-td touch-manipulation", col.className)}
+                      className={cn("mobile-table-td touch-manipulation mobile-touch-cell", col.className)}
                     >
                       {col.render
                         ? col.render(item, idx)

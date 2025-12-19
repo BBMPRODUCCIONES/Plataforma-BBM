@@ -759,4 +759,95 @@
       min-width: calc(50% - 4px);
     }
   }
+
+  /* ============================================
+     MOBILE BOTTOM NAVIGATION STYLES
+     ============================================ */
+  
+  .mobile-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .mobile-app-header {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Page transition animations for app-like feel */
+  .page-transition-enter {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  .page-transition-enter-active {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 200ms ease-out, transform 200ms ease-out;
+  }
+
+  .page-transition-exit {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .page-transition-exit-active {
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: opacity 150ms ease-in, transform 150ms ease-in;
+  }
+
+  /* Smooth content transitions */
+  .content-scroll-area {
+    animation: fadeSlideIn 200ms ease-out;
+  }
+
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0.8;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Bottom nav sheet styling */
+  [data-radix-dialog-content][data-side="bottom"] {
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+  }
+
+  /* Active nav item animation */
+  .mobile-bottom-nav button {
+    position: relative;
+  }
+
+  .mobile-bottom-nav button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 32px;
+    height: 3px;
+    background: hsl(var(--primary));
+    border-radius: 0 0 4px 4px;
+    transition: transform 150ms ease-out;
+  }
+
+  .mobile-bottom-nav button[data-active="true"]::before,
+  .mobile-bottom-nav button.text-primary::before {
+    transform: translateX(-50%) scaleX(1);
+  }
+
+  /* Pull indicator for bottom sheets */
+  [data-vaul-drawer]::before {
+    content: "";
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 2px;
+    margin: 8px auto 16px;
+  }
 }

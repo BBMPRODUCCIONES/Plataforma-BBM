@@ -411,15 +411,16 @@ export function GanttChart({
                   key={project.id} 
                   className={cn(
                     "flex border-b border-border hover:bg-table-row-hover transition-colors",
-                    onProjectClick && "cursor-pointer",
-                    isDeleted && "gantt-row-deleted"
+                    onProjectClick && "cursor-pointer"
                   )}
                   onClick={() => onProjectClick?.(project.id)}
                 >
                   <div 
                     className={cn(
-                      "px-3 py-3 border-r border-border bg-card sticky left-0 z-10 gantt-project-column",
-                      isDeleted && "border-l-2 border-l-destructive bg-destructive/5"
+                      "px-3 py-3 border-r border-border sticky left-0 z-20 gantt-project-column",
+                      isDeleted 
+                        ? "border-l-2 border-l-destructive bg-destructive/10" 
+                        : "bg-card"
                     )}
                     style={{ width: PROJECT_COLUMN_WIDTH, minWidth: PROJECT_COLUMN_WIDTH, flexShrink: 0 }}
                   >

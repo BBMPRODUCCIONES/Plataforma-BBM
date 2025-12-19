@@ -1183,6 +1183,7 @@ const PanelOperaciones = () => {
         key: "empleado",
         header: "Empleado",
         width: "200px",
+        mobileWidth: "200px",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           
@@ -1230,6 +1231,7 @@ const PanelOperaciones = () => {
         key: "concepto",
         header: "Concepto",
         width: "200px",
+        mobileWidth: "200px",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           if (!canEdit) {
@@ -1249,6 +1251,7 @@ const PanelOperaciones = () => {
         key: "imagenes",
         header: "Imágenes",
         width: "120px",
+        mobileWidth: "120px",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           return (
@@ -1272,6 +1275,7 @@ const PanelOperaciones = () => {
         key: "valor",
         header: "VALOR (COP)",
         width: "130px",
+        mobileWidth: "130px",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           const formattedValue = `$ ${(c.valor || 0).toLocaleString('es-CO')}`;
@@ -1293,6 +1297,7 @@ const PanelOperaciones = () => {
         key: "categoria",
         header: "Categoría",
         width: "130px",
+        mobileWidth: "130px",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           if (!canEdit) {
@@ -1312,6 +1317,7 @@ const PanelOperaciones = () => {
         key: "recursos",
         header: "Recursos *",
         width: "140px",
+        mobileWidth: "140px",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           const isEmpty = !c.recursos;
@@ -1339,6 +1345,7 @@ const PanelOperaciones = () => {
         key: "contingencia",
         header: "Contingencia",
         width: "120px",
+        mobileWidth: "120px",
         render: (c: CajaMenorItem) => {
           const value = c.contingencia || "No";
           // Only Administrador can edit Contingencia column
@@ -1370,6 +1377,7 @@ const PanelOperaciones = () => {
         key: "estado",
         header: "Estado",
         width: "130px",
+        mobileWidth: "130px",
         render: (c: CajaMenorItem) => {
           // Only users with canApproveCajaMenor permission can change Estado
           const canChangeEstado = canApproveCajaMenor();
@@ -1398,6 +1406,7 @@ const PanelOperaciones = () => {
         key: "acciones",
         header: "",
         width: "50px",
+        mobileWidth: "50px",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           if (!canEdit) {

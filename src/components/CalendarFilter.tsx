@@ -241,15 +241,15 @@ export function CalendarFilter({
 
   return (
     <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-card border border-border rounded-lg calendar-filter-container">
-      {/* View Mode Tabs */}
-      <div className="flex items-center bg-muted rounded-md p-0.5 overflow-x-auto">
+      {/* View Mode Tabs - horizontal scroll on mobile */}
+      <div className="flex items-center bg-muted rounded-md p-0.5 overflow-x-auto max-w-full scrollbar-thin">
         {(["day", "week", "month", "quarter", "year"] as CalendarViewMode[]).map((mode) => (
           <Button
             key={mode}
             variant="ghost"
             size="sm"
             className={cn(
-              "h-8 sm:h-7 px-2 sm:px-2.5 text-xs rounded-sm touch-manipulation flex-shrink-0",
+              "h-10 sm:h-7 px-3 sm:px-2.5 text-xs rounded-sm touch-manipulation flex-shrink-0 min-w-[44px]",
               viewMode === mode && "bg-background shadow-sm"
             )}
             onClick={() => handleViewModeChange(mode)}
@@ -266,7 +266,7 @@ export function CalendarFilter({
             variant={viewMode === "custom" ? "default" : "outline"}
             size="sm"
             className={cn(
-              "h-7 px-3 text-xs gap-1.5",
+              "h-10 sm:h-7 px-3 text-xs gap-1.5 touch-manipulation min-w-[44px]",
               viewMode === "custom" && "bg-primary text-primary-foreground"
             )}
             onClick={() => {
@@ -274,8 +274,8 @@ export function CalendarFilter({
               setRangePickerOpen(true);
             }}
           >
-            <CalendarRange className="h-3.5 w-3.5" />
-            Rango
+            <CalendarRange className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+            <span className="hidden sm:inline">Rango</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent 
@@ -347,14 +347,14 @@ export function CalendarFilter({
 
       {/* Navigation */}
       <div className="flex items-center gap-1 flex-shrink-0">
-        <Button variant="outline" size="icon" className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation" onClick={navigatePrevious}>
-          <ChevronLeft className="h-4 w-4" />
+        <Button variant="outline" size="icon" className="h-10 w-10 sm:h-7 sm:w-7 touch-manipulation" onClick={navigatePrevious}>
+          <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4" />
         </Button>
         <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 sm:h-7 px-2 sm:px-3 min-w-[140px] sm:min-w-[200px] justify-start text-xs touch-manipulation">
-              <CalendarIcon className="h-3 w-3 mr-1 sm:mr-2 flex-shrink-0" />
-              <span className="capitalize truncate">{getDateRangeLabel()}</span>
+            <Button variant="outline" size="sm" className="h-10 sm:h-7 px-2 sm:px-3 min-w-[120px] sm:min-w-[200px] justify-start text-xs touch-manipulation">
+              <CalendarIcon className="h-4 w-4 sm:h-3 sm:w-3 mr-1 sm:mr-2 flex-shrink-0" />
+              <span className="capitalize truncate text-[11px] sm:text-xs">{getDateRangeLabel()}</span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 bg-popover border border-border shadow-lg z-50" align="start">
@@ -372,22 +372,22 @@ export function CalendarFilter({
             />
           </PopoverContent>
         </Popover>
-        <Button variant="outline" size="icon" className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation" onClick={navigateNext}>
-          <ChevronRight className="h-4 w-4" />
+        <Button variant="outline" size="icon" className="h-10 w-10 sm:h-7 sm:w-7 touch-manipulation" onClick={navigateNext}>
+          <ChevronRight className="h-5 w-5 sm:h-4 sm:w-4" />
         </Button>
-        <Button variant="ghost" size="sm" className="h-8 sm:h-7 px-2 text-xs touch-manipulation" onClick={goToToday}>
+        <Button variant="ghost" size="sm" className="h-10 sm:h-7 px-3 sm:px-2 text-xs touch-manipulation min-w-[44px]" onClick={goToToday}>
           Hoy
         </Button>
       </div>
 
       {/* Status Filter */}
       <Select value={statusFilter} onValueChange={(v) => onStatusChange(v as ProjectStatus | "todos")}>
-        <SelectTrigger className="w-[130px] sm:w-[160px] h-8 sm:h-7 text-xs bg-background touch-manipulation flex-shrink-0">
+        <SelectTrigger className="w-full sm:w-[160px] h-10 sm:h-7 text-xs bg-background touch-manipulation flex-shrink-0 min-w-[120px]">
           <SelectValue placeholder="Estado" />
         </SelectTrigger>
         <SelectContent className="bg-popover border border-border shadow-lg z-50">
           {STATUS_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value} className="touch-manipulation">
+            <SelectItem key={option.value} value={option.value} className="touch-manipulation min-h-[44px] sm:min-h-0">
               {option.label}
             </SelectItem>
           ))}

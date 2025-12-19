@@ -33,17 +33,21 @@ export function CajaMenorStatusIcon({ cajaMenor }: CajaMenorStatusIconProps) {
         <TooltipTrigger asChild>
           <div
             className={`
-              flex items-center justify-center
-              w-6 h-6 rounded-full
+              inline-flex items-center justify-center
+              w-6 h-6 min-w-[24px] min-h-[24px]
+              rounded-full
               ${isApproved ? 'bg-green-500' : 'bg-red-500'}
               cursor-default
               flex-shrink-0
+              touch-manipulation
             `}
+            role="status"
+            aria-label={tooltipText}
           >
-            <span className="text-black font-bold text-xs">$</span>
+            <span className="text-black font-bold text-xs select-none">$</span>
           </div>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent side="top" className="z-50">
           <p>{tooltipText}</p>
         </TooltipContent>
       </Tooltip>

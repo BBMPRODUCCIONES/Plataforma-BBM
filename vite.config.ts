@@ -43,6 +43,11 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Force immediate activation of new service worker
+        skipWaiting: true,
+        clientsClaim: true,
+        // Clean old caches
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -55,7 +60,8 @@ export default defineConfig(({ mode }) => ({
               },
               cacheableResponse: {
                 statuses: [0, 200]
-              }
+              },
+              networkTimeoutSeconds: 10
             }
           }
         ]

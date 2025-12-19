@@ -62,10 +62,14 @@ export function MatrixTable<T extends { id: string }>({
       <div 
         ref={scrollRef}
         className={cn(
-          "mobile-scroll-container",
+          "mobile-scroll-container mobile-table-scroll",
           hasScrolledRight && "scrolled-right",
           className
         )}
+        style={{ 
+          overscrollBehavior: 'contain',
+          touchAction: 'pan-x pan-y'
+        }}
       >
         <div 
           className="mobile-scroll-inner"

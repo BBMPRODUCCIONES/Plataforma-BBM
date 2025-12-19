@@ -1136,7 +1136,14 @@
      ============================================ */
   
   .mobile-bottom-nav {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    height: auto !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    background: hsl(var(--card) / 0.98) !important;
+  }
+
+  .mobile-bottom-nav-inner {
+    height: 52px !important;
+    padding-bottom: 0 !important;
   }
 
   .mobile-app-header {
@@ -1419,12 +1426,5 @@
     margin-top: 8px !important;
   }
 
-  /* Bottom nav - ensure no duplication of active panel */
-  .mobile-bottom-nav {
-    height: 60px !important;
-  }
-
-  .mobile-bottom-nav .flex {
-    height: 56px !important;
-  }
+  /* Bottom nav - already handled above, remove duplicates */
 }

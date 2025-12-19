@@ -61,8 +61,7 @@ export function MobileBottomNav() {
 
   return (
     <nav className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border">
-      {/* Safe area padding for iPhone home indicator */}
-      <div className="flex items-center justify-around h-16 px-2" style={{ paddingBottom: 'var(--safe-area-bottom)' }}>
+      <div className="mobile-bottom-nav-inner flex items-center justify-around px-2">
         {visibleMainItems.slice(0, 4).map((item) => {
           const isActive = currentPath === item.url;
           return (
@@ -70,7 +69,7 @@ export function MobileBottomNav() {
               key={item.url}
               onClick={() => handleNavigation(item.url)}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 min-w-[64px] h-14 px-2 rounded-lg transition-all duration-200 touch-manipulation",
+                "flex flex-col items-center justify-center gap-0.5 min-w-[60px] h-12 px-2 rounded-lg transition-all duration-200 touch-manipulation",
                 isActive 
                   ? "text-primary bg-primary/10" 
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -92,7 +91,7 @@ export function MobileBottomNav() {
           <SheetTrigger asChild>
             <button
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 min-w-[64px] h-14 px-2 rounded-lg transition-all duration-200 touch-manipulation",
+                "flex flex-col items-center justify-center gap-0.5 min-w-[60px] h-12 px-2 rounded-lg transition-all duration-200 touch-manipulation",
                 isMoreActive 
                   ? "text-primary bg-primary/10" 
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"

@@ -315,8 +315,8 @@ export function GanttChart({
           {/* Month Headers */}
           <div className="flex border-b border-border sticky top-0 z-20 bg-card">
             <div 
-              className="px-3 py-2 bg-table-header border-r border-border flex-shrink-0"
-              style={{ width: PROJECT_COLUMN_WIDTH, minWidth: PROJECT_COLUMN_WIDTH }}
+              className="px-3 py-2 bg-table-header border-r border-border sticky left-0 z-30 gantt-project-column"
+              style={{ width: PROJECT_COLUMN_WIDTH, minWidth: PROJECT_COLUMN_WIDTH, flexShrink: 0 }}
             >
               <span className="text-xs font-medium text-muted-foreground">Proyecto</span>
             </div>
@@ -338,8 +338,8 @@ export function GanttChart({
           {/* Day Headers */}
           <div className="flex border-b border-border sticky top-[41px] z-20 bg-card">
             <div 
-              className="px-3 py-2 bg-table-header border-r border-border flex-shrink-0" 
-              style={{ width: PROJECT_COLUMN_WIDTH, minWidth: PROJECT_COLUMN_WIDTH }}
+              className="px-3 py-2 bg-table-header border-r border-border sticky left-0 z-30 gantt-project-column" 
+              style={{ width: PROJECT_COLUMN_WIDTH, minWidth: PROJECT_COLUMN_WIDTH, flexShrink: 0 }}
             />
             <div className="flex" style={{ width: totalWidth }}>
               {allDays.map((day, idx) => {

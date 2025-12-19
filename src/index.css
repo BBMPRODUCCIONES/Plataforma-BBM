@@ -365,15 +365,16 @@
   }
 
   /* ============================================
-     MOBILE/PWA TABLE SYSTEM
+     MOBILE/PWA TABLE SYSTEM - NATIVE APP FEEL
      ============================================ */
   
-  /* Mobile scroll container - enables momentum scrolling */
+  /* Mobile scroll container - enables momentum scrolling with inertia */
   .mobile-scroll-container {
     overflow-x: auto;
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
+    scroll-snap-type: x proximity;
     width: 100%;
     position: relative;
     overscroll-behavior-x: contain; /* Prevent page scroll when scrolling table */
@@ -388,6 +389,76 @@
   .gantt-scroll-container {
     touch-action: pan-x pan-y;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* ============================================
+     MOBILE TOUCH FEEDBACK & INTERACTIONS
+     ============================================ */
+  
+  /* Cell touch feedback - immediate visual response */
+  .mobile-touch-cell {
+    position: relative;
+    transition: background-color 100ms ease;
+  }
+
+  .mobile-touch-cell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: hsl(var(--primary) / 0);
+    pointer-events: none;
+    transition: background-color 100ms ease;
+  }
+
+  .mobile-touch-cell:active::after {
+    background: hsl(var(--primary) / 0.1);
+  }
+
+  /* Row touch feedback */
+  .mobile-touch-row {
+    transition: background-color 100ms ease, transform 100ms ease;
+  }
+
+  .mobile-touch-row:active {
+    background-color: hsl(var(--accent) / 0.5) !important;
+  }
+
+  /* Buttons and interactive elements - ripple effect */
+  .mobile-touch-button {
+    position: relative;
+    overflow: hidden;
+    transform: translateZ(0);
+  }
+
+  .mobile-touch-button::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--touch-x, 50%) var(--touch-y, 50%), 
+      hsl(var(--primary) / 0.15) 0%, 
+      transparent 60%);
+    opacity: 0;
+    transition: opacity 200ms ease;
+    pointer-events: none;
+  }
+
+  .mobile-touch-button:active::before {
+    opacity: 1;
+  }
+
+  /* Expanded hit areas - invisible touch zones */
+  .touch-hitarea-expanded {
+    position: relative;
+  }
+
+  .touch-hitarea-expanded::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    z-index: 1;
   }
 
   /* Mobile table specific styles */
@@ -410,7 +481,7 @@
   }
 
   /* ============================================
-     MOBILE RESPONSIVE RULES (PWA)
+     MOBILE RESPONSIVE RULES (PWA) - APP-LIKE EXPERIENCE
      ============================================ */
   @media (max-width: 768px) {
     /* Force horizontal scroll on all table containers */
@@ -421,6 +492,46 @@
       -webkit-overflow-scrolling: touch;
     }
 
+    /* ========== STICKY COLUMN & HEADER SYSTEM ========== */
+    
+    /* First column sticky (Evento/Nombre) */
+    .matrix-table tr td:first-child,
+    .mobile-matrix-table tr td:first-child {
+      position: sticky;
+      left: 0;
+      background: hsl(var(--card));
+      z-index: 5;
+      box-shadow: 2px 0 4px -2px hsl(var(--foreground) / 0.1);
+    }
+
+    .matrix-table tr th:first-child,
+    .mobile-matrix-table tr th:first-child {
+      position: sticky;
+      left: 0;
+      top: 0;
+      background: hsl(var(--table-header));
+      z-index: 20; /* Higher than other sticky elements */
+      box-shadow: 2px 0 4px -2px hsl(var(--foreground) / 0.15);
+    }
+
+    /* Header row sticky */
+    .matrix-table thead,
+    .mobile-matrix-table thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .matrix-table thead th,
+    .mobile-matrix-table thead th {
+      position: sticky;
+      top: 0;
+      background: hsl(var(--table-header));
+      z-index: 10;
+    }
+
+    /* ========== EXPANDED TOUCH TARGETS ========== */
+    
     /* Minimum touch targets - WCAG compliant */
     .matrix-table td button,
     .matrix-table td [role="button"],
@@ -429,6 +540,18 @@
       min-height: 44px;
       min-width: 44px;
       padding: 8px;
+      position: relative;
+    }
+
+    /* Expanded hit area for small buttons without visual change */
+    .matrix-table td button::before,
+    .mobile-matrix-table td button::before {
+      content: "";
+      position: absolute;
+      top: -6px;
+      left: -6px;
+      right: -6px;
+      bottom: -6px;
     }
 
     /* Inputs and selects - touch friendly */
@@ -441,6 +564,51 @@
       font-size: 16px; /* Prevents iOS zoom on focus */
       touch-action: manipulation;
     }
+
+    /* ========== TOUCH FEEDBACK STATES ========== */
+    
+    /* Row touch feedback */
+    .matrix-table tbody tr,
+    .mobile-matrix-table tbody tr {
+      transition: background-color 100ms ease;
+    }
+
+    .matrix-table tbody tr:active,
+    .mobile-matrix-table tbody tr:active {
+      background-color: hsl(var(--accent) / 0.3) !important;
+    }
+
+    /* Cell touch feedback */
+    .matrix-table td,
+    .mobile-matrix-table td {
+      transition: background-color 100ms ease;
+    }
+
+    .matrix-table td:active,
+    .mobile-matrix-table td:active {
+      background-color: hsl(var(--primary) / 0.08);
+    }
+
+    /* Don't override sticky column background on active */
+    .matrix-table tr td:first-child:active,
+    .mobile-matrix-table tr td:first-child:active {
+      background-color: hsl(var(--accent) / 0.3);
+    }
+
+    /* Button active state (replaces hover) */
+    .matrix-table td button:active,
+    .mobile-matrix-table td button:active {
+      transform: scale(0.95);
+      background-color: hsl(var(--accent));
+    }
+
+    /* Select trigger active state */
+    [data-radix-select-trigger]:active {
+      background-color: hsl(var(--accent));
+      transform: scale(0.98);
+    }
+
+    /* ========== STATUS ICONS & BADGES ========== */
 
     /* NEVER hide status icons on mobile */
     [role="status"],
@@ -474,13 +642,117 @@
       gap: 4px;
     }
 
-    /* Ensure event links are tappable */
+    /* Ensure event links are tappable with touch feedback */
     .event-link,
     [data-event-link] {
       min-height: 44px;
       display: inline-flex;
       align-items: center;
       padding: 8px 4px;
+      transition: background-color 100ms ease;
+    }
+
+    .event-link:active,
+    [data-event-link]:active {
+      background-color: hsl(var(--primary) / 0.1);
+      border-radius: 4px;
+    }
+
+    /* ========== SCROLL INDICATORS ========== */
+
+    /* Mobile scroll hint - visual indicator that table scrolls */
+    .mobile-scroll-container {
+      position: relative;
+    }
+
+    .mobile-scroll-container::before,
+    .mobile-scroll-container::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 24px;
+      pointer-events: none;
+      z-index: 6;
+      transition: opacity 200ms ease;
+    }
+
+    /* Right edge fade - indicates more content */
+    .mobile-scroll-container::after {
+      right: 0;
+      background: linear-gradient(to right, transparent, hsl(var(--background) / 0.9));
+      opacity: 1;
+    }
+
+    .mobile-scroll-container.scrolled-right::after {
+      opacity: 0;
+    }
+
+    /* Left edge fade - indicates scrolled content */
+    .mobile-scroll-container::before {
+      left: 0;
+      background: linear-gradient(to left, transparent, hsl(var(--background) / 0.5));
+      opacity: 0;
+    }
+
+    .mobile-scroll-container.scrolled-left::before {
+      opacity: 1;
+    }
+
+    /* ========== TABLE CELL FORMATTING ========== */
+
+    /* Table cells - ensure content doesn't collapse */
+    .matrix-table td,
+    .mobile-matrix-table td {
+      min-width: fit-content;
+      white-space: nowrap;
+    }
+
+    /* ========== KEYBOARD & INPUT HANDLING ========== */
+
+    /* Prevent viewport jump when keyboard opens */
+    .matrix-table td input:focus,
+    .mobile-matrix-table td input:focus {
+      scroll-margin: 100px;
+      scroll-padding: 100px;
+    }
+
+    /* Center input in viewport on focus */
+    .mobile-input-focused {
+      scroll-margin-top: 40vh;
+      scroll-margin-bottom: 40vh;
+    }
+
+    /* ========== DROPDOWN & POPOVER FIXES ========== */
+
+    [data-radix-popper-content-wrapper] {
+      z-index: 9999 !important;
+    }
+
+    [data-radix-select-content],
+    [data-radix-dropdown-menu-content],
+    [data-radix-popover-content] {
+      background-color: hsl(var(--popover)) !important;
+      z-index: 9999 !important;
+    }
+
+    /* ========== DIALOG & FORM ADJUSTMENTS ========== */
+    
+    /* Dialogs: full-width content on mobile */
+    [data-radix-dialog-content] {
+      max-width: calc(100vw - 16px) !important;
+    }
+    
+    /* Form grid adjustments for mobile dialogs */
+    [data-radix-dialog-content] .grid-cols-2,
+    [role="dialog"] .grid-cols-2 {
+      grid-template-columns: 1fr !important;
+    }
+
+    /* Personal and Inventario tables in modals */
+    .dialog-content .matrix-table,
+    [role="dialog"] .matrix-table {
+      min-width: max-content;
     }
 
     /* Calendar filter mobile adjustments */
@@ -502,17 +774,6 @@
       flex-shrink: 1;
     }
     
-    /* Dialogs: full-width content on mobile */
-    [data-radix-dialog-content] {
-      max-width: calc(100vw - 16px) !important;
-    }
-    
-    /* Form grid adjustments for mobile dialogs */
-    [data-radix-dialog-content] .grid-cols-2,
-    [role="dialog"] .grid-cols-2 {
-      grid-template-columns: 1fr !important;
-    }
-    
     /* GestionHorarios specific mobile fixes */
     .gestion-horarios-controls {
       flex-direction: column !important;
@@ -521,65 +782,6 @@
     
     .gestion-horarios-controls > * {
       width: 100% !important;
-    }
-
-    /* Mobile scroll hint - visual indicator */
-    .mobile-scroll-container::after {
-      content: "";
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 40px;
-      background: linear-gradient(to right, transparent, hsl(var(--background) / 0.8));
-      pointer-events: none;
-      opacity: 0.8;
-    }
-
-    .mobile-scroll-container.scrolled-right::after {
-      opacity: 0;
-    }
-
-    /* Table cells - ensure content doesn't collapse */
-    .matrix-table td,
-    .mobile-matrix-table td {
-      min-width: fit-content;
-      white-space: nowrap;
-    }
-
-    /* Dropdown and popover fixes for mobile */
-    [data-radix-popper-content-wrapper] {
-      z-index: 9999 !important;
-    }
-
-    [data-radix-select-content],
-    [data-radix-dropdown-menu-content],
-    [data-radix-popover-content] {
-      background-color: hsl(var(--popover)) !important;
-      z-index: 9999 !important;
-    }
-
-    /* Mobile table row padding */
-    .matrix-table tr td:first-child,
-    .mobile-matrix-table tr td:first-child {
-      position: sticky;
-      left: 0;
-      background: hsl(var(--card));
-      z-index: 5;
-    }
-
-    .matrix-table tr th:first-child,
-    .mobile-matrix-table tr th:first-child {
-      position: sticky;
-      left: 0;
-      background: hsl(var(--table-header));
-      z-index: 15;
-    }
-
-    /* Personal and Inventario tables in modals */
-    .dialog-content .matrix-table,
-    [role="dialog"] .matrix-table {
-      min-width: max-content;
     }
 
     /* Specific fixes for Caja Menor status icon */

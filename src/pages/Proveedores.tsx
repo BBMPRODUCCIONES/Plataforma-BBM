@@ -24,7 +24,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Plus, Phone, Mail, FileText, Tag, Columns, Loader2, History } from "lucide-react";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
-import { usePersistedColumns } from "@/hooks/usePersistedColumns";
+import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { EditableCell } from "@/components/EditableCell";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Label } from "@/components/ui/label";
@@ -79,7 +79,7 @@ const Proveedores = () => {
     isCustom: false,
     order: index,
   }));
-  const [managedColumns, setManagedColumns] = usePersistedColumns("proveedores-columns", defaultColumns);
+  const { columns: managedColumns, setColumns: setManagedColumns, isAdmin: canModifyStructure } = useGlobalColumns("proveedores", defaultColumns);
 
   // Handle column changes - force new array reference
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
@@ -717,8 +717,9 @@ const Proveedores = () => {
           open={columnManagerOpen}
           onOpenChange={setColumnManagerOpen}
           columns={managedColumns}
-          onColumnsChange={handleColumnsChange}
+          onColumnsChange={setManagedColumns}
           panelName="Proveedores"
+          readOnly={!canModifyStructure}
         />
 
         {/* Cotizaciones Dialog */}

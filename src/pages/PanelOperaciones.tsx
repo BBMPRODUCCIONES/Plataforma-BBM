@@ -17,7 +17,7 @@ import { ProveedorAutocomplete } from "@/components/ProveedorAutocomplete";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
-import { usePersistedColumns } from "@/hooks/usePersistedColumns";
+import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
@@ -91,7 +91,7 @@ const PanelOperaciones = () => {
     { key: "cajaMenor", header: "Caja Menor", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 18 },
     { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 19 },
   ];
-  const [managedColumns, setManagedColumns] = usePersistedColumns("panel-operaciones-columns", defaultColumns);
+  const { columns: managedColumns, setColumns: setManagedColumns, loading: columnsLoading, isAdmin: canModifyStructure } = useGlobalColumns("panel-operaciones", defaultColumns);
   
   // Calendar filter state - using global context
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
@@ -1887,6 +1887,7 @@ const PanelOperaciones = () => {
           columns={managedColumns}
           onColumnsChange={setManagedColumns}
           panelName="Panel Operaciones"
+          readOnly={!canModifyStructure}
         />
 
         <HorarioFormDialog

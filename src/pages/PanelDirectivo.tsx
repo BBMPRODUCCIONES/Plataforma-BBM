@@ -578,6 +578,9 @@ const PanelDirectivo = () => {
                 onRowClick={(p) => setHighlightedProjectId(p.id)}
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
+                mobileTitleKey="evento"
+                mobileSubtitleKey="cliente"
+                mobileBadgeKey="estado"
               />
             </div>
           </TabsContent>

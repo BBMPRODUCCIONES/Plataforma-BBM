@@ -265,7 +265,22 @@
   .gantt-day-cell,
   .gantt-project-column {
     flex-shrink: 0 !important;
-    box-sizing: border-box;
+    box-sizing: border-box !important;
+  }
+
+  .gantt-bar-container {
+    position: relative;
+    box-sizing: border-box !important;
+  }
+
+  /* PWA/Mobile specific Gantt fixes */
+  @media (max-width: 768px) {
+    .gantt-day-cell,
+    .gantt-project-column,
+    .gantt-bar-container {
+      flex-shrink: 0 !important;
+      box-sizing: border-box !important;
+    }
   }
 
   /* Mobile touch optimization */

@@ -352,7 +352,7 @@ export function GanttChart({
                   <div
                     key={idx}
                     className={cn(
-                      "text-center border-r border-border/50 flex flex-col justify-center py-1.5",
+                      "text-center border-r border-border/50 flex flex-col justify-center py-1.5 gantt-day-cell",
                       getDayClass(day),
                       today && "bg-primary/20 ring-2 ring-primary ring-inset"
                     )}
@@ -411,10 +411,10 @@ export function GanttChart({
                 >
                   <div 
                     className={cn(
-                      "px-3 py-3 border-r border-border bg-card sticky left-0 z-10 flex-shrink-0",
+                      "px-3 py-3 border-r border-border bg-card sticky left-0 z-10 gantt-project-column",
                       isDeleted && "border-l-2 border-l-destructive bg-destructive/5"
                     )}
-                    style={{ width: PROJECT_COLUMN_WIDTH, minWidth: PROJECT_COLUMN_WIDTH }}
+                    style={{ width: PROJECT_COLUMN_WIDTH, minWidth: PROJECT_COLUMN_WIDTH, flexShrink: 0 }}
                   >
                     <div className="flex items-center gap-1.5">
                       <EventLink 
@@ -438,10 +438,10 @@ export function GanttChart({
                         <div
                           key={idx}
                           className={cn(
-                            "border-r border-border/20",
+                            "border-r border-border/20 gantt-day-cell",
                             getDayClass(day)
                           )}
-                          style={{ width: effectiveDayWidth, flexShrink: 0 }}
+                          style={{ width: effectiveDayWidth, minWidth: effectiveDayWidth, flexShrink: 0 }}
                         />
                       ))}
                     </div>
@@ -455,7 +455,7 @@ export function GanttChart({
                     )}
                     
                     {/* Bars */}
-                    <div className="relative h-12 px-1">
+                    <div className="relative h-12 gantt-bar-container">
                       {montajeBar && (
                         <div
                           className={cn(

@@ -23,6 +23,36 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
 
   const isAdmin = role === "administrador";
 
+  // Initialize config in DB if it doesn't exist (admin only)
+  const initializeConfig = useCallback(async () => {
+    if (!user || !isAdmin) return false;
+    
+    try {
+      const { error } = await supabase
+        .from("panel_column_configs")
+        .insert({
+          panel_key: panelKey,
+          columns: defaultColumns as unknown as Json,
+          updated_by: user.id,
+          updated_by_email: user.email,
+        });
+
+      if (error) {
+        // Ignore duplicate key error (another admin might have initialized)
+        if (error.code !== '23505') {
+          console.error("[useGlobalColumns] Error initializing:", error);
+          return false;
+        }
+      }
+      
+      console.log(`[useGlobalColumns] Initialized config for ${panelKey}`);
+      return true;
+    } catch (err) {
+      console.error("[useGlobalColumns] Unexpected init error:", err);
+      return false;
+    }
+  }, [panelKey, defaultColumns, user, isAdmin]);
+
   // Fetch columns from database
   const fetchColumns = useCallback(async () => {
     try {
@@ -55,15 +85,36 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
         console.log(`[useGlobalColumns] Loaded ${merged.length} columns for ${panelKey}`);
         setState({ columns: merged, loading: false, error: null });
       } else {
-        // No config exists yet, use defaults
-        console.log(`[useGlobalColumns] No config found for ${panelKey}, using defaults`);
+        // No config exists yet - auto-initialize if admin
+        console.log(`[useGlobalColumns] No config found for ${panelKey}`);
+        
+        if (isAdmin && user) {
+          console.log(`[useGlobalColumns] Admin detected, initializing config...`);
+          const initialized = await initializeConfig();
+          if (initialized) {
+            // Fetch again after initialization
+            const { data: newData } = await supabase
+              .from("panel_column_configs")
+              .select("columns")
+              .eq("panel_key", panelKey)
+              .maybeSingle();
+            
+            if (newData?.columns) {
+              setState({ columns: newData.columns as unknown as ColumnConfig[], loading: false, error: null });
+              toast.success("Estructura inicializada globalmente");
+              return;
+            }
+          }
+        }
+        
+        // Fallback to defaults
         setState({ columns: defaultColumns, loading: false, error: null });
       }
     } catch (err) {
       console.error("[useGlobalColumns] Unexpected error:", err);
       setState(prev => ({ ...prev, loading: false, error: "Error inesperado" }));
     }
-  }, [panelKey, defaultColumns]);
+  }, [panelKey, defaultColumns, isAdmin, user, initializeConfig]);
 
   // Initial fetch
   useEffect(() => {

@@ -38,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CellType } from "./EditableCell";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export interface RoleVisibility {
   operativo: boolean;
@@ -220,12 +221,24 @@ export function ColumnManagerDialog({
   };
 
   const confirmDeleteColumn = async () => {
-    if (columnToDelete) {
-      const filteredColumns = localColumns.filter((col) => col.key !== columnToDelete.key);
-      await updateColumns(filteredColumns, true);
-      setColumnToDelete(null);
-      setDeleteConfirmOpen(false);
+    if (!columnToDelete) return;
+
+    // Custom columns can be removed from the configuration.
+    // Base/system columns are "removed from the panel" by hiding them (visible=false),
+    // so they don't get auto-restored by the default-column merge.
+    const nextColumns = columnToDelete.isCustom
+      ? localColumns.filter((col) => col.key !== columnToDelete.key)
+      : localColumns.map((col) =>
+          col.key === columnToDelete.key ? { ...col, visible: false } : col
+        );
+
+    const ok = await updateColumns(nextColumns, true);
+    if (ok && !columnToDelete.isCustom) {
+      toast.success(`Columna "${columnToDelete.header}" quitada de este panel`);
     }
+
+    setColumnToDelete(null);
+    setDeleteConfirmOpen(false);
   };
 
   const handleToggleVisibility = (key: string) => {
@@ -433,7 +446,7 @@ export function ColumnManagerDialog({
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive"
                             onClick={() => handleDeleteColumn(column)}
-                            title="Eliminar columna"
+                            title={column.isCustom ? "Eliminar columna" : "Quitar del panel (ocultar)"}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -461,7 +474,7 @@ export function ColumnManagerDialog({
             </div>
 
             <p className="text-xs text-muted-foreground mt-4">
-              Arrastra las columnas para reordenarlas. Usa el ícono de configuración para definir visibilidad por rol. Las columnas personalizadas pueden eliminarse.
+              Arrastra las columnas para reordenarlas. Usa el ícono de configuración para definir visibilidad por rol. Las columnas del sistema se pueden ocultar; las columnas personalizadas sí se pueden eliminar.
             </p>
           </TabsContent>
 
@@ -527,7 +540,7 @@ export function ColumnManagerDialog({
                   className="mr-auto"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Eliminar
+                  {editingColumn.isCustom ? "Eliminar" : "Quitar del panel"}
                 </Button>
               )}
               <Button
@@ -553,19 +566,28 @@ export function ColumnManagerDialog({
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar columna?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {columnToDelete?.isCustom ? "¿Eliminar columna?" : "¿Quitar columna del panel?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {columnToDelete?.isCustom ? (
-                <>¿Estás seguro de que deseas eliminar la columna "<strong>{columnToDelete?.header}</strong>"? Esta acción no se puede deshacer.</>
+                <>
+                  ¿Estás seguro de que deseas eliminar la columna "<strong>{columnToDelete?.header}</strong>"? Esta acción no se puede deshacer.
+                </>
               ) : (
-                <>La columna "<strong>{columnToDelete?.header}</strong>" es una columna base del sistema. ¿Estás seguro de que deseas eliminarla? Esto puede afectar la funcionalidad del panel.</>
+                <>
+                  Se ocultará la columna "<strong>{columnToDelete?.header}</strong>" solo en este panel. Puedes volver a mostrarla con el ícono de ojo.
+                </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteColumn} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Eliminar
+            <AlertDialogAction
+              onClick={confirmDeleteColumn}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {columnToDelete?.isCustom ? "Eliminar" : "Quitar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

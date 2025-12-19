@@ -158,8 +158,7 @@ export function MatrixTable<T extends { id: string }>({
             {columns.map((col) => (
               <th
                 key={col.key}
-                // Only apply fixed widths when horizontal scroll is enabled
-                style={noHorizontalScroll ? undefined : { width: col.width, minWidth: col.width }}
+                style={{ width: col.width, minWidth: col.width }}
                 className={cn(col.className)}
               >
                 {col.header}
@@ -182,8 +181,7 @@ export function MatrixTable<T extends { id: string }>({
               {columns.map((col) => (
                 <td 
                   key={col.key} 
-                  // Only apply fixed widths when horizontal scroll is enabled
-                  style={noHorizontalScroll ? undefined : { width: col.width }}
+                  style={{ width: col.width }}
                   className={cn("touch-manipulation", col.className)}
                 >
                   {col.render

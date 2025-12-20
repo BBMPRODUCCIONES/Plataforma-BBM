@@ -40,7 +40,7 @@ const GoogleCalendar = () => {
     if (success === 'true') {
       toast.success('¡Conectado exitosamente con Google Calendar!');
       // Clean URL
-      window.history.replaceState({}, '', '/google-calendar');
+      window.history.replaceState({}, '', '/calendar');
       checkConnectionStatus();
     } else if (error) {
       const errorMessages: Record<string, string> = {
@@ -52,7 +52,7 @@ const GoogleCalendar = () => {
         'missing_params': 'Parámetros faltantes en la respuesta',
       };
       toast.error(errorMessages[error] || `Error: ${error}`);
-      window.history.replaceState({}, '', '/google-calendar');
+      window.history.replaceState({}, '', '/calendar');
     }
   }, []);
 

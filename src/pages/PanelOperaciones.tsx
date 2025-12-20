@@ -1702,7 +1702,6 @@ const PanelOperaciones = () => {
                             <MatrixTable
                               data={currentProjectData.personal || []}
                               columns={personalColumns}
-                              noHorizontalScroll
                             />
                           ) : (
                             <p className="text-sm text-muted-foreground">No hay personal asignado. Haga clic en "Agregar Personal" para comenzar.</p>
@@ -1748,7 +1747,6 @@ const PanelOperaciones = () => {
                             <MatrixTable
                               data={currentProjectData.inventario || []}
                               columns={inventarioColumns}
-                              noHorizontalScroll
                             />
                           ) : (
                             <p className="text-sm text-muted-foreground">No hay materiales en inventario. Haga clic en "Agregar Material" para comenzar.</p>
@@ -1894,7 +1892,6 @@ const PanelOperaciones = () => {
                           <MatrixTable
                             data={currentProjectData.cajaMenor || []}
                             columns={cajaMenorColumns}
-                            noHorizontalScroll
                           />
                         ) : (
                           <p className="text-sm text-muted-foreground">No hay registros de caja menor. Haga clic en "Agregar Registro" para comenzar.</p>

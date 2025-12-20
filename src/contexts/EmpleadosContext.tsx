@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode,
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from "@/lib/logger";
 
 export interface Empleado {
   id: string;
@@ -65,7 +66,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
 
       const empleadosList = (data || []).map(dbRowToEmpleado);
       setEmpleados(empleadosList);
-      console.log("[EmpleadosContext] Loaded", empleadosList.length, "employees");
+      logger.debug("[EmpleadosContext] Loaded", empleadosList.length, "employees");
     } catch (err) {
       console.error("[EmpleadosContext] Unexpected error:", err);
       setEmpleados([]);
@@ -87,7 +88,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
 
     if (dataLoadedRef.current) return;
 
-    console.log("[EmpleadosContext] User authenticated, fetching employees...");
+    logger.debug("[EmpleadosContext] User authenticated, fetching employees...");
     dataLoadedRef.current = true;
     fetchEmpleados();
 
@@ -97,7 +98,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
         "postgres_changes",
         { event: "*", schema: "public", table: "employees" },
         () => {
-          console.log("[EmpleadosContext] Realtime event, refetching...");
+          logger.debug("[EmpleadosContext] Realtime event, refetching...");
           fetchEmpleados();
         }
       )
@@ -214,7 +215,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
     // Replace temp empleado with real one
     const realEmpleado = dbRowToEmpleado(data);
     setEmpleados(prev => prev.map(e => e.id === tempId ? realEmpleado : e));
-    console.log("[EmpleadosContext] Created new employee:", data.id);
+    logger.debug("[EmpleadosContext] Created new employee:", data.id);
     return realEmpleado;
   }, [empleados, user]);
 
@@ -264,7 +265,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    console.log("[EmpleadosContext] Updated employee:", id);
+    logger.debug("[EmpleadosContext] Updated employee:", id);
   }, [fetchEmpleados, empleados, user]);
 
   const deleteEmpleado = useCallback(async (id: string) => {
@@ -308,7 +309,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    console.log("[EmpleadosContext] Soft-deleted employee:", id);
+    logger.debug("[EmpleadosContext] Soft-deleted employee:", id);
   }, [empleados, user]);
 
   return (

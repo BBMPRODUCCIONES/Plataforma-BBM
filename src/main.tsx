@@ -16,14 +16,13 @@ if ('serviceWorker' in navigator) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               // New content available, force refresh
-              console.log('[PWA] New content available, refreshing...');
               newWorker.postMessage({ type: 'SKIP_WAITING' });
             }
           });
         }
       });
-    }).catch((error) => {
-      console.log('[PWA] Service worker registration failed:', error);
+    }).catch(() => {
+      // Service worker registration failed silently
     });
     
     // Refresh when new service worker takes control

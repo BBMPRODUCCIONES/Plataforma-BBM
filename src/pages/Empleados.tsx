@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
+import { logger } from "@/lib/logger";
 import { PanelHeader } from "@/components/PanelHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -154,7 +155,7 @@ export default function Empleados() {
   const { columns: managedColumns, setColumns: setManagedColumns, isAdmin: canModifyStructure } = useGlobalColumns("empleados", defaultColumns);
 
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
-    console.log('[Empleados] Received column changes:', newColumns.length, newColumns);
+    logger.debug('[Empleados] Received column changes:', newColumns.length, newColumns);
     const copiedColumns = newColumns.map(col => ({ ...col }));
     setManagedColumns(copiedColumns);
   };

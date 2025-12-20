@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { logger } from '@/lib/logger';
 import { useHorarios, Horario } from '@/contexts/HorariosContext';
 import { useEmpleados } from '@/contexts/EmpleadosContext';
 import { useProjects } from '@/contexts/ProjectsContext';
@@ -63,21 +64,18 @@ export const GestionHorarios = () => {
 
   // Force refetch on mount and when component becomes visible
   useEffect(() => {
-    console.log('[GestionHorarios] Component mounted, forcing refetch...');
+    logger.debug('[GestionHorarios] Component mounted, forcing refetch...');
     refetch();
   }, [refetch]);
 
   // Log horarios state changes
   useEffect(() => {
-    console.log('[GestionHorarios] Horarios updated:', horarios.length, 'records');
-    if (horarios.length > 0) {
-      console.log('[GestionHorarios] Sample horario:', horarios[0]);
-    }
+    logger.debug('[GestionHorarios] Horarios updated:', horarios.length, 'records');
   }, [horarios]);
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
-    console.log('[GestionHorarios] Manual refresh triggered');
+    logger.debug('[GestionHorarios] Manual refresh triggered');
     await refetch();
     setIsRefreshing(false);
     toast.success('Datos actualizados');
@@ -184,38 +182,16 @@ export const GestionHorarios = () => {
 
   // Filter horarios by selected employee and date range, then GROUP BY DAY
   const filteredHorarios = useMemo((): GroupedHorario[] => {
-    console.log('[GestionHorarios] === FILTERING HORARIOS ===');
-    console.log('[GestionHorarios] Total horarios from context:', horarios.length);
-    console.log('[GestionHorarios] Selected empleado ID:', selectedEmpleadoId);
-    
-    if (horarios.length > 0) {
-      console.log('[GestionHorarios] Sample horarios empleado_ids:', horarios.slice(0, 5).map(h => ({
-        id: h.id,
-        empleado_id: h.empleado_id,
-        dia: h.dia,
-        categoria: h.categoria,
-        evento_nombre: h.evento_nombre
-      })));
-    }
-    
     let filtered = [...horarios];
 
     // Filter by selected employee (if one is selected)
     if (selectedEmpleadoId) {
-      filtered = filtered.filter(h => {
-        const match = h.empleado_id === selectedEmpleadoId;
-        if (!match && h.empleado_id) {
-          console.log('[GestionHorarios] ID mismatch:', h.empleado_id, 'vs', selectedEmpleadoId);
-        }
-        return match;
-      });
-      console.log('[GestionHorarios] After employee filter:', filtered.length, 'records');
+      filtered = filtered.filter(h => h.empleado_id === selectedEmpleadoId);
     }
 
     // Filter by date range
     const range = getDateRange();
     if (range) {
-      console.log('[GestionHorarios] Date range:', format(range.start, 'yyyy-MM-dd'), 'to', format(range.end, 'yyyy-MM-dd'));
       filtered = filtered.filter(h => {
         try {
           const horarioDate = parseISO(h.dia);
@@ -226,7 +202,6 @@ export const GestionHorarios = () => {
           return false;
         }
       });
-      console.log('[GestionHorarios] After date filter:', filtered.length, 'records');
     }
 
     // GROUP BY employee_id + dia (1 row per day)
@@ -373,7 +348,7 @@ export const GestionHorarios = () => {
     // Sort by date descending
     result.sort((a, b) => b.dia.localeCompare(a.dia));
 
-    console.log('[GestionHorarios] Final grouped rows:', result.length);
+    logger.debug('[GestionHorarios] Final grouped rows:', result.length);
     return result;
   }, [horarios, selectedEmpleadoId, getDateRange, empleados]);
 

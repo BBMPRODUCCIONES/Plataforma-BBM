@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Loader2, Check, X, Paperclip, Eye, Download, Trash2, Info } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -250,7 +251,7 @@ export function PurchaseOrderUpload({
         fileContent = await readFileAsBase64(file);
       }
 
-      console.log('Sending file to process:', file.name, fileType);
+      logger.debug('Sending file to process:', file.name, fileType);
 
       const { data, error } = await supabase.functions.invoke('process-purchase-order', {
         body: {

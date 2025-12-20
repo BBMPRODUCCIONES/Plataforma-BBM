@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Columns, Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Settings2, RotateCcw } from "lucide-react";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,7 +103,7 @@ export function ColumnManagerDialog({
   // Only sync local state with props when dialog FIRST opens, not on subsequent prop changes
   useEffect(() => {
     if (open && !initialSync) {
-      console.log('[ColumnManager] Dialog opened, syncing columns:', columns.length);
+      logger.debug('[ColumnManager] Dialog opened, syncing columns:', columns.length);
       setLocalColumns([...columns]);
       setInitialSync(true);
     }
@@ -135,12 +136,12 @@ export function ColumnManagerDialog({
     const updatedColumns = newColumns.map(col => ({ ...col })); // Deep copy each column
     const previousColumns = [...localColumns]; // Store for rollback
     
-    console.log('[ColumnManager] Updating columns:', updatedColumns.length);
+    logger.debug('[ColumnManager] Updating columns:', updatedColumns.length);
     setLocalColumns(updatedColumns);
     
     // Call parent callback and wait for it
     if (typeof onColumnsChange === 'function') {
-      console.log('[ColumnManager] Calling onColumnsChange...');
+      logger.debug('[ColumnManager] Calling onColumnsChange...');
       try {
         const result = await onColumnsChange(updatedColumns);
         
@@ -151,7 +152,7 @@ export function ColumnManagerDialog({
           return false;
         }
         
-        console.log('[ColumnManager] onColumnsChange completed successfully');
+        logger.debug('[ColumnManager] onColumnsChange completed successfully');
         if (closeAfter) {
           onOpenChange(false);
         }

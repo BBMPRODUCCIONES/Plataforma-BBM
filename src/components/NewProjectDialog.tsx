@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -64,7 +65,7 @@ export function NewProjectDialog({
     const newErrors: ValidationErrors = {};
     
     // Debug logging
-    console.log("[NewProjectDialog] Validating form:", {
+    logger.debug("[NewProjectDialog] Validating form:", {
       cliente: formData.cliente,
       evento: formData.evento,
       montajeStart,
@@ -89,7 +90,7 @@ export function NewProjectDialog({
       newErrors.ubicacion = "Este campo es obligatorio";
     }
 
-    console.log("[NewProjectDialog] Validation errors:", newErrors);
+    logger.debug("[NewProjectDialog] Validation errors:", newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

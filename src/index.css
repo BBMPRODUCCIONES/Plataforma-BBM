@@ -1723,3 +1723,312 @@
 
   /* Bottom nav - already handled above, remove duplicates */
 }
+
+/* ============================================= */
+/* AWC/Mobile - Gestión de Horarios             */
+/* SOLO aplica a móvil, NO afecta desktop       */
+/* ============================================= */
+@media (max-width: 768px) {
+  .gestion-horarios-mobile {
+    padding: 0;
+    gap: 12px;
+  }
+
+  /* Employee Card - Mobile Style */
+  .gestion-horarios-mobile .empleado-card-mobile {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    padding: 16px;
+    margin: 0 -4px;
+  }
+
+  .gestion-horarios-mobile .empleado-card-mobile .empleado-nombre {
+    font-size: 18px;
+    font-weight: 600;
+    color: hsl(var(--foreground));
+    line-height: 1.2;
+  }
+
+  .gestion-horarios-mobile .empleado-card-mobile .empleado-cargo {
+    font-size: 13px;
+    color: hsl(var(--muted-foreground));
+    margin-top: 4px;
+  }
+
+  /* Date Filter Section - Full Width */
+  .gestion-horarios-mobile .date-filter-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    padding: 12px;
+    margin: 0 -4px;
+  }
+
+  /* View Mode Tabs - Horizontal Scroll */
+  .gestion-horarios-mobile .view-mode-tabs-mobile {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+
+  .gestion-horarios-mobile .view-mode-tabs-mobile::-webkit-scrollbar {
+    display: none;
+  }
+
+  .gestion-horarios-mobile .view-mode-tabs-mobile button {
+    flex-shrink: 0;
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  /* Date Navigation Row */
+  .gestion-horarios-mobile .date-nav-mobile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .gestion-horarios-mobile .date-nav-mobile button {
+    height: 40px;
+    min-width: 40px;
+  }
+
+  .gestion-horarios-mobile .date-nav-mobile .date-display-mobile {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  /* Category Chips - Mobile */
+  .gestion-horarios-mobile .category-chips-mobile {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .gestion-horarios-mobile .category-chips-mobile .chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--muted) / 0.3);
+    color: hsl(var(--foreground));
+    transition: all 0.2s ease;
+  }
+
+  .gestion-horarios-mobile .category-chips-mobile .chip.active {
+    background: hsl(var(--primary) / 0.15);
+    border-color: hsl(var(--primary) / 0.5);
+    color: hsl(var(--primary));
+  }
+
+  .gestion-horarios-mobile .category-chips-mobile .chip .chip-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Horarios List - Vertical Cards */
+  .gestion-horarios-mobile .horarios-list-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .gestion-horarios-mobile .horario-card-mobile {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    padding: 14px;
+    margin: 0 -4px;
+  }
+
+  .gestion-horarios-mobile .horario-card-mobile .horario-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .gestion-horarios-mobile .horario-card-mobile .horario-evento {
+    font-size: 15px;
+    font-weight: 600;
+    color: hsl(var(--foreground));
+    flex: 1;
+    padding-right: 8px;
+  }
+
+  .gestion-horarios-mobile .horario-card-mobile .horario-fecha {
+    font-size: 12px;
+    color: hsl(var(--muted-foreground));
+    font-family: 'JetBrains Mono', monospace;
+    background: hsl(var(--muted) / 0.5);
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+
+  .gestion-horarios-mobile .horario-card-mobile .horario-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .gestion-horarios-mobile .horario-card-mobile .horario-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .gestion-horarios-mobile .horario-card-mobile .horario-detail-label {
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .gestion-horarios-mobile .horario-card-mobile .horario-detail-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: hsl(var(--foreground));
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .gestion-horarios-mobile .horario-card-mobile .horario-detail-value a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+  }
+
+  .gestion-horarios-mobile .horario-card-mobile .horario-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  .gestion-horarios-mobile .horario-card-mobile .horario-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  .gestion-horarios-mobile .horario-card-mobile .horario-actions button {
+    flex: 1;
+    height: 40px;
+    font-size: 13px;
+  }
+
+  /* Empty State Mobile */
+  .gestion-horarios-mobile .empty-state-mobile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    margin: 0 -4px;
+  }
+
+  .gestion-horarios-mobile .empty-state-mobile .empty-icon {
+    width: 48px;
+    height: 48px;
+    color: hsl(var(--muted-foreground) / 0.5);
+    margin-bottom: 12px;
+  }
+
+  .gestion-horarios-mobile .empty-state-mobile .empty-text {
+    font-size: 14px;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Fixed Bottom Action Button */
+  .gestion-horarios-mobile .fixed-action-mobile {
+    position: fixed;
+    bottom: 80px;
+    left: 16px;
+    right: 16px;
+    z-index: 50;
+  }
+
+  .gestion-horarios-mobile .fixed-action-mobile button {
+    width: 100%;
+    height: 48px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px hsl(var(--primary) / 0.3);
+  }
+
+  /* Hide desktop elements on mobile */
+  .gestion-horarios-mobile .desktop-only {
+    display: none !important;
+  }
+
+  /* Eventos Asignados Mobile */
+  .gestion-horarios-mobile .eventos-asignados-mobile {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    padding: 12px;
+    margin: 0 -4px;
+  }
+
+  .gestion-horarios-mobile .eventos-asignados-mobile summary {
+    font-size: 14px;
+    padding: 4px 0;
+  }
+
+  .gestion-horarios-mobile .eventos-asignados-mobile .evento-item-mobile {
+    background: hsl(var(--muted) / 0.3);
+    border: 1px solid hsl(var(--border) / 0.5);
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 8px;
+  }
+
+  .gestion-horarios-mobile .eventos-asignados-mobile .evento-nombre {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .gestion-horarios-mobile .eventos-asignados-mobile .evento-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* Contingency highlight */
+  .gestion-horarios-mobile .horario-card-mobile.has-contingency {
+    border-left: 3px solid hsl(38 92% 50%);
+  }
+
+  .gestion-horarios-mobile .contingency-badge {
+    background: hsl(38 92% 50% / 0.2);
+    color: hsl(38 92% 50%);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+}

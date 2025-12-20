@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { logger } from "@/lib/logger";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
@@ -215,13 +216,10 @@ const PanelOperaciones = () => {
 
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
     // Create new array to ensure React detects the change
-    console.log('[PanelOperaciones] handleColumnsChange called with:', newColumns.length, 'columns');
+    logger.debug('[PanelOperaciones] handleColumnsChange called with:', newColumns.length, 'columns');
     const copiedColumns = newColumns.map(col => ({ ...col }));
     setManagedColumns(copiedColumns);
   };
-
-  // Debug: Log whenever managedColumns changes
-  console.log('[PanelOperaciones] Current managedColumns count:', managedColumns.length);
 
   // Use managed columns directly (already initialized)
   const allColumnConfigs = managedColumns;
@@ -586,11 +584,11 @@ const PanelOperaciones = () => {
   ) => {
     // Only process for Proveedor or Transporte types with proveedorId
     if (!personalItem.proveedorId || (personalItem.tipoPersonal !== "Proveedor" && personalItem.tipoPersonal !== "Transporte")) {
-      console.log("[CotizacionHistory] Skipping - not Proveedor/Transporte or no proveedorId");
+      logger.debug("[CotizacionHistory] Skipping - not Proveedor/Transporte or no proveedorId");
       return;
     }
 
-    console.log("[CotizacionHistory] Processing attachments:", {
+    logger.debug("[CotizacionHistory] Processing attachments:", {
       newCount: newAttachments?.length || 0,
       previousCount: previousAttachments?.length || 0,
       tipoPersonal: personalItem.tipoPersonal,
@@ -609,21 +607,19 @@ const PanelOperaciones = () => {
     // Find truly new attachments (not in previous)
     const previousKeys = new Set((previousAttachments || []).map(a => {
       const key = getAttachmentKey(a);
-      console.log("[CotizacionHistory] Previous key:", key);
       return key;
     }));
     
     const addedAttachments = (newAttachments || []).filter((a) => {
       const key = getAttachmentKey(a);
       const isNew = !previousKeys.has(key);
-      console.log("[CotizacionHistory] New attachment check:", { key, isNew, name: a.name });
       return isNew;
     });
 
-    console.log("[CotizacionHistory] Added attachments count:", addedAttachments.length);
+    logger.debug("[CotizacionHistory] Added attachments count:", addedAttachments.length);
 
     if (addedAttachments.length === 0) {
-      console.log("[CotizacionHistory] No new attachments to process");
+      logger.debug("[CotizacionHistory] No new attachments to process");
       return;
     }
 
@@ -648,7 +644,7 @@ const PanelOperaciones = () => {
           ? `${bucket}/${attachment.filePath}`
           : "";
 
-        console.log(`[CotizacionHistory] Creating record ${index + 1}/${addedAttachments.length}:`, {
+        logger.debug(`[CotizacionHistory] Creating record ${index + 1}/${addedAttachments.length}:`, {
           name: attachment.name,
           filePath: storageRef
         });
@@ -677,7 +673,7 @@ const PanelOperaciones = () => {
           console.error("[CotizacionHistory] Error creating record:", error, attachment.name);
           return { success: false, name: attachment.name, error };
         } else {
-          console.log("[CotizacionHistory] Created record successfully:", attachment.name);
+          logger.debug("[CotizacionHistory] Created record successfully:", attachment.name);
           return { success: true, name: attachment.name };
         }
       } catch (err) {
@@ -688,7 +684,7 @@ const PanelOperaciones = () => {
 
     const results = await Promise.all(insertPromises);
     const successCount = results.filter(r => r.success).length;
-    console.log(`[CotizacionHistory] Completed: ${successCount}/${addedAttachments.length} records created`);
+    logger.debug(`[CotizacionHistory] Completed: ${successCount}/${addedAttachments.length} records created`);
   };
 
   const updatePersonalItem = async (projectId: string, personalId: string, field: string, value: any) => {

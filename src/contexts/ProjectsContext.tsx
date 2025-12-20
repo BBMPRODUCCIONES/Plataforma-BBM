@@ -3,6 +3,7 @@ import { Project } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from "@/lib/logger";
 interface ProjectsContextType {
   projects: Project[];
   loading: boolean;
@@ -154,7 +155,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
       const projectsList = (data || []).map(dbRowToProject);
       setProjects(projectsList);
-      console.log("[ProjectsContext] Loaded", projectsList.length, "projects");
+      logger.debug("[ProjectsContext] Loaded", projectsList.length, "projects");
     } catch (err) {
       console.error("[ProjectsContext] Unexpected error:", err);
     } finally {
@@ -178,7 +179,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     // Avoid re-fetching if already loaded for this session
     if (dataLoadedRef.current) return;
 
-    console.log("[ProjectsContext] User authenticated, fetching projects...");
+    logger.debug("[ProjectsContext] User authenticated, fetching projects...");
     dataLoadedRef.current = true;
     fetchProjects();
 
@@ -189,7 +190,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         "postgres_changes",
         { event: "*", schema: "public", table: "projects" },
         (payload) => {
-          console.log("[ProjectsContext] Realtime event:", payload.eventType);
+          logger.debug("[ProjectsContext] Realtime event:", payload.eventType);
           
           if (payload.eventType === "INSERT") {
             const newProject = dbRowToProject(payload.new);
@@ -294,7 +295,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     // Replace temp project with real one
     const realProject = dbRowToProject(data);
     setProjects(prev => prev.map(p => p.id === tempId ? realProject : p));
-    console.log("[ProjectsContext] Created new project:", data.id);
+    logger.debug("[ProjectsContext] Created new project:", data.id);
     return realProject;
   }, []);
 
@@ -317,7 +318,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    console.log("[ProjectsContext] Updated project", projectId, "field:", field);
+    logger.debug("[ProjectsContext] Updated project", projectId, "field:", field);
   }, [fetchProjects]);
 
   const updateProjectMultiple = useCallback(async (projectId: string, updates: Partial<Project>) => {
@@ -339,7 +340,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    console.log("[ProjectsContext] Updated project", projectId, "with multiple fields");
+    logger.debug("[ProjectsContext] Updated project", projectId, "with multiple fields");
   }, [fetchProjects]);
 
   const deleteProject = useCallback(async (projectId: string) => {
@@ -364,7 +365,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    console.log("[ProjectsContext] Deleted project:", projectId);
+    logger.debug("[ProjectsContext] Deleted project:", projectId);
   }, [projects]);
 
   const softDeleteProject = useCallback(async (projectId: string, userEmail: string, userId: string) => {
@@ -393,7 +394,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     }
 
     toast.success("Evento eliminado correctamente");
-    console.log("[ProjectsContext] Soft-deleted project:", projectId);
+    logger.debug("[ProjectsContext] Soft-deleted project:", projectId);
   }, [fetchProjects]);
 
   const restoreProject = useCallback(async (projectId: string) => {
@@ -422,7 +423,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     }
 
     toast.success("Evento restaurado correctamente");
-    console.log("[ProjectsContext] Restored project:", projectId);
+    logger.debug("[ProjectsContext] Restored project:", projectId);
   }, [fetchProjects]);
 
   const getProject = useCallback((projectId: string) => {

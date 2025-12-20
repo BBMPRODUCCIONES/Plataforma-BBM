@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface NotasImage {
   id: string;
@@ -34,34 +35,25 @@ export const NotasGeneralesEditor: React.FC<NotasGeneralesEditorProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handlePaste = async (e: React.ClipboardEvent) => {
-    console.log("[NotasGeneralesEditor] Paste event triggered");
     const items = e.clipboardData?.items;
     if (!items) {
-      console.log("[NotasGeneralesEditor] No clipboard items found");
       return;
     }
 
-    console.log("[NotasGeneralesEditor] Clipboard items count:", items.length);
     for (const item of items) {
-      console.log("[NotasGeneralesEditor] Item type:", item.type);
       if (item.type.startsWith("image/")) {
         e.preventDefault();
         const file = item.getAsFile();
         if (file) {
-          console.log("[NotasGeneralesEditor] Image file detected:", file.name, file.type, file.size);
+          logger.debug("[NotasGeneralesEditor] Image file detected:", file.name, file.type, file.size);
           await uploadImage(file);
-        } else {
-          console.log("[NotasGeneralesEditor] Could not get file from clipboard item");
         }
         return;
       }
     }
-    console.log("[NotasGeneralesEditor] No image found in clipboard items");
   };
 
   const uploadImage = async (file: File) => {
-    console.log("[NotasGeneralesEditor] Starting upload for:", file.name, file.type, file.size);
-    
     // Verificar autenticación primero
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) {
@@ -76,15 +68,11 @@ export const NotasGeneralesEditor: React.FC<NotasGeneralesEditorProps> = ({
       return;
     }
     
-    console.log("[NotasGeneralesEditor] User authenticated:", session.user.id);
-    
     setIsUploading(true);
     try {
       const fileExt = file.name.split(".").pop() || "png";
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `notes/${fileName}`;
-
-      console.log("[NotasGeneralesEditor] Uploading to path:", filePath);
 
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from("notes-images")
@@ -96,13 +84,11 @@ export const NotasGeneralesEditor: React.FC<NotasGeneralesEditorProps> = ({
         return;
       }
 
-      console.log("[NotasGeneralesEditor] Upload successful:", uploadData);
+      logger.debug("[NotasGeneralesEditor] Upload successful:", uploadData);
 
       const { data: urlData } = supabase.storage
         .from("notes-images")
         .getPublicUrl(filePath);
-
-      console.log("[NotasGeneralesEditor] Public URL:", urlData.publicUrl);
 
       const newImage: NotasImage = {
         id: crypto.randomUUID(),

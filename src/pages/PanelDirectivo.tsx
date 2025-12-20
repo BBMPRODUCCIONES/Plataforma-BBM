@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { logger } from "@/lib/logger";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
@@ -178,7 +179,7 @@ const PanelDirectivo = () => {
 
   // Handle columns change from manager - force new array reference
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
-    console.log('[PanelDirectivo] Received column changes:', newColumns.length, newColumns);
+    logger.debug('[PanelDirectivo] Received column changes:', newColumns.length, newColumns);
     const copiedColumns = newColumns.map(col => ({ ...col }));
     setManagedColumns(copiedColumns);
   };

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { logger } from "@/lib/logger";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
@@ -83,7 +84,7 @@ const Proveedores = () => {
 
   // Handle column changes - force new array reference
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
-    console.log('[Proveedores] Received column changes:', newColumns.length, newColumns);
+    logger.debug('[Proveedores] Received column changes:', newColumns.length, newColumns);
     const copiedColumns = newColumns.map(col => ({ ...col }));
     setManagedColumns(copiedColumns);
   };

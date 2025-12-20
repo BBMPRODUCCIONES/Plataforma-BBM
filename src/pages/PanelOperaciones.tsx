@@ -41,6 +41,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
@@ -1213,14 +1219,24 @@ const PanelOperaciones = () => {
             );
           }
           
-          // Operativo: read-only display with lock icon
+          // Operativo: read-only display with lock icon and tooltip for desktop ellipsis
+          const empleadoName = getEmpleadoName(c);
           return (
-            <div className="flex items-center gap-2 text-sm">
-              <Lock className="h-3 w-3 text-muted-foreground" />
-              <span className={canEdit ? "text-foreground" : "text-muted-foreground"}>
-                {getEmpleadoName(c)}
-              </span>
-            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-2 text-sm truncate max-w-full cursor-default">
+                    <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <span className={`truncate ${canEdit ? "text-foreground" : "text-muted-foreground"}`}>
+                      {empleadoName}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[300px]">
+                  <p>{empleadoName}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           );
         },
       },
@@ -1233,7 +1249,21 @@ const PanelOperaciones = () => {
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           if (!canEdit) {
-            return <span className="text-sm text-muted-foreground">{c.concepto || "-"}</span>;
+            const conceptoText = c.concepto || "-";
+            return (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-sm text-muted-foreground block truncate max-w-full cursor-default">
+                      {conceptoText}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[400px]">
+                    <p className="whitespace-pre-wrap">{conceptoText}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
           }
           return (
             <EditableCell

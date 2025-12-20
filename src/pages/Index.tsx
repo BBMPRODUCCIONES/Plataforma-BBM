@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import bbmLogo from "@/assets/bbm-logo.png";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
 
 const Index = () => {
   const { user, loading, roleLoading, signIn } = useAuth();
@@ -196,6 +197,10 @@ const Index = () => {
                   )}
                 </Button>
               </form>
+              
+              {/* PWA Install Button - Mobile only */}
+              <InstallPWAButton />
+              
               <p className="mt-6 text-xs text-center text-muted-foreground">
                 ¿Recibiste una invitación por correo? Usa el link enviado para crear tu cuenta.
               </p>

@@ -392,7 +392,7 @@ export const HorarioFormDialog = ({
               address = data.display_name || undefined;
             }
           } catch (err) {
-            console.log('Could not get address:', err);
+            // Address lookup failed silently - not critical
           }
 
           if (accuracy && accuracy > 2000) {

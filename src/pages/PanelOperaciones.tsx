@@ -1056,7 +1056,7 @@ const PanelOperaciones = () => {
         header: "Material", 
         width: "280px",
         mobileWidth: "280px",
-        className: "align-top",
+        className: "align-top inventario-material-cell",
         render: (i: InventarioItem) => {
           const text = i.nombreMaterial || "";
           const lineCount = text.split('\n').length;
@@ -1706,7 +1706,7 @@ const PanelOperaciones = () => {
                       </Card>
 
                       {/* Inventario Section */}
-                      <Card className="overflow-hidden">
+                      <Card className="overflow-hidden md:overflow-hidden">
                         <CardHeader className="py-3 flex flex-row items-center justify-between">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <Package className="h-4 w-4" />
@@ -1738,7 +1738,7 @@ const PanelOperaciones = () => {
                             Agregar Material
                           </Button>
                         </CardHeader>
-                        <CardContent className="pt-0">
+                        <CardContent className="pt-0 inventario-mobile-scroll">
                           {(currentProjectData.inventario || []).length > 0 ? (
                             <MatrixTable
                               data={currentProjectData.inventario || []}

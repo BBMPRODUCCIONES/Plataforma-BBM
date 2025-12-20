@@ -498,6 +498,53 @@
     transform: translateZ(0);
   }
 
+  /* ============================================
+     INVENTARIO MOBILE SCROLL - PWA/ACW ONLY
+     ============================================ */
+  
+  /* Enable horizontal scroll for Inventario section in dialogs on mobile */
+  @media (max-width: 768px) {
+    .inventario-mobile-scroll {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+      margin-left: -1rem;
+      margin-right: -1rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .inventario-mobile-scroll .mobile-scroll-container,
+    .inventario-mobile-scroll > div {
+      min-width: max-content;
+    }
+
+    /* Inventario table minimum width to force scroll */
+    .inventario-mobile-scroll table {
+      min-width: 900px;
+    }
+
+    /* Material column - allow text wrap for full visibility */
+    .inventario-material-cell,
+    td.inventario-material-cell {
+      white-space: normal !important;
+      word-break: break-word !important;
+      overflow-wrap: anywhere !important;
+      min-width: 200px;
+      max-width: 280px;
+    }
+
+    .inventario-material-cell textarea {
+      white-space: pre-wrap !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+    }
+
+    /* Keep other inventario columns compact */
+    .inventario-mobile-scroll td:not(.inventario-material-cell) {
+      white-space: nowrap;
+    }
+  }
+
   .mobile-touch-button::before {
     content: "";
     position: absolute;

@@ -208,12 +208,29 @@ const PanelOperaciones = () => {
     fetchMyEmployee();
   }, [user, empleados, currentUserEmail]);
   
+  // Helper to check if a record is approved (locked)
+  const isRecordApproved = (record: CajaMenorItem): boolean => {
+    return record.estado === "Aprobado";
+  };
+
   // Helper to check if user can edit a Caja Menor record
+  // Blocked when estado = "Aprobado" for everyone
   const canEditCajaMenorRecord = (record: CajaMenorItem): boolean => {
+    // If approved, no one can edit (except changing estado by approval users)
+    if (isRecordApproved(record)) return false;
+    
     if (isAdmin) return true;
     // Operativo can only edit their own records
     if (!currentUserEmail) return false;
     return record.empleadoEmail?.toLowerCase() === currentUserEmail;
+  };
+  
+  // Get row class name for approved records
+  const getCajaMenorRowClassName = (record: CajaMenorItem): string => {
+    if (isRecordApproved(record)) {
+      return "caja-menor-row-approved";
+    }
+    return "";
   };
 
   const updateProject = (projectId: string, field: string, value: any) => {
@@ -1410,24 +1427,59 @@ const PanelOperaciones = () => {
         render: (c: CajaMenorItem) => {
           // Only users with canApproveCajaMenor permission can change Estado
           const canChangeEstado = canApproveCajaMenor();
+          const isApproved = c.estado === "Aprobado";
           
           if (!canChangeEstado) {
             return (
-              <div className="flex items-center gap-1">
-                <Lock className="h-3 w-3 text-muted-foreground" />
-                <span className={`text-sm px-2 py-0.5 rounded ${
-                  c.estado === "Aprobado" ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"
-                }`}>
-                  {c.estado}
-                </span>
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 cursor-default">
+                      <Lock className="h-3 w-3 text-muted-foreground" />
+                      <span className={`text-sm px-2 py-0.5 rounded ${
+                        isApproved ? "bg-green-500/20 text-green-500 font-medium" : "bg-yellow-500/10 text-yellow-500"
+                      }`}>
+                        {c.estado}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>{isApproved ? "Registro aprobado: edición bloqueada" : "Solo usuarios autorizados pueden cambiar el estado"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             );
           }
           return (
-            <CajaMenorEstadoSelect
-              value={c.estado}
-              onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "estado", value)}
-            />
+            <div className="flex items-center gap-1">
+              {isApproved && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center">
+                        <Lock className="h-3 w-3 text-green-500 mr-1" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>Registro aprobado: edición bloqueada. Cambie a "No aprobado" para habilitar edición.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <CajaMenorEstadoSelect
+                value={c.estado}
+                onChange={(value) => {
+                  if (projectId) {
+                    updateCajaMenorItem(projectId, c.id, "estado", value);
+                    if (value === "No aprobado" && isApproved) {
+                      toast.info("Registro reabierto: edición habilitada");
+                    } else if (value === "Aprobado") {
+                      toast.success("Registro aprobado: edición bloqueada");
+                    }
+                  }
+                }}
+              />
+            </div>
           );
         },
       },
@@ -1437,7 +1489,27 @@ const PanelOperaciones = () => {
         width: "50px",
         mobileWidth: "50px",
         render: (c: CajaMenorItem) => {
+          const isApproved = isRecordApproved(c);
           const canEdit = canEditCajaMenorRecord(c);
+          
+          // If approved, show lock icon with tooltip
+          if (isApproved) {
+            return (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center justify-center h-7 w-7">
+                      <Lock className="h-4 w-4 text-green-500" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>Registro aprobado: edición bloqueada</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          }
+          
           if (!canEdit) {
             return null; // Hide delete button for non-editable records
           }
@@ -1460,7 +1532,7 @@ const PanelOperaciones = () => {
         },
       },
     ];
-  }, [currentProjectData?.id, currentProjectData?.cajaMenor, empleados, isAdmin, currentUserEmail, canEditCajaMenorRecord, projects, canApproveCajaMenor]);
+  }, [currentProjectData?.id, currentProjectData?.cajaMenor, empleados, isAdmin, currentUserEmail, canEditCajaMenorRecord, projects, canApproveCajaMenor, isRecordApproved]);
 
   if (loading) {
     return (
@@ -1921,6 +1993,7 @@ const PanelOperaciones = () => {
                           <MatrixTable
                             data={currentProjectData.cajaMenor || []}
                             columns={cajaMenorColumns}
+                            getRowClassName={getCajaMenorRowClassName}
                           />
                         ) : (
                           <p className="text-sm text-muted-foreground">No hay registros de caja menor. Haga clic en "Agregar Registro" para comenzar.</p>

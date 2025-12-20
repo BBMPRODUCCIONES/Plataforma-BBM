@@ -1179,7 +1179,8 @@ const PanelOperaciones = () => {
         key: "empleado",
         header: "Empleado",
         width: "200px",
-        mobileWidth: "200px",
+        mobileWidth: "180px",
+        className: "caja-menor-sticky-col-1",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           
@@ -1227,7 +1228,8 @@ const PanelOperaciones = () => {
         key: "concepto",
         header: "Concepto",
         width: "200px",
-        mobileWidth: "200px",
+        mobileWidth: "180px",
+        className: "caja-menor-sticky-col-2 caja-menor-concepto-cell",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           if (!canEdit) {
@@ -1272,6 +1274,7 @@ const PanelOperaciones = () => {
         header: "VALOR (COP)",
         width: "130px",
         mobileWidth: "130px",
+        className: "caja-menor-valor-cell",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           const formattedValue = `$ ${(c.valor || 0).toLocaleString('es-CO')}`;
@@ -1883,7 +1886,7 @@ const PanelOperaciones = () => {
                           </Button>
                         </div>
                       </CardHeader>
-                      <CardContent className="pt-0 overflow-hidden">
+                      <CardContent className="pt-0 caja-menor-mobile-scroll">
                         {(currentProjectData.cajaMenor || []).length > 0 ? (
                           <MatrixTable
                             data={currentProjectData.cajaMenor || []}

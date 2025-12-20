@@ -545,6 +545,111 @@
     }
   }
 
+  /* ============================================
+     CAJA MENOR MOBILE SCROLL - PWA/ACW ONLY
+     ============================================ */
+  @media (max-width: 768px) {
+    /* Enable horizontal scroll for Caja Menor section */
+    .caja-menor-mobile-scroll {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+      margin-left: -1rem;
+      margin-right: -1rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .caja-menor-mobile-scroll .mobile-scroll-container,
+    .caja-menor-mobile-scroll > div {
+      min-width: max-content;
+    }
+
+    /* Tabla con ancho mínimo para forzar scroll */
+    .caja-menor-mobile-scroll table {
+      min-width: 1100px;
+      table-layout: fixed;
+    }
+
+    /* ===== STICKY COLUMNS ===== */
+    /* Columna 1: Empleado - sticky left: 0 */
+    .caja-menor-sticky-col-1,
+    th.caja-menor-sticky-col-1,
+    td.caja-menor-sticky-col-1 {
+      position: sticky !important;
+      left: 0 !important;
+      z-index: 10;
+      background: hsl(var(--card)) !important;
+      min-width: 180px;
+      max-width: 200px;
+    }
+
+    /* Columna 2: Concepto - sticky left: 180px */
+    .caja-menor-sticky-col-2,
+    th.caja-menor-sticky-col-2,
+    td.caja-menor-sticky-col-2 {
+      position: sticky !important;
+      left: 180px !important;
+      z-index: 10;
+      background: hsl(var(--card)) !important;
+      min-width: 180px;
+    }
+
+    /* Sombra en el borde derecho del sticky para separar visualmente */
+    td.caja-menor-sticky-col-2::after,
+    th.caja-menor-sticky-col-2::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: -4px;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(to right, hsl(var(--border) / 0.3), transparent);
+      pointer-events: none;
+    }
+
+    /* ===== TEXTO COMPLETO EN CONCEPTO ===== */
+    .caja-menor-concepto-cell,
+    td.caja-menor-concepto-cell {
+      white-space: normal !important;
+      word-break: break-word !important;
+      overflow-wrap: anywhere !important;
+      line-height: 1.4;
+    }
+
+    /* ===== LEGIBILIDAD MEJORADA ===== */
+    .caja-menor-mobile-scroll table th,
+    .caja-menor-mobile-scroll table td {
+      font-size: 13px !important;
+      padding: 10px 12px !important;
+      vertical-align: middle;
+    }
+
+    /* Valor alineado a la derecha */
+    .caja-menor-valor-cell,
+    td.caja-menor-valor-cell {
+      text-align: right !important;
+    }
+
+    /* Otras columnas mantener nowrap */
+    .caja-menor-mobile-scroll td:not(.caja-menor-sticky-col-1):not(.caja-menor-sticky-col-2):not(.caja-menor-concepto-cell) {
+      white-space: nowrap;
+    }
+
+    /* Header sticky en scroll vertical */
+    .caja-menor-mobile-scroll thead th {
+      position: sticky;
+      top: 0;
+      z-index: 15;
+      background: hsl(var(--card)) !important;
+    }
+
+    /* Headers de columnas sticky con z-index mayor */
+    .caja-menor-mobile-scroll thead th.caja-menor-sticky-col-1,
+    .caja-menor-mobile-scroll thead th.caja-menor-sticky-col-2 {
+      z-index: 20;
+    }
+  }
+
   .mobile-touch-button::before {
     content: "";
     position: absolute;

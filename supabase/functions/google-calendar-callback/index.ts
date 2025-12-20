@@ -15,12 +15,12 @@ serve(async (req) => {
 
     if (error) {
       console.error('OAuth error:', error);
-      return Response.redirect(`${frontendUrl}/google-calendar?error=${encodeURIComponent(error)}`, 302);
+      return Response.redirect(`${frontendUrl}/calendar?error=${encodeURIComponent(error)}`, 302);
     }
 
     if (!code || !state) {
       console.error('Missing code or state');
-      return Response.redirect(`${frontendUrl}/google-calendar?error=missing_params`, 302);
+      return Response.redirect(`${frontendUrl}/calendar?error=missing_params`, 302);
     }
 
     const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID');
@@ -55,14 +55,14 @@ serve(async (req) => {
 
     if (!tokenResponse.ok) {
       console.error('Token exchange error:', tokenData);
-      return Response.redirect(`${frontendUrl}/google-calendar?error=token_exchange_failed`, 302);
+      return Response.redirect(`${frontendUrl}/calendar?error=token_exchange_failed`, 302);
     }
 
     const { access_token, refresh_token, expires_in } = tokenData;
 
     if (!access_token || !refresh_token) {
       console.error('Missing tokens in response');
-      return Response.redirect(`${frontendUrl}/google-calendar?error=missing_tokens`, 302);
+      return Response.redirect(`${frontendUrl}/calendar?error=missing_tokens`, 302);
     }
 
     // Calculate expiration time
@@ -90,16 +90,16 @@ serve(async (req) => {
 
     if (dbError) {
       console.error('Database error:', dbError);
-      return Response.redirect(`${frontendUrl}/google-calendar?error=db_error`, 302);
+      return Response.redirect(`${frontendUrl}/calendar?error=db_error`, 302);
     }
 
     console.log('Tokens stored successfully for user:', state);
 
     // Redirect back to the app with success
-    return Response.redirect(`${frontendUrl}/google-calendar?success=true`, 302);
+    return Response.redirect(`${frontendUrl}/calendar?success=true`, 302);
   } catch (error) {
     console.error('Error in google-calendar-callback:', error);
     const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://projectmatrix-hub.lovable.app';
-    return Response.redirect(`${frontendUrl}/google-calendar?error=server_error`, 302);
+    return Response.redirect(`${frontendUrl}/calendar?error=server_error`, 302);
   }
 });

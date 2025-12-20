@@ -654,6 +654,34 @@
 }
 
 /* ============================================
+   CAJA MENOR APPROVED ROW STYLES
+   ============================================ */
+
+/* Approved row - green highlight */
+.caja-menor-row-approved {
+  background-color: hsl(142.1 76.2% 36.3% / 0.1) !important;
+  border-left: 3px solid hsl(142.1 76.2% 36.3%) !important;
+}
+
+.caja-menor-row-approved:hover {
+  background-color: hsl(142.1 76.2% 36.3% / 0.15) !important;
+}
+
+/* Approved row cells have subtle green tint */
+.caja-menor-row-approved td {
+  background-color: hsl(142.1 76.2% 36.3% / 0.08) !important;
+}
+
+/* Dark mode adjustments */
+.dark .caja-menor-row-approved {
+  background-color: hsl(142.1 70.6% 45.3% / 0.12) !important;
+}
+
+.dark .caja-menor-row-approved td {
+  background-color: hsl(142.1 70.6% 45.3% / 0.08) !important;
+}
+
+/* ============================================
    CAJA MENOR MOBILE SCROLL - PWA/ACW ONLY
    ============================================ */
 @media (max-width: 768px) {

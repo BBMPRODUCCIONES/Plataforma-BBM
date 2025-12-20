@@ -1580,7 +1580,7 @@ const PanelOperaciones = () => {
           setSelectedSection(null);
         }}>
           <DialogContent 
-            className="w-[95vw] max-w-[1400px] max-h-[90vh] p-0"
+            className="w-[95vw] !max-w-[1400px] sm:!max-w-[1400px] max-h-[90vh] p-0"
             onOpenAutoFocus={(e) => e.preventDefault()}
             onPointerDownOutside={(e) => {
               const target = e.target as HTMLElement;

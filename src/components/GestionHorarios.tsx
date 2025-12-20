@@ -14,12 +14,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Search, Plus, CalendarIcon, Pencil, Trash2, ChevronLeft, ChevronRight, User, AlertCircle, RefreshCw, X } from 'lucide-react';
+import { Search, Plus, CalendarIcon, Pencil, Trash2, ChevronLeft, ChevronRight, User, AlertCircle, RefreshCw, X, Building2, Home, MapPin, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Project, PersonalItem } from '@/types';
 import { EmpleadoAutocomplete } from '@/components/EmpleadoAutocomplete';
 import { HorarioFormDialog } from '@/components/HorarioFormDialog';
 import { DateRange } from 'react-day-picker';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type ViewMode = 'day' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 
@@ -44,6 +45,7 @@ interface EventoAsignado {
 }
 
 export const GestionHorarios = () => {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { horarios, loading, deleteHorario, refetch } = useHorarios();
   const { empleados } = useEmpleados();
@@ -411,9 +413,291 @@ export const GestionHorarios = () => {
 
   const selectedEmpleado = empleados.find(e => e.id === selectedEmpleadoId);
 
+  // Helper to render ubicacion as link
+  const renderUbicacionMobile = (ubicacion: string) => {
+    if (!ubicacion || ubicacion === '-') return <span className="text-muted-foreground">—</span>;
+    
+    const coordsMatch = ubicacion.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+    if (coordsMatch) {
+      const lat = coordsMatch[1];
+      const lng = coordsMatch[2];
+      const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+      return (
+        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="horario-detail-value">
+          Ver en Maps
+        </a>
+      );
+    }
+    
+    if (ubicacion.includes('google.com/maps') || ubicacion.startsWith('http')) {
+      return (
+        <a href={ubicacion} target="_blank" rel="noopener noreferrer" className="horario-detail-value">
+          Ver en Maps
+        </a>
+      );
+    }
+    
+    if (ubicacion.toLowerCase().includes('no disponible')) {
+      return <span className="text-muted-foreground">No disponible</span>;
+    }
+    
+    return <span>{ubicacion}</span>;
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center p-8">Cargando horarios...</div>;
   }
+
+  // ========== MOBILE LAYOUT (AWC) ==========
+  if (isMobile) {
+    return (
+      <div className="gestion-horarios-mobile space-y-3 pb-32">
+        {/* Employee Card */}
+        <div className="empleado-card-mobile">
+          <Label className="text-xs text-muted-foreground mb-2 block">SELECCIONAR EMPLEADO</Label>
+          <EmpleadoAutocomplete
+            value={selectedEmpleadoId}
+            onChange={handleEmpleadoChange}
+            useEmpleadoId={true}
+            placeholder="Buscar empleado..."
+          />
+          {selectedEmpleado && (
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <div className="empleado-nombre">{selectedEmpleado.nombre}</div>
+              <div className="empleado-cargo">{selectedEmpleado.cargo}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Date Filter Section */}
+        <div className="date-filter-mobile">
+          {/* View Mode Tabs */}
+          <div className="view-mode-tabs-mobile">
+            {(['day', 'week', 'month', 'quarter', 'year'] as ViewMode[]).map((mode) => (
+              <Button
+                key={mode}
+                variant={viewMode === mode ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode(mode)}
+              >
+                {VIEW_MODE_LABELS[mode]}
+              </Button>
+            ))}
+          </div>
+
+          {/* Date Navigation */}
+          <div className="date-nav-mobile">
+            <Button variant="ghost" size="icon" onClick={navigatePrevious}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="date-display-mobile">
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  {getDateLabel()}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="center">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  locale={es}
+                />
+              </PopoverContent>
+            </Popover>
+            <Button variant="ghost" size="icon" onClick={navigateNext}>
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedDate(new Date())}>
+              Hoy
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            </Button>
+          </div>
+        </div>
+
+        {/* Eventos Asignados (Collapsible) */}
+        {selectedEmpleadoId && eventosAsignados.length > 0 && (
+          <details className="eventos-asignados-mobile">
+            <summary className="cursor-pointer font-semibold flex items-center gap-2">
+              <span>Eventos Asignados</span>
+              <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded-full">
+                {eventosAsignados.length}
+              </span>
+            </summary>
+            <div className="space-y-2 mt-2">
+              {eventosAsignados.map((evento) => (
+                <div key={evento.projectId} className="evento-item-mobile">
+                  <div className="evento-nombre">{evento.evento}</div>
+                  <div className="evento-badges">
+                    <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded">
+                      {evento.cargo || 'Sin cargo'}
+                    </span>
+                    <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded">
+                      {evento.tipoPersonal}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+
+        {/* Horarios List - Mobile Cards */}
+        <div className="horarios-list-mobile">
+          <h3 className="text-sm font-semibold px-1 text-muted-foreground">
+            HISTORIAL DE REGISTROS
+          </h3>
+
+          {!selectedEmpleadoId ? (
+            <div className="empty-state-mobile">
+              <User className="empty-icon" />
+              <p className="empty-text">Seleccione un empleado para ver sus horarios</p>
+            </div>
+          ) : filteredHorarios.length === 0 ? (
+            <div className="empty-state-mobile">
+              <CalendarIcon className="empty-icon" />
+              <p className="empty-text">No hay registros en el rango seleccionado</p>
+            </div>
+          ) : (
+            filteredHorarios.map((horario, index) => (
+              <div 
+                key={`${horario.id}-${index}`} 
+                className={cn(
+                  "horario-card-mobile",
+                  horario.salidaEmergencia && "has-contingency",
+                  horario.empleado_deleted && "border-destructive/50"
+                )}
+              >
+                {/* Header */}
+                <div className="horario-header">
+                  <div className="horario-evento">
+                    {horario.displayCategoria !== '-' ? horario.displayCategoria : 'Sin categoría'}
+                  </div>
+                  <div className="horario-fecha">
+                    {format(parseISO(horario.dia), 'dd/MM/yyyy')}
+                  </div>
+                </div>
+
+                {/* Details Grid */}
+                <div className="horario-details">
+                  <div className="horario-detail-item">
+                    <span className="horario-detail-label">Llegada</span>
+                    <span className="horario-detail-value">{horario.llegada || '—'}</span>
+                  </div>
+                  <div className="horario-detail-item">
+                    <span className="horario-detail-label">Ubicación</span>
+                    {renderUbicacionMobile(horario.ubicacion_llegada)}
+                  </div>
+                  <div className="horario-detail-item">
+                    <span className="horario-detail-label">Salida</span>
+                    <span className="horario-detail-value">{horario.salida || '—'}</span>
+                  </div>
+                  <div className="horario-detail-item">
+                    <span className="horario-detail-label">Ubicación</span>
+                    {renderUbicacionMobile(horario.ubicacion_salida)}
+                  </div>
+                </div>
+
+                {/* Contingency Section */}
+                {horario.salidaEmergencia && (
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="contingency-badge">Salida Emergencia</span>
+                    </div>
+                    <div className="horario-details">
+                      <div className="horario-detail-item">
+                        <span className="horario-detail-label">Hora</span>
+                        <span className="horario-detail-value text-orange-400">{horario.salidaEmergencia.hora}</span>
+                      </div>
+                      <div className="horario-detail-item">
+                        <span className="horario-detail-label">Ubicación</span>
+                        {horario.salidaEmergencia.maps_url ? (
+                          <a 
+                            href={horario.salidaEmergencia.maps_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="horario-detail-value text-primary"
+                          >
+                            Ver en Maps
+                          </a>
+                        ) : (
+                          renderUbicacionMobile(horario.salidaEmergencia.ubicacion)
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="horario-actions">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => horario.originalHorarios.length > 0 && handleEdit(horario.originalHorarios[0])}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Editar
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={async () => {
+                      if (confirm(`¿Eliminar registros del día ${format(parseISO(horario.dia), 'dd/MM/yyyy')}?`)) {
+                        for (const h of horario.originalHorarios) {
+                          await deleteHorario(h.id);
+                        }
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Fixed Action Button */}
+        <div className="fixed-action-mobile">
+          <HorarioFormDialog 
+            open={isDialogOpen}
+            onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) setEditingHorario(null);
+            }}
+            defaultEmpleadoId={selectedEmpleadoId}
+            mode="admin"
+          >
+            <Button size="lg" className="w-full gap-2">
+              <Plus className="h-5 w-5" />
+              Registrar Horario
+            </Button>
+          </HorarioFormDialog>
+        </div>
+
+        {/* Summary */}
+        <div className="text-xs text-muted-foreground text-center">
+          {filteredHorarios.length} día{filteredHorarios.length !== 1 ? 's' : ''} con registros
+        </div>
+      </div>
+    );
+  }
+
+  // ========== DESKTOP LAYOUT (unchanged) ==========
 
   return (
     <div className="space-y-4">

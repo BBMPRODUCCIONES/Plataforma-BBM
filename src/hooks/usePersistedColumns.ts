@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ColumnConfig } from "@/components/ColumnManagerDialog";
+import { logger } from "@/lib/logger";
 
 export function usePersistedColumns(storageKey: string, defaultColumns: ColumnConfig[]) {
   const deletedKey = `${storageKey}-deleted`;
@@ -21,7 +22,7 @@ export function usePersistedColumns(storageKey: string, defaultColumns: ColumnCo
           );
           
           if (missingBaseColumns.length > 0) {
-            console.log(`[usePersistedColumns] Adding ${missingBaseColumns.length} missing base columns to ${storageKey}:`, missingBaseColumns.map(c => c.key));
+            logger.debug(`[usePersistedColumns] Adding ${missingBaseColumns.length} missing base columns to ${storageKey}:`, missingBaseColumns.map(c => c.key));
             const merged = [...parsed];
             missingBaseColumns.forEach(mc => {
               const insertIndex = merged.findIndex(c => (c.order || 0) > (mc.order || 0));
@@ -47,7 +48,7 @@ export function usePersistedColumns(storageKey: string, defaultColumns: ColumnCo
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(columns));
-      console.log(`[usePersistedColumns] Saved ${columns.length} columns to ${storageKey}`);
+      logger.debug(`[usePersistedColumns] Saved ${columns.length} columns to ${storageKey}`);
     } catch (e) {
       console.error(`[usePersistedColumns] Error saving to ${storageKey}:`, e);
     }

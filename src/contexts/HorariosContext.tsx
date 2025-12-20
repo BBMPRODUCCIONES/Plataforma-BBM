@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useRe
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/lib/logger';
 
 export interface Horario {
   id: string;
@@ -52,7 +53,7 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
   const dataLoadedRef = useRef(false);
 
   const fetchHorarios = async () => {
-    console.log('[HorariosContext] Fetching horarios...');
+    logger.debug('[HorariosContext] Fetching horarios...');
     
     try {
       const { data, error, status } = await supabase
@@ -60,7 +61,7 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
         .select('*')
         .order('dia', { ascending: false });
 
-      console.log('[HorariosContext] Query response - Status:', status, 'Records:', data?.length);
+      logger.debug('[HorariosContext] Query response - Status:', status, 'Records:', data?.length);
       
       if (error) {
         console.error('[HorariosContext] DB error:', error.message, error.code);
@@ -68,7 +69,7 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (!data || data.length === 0) {
-        console.log('[HorariosContext] No horarios found');
+        logger.debug('[HorariosContext] No horarios found');
         setHorarios([]);
         setLoading(false);
         return;
@@ -110,7 +111,7 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
         empleado_deleted: h.empleado_id ? empleadosMap[h.empleado_id]?.deleted || false : false
       })) as Horario[];
 
-      console.log('[HorariosContext] Loaded', horariosWithNames.length, 'horarios');
+      logger.debug('[HorariosContext] Loaded', horariosWithNames.length, 'horarios');
       setHorarios(horariosWithNames);
     } catch (error) {
       console.error('[HorariosContext] Error fetching horarios:', error);
@@ -133,7 +134,7 @@ export const HorariosProvider = ({ children }: { children: ReactNode }) => {
 
     if (dataLoadedRef.current) return;
 
-    console.log('[HorariosContext] User authenticated, fetching horarios...');
+    logger.debug('[HorariosContext] User authenticated, fetching horarios...');
     dataLoadedRef.current = true;
     fetchHorarios();
 

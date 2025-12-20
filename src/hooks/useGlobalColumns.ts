@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import { Json } from "@/integrations/supabase/types";
+import { logger } from "@/lib/logger";
 
 interface GlobalColumnsState {
   columns: ColumnConfig[];
@@ -45,7 +46,7 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
         }
       }
       
-      console.log(`[useGlobalColumns] Initialized config for ${panelKey}`);
+      logger.debug(`[useGlobalColumns] Initialized config for ${panelKey}`);
       return true;
     } catch (err) {
       console.error("[useGlobalColumns] Unexpected init error:", err);
@@ -82,14 +83,14 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
           ? [...savedColumns, ...missingDefaults.map((c, i) => ({ ...c, order: savedColumns.length + i }))]
           : savedColumns;
 
-        console.log(`[useGlobalColumns] Loaded ${merged.length} columns for ${panelKey}`);
+        logger.debug(`[useGlobalColumns] Loaded ${merged.length} columns for ${panelKey}`);
         setState({ columns: merged, loading: false, error: null });
       } else {
         // No config exists yet - auto-initialize if admin
-        console.log(`[useGlobalColumns] No config found for ${panelKey}`);
+        logger.debug(`[useGlobalColumns] No config found for ${panelKey}`);
         
         if (isAdmin && user) {
-          console.log(`[useGlobalColumns] Admin detected, initializing config...`);
+          logger.debug(`[useGlobalColumns] Admin detected, initializing config...`);
           const initialized = await initializeConfig();
           if (initialized) {
             // Fetch again after initialization
@@ -136,7 +137,7 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
           filter: `panel_key=eq.${panelKey}`,
         },
         (payload) => {
-          console.log(`[useGlobalColumns] Realtime update for ${panelKey}:`, payload.eventType);
+          logger.debug(`[useGlobalColumns] Realtime update for ${panelKey}:`, payload.eventType);
           
           if (payload.eventType === "DELETE") {
             setState({ columns: defaultColumns, loading: false, error: null });
@@ -192,7 +193,7 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
         return false;
       }
 
-      console.log(`[useGlobalColumns] Saved ${newColumns.length} columns for ${panelKey}`);
+      logger.debug(`[useGlobalColumns] Saved ${newColumns.length} columns for ${panelKey}`);
       toast.success("Estructura actualizada para todos los usuarios");
       return true;
     } catch (err) {

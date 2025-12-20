@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Cliente } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from "@/lib/logger";
 
 interface ClientesContextType {
   clientes: Cliente[];
@@ -46,7 +47,7 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
 
       const clientesList = (data || []).map(dbRowToCliente);
       setClientes(clientesList);
-      console.log("[ClientesContext] Loaded", clientesList.length, "clients");
+      logger.debug("[ClientesContext] Loaded", clientesList.length, "clients");
     } catch (err) {
       console.error("[ClientesContext] Unexpected error:", err);
     } finally {
@@ -67,7 +68,7 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
 
     if (dataLoadedRef.current) return;
 
-    console.log("[ClientesContext] User authenticated, fetching clients...");
+    logger.debug("[ClientesContext] User authenticated, fetching clients...");
     dataLoadedRef.current = true;
     fetchClientes();
 
@@ -77,7 +78,7 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
         "postgres_changes",
         { event: "*", schema: "public", table: "clients" },
         (payload) => {
-          console.log("[ClientesContext] Realtime event:", payload.eventType);
+          logger.debug("[ClientesContext] Realtime event:", payload.eventType);
           
           if (payload.eventType === "INSERT") {
             const newCliente = dbRowToCliente(payload.new);
@@ -131,7 +132,7 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
     // Replace temp cliente with real one
     const realCliente = dbRowToCliente(data);
     setClientes(prev => prev.map(c => c.id === tempId ? realCliente : c));
-    console.log("[ClientesContext] Created new client:", data.id);
+    logger.debug("[ClientesContext] Created new client:", data.id);
     return realCliente;
   }, []);
 
@@ -157,7 +158,7 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    console.log("[ClientesContext] Updated client:", id);
+    logger.debug("[ClientesContext] Updated client:", id);
   }, [fetchClientes]);
 
   const deleteCliente = useCallback(async (id: string) => {
@@ -182,7 +183,7 @@ export function ClientesProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    console.log("[ClientesContext] Deleted client:", id);
+    logger.debug("[ClientesContext] Deleted client:", id);
   }, [clientes]);
 
   return (

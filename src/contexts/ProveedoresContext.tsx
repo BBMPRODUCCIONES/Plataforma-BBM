@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useRe
 import { supabase } from '@/integrations/supabase/client';
 import { Proveedor } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/lib/logger';
 
 interface ProveedoresContextType {
   proveedores: Proveedor[];
@@ -75,7 +76,7 @@ export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setProveedores((data || []).map(dbRowToProveedor));
-      console.log('[ProveedoresContext] Loaded', (data || []).length, 'proveedores');
+      logger.debug('[ProveedoresContext] Loaded', (data || []).length, 'proveedores');
     } catch (err) {
       console.error('[ProveedoresContext] Exception fetching proveedores:', err);
     } finally {
@@ -96,7 +97,7 @@ export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
 
     if (dataLoadedRef.current) return;
 
-    console.log('[ProveedoresContext] User authenticated, fetching proveedores...');
+    logger.debug('[ProveedoresContext] User authenticated, fetching proveedores...');
     dataLoadedRef.current = true;
     fetchProveedores();
 
@@ -106,7 +107,7 @@ export const ProveedoresProvider = ({ children }: { children: ReactNode }) => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'suppliers' },
         () => {
-          console.log('[ProveedoresContext] Realtime update');
+          logger.debug('[ProveedoresContext] Realtime update');
           fetchProveedores();
         }
       )

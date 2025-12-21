@@ -451,224 +451,263 @@ export const GestionHorarios = () => {
   // ========== MOBILE LAYOUT (AWC) ==========
   if (isMobile) {
     return (
-      <div className="gestion-horarios-mobile space-y-3 pb-32">
-        {/* Employee Card */}
-        <div className="empleado-card-mobile">
-          <Label className="text-xs text-muted-foreground mb-2 block">SELECCIONAR EMPLEADO</Label>
-          <EmpleadoAutocomplete
-            value={selectedEmpleadoId}
-            onChange={handleEmpleadoChange}
-            useEmpleadoId={true}
-            placeholder="Buscar empleado..."
-          />
-          {selectedEmpleado && (
-            <div className="mt-3 pt-3 border-t border-border/50">
-              <div className="empleado-nombre">{selectedEmpleado.nombre}</div>
-              <div className="empleado-cargo">{selectedEmpleado.cargo}</div>
-            </div>
-          )}
+      <div className="gestion-horarios-mobile-container">
+        {/* Fixed Header */}
+        <div className="gestion-horarios-mobile-header">
+          <div className="mobile-header-title">
+            <Clock className="h-5 w-5 text-primary" />
+            <h1>Gestión de Horarios</h1>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="mobile-header-action"
+          >
+            <RefreshCw className={cn("h-5 w-5", isRefreshing && "animate-spin")} />
+          </Button>
         </div>
 
-        {/* Date Filter Section */}
-        <div className="date-filter-mobile">
-          {/* View Mode Tabs */}
-          <div className="view-mode-tabs-mobile">
-            {(['day', 'week', 'month', 'quarter', 'year'] as ViewMode[]).map((mode) => (
-              <Button
-                key={mode}
-                variant={viewMode === mode ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode(mode)}
-              >
-                {VIEW_MODE_LABELS[mode]}
-              </Button>
-            ))}
+        {/* Scrollable Content */}
+        <div className="gestion-horarios-mobile-content">
+          {/* Employee Card */}
+          <div className="empleado-card-mobile">
+            <Label className="text-xs text-muted-foreground mb-2 block">SELECCIONAR EMPLEADO</Label>
+            <EmpleadoAutocomplete
+              value={selectedEmpleadoId}
+              onChange={handleEmpleadoChange}
+              useEmpleadoId={true}
+              placeholder="Buscar empleado..."
+            />
+            {selectedEmpleado && (
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <div className="empleado-nombre">{selectedEmpleado.nombre}</div>
+                <div className="empleado-cargo">{selectedEmpleado.cargo}</div>
+              </div>
+            )}
           </div>
 
-          {/* Date Navigation */}
-          <div className="date-nav-mobile">
-            <Button variant="ghost" size="icon" onClick={navigatePrevious}>
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="date-display-mobile">
-                  <CalendarIcon className="h-4 w-4 mr-2" />
-                  {getDateLabel()}
+          {/* Date Filter Card */}
+          <div className="date-filter-mobile">
+            <Label className="text-xs text-muted-foreground mb-2 block">FECHA</Label>
+            
+            {/* View Mode Tabs */}
+            <div className="view-mode-tabs-mobile">
+              {(['day', 'week', 'month', 'quarter', 'year'] as ViewMode[]).map((mode) => (
+                <Button
+                  key={mode}
+                  variant={viewMode === mode ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode(mode)}
+                >
+                  {VIEW_MODE_LABELS[mode]}
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="center">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
-                  locale={es}
-                />
-              </PopoverContent>
-            </Popover>
-            <Button variant="ghost" size="icon" onClick={navigateNext}>
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedDate(new Date())}>
-              Hoy
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={handleManualRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-            </Button>
-          </div>
-        </div>
-
-        {/* Eventos Asignados (Collapsible) */}
-        {selectedEmpleadoId && eventosAsignados.length > 0 && (
-          <details className="eventos-asignados-mobile">
-            <summary className="cursor-pointer font-semibold flex items-center gap-2">
-              <span>Eventos Asignados</span>
-              <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded-full">
-                {eventosAsignados.length}
-              </span>
-            </summary>
-            <div className="space-y-2 mt-2">
-              {eventosAsignados.map((evento) => (
-                <div key={evento.projectId} className="evento-item-mobile">
-                  <div className="evento-nombre">{evento.evento}</div>
-                  <div className="evento-badges">
-                    <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded">
-                      {evento.cargo || 'Sin cargo'}
-                    </span>
-                    <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded">
-                      {evento.tipoPersonal}
-                    </span>
-                  </div>
-                </div>
               ))}
             </div>
-          </details>
-        )}
 
-        {/* Horarios List - Mobile Cards */}
-        <div className="horarios-list-mobile">
-          <h3 className="text-sm font-semibold px-1 text-muted-foreground">
-            HISTORIAL DE REGISTROS
-          </h3>
-
-          {!selectedEmpleadoId ? (
-            <div className="empty-state-mobile">
-              <User className="empty-icon" />
-              <p className="empty-text">Seleccione un empleado para ver sus horarios</p>
-            </div>
-          ) : filteredHorarios.length === 0 ? (
-            <div className="empty-state-mobile">
-              <CalendarIcon className="empty-icon" />
-              <p className="empty-text">No hay registros en el rango seleccionado</p>
-            </div>
-          ) : (
-            filteredHorarios.map((horario, index) => (
-              <div 
-                key={`${horario.id}-${index}`} 
-                className={cn(
-                  "horario-card-mobile",
-                  horario.salidaEmergencia && "has-contingency",
-                  horario.empleado_deleted && "border-destructive/50"
-                )}
-              >
-                {/* Header */}
-                <div className="horario-header">
-                  <div className="horario-evento">
-                    {horario.displayCategoria !== '-' ? horario.displayCategoria : 'Sin categoría'}
-                  </div>
-                  <div className="horario-fecha">
-                    {format(parseISO(horario.dia), 'dd/MM/yyyy')}
-                  </div>
-                </div>
-
-                {/* Details Grid */}
-                <div className="horario-details">
-                  <div className="horario-detail-item">
-                    <span className="horario-detail-label">Llegada</span>
-                    <span className="horario-detail-value">{horario.llegada || '—'}</span>
-                  </div>
-                  <div className="horario-detail-item">
-                    <span className="horario-detail-label">Ubicación</span>
-                    {renderUbicacionMobile(horario.ubicacion_llegada)}
-                  </div>
-                  <div className="horario-detail-item">
-                    <span className="horario-detail-label">Salida</span>
-                    <span className="horario-detail-value">{horario.salida || '—'}</span>
-                  </div>
-                  <div className="horario-detail-item">
-                    <span className="horario-detail-label">Ubicación</span>
-                    {renderUbicacionMobile(horario.ubicacion_salida)}
-                  </div>
-                </div>
-
-                {/* Contingency Section */}
-                {horario.salidaEmergencia && (
-                  <div className="mt-3 pt-3 border-t border-border/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="contingency-badge">Salida Emergencia</span>
-                    </div>
-                    <div className="horario-details">
-                      <div className="horario-detail-item">
-                        <span className="horario-detail-label">Hora</span>
-                        <span className="horario-detail-value text-orange-400">{horario.salidaEmergencia.hora}</span>
-                      </div>
-                      <div className="horario-detail-item">
-                        <span className="horario-detail-label">Ubicación</span>
-                        {horario.salidaEmergencia.maps_url ? (
-                          <a 
-                            href={horario.salidaEmergencia.maps_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="horario-detail-value text-primary"
-                          >
-                            Ver en Maps
-                          </a>
-                        ) : (
-                          renderUbicacionMobile(horario.salidaEmergencia.ubicacion)
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="horario-actions">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => horario.originalHorarios.length > 0 && handleEdit(horario.originalHorarios[0])}
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Editar
+            {/* Date Navigation */}
+            <div className="date-nav-mobile">
+              <Button variant="ghost" size="icon" onClick={navigatePrevious}>
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="date-display-mobile">
+                    <CalendarIcon className="h-4 w-4 mr-2" />
+                    {getDateLabel()}
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                    onClick={async () => {
-                      if (confirm(`¿Eliminar registros del día ${format(parseISO(horario.dia), 'dd/MM/yyyy')}?`)) {
-                        for (const h of horario.originalHorarios) {
-                          await deleteHorario(h.id);
-                        }
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Eliminar
-                  </Button>
-                </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    locale={es}
+                  />
+                </PopoverContent>
+              </Popover>
+              <Button variant="ghost" size="icon" onClick={navigateNext}>
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Quick Actions */}
+            <Button variant="outline" size="sm" className="w-full" onClick={() => setSelectedDate(new Date())}>
+              Ir a Hoy
+            </Button>
+          </div>
+
+          {/* Location Type Cards */}
+          <div className="location-cards-mobile">
+            <div className="location-card-mobile">
+              <Building2 className="h-5 w-5 text-blue-400" />
+              <div className="location-card-info">
+                <span className="location-card-title">Oficina</span>
+                <span className="location-card-subtitle">Registro de oficina</span>
               </div>
-            ))
-          )}
+            </div>
+            <div className="location-card-mobile">
+              <Home className="h-5 w-5 text-green-400" />
+              <div className="location-card-info">
+                <span className="location-card-title">Casa</span>
+                <span className="location-card-subtitle">Trabajo remoto</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Eventos Section */}
+          <div className="eventos-section-mobile">
+            <Label className="text-xs text-muted-foreground mb-2 block">EVENTOS</Label>
+            <Input 
+              placeholder="Buscar evento..." 
+              className="mb-3"
+            />
+            
+            {selectedEmpleadoId && eventosAsignados.length > 0 ? (
+              <div className="eventos-list-mobile">
+                {eventosAsignados.map((evento) => (
+                  <div key={evento.projectId} className="evento-item-mobile">
+                    <div className="evento-nombre">{evento.evento}</div>
+                    <div className="evento-badges">
+                      <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded">
+                        {evento.cargo || 'Sin cargo'}
+                      </span>
+                      <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded">
+                        {evento.tipoPersonal}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state-mobile-small">
+                <p className="text-muted-foreground text-sm">
+                  {!selectedEmpleadoId 
+                    ? 'Seleccione un empleado para ver eventos' 
+                    : 'No hay eventos para este período'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Horarios List */}
+          <div className="horarios-list-mobile">
+            <Label className="text-xs text-muted-foreground mb-2 block">HISTORIAL DE REGISTROS</Label>
+
+            {!selectedEmpleadoId ? (
+              <div className="empty-state-mobile">
+                <User className="empty-icon" />
+                <p className="empty-text">Seleccione un empleado para ver sus horarios</p>
+              </div>
+            ) : filteredHorarios.length === 0 ? (
+              <div className="empty-state-mobile">
+                <CalendarIcon className="empty-icon" />
+                <p className="empty-text">No hay registros en el rango seleccionado</p>
+              </div>
+            ) : (
+              filteredHorarios.map((horario, index) => (
+                <div 
+                  key={`${horario.id}-${index}`} 
+                  className={cn(
+                    "horario-card-mobile",
+                    horario.salidaEmergencia && "has-contingency",
+                    horario.empleado_deleted && "border-destructive/50"
+                  )}
+                >
+                  {/* Header */}
+                  <div className="horario-header">
+                    <div className="horario-evento">
+                      {horario.displayCategoria !== '-' ? horario.displayCategoria : 'Sin categoría'}
+                    </div>
+                    <div className="horario-fecha">
+                      {format(parseISO(horario.dia), 'dd/MM/yyyy')}
+                    </div>
+                  </div>
+
+                  {/* Details Grid */}
+                  <div className="horario-details">
+                    <div className="horario-detail-item">
+                      <span className="horario-detail-label">Llegada</span>
+                      <span className="horario-detail-value">{horario.llegada || '—'}</span>
+                    </div>
+                    <div className="horario-detail-item">
+                      <span className="horario-detail-label">Ubicación</span>
+                      {renderUbicacionMobile(horario.ubicacion_llegada)}
+                    </div>
+                    <div className="horario-detail-item">
+                      <span className="horario-detail-label">Salida</span>
+                      <span className="horario-detail-value">{horario.salida || '—'}</span>
+                    </div>
+                    <div className="horario-detail-item">
+                      <span className="horario-detail-label">Ubicación</span>
+                      {renderUbicacionMobile(horario.ubicacion_salida)}
+                    </div>
+                  </div>
+
+                  {/* Contingency Section */}
+                  {horario.salidaEmergencia && (
+                    <div className="mt-3 pt-3 border-t border-border/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="contingency-badge">Salida Emergencia</span>
+                      </div>
+                      <div className="horario-details">
+                        <div className="horario-detail-item">
+                          <span className="horario-detail-label">Hora</span>
+                          <span className="horario-detail-value text-orange-400">{horario.salidaEmergencia.hora}</span>
+                        </div>
+                        <div className="horario-detail-item">
+                          <span className="horario-detail-label">Ubicación</span>
+                          {horario.salidaEmergencia.maps_url ? (
+                            <a 
+                              href={horario.salidaEmergencia.maps_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="horario-detail-value text-primary"
+                            >
+                              Ver en Maps
+                            </a>
+                          ) : (
+                            renderUbicacionMobile(horario.salidaEmergencia.ubicacion)
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="horario-actions">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => horario.originalHorarios.length > 0 && handleEdit(horario.originalHorarios[0])}
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Editar
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={async () => {
+                        if (confirm(`¿Eliminar registros del día ${format(parseISO(horario.dia), 'dd/MM/yyyy')}?`)) {
+                          for (const h of horario.originalHorarios) {
+                            await deleteHorario(h.id);
+                          }
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Eliminar
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Bottom padding for safe area and fixed button */}
+          <div className="h-32"></div>
         </div>
 
         {/* Fixed Action Button */}
@@ -687,11 +726,6 @@ export const GestionHorarios = () => {
               Registrar Horario
             </Button>
           </HorarioFormDialog>
-        </div>
-
-        {/* Summary */}
-        <div className="text-xs text-muted-foreground text-center">
-          {filteredHorarios.length} día{filteredHorarios.length !== 1 ? 's' : ''} con registros
         </div>
       </div>
     );

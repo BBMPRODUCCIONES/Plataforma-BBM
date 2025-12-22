@@ -14,7 +14,7 @@ import { useProjects } from '@/contexts/ProjectsContext';
 import { Project } from '@/types';
 import { useEmpleados } from '@/contexts/EmpleadosContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, Camera, ExternalLink, Building2, Star, Save, AlertTriangle, Home } from 'lucide-react';
+import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, Camera, ExternalLink, Building2, Star, Save, AlertTriangle, Home, X } from 'lucide-react';
 import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -1090,7 +1090,18 @@ export const HorarioFormDialog = ({
         {children && <DialogTrigger asChild>{children}</DialogTrigger>}
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto horario-form-dialog">
           <DialogHeader className="horario-dialog-header">
-            <DialogTitle className="text-2xl font-bold text-center">GESTIÓN DE HORARIOS</DialogTitle>
+            <div className="flex items-center justify-between w-full">
+              <DialogTitle className="text-2xl font-bold">GESTIÓN DE HORARIOS</DialogTitle>
+              {/* Botón cerrar visible en móvil AWC */}
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="horario-close-btn"
+                onClick={() => onOpenChange(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </DialogHeader>
 
           <div className="flex flex-col md:flex-row gap-6 horario-form-content">
@@ -1754,6 +1765,17 @@ export const HorarioFormDialog = ({
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Footer con botón Salir - solo visible en móvil AWC */}
+          <div className="horario-dialog-footer">
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => onOpenChange(false)}
+            >
+              Salir
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

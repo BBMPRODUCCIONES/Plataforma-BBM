@@ -164,6 +164,57 @@
     height: 52px;
   }
 }
+
+/* ============================================
+   HORARIO FORM DIALOG - MOBILE (AWC)
+   ============================================ */
+
+/* Mobile-specific: show close button and footer */
+@media (max-width: 768px) {
+  /* Hide default Radix close button */
+  .horario-form-dialog > button[data-radix-dialog-close] {
+    display: none !important;
+  }
+  
+  /* Custom close button visible in header */
+  .horario-close-btn {
+    display: flex !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    flex-shrink: 0;
+  }
+  
+  /* Footer sticky with "Salir" button */
+  .horario-dialog-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 50;
+    background: hsl(var(--background));
+    padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+    border-top: 1px solid hsl(var(--border));
+    flex-shrink: 0;
+    margin-top: 1rem;
+  }
+  
+  .horario-dialog-footer button {
+    height: 52px;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
+/* Desktop: hide mobile-only elements */
+@media (min-width: 769px) {
+  .horario-dialog-footer {
+    display: none !important;
+  }
+  
+  .horario-close-btn {
+    display: none !important;
+  }
+}
+
 @tailwind components;
 @tailwind utilities;
 

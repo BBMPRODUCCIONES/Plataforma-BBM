@@ -1,4 +1,169 @@
 @tailwind base;
+
+/* ============================================
+   CAMERA CAPTURE - MOBILE FULL-SCREEN (AWC)
+   ============================================ */
+
+/* Base styles for camera components */
+.camera-capture-preview {
+  position: relative;
+  background: black;
+  aspect-ratio: 4/3;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.camera-capture-media {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+.camera-capture-footer {
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.camera-capture-buttons {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.camera-capture-buttons-take {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-capture-btn {
+  flex: 1;
+  max-width: 160px;
+  height: 48px;
+  font-size: 1rem;
+}
+
+.camera-capture-shutter {
+  border-radius: 9999px;
+  width: 64px;
+  height: 64px;
+}
+
+.camera-capture-icon-btn {
+  width: 48px;
+  height: 48px;
+}
+
+/* Mobile-specific styles (AWC/PWA) */
+@media (max-width: 768px) {
+  .camera-capture-dialog {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    top: 0 !important;
+    left: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding-top: env(safe-area-inset-top, 0) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0) !important;
+    overflow: hidden !important;
+  }
+  
+  .camera-capture-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: hsl(var(--background));
+    padding-top: env(safe-area-inset-top, 0);
+    border-bottom: 1px solid hsl(var(--border));
+    flex-shrink: 0;
+  }
+  
+  .camera-capture-preview {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    aspect-ratio: unset;
+    min-height: 0;
+    background: black;
+  }
+  
+  .camera-capture-media {
+    width: 100%;
+    max-width: 480px;
+    height: auto;
+    max-height: 100%;
+    object-fit: cover;
+    border-radius: 0.75rem;
+  }
+  
+  .camera-capture-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 50;
+    background: hsl(var(--background));
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
+    border-top: 1px solid hsl(var(--border));
+    flex-shrink: 0;
+  }
+  
+  .camera-capture-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+  
+  .camera-capture-btn {
+    max-width: none;
+    height: 52px;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  
+  .camera-capture-buttons-take {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .camera-capture-shutter {
+    width: 72px;
+    height: 72px;
+    border-radius: 9999px;
+  }
+  
+  .camera-capture-shutter svg {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  
+  .camera-capture-icon-btn {
+    width: 52px;
+    height: 52px;
+  }
+}
 @tailwind components;
 @tailwind utilities;
 

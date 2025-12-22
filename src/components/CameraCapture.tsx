@@ -16,7 +16,16 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
   const streamRef = useRef<MediaStream | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+// Persist last used camera preference in localStorage (WEB feature)
+  const getInitialFacingMode = (): "user" | "environment" => {
+    try {
+      const saved = localStorage.getItem("camera-facing-mode");
+      if (saved === "user" || saved === "environment") return saved;
+    } catch {}
+    return "environment";
+  };
+  
+  const [facingMode, setFacingMode] = useState<"user" | "environment">(getInitialFacingMode);
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
   const [isCheckingCameras, setIsCheckingCameras] = useState(true);
   const [isSwitching, setIsSwitching] = useState(false);
@@ -98,7 +107,7 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
     } else {
       stopCamera();
       setCapturedImage(null);
-      setFacingMode("environment"); // Reset to back camera
+      // Don't reset facingMode - keep user's preference
     }
 
     return () => {
@@ -136,6 +145,10 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
       }
 
       setFacingMode(newMode);
+      // Persist preference for next time (WEB feature)
+      try {
+        localStorage.setItem("camera-facing-mode", newMode);
+      } catch {}
     } catch (error) {
       console.error("Error switching camera:", error);
       toast({

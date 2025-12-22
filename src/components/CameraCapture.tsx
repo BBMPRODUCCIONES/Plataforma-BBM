@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Camera, X, RotateCcw, Check, Loader2 } from "lucide-react";
+import { Camera, X, RotateCcw, Check, Loader2, SwitchCamera } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface CameraCaptureProps {
@@ -18,6 +18,25 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+  const [isCheckingCameras, setIsCheckingCameras] = useState(true);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Check for multiple cameras IMMEDIATELY when modal opens (before stream)
+  const checkCameraDevices = useCallback(async () => {
+    setIsCheckingCameras(true);
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === "videoinput");
+      // On first call, labels may be empty (no permission yet), but we can count devices
+      setHasMultipleCameras(videoDevices.length > 1);
+    } catch (error) {
+      console.error("Error enumerating devices:", error);
+      setHasMultipleCameras(false);
+    } finally {
+      setIsCheckingCameras(false);
+    }
+  }, []);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -26,19 +45,17 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
     }
   }, []);
 
-  const startCamera = useCallback(async () => {
+  const startCamera = useCallback(async (mode: "user" | "environment" = facingMode) => {
     setIsLoading(true);
     setCapturedImage(null);
     
     try {
-      // Check for multiple cameras
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter(d => d.kind === "videoinput");
-      setHasMultipleCameras(videoDevices.length > 1);
+      // Stop any existing stream first
+      stopCamera();
 
       const constraints: MediaStreamConstraints = {
         video: {
-          facingMode: facingMode,
+          facingMode: { ideal: mode },
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
@@ -52,6 +69,12 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
+
+      // Re-check devices after permission granted (now we get proper labels)
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === "videoinput");
+      setHasMultipleCameras(videoDevices.length > 1);
+
     } catch (error: any) {
       console.error("Error accessing camera:", error);
       toast({
@@ -65,31 +88,67 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
     } finally {
       setIsLoading(false);
     }
-  }, [facingMode, onOpenChange]);
+  }, [facingMode, onOpenChange, stopCamera]);
 
+  // Check cameras immediately when modal opens
   useEffect(() => {
     if (open) {
+      checkCameraDevices();
       startCamera();
     } else {
       stopCamera();
       setCapturedImage(null);
+      setFacingMode("environment"); // Reset to back camera
     }
 
     return () => {
       stopCamera();
     };
-  }, [open, startCamera, stopCamera]);
+  }, [open]);
 
-  const switchCamera = () => {
-    stopCamera();
-    setFacingMode(prev => prev === "user" ? "environment" : "user");
-  };
+  // FIX B: Switch camera IN-PLACE without closing modal
+  const switchCamera = useCallback(async () => {
+    if (isSwitching || isLoading) return;
+    
+    setIsSwitching(true);
+    const newMode = facingMode === "user" ? "environment" : "user";
+    
+    try {
+      // Stop current stream
+      stopCamera();
+      
+      // Request new stream with opposite facing mode
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: { ideal: newMode },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
+      };
 
-  useEffect(() => {
-    if (open && !capturedImage) {
-      startCamera();
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      setFacingMode(newMode);
+    } catch (error) {
+      console.error("Error switching camera:", error);
+      toast({
+        title: "Error",
+        description: "No fue posible cambiar cámara",
+        variant: "destructive",
+      });
+      // Try to restore previous camera
+      await startCamera(facingMode);
+    } finally {
+      setIsSwitching(false);
     }
-  }, [facingMode]);
+  }, [facingMode, isSwitching, isLoading, stopCamera, startCamera]);
 
   const takePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -114,9 +173,11 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
     startCamera();
   };
 
+  // FIX C: Confirm photo and return to flow without blocking
   const confirmPhoto = async () => {
-    if (!capturedImage) return;
+    if (!capturedImage || isSaving) return;
 
+    setIsSaving(true);
     try {
       // Convert base64 to File
       const response = await fetch(capturedImage);
@@ -124,8 +185,17 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
       const fileName = `foto_${Date.now()}.jpg`;
       const file = new File([blob], fileName, { type: "image/jpeg" });
       
+      // Call onCapture (parent handles upload)
       onCapture(file);
+      
+      // Close modal and return to flow
       onOpenChange(false);
+      
+      // Show success toast
+      toast({
+        title: "Foto guardada",
+        description: "La foto se ha guardado correctamente",
+      });
     } catch (error) {
       console.error("Error converting image:", error);
       toast({
@@ -133,11 +203,20 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
         description: "No se pudo procesar la imagen",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
+  // Handle close without saving
+  const handleClose = () => {
+    stopCamera();
+    setCapturedImage(null);
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="camera-capture-dialog sm:max-w-lg p-0 overflow-hidden">
         {/* Header - siempre visible */}
         <div className="camera-capture-header">
@@ -150,7 +229,7 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onOpenChange(false)}
+                onClick={handleClose}
                 className="md:hidden h-8 w-8"
                 title="Cerrar"
               >
@@ -162,7 +241,7 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
         
         {/* Preview Zone - centrada */}
         <div className="camera-capture-preview">
-          {isLoading && (
+          {(isLoading || isSwitching) && (
             <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
@@ -194,6 +273,7 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
               <Button
                 variant="outline"
                 onClick={retakePhoto}
+                disabled={isSaving}
                 className="camera-capture-btn gap-2"
               >
                 <RotateCcw className="h-5 w-5" />
@@ -201,30 +281,40 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
               </Button>
               <Button
                 onClick={confirmPhoto}
+                disabled={isSaving}
                 className="camera-capture-btn gap-2"
               >
-                <Check className="h-5 w-5" />
-                Usar Foto
+                {isSaving ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Check className="h-5 w-5" />
+                )}
+                {isSaving ? "Guardando..." : "Usar Foto"}
               </Button>
             </div>
           ) : (
             <div className="camera-capture-buttons-take">
-              {hasMultipleCameras && (
+              {/* FIX A: Always show switch button (disabled while loading/checking) */}
+              {(hasMultipleCameras || isCheckingCameras) && (
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={switchCamera}
-                  disabled={isLoading}
-                  title="Cambiar cámara"
+                  disabled={isLoading || isSwitching || isCheckingCameras}
+                  title="Voltear cámara"
                   className="camera-capture-icon-btn"
                 >
-                  <RotateCcw className="h-5 w-5" />
+                  {isSwitching ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <SwitchCamera className="h-5 w-5" />
+                  )}
                 </Button>
               )}
               <Button
                 size="lg"
                 onClick={takePhoto}
-                disabled={isLoading}
+                disabled={isLoading || isSwitching}
                 className="camera-capture-shutter"
               >
                 <Camera className="h-8 w-8" />
@@ -232,7 +322,7 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => onOpenChange(false)}
+                onClick={handleClose}
                 title="Cancelar"
                 className="camera-capture-icon-btn"
               >

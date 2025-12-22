@@ -138,17 +138,32 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
-        <DialogHeader className="p-4 pb-0">
-          <DialogTitle className="flex items-center gap-2">
-            <Camera className="h-5 w-5" />
-            Tomar Foto
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="camera-capture-dialog sm:max-w-lg p-0 overflow-hidden">
+        {/* Header - siempre visible */}
+        <div className="camera-capture-header">
+          <DialogHeader className="p-4 pb-0 md:pb-0">
+            <DialogTitle className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                Tomar Foto
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onOpenChange(false)}
+                className="md:hidden h-8 w-8"
+                title="Cerrar"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+        </div>
         
-        <div className="relative bg-black aspect-[4/3] w-full">
+        {/* Preview Zone - centrada */}
+        <div className="camera-capture-preview">
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted">
+            <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           )}
@@ -157,7 +172,7 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
             <img 
               src={capturedImage} 
               alt="Foto capturada" 
-              className="w-full h-full object-contain"
+              className="camera-capture-media"
             />
           ) : (
             <video
@@ -165,36 +180,35 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-contain"
+              className="camera-capture-media"
             />
           )}
           
           <canvas ref={canvasRef} className="hidden" />
         </div>
         
-        <div className="p-4 flex items-center justify-center gap-4">
+        {/* Footer con botones - siempre visible */}
+        <div className="camera-capture-footer">
           {capturedImage ? (
-            <>
+            <div className="camera-capture-buttons">
               <Button
                 variant="outline"
-                size="lg"
                 onClick={retakePhoto}
-                className="gap-2"
+                className="camera-capture-btn gap-2"
               >
                 <RotateCcw className="h-5 w-5" />
                 Repetir
               </Button>
               <Button
-                size="lg"
                 onClick={confirmPhoto}
-                className="gap-2"
+                className="camera-capture-btn gap-2"
               >
                 <Check className="h-5 w-5" />
                 Usar Foto
               </Button>
-            </>
+            </div>
           ) : (
-            <>
+            <div className="camera-capture-buttons-take">
               {hasMultipleCameras && (
                 <Button
                   variant="outline"
@@ -202,6 +216,7 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
                   onClick={switchCamera}
                   disabled={isLoading}
                   title="Cambiar cámara"
+                  className="camera-capture-icon-btn"
                 >
                   <RotateCcw className="h-5 w-5" />
                 </Button>
@@ -210,7 +225,7 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
                 size="lg"
                 onClick={takePhoto}
                 disabled={isLoading}
-                className="rounded-full w-16 h-16"
+                className="camera-capture-shutter"
               >
                 <Camera className="h-8 w-8" />
               </Button>
@@ -219,10 +234,11 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
                 size="icon"
                 onClick={() => onOpenChange(false)}
                 title="Cancelar"
+                className="camera-capture-icon-btn"
               >
                 <X className="h-5 w-5" />
               </Button>
-            </>
+            </div>
           )}
         </div>
       </DialogContent>

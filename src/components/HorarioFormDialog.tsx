@@ -1088,14 +1088,14 @@ export const HorarioFormDialog = ({
         onOpenChange(isOpen);
       }}>
         {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto horario-form-dialog">
+          <DialogHeader className="horario-dialog-header">
             <DialogTitle className="text-2xl font-bold text-center">GESTIÓN DE HORARIOS</DialogTitle>
           </DialogHeader>
 
-          <div className="flex gap-6">
-            {/* Left Panel - Main Form */}
-            <div className="flex-1 space-y-6">
+          <div className="flex flex-col md:flex-row gap-6 horario-form-content">
+            {/* Left Panel - Main Form (order-last en móvil) */}
+            <div className="flex-1 space-y-6 order-last md:order-first horario-left-panel">
               {/* Nombre - Connected to Empleados (REQUIRED) */}
               <div className="space-y-2">
                 <Label className="text-sm font-bold uppercase">
@@ -1608,8 +1608,8 @@ export const HorarioFormDialog = ({
               )}
             </div>
 
-            {/* Right Panel - Date + Context Selection */}
-            <div className="w-72 border-l border-border pl-6 space-y-6">
+            {/* Right Panel - Date + Context Selection (order-first en móvil) */}
+            <div className="w-full md:w-72 md:border-l md:border-border md:pl-6 space-y-6 order-first md:order-last horario-right-panel">
               {/* Fecha */}
               <div className="space-y-2">
                 <Label className="text-sm font-bold uppercase">

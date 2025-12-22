@@ -7,6 +7,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { EmpleadoAutocomplete } from '@/components/EmpleadoAutocomplete';
 import { CameraCapture } from '@/components/CameraCapture';
 import { useHorarios, Horario } from '@/contexts/HorariosContext';
@@ -14,12 +15,12 @@ import { useProjects } from '@/contexts/ProjectsContext';
 import { Project } from '@/types';
 import { useEmpleados } from '@/contexts/EmpleadosContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, Camera, ExternalLink, Building2, Star, Save, AlertTriangle, Home, X } from 'lucide-react';
+import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, Camera, ExternalLink, Building2, Star, Save, AlertTriangle, Home, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
+import { useIsMobile } from '@/hooks/use-mobile';
 interface HorarioFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -137,7 +138,13 @@ export const HorarioFormDialog = ({
   // Camera dialogs
   const [cameraLlegadaOpen, setCameraLlegadaOpen] = useState(false);
   const [cameraSalidaOpen, setCameraSalidaOpen] = useState(false);
-
+  
+  // Desktop-only: accordion states for collapsible sections
+  const isMobile = useIsMobile();
+  const [salidaOpen, setSalidaOpen] = useState(true);
+  const [contingenciaOpen, setContingenciaOpen] = useState(false);
+  const [showAllEvents, setShowAllEvents] = useState(false);
+  const MAX_VISIBLE_EVENTS = 5;
   // Initialize with defaultEmpleadoId when dialog opens
   useEffect(() => {
     if (open && defaultEmpleadoId && !empleadoId) {
@@ -1104,9 +1111,16 @@ export const HorarioFormDialog = ({
             </div>
           </DialogHeader>
 
-          <div className="flex flex-col md:flex-row gap-6 horario-form-content">
-            {/* Left Panel - Main Form (order-last en móvil) */}
-            <div className="flex-1 space-y-6 order-last md:order-first horario-left-panel">
+          {/* Desktop: 3 columns / Mobile: flex column */}
+          <div className={cn(
+            "flex flex-col gap-6 horario-form-content",
+            !isMobile && "lg:grid lg:grid-cols-[1.1fr_1fr_0.9fr] lg:gap-4"
+          )}>
+            {/* COLUMN 1 (Desktop) / First section (Mobile - after context) - Nombre + Estado */}
+            <div className={cn(
+              "space-y-4",
+              isMobile ? "order-last" : "horario-left-panel"
+            )}>
               {/* Nombre - Connected to Empleados (REQUIRED) */}
               <div className="space-y-2">
                 <Label className="text-sm font-bold uppercase">
@@ -1280,7 +1294,7 @@ export const HorarioFormDialog = ({
                   {/* SALIDA */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-lg font-bold uppercase">Salida</Label>
+                      <Label className={cn("font-bold uppercase", isMobile ? "text-lg" : "text-sm")}>Salida</Label>
                       {salidaRegistered && (
                         <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
                           <Check className="h-3 w-3" />
@@ -1619,8 +1633,11 @@ export const HorarioFormDialog = ({
               )}
             </div>
 
-            {/* Right Panel - Date + Context Selection (order-first en móvil) */}
-            <div className="w-full md:w-72 md:border-l md:border-border md:pl-6 space-y-6 order-first md:order-last horario-right-panel">
+            {/* COLUMN 3 (Desktop) / First section (Mobile) - Date + Context Selection */}
+            <div className={cn(
+              "space-y-4",
+              isMobile ? "order-first" : "horario-right-panel"
+            )}>
               {/* Fecha */}
               <div className="space-y-2">
                 <Label className="text-sm font-bold uppercase">
@@ -1713,44 +1730,96 @@ export const HorarioFormDialog = ({
                   {empleadoId && ' • Los asignados aparecen primero'}
                 </p>
 
-                <div className="border border-border rounded-lg bg-background max-h-48 overflow-y-auto">
+                {/* Desktop: limit events, no scroll. Mobile: scroll */}
+                <div className={cn(
+                  "border border-border rounded-lg bg-background",
+                  isMobile ? "max-h-48 overflow-y-auto" : "horario-events-list-desktop overflow-hidden"
+                )}>
                   {filteredEvents.length > 0 ? (
-                    filteredEvents.map((event) => {
-                      const isAssigned = isEmployeeAssignedToEvent(event, empleadoId);
-                      const isSelected = selectedEventIds.includes(event.id);
-                      
-                      return (
-                        <div
-                          key={event.id}
-                          className={cn(
-                            "flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer border-b border-border last:border-b-0",
-                            isSelected && "bg-primary/10"
-                          )}
-                          onClick={() => empleadoId && !salidaRegistered && toggleEventSelection(event.id)}
-                        >
-                          <Checkbox 
-                            checked={isSelected}
-                            disabled={!empleadoId || salidaRegistered}
-                            className="pointer-events-none"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm truncate">{event.evento}</p>
-                            {isAssigned && (
-                              <p className="text-[10px] text-primary flex items-center gap-1">
-                                <Star className="h-3 w-3 fill-primary" />
-                                Asignado
-                              </p>
+                    <>
+                      {(isMobile || showAllEvents ? filteredEvents : filteredEvents.slice(0, MAX_VISIBLE_EVENTS)).map((event) => {
+                        const isAssigned = isEmployeeAssignedToEvent(event, empleadoId);
+                        const isSelected = selectedEventIds.includes(event.id);
+                        
+                        return (
+                          <div
+                            key={event.id}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer border-b border-border last:border-b-0",
+                              isSelected && "bg-primary/10"
                             )}
+                            onClick={() => empleadoId && !salidaRegistered && toggleEventSelection(event.id)}
+                          >
+                            <Checkbox 
+                              checked={isSelected}
+                              disabled={!empleadoId || salidaRegistered}
+                              className="pointer-events-none"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm truncate">{event.evento}</p>
+                              {isAssigned && (
+                                <p className="text-[10px] text-primary flex items-center gap-1">
+                                  <Star className="h-3 w-3 fill-primary" />
+                                  Asignado
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })
+                        );
+                      })}
+                    </>
                   ) : (
                     <div className="p-4 text-center text-sm text-muted-foreground">
                       No hay eventos para esta fecha
                     </div>
                   )}
                 </div>
+
+                {/* Ver más button (Desktop only) */}
+                {!isMobile && filteredEvents.length > MAX_VISIBLE_EVENTS && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="horario-ver-mas-btn">
+                        Ver {filteredEvents.length - MAX_VISIBLE_EVENTS} eventos más
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 max-h-64 overflow-y-auto p-0" align="start">
+                      <div className="p-2 border-b border-border">
+                        <p className="text-xs font-medium">Todos los eventos ({filteredEvents.length})</p>
+                      </div>
+                      {filteredEvents.map((event) => {
+                        const isAssigned = isEmployeeAssignedToEvent(event, empleadoId);
+                        const isSelected = selectedEventIds.includes(event.id);
+                        
+                        return (
+                          <div
+                            key={event.id}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer border-b border-border last:border-b-0",
+                              isSelected && "bg-primary/10"
+                            )}
+                            onClick={() => empleadoId && !salidaRegistered && toggleEventSelection(event.id)}
+                          >
+                            <Checkbox 
+                              checked={isSelected}
+                              disabled={!empleadoId || salidaRegistered}
+                              className="pointer-events-none"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm truncate">{event.evento}</p>
+                              {isAssigned && (
+                                <p className="text-[10px] text-primary flex items-center gap-1">
+                                  <Star className="h-3 w-3 fill-primary" />
+                                  Asignado
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </PopoverContent>
+                  </Popover>
+                )}
 
                 {selectedEventIds.length > 0 && (
                   <p className="text-xs text-primary">

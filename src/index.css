@@ -215,6 +215,91 @@
   }
 }
 
+/* ============================================
+   HORARIO FORM DIALOG - DESKTOP (WEB)
+   ============================================ */
+
+@media (min-width: 1024px) {
+  /* Make modal much larger on desktop */
+  .horario-form-dialog {
+    width: min(95vw, 1400px) !important;
+    max-width: min(95vw, 1400px) !important;
+    height: min(90vh, 900px) !important;
+    max-height: min(90vh, 900px) !important;
+    padding: 24px !important;
+  }
+  
+  /* Two-column grid layout for content */
+  .horario-form-content {
+    display: grid !important;
+    grid-template-columns: 1.1fr 0.9fr !important;
+    gap: 24px !important;
+    height: calc(100% - 60px) !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Left column (registro/foto/ubicación) */
+  .horario-form-content > div:first-child {
+    overflow-y: auto;
+    padding-right: 12px;
+  }
+  
+  /* Right column (fecha/oficina/casa/eventos) */
+  .horario-form-content > div:last-child {
+    overflow-y: auto;
+    padding-left: 12px;
+    border-left: 1px solid hsl(var(--border));
+  }
+  
+  /* Ensure inputs fill their column width */
+  .horario-form-dialog input,
+  .horario-form-dialog button,
+  .horario-form-dialog .popover-trigger {
+    width: 100%;
+  }
+  
+  /* Better spacing for cards/sections */
+  .horario-form-dialog .space-y-4 > * {
+    margin-bottom: 16px;
+  }
+  
+  /* Header styling */
+  .horario-dialog-header {
+    padding-bottom: 16px;
+    border-bottom: 1px solid hsl(var(--border));
+    margin-bottom: 16px;
+  }
+}
+
+/* ============================================
+   CAMERA CAPTURE - DESKTOP (WEB)
+   ============================================ */
+
+@media (min-width: 1024px) {
+  /* Camera dialog sizing for desktop */
+  .camera-capture-dialog {
+    max-width: 640px !important;
+    width: 640px !important;
+  }
+  
+  .camera-capture-preview {
+    height: 400px;
+  }
+  
+  /* Ensure switch camera button is always visible */
+  .camera-capture-buttons-take {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .camera-capture-icon-btn {
+    min-width: 48px;
+    min-height: 48px;
+  }
+}
+
 @tailwind components;
 @tailwind utilities;
 

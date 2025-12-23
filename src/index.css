@@ -216,160 +216,101 @@
 }
 
 /* ============================================
-   HORARIO FORM DIALOG - DESKTOP (WEB) - NO SCROLL
+   HORARIO FORM DIALOG - DESKTOP (WEB) - SINGLE SCROLL
    ============================================ */
 
 @media (min-width: 1024px) {
-  /* Make modal fill viewport without scroll */
+  /* Make modal large, centered, with single vertical scroll */
   .horario-form-dialog {
-    width: min(95vw, 1500px) !important;
-    max-width: min(95vw, 1500px) !important;
-    height: 85vh !important;
-    max-height: 860px !important;
-    padding: 16px !important;
-    overflow: hidden !important;
+    width: min(1400px, 96vw) !important;
+    max-width: min(1400px, 96vw) !important;
+    height: 90vh !important;
+    max-height: 90vh !important;
+    padding: 0 !important;
     display: flex !important;
     flex-direction: column !important;
+    overflow: hidden !important;
   }
   
-  /* Header compact */
+  /* Header compact and fixed at top */
   .horario-dialog-header {
-    padding-bottom: 12px !important;
+    padding: 16px 20px !important;
     border-bottom: 1px solid hsl(var(--border));
-    margin-bottom: 12px !important;
     flex-shrink: 0;
   }
   
-  /* 3-column grid layout for content - NO SCROLL */
+  /* Main content area - SINGLE SCROLL HERE */
   .horario-form-content {
-    display: grid !important;
-    grid-template-columns: 1.1fr 1fr 0.9fr !important;
-    gap: 16px !important;
     flex: 1 !important;
-    min-height: 0 !important;
-    overflow: hidden !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 20px !important;
+    display: block !important;
   }
   
-  /* All columns - NO SCROLL */
+  /* Remove all internal scrolls from panels */
   .horario-left-panel,
   .horario-center-panel,
   .horario-right-panel {
-    overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
-    min-height: 0 !important;
+    overflow: visible !important;
   }
   
-  /* Column borders */
-  .horario-center-panel {
-    border-left: 1px solid hsl(var(--border));
-    border-right: 1px solid hsl(var(--border));
-    padding-left: 16px !important;
-    padding-right: 16px !important;
+  /* Top section: 2 columns for Nombre + Fecha/Oficina/Casa/Eventos */
+  .horario-top-section {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 24px !important;
+    margin-bottom: 24px !important;
   }
   
-  .horario-right-panel {
-    padding-left: 0 !important;
-    border-left: none !important;
+  .horario-top-section > div {
+    overflow: visible !important;
   }
   
-  /* Compact spacing inside panels */
-  .horario-form-dialog .space-y-6 {
-    gap: 12px !important;
+  /* Registration sections in vertical flow */
+  .horario-registration-section {
+    margin-bottom: 20px !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 8px !important;
+    padding: 16px !important;
+    overflow: visible !important;
   }
   
-  .horario-form-dialog .space-y-4 {
-    gap: 8px !important;
-  }
-  
-  .horario-form-dialog .space-y-3 {
-    gap: 6px !important;
-  }
-  
-  /* Compact inputs and cards */
+  /* Compact inputs */
   .horario-form-dialog input {
-    height: 36px !important;
+    height: 38px !important;
     font-size: 13px !important;
   }
   
+  /* Photo containers */
   .horario-form-dialog .border-dashed {
     min-height: 80px !important;
-    padding: 8px !important;
+    padding: 10px !important;
   }
   
-  /* Smaller photos */
   .horario-form-dialog .border-dashed img {
-    height: 60px !important;
+    height: 70px !important;
     object-fit: cover !important;
   }
   
   /* Compact section headers */
   .horario-form-dialog .text-lg {
-    font-size: 14px !important;
+    font-size: 15px !important;
   }
   
-  /* Compact toggles (oficina/casa) */
+  /* Toggles (oficina/casa) */
   .horario-form-dialog .p-4 {
-    padding: 10px !important;
-  }
-  
-  /* Events list - compact, limited height, no scroll */
-  .horario-events-list-desktop {
-    max-height: 180px !important;
-    overflow: hidden !important;
-  }
-  
-  .horario-events-list-desktop .px-3.py-2 {
-    padding: 6px 10px !important;
-  }
-  
-  /* Collapsible accordion styling */
-  .horario-collapsible-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 8px 12px;
-    background: hsl(var(--muted) / 0.3);
-    border: 1px solid hsl(var(--border));
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  
-  .horario-collapsible-trigger:hover {
-    background: hsl(var(--muted) / 0.5);
-  }
-  
-  .horario-collapsible-trigger[data-state="open"] {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-  
-  .horario-collapsible-content {
-    border: 1px solid hsl(var(--border));
-    border-top: none;
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
-    padding: 12px;
-    background: hsl(var(--background));
-  }
-  
-  /* Ensure registration section is compact */
-  .horario-registration-section {
     padding: 12px !important;
   }
   
-  .horario-registration-section .grid-cols-3 {
-    gap: 12px !important;
+  /* Events list - no internal scroll */
+  .horario-events-list-desktop {
+    max-height: none !important;
+    overflow: visible !important;
   }
   
-  /* Ver más eventos button */
-  .horario-ver-mas-btn {
-    margin-top: 8px;
-    width: 100%;
-    font-size: 12px;
-    height: 32px;
+  .horario-events-list-desktop .px-3.py-2 {
+    padding: 8px 12px !important;
   }
 }
 

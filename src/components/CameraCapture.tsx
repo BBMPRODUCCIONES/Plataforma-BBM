@@ -230,33 +230,34 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="camera-capture-dialog sm:max-w-lg p-0 overflow-hidden">
-        {/* Header - siempre visible */}
-        <div className="camera-capture-header">
-          <DialogHeader className="p-4 pb-0 md:pb-0">
-            <DialogTitle className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Camera className="h-5 w-5" />
-                Tomar Foto
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleClose}
-                className="md:hidden h-8 w-8"
-                title="Cerrar"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </DialogTitle>
-          </DialogHeader>
+      <DialogContent className="camera-capture-dialog p-0">
+        {/* Header fijo - siempre visible */}
+        <div className="camera-header">
+          <div className="camera-header-content">
+            <div className="flex items-center gap-2">
+              <Camera className="h-5 w-5 text-primary" />
+              <span className="font-semibold">Tomar Foto</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClose}
+              className="h-9 w-9 rounded-full hover:bg-muted"
+              title="Cerrar"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
         
-        {/* Preview Zone - centrada */}
-        <div className="camera-capture-preview">
+        {/* Body - preview de cámara/foto */}
+        <div className="camera-body">
           {(isLoading || isSwitching) && (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="camera-loading">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground mt-2">
+                {isSwitching ? "Cambiando cámara..." : "Iniciando cámara..."}
+              </span>
             </div>
           )}
           
@@ -264,7 +265,7 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
             <img 
               src={capturedImage} 
               alt="Foto capturada" 
-              className="camera-capture-media"
+              className="camera-media"
             />
           ) : (
             <video
@@ -272,75 +273,81 @@ export function CameraCapture({ open, onOpenChange, onCapture }: CameraCapturePr
               autoPlay
               playsInline
               muted
-              className="camera-capture-media"
+              className="camera-media"
             />
           )}
           
           <canvas ref={canvasRef} className="hidden" />
         </div>
         
-        {/* Footer con botones - siempre visible */}
-        <div className="camera-capture-footer">
+        {/* Footer fijo - botones siempre visibles */}
+        <div className="camera-footer">
           {capturedImage ? (
-            <div className="camera-capture-buttons">
+            <div className="camera-footer-buttons">
               <Button
                 variant="outline"
                 onClick={retakePhoto}
                 disabled={isSaving}
-                className="camera-capture-btn gap-2"
+                className="camera-btn-secondary"
               >
                 <RotateCcw className="h-5 w-5" />
-                Repetir
+                <span>Repetir</span>
               </Button>
               <Button
                 onClick={confirmPhoto}
                 disabled={isSaving}
-                className="camera-capture-btn gap-2"
+                className="camera-btn-primary"
               >
                 {isSaving ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <Check className="h-5 w-5" />
                 )}
-                {isSaving ? "Guardando..." : "Usar Foto"}
+                <span>{isSaving ? "Guardando..." : "Usar Foto"}</span>
               </Button>
             </div>
           ) : (
-            <div className="camera-capture-buttons-take">
-              {/* FIX A: Always show switch button (disabled while loading/checking) */}
-              {(hasMultipleCameras || isCheckingCameras) && (
+            <div className="camera-footer-buttons-capture">
+              {/* Cancelar a la izquierda */}
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                className="camera-btn-cancel"
+              >
+                <X className="h-5 w-5" />
+                <span className="hidden sm:inline">Cancelar</span>
+              </Button>
+              
+              {/* Botón capturar (grande, centrado) */}
+              <button
+                onClick={takePhoto}
+                disabled={isLoading || isSwitching}
+                className="camera-shutter-btn"
+                title="Tomar foto"
+              >
+                <div className="camera-shutter-inner">
+                  <Camera className="h-8 w-8 text-white" />
+                </div>
+              </button>
+              
+              {/* Cambiar cámara a la derecha */}
+              {(hasMultipleCameras || isCheckingCameras) ? (
                 <Button
                   variant="outline"
-                  size="icon"
                   onClick={switchCamera}
                   disabled={isLoading || isSwitching || isCheckingCameras}
-                  title="Voltear cámara"
-                  className="camera-capture-icon-btn"
+                  className="camera-btn-switch"
                 >
                   {isSwitching ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <SwitchCamera className="h-5 w-5" />
                   )}
+                  <span className="hidden sm:inline">Cambiar</span>
                 </Button>
+              ) : (
+                <div className="w-[100px]" /> // Spacer para mantener centrado el shutter
               )}
-              <Button
-                size="lg"
-                onClick={takePhoto}
-                disabled={isLoading || isSwitching}
-                className="camera-capture-shutter"
-              >
-                <Camera className="h-8 w-8" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleClose}
-                title="Cancelar"
-                className="camera-capture-icon-btn"
-              >
-                <X className="h-5 w-5" />
-              </Button>
             </div>
           )}
         </div>

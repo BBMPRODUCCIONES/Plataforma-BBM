@@ -32,16 +32,24 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
   <DialogPortal>
-    <DialogOverlay />
+    <DialogOverlay 
+      data-lovable-dialog-overlay=""
+      className="flex items-start justify-center pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-[calc(env(safe-area-inset-bottom,0px)+16px)] px-2 sm:items-center sm:pt-0 sm:pb-0 sm:px-0 overflow-y-auto"
+    />
     <DialogPrimitive.Content
       ref={ref}
+      data-lovable-dialog-content=""
       className={cn(
         // Base styles
-        "fixed z-50 grid gap-4 border bg-background shadow-lg duration-200 overflow-y-auto",
-        // Mobile: full-screen with safe areas
-        "inset-2 max-h-[calc(100vh-16px)] w-[calc(100%-16px)] rounded-lg p-4",
-        // Desktop: centered modal
-        "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:max-w-lg sm:max-h-[85vh] sm:w-full sm:p-6 sm:rounded-lg",
+        "fixed z-50 grid gap-4 border bg-background shadow-lg duration-200",
+        // Mobile: positioned below safe-area with proper sizing
+        "top-[calc(env(safe-area-inset-top,0px)+16px)] left-2 right-2 bottom-auto",
+        "max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-32px)]",
+        "w-[calc(100%-16px)] rounded-lg p-4 overflow-y-auto overflow-x-hidden",
+        // Desktop: centered modal (unchanged)
+        "sm:top-[50%] sm:left-[50%] sm:right-auto sm:bottom-auto",
+        "sm:translate-x-[-50%] sm:translate-y-[-50%]",
+        "sm:max-w-lg sm:max-h-[85vh] sm:w-full sm:p-6 sm:rounded-lg",
         // Animations
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%] sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]",

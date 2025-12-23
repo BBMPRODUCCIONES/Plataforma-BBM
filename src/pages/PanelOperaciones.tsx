@@ -1557,7 +1557,17 @@ const PanelOperaciones = () => {
           ]}
           actions={
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setHorarioFormOpen(true)}>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  if (!currentUserEmpleado) {
+                    toast.error('No se encontró empleado para tu usuario. Contacta al administrador para vincular tu cuenta a un empleado.');
+                    return;
+                  }
+                  setHorarioFormOpen(true);
+                }}
+              >
                 <Clock className="h-4 w-4 mr-2" />
                 Gestión de Horarios
               </Button>

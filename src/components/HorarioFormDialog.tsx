@@ -1126,32 +1126,49 @@ export const HorarioFormDialog = ({
                     <span className="ml-2 text-xs text-muted-foreground font-normal">(bloqueado)</span>
                   )}
                 </Label>
-                {isEmpleadoLocked && empleadoId ? (
+                
+                {/* Error prominente en modo field sin empleado */}
+                {isFieldMode && !empleadoId && (
+                  <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
+                    <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-destructive">No se encontró empleado para este usuario</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Contacta al administrador para vincular tu cuenta de usuario a un empleado en el sistema.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Nombre bloqueado (modo field con empleado) */}
+                {isEmpleadoLocked && empleadoId && (
                   <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border border-border">
                     <span className="font-medium">{empleados.find(e => e.id === empleadoId)?.nombre || 'Empleado'}</span>
                     <span className="text-xs text-muted-foreground">
                       ({empleados.find(e => e.id === empleadoId)?.cargo || 'Sin cargo'})
                     </span>
                   </div>
-                ) : (
-                  <EmpleadoAutocomplete
-                    value={empleadoId || ''}
-                    onChange={(_, id) => {
-                      if (id) {
-                        setEmpleadoId(id);
-                      } else {
-                        setEmpleadoId(null);
-                      }
-                    }}
-                    useEmpleadoId={true}
-                    placeholder="Buscar empleado..."
-                  />
                 )}
-                {!empleadoId && !isEmpleadoLocked && (
-                  <p className="text-xs text-amber-400">* Debes seleccionar un empleado de la lista</p>
-                )}
-                {!empleadoId && isEmpleadoLocked && (
-                  <p className="text-xs text-destructive">* No se pudo cargar el empleado vinculado a tu cuenta</p>
+                
+                {/* Selector libre (modo admin) */}
+                {!isEmpleadoLocked && (
+                  <>
+                    <EmpleadoAutocomplete
+                      value={empleadoId || ''}
+                      onChange={(_, id) => {
+                        if (id) {
+                          setEmpleadoId(id);
+                        } else {
+                          setEmpleadoId(null);
+                        }
+                      }}
+                      useEmpleadoId={true}
+                      placeholder="Buscar empleado..."
+                    />
+                    {!empleadoId && (
+                      <p className="text-xs text-amber-400">* Debes seleccionar un empleado de la lista</p>
+                    )}
+                  </>
                 )}
               </div>
 

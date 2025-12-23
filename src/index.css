@@ -2847,3 +2847,52 @@
     box-shadow: 0 4px 20px hsl(var(--primary) / 0.4) !important;
   }
 }
+
+/* ===== MOBILE MODAL SAFE-AREA FIX (AWC/PWA) ===== */
+/* Solo afecta móvil, desktop queda igual */
+@media (max-width: 768px) {
+  /* Overlay del modal con padding para safe-area */
+  [data-radix-dialog-overlay]:not(.horario-form-dialog *):not(.camera-capture-dialog *) {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 16px) !important;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    overflow-y: auto !important;
+  }
+
+  /* Contenido del modal con max-height y scroll interno */
+  [data-radix-dialog-content]:not(.horario-form-dialog):not(.camera-capture-dialog) {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 32px) !important;
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 32px) !important;
+    width: min(96vw, 600px) !important;
+    overflow-y: auto !important;
+    border-radius: 12px !important;
+  }
+
+  /* Modales más anchos (como los de tablas: Personal, Inventario, Caja Menor) */
+  [data-radix-dialog-content].max-w-4xl:not(.horario-form-dialog):not(.camera-capture-dialog),
+  [data-radix-dialog-content].max-w-5xl:not(.horario-form-dialog):not(.camera-capture-dialog),
+  [data-radix-dialog-content].max-w-6xl:not(.horario-form-dialog):not(.camera-capture-dialog),
+  [data-radix-dialog-content].sm\\:max-w-4xl:not(.horario-form-dialog):not(.camera-capture-dialog),
+  [data-radix-dialog-content].sm\\:max-w-5xl:not(.horario-form-dialog):not(.camera-capture-dialog),
+  [data-radix-dialog-content].sm\\:max-w-6xl:not(.horario-form-dialog):not(.camera-capture-dialog) {
+    width: min(98vw, 1100px) !important;
+  }
+
+  /* Asegurar que el header del modal tenga espacio visible */
+  [data-radix-dialog-content]:not(.horario-form-dialog):not(.camera-capture-dialog) > div:first-child,
+  [data-radix-dialog-content]:not(.horario-form-dialog):not(.camera-capture-dialog) > header:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: hsl(var(--background));
+  }
+}

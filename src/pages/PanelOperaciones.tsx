@@ -1940,12 +1940,12 @@ const PanelOperaciones = () => {
                   {/* Caja Menor Section - Solo cuando selectedSection === "cajaMenor" */}
                   {selectedSection === "cajaMenor" && (
                     <Card className="overflow-hidden">
-                      <CardHeader className="py-3 flex flex-row items-center justify-between">
+                      <CardHeader className="py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <CardTitle className="text-sm flex items-center gap-2">
                           <Wallet className="h-4 w-4" />
                           Caja Menor ({(currentProjectData.cajaMenor || []).length})
                         </CardTitle>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap justify-end w-full sm:w-auto">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="outline" size="sm">
@@ -1993,8 +1993,9 @@ const PanelOperaciones = () => {
                               }
                             }}
                           >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Agregar Registro
+                            <Plus className="h-3 w-3 sm:mr-1" />
+                            <span className="hidden sm:inline">Agregar Registro</span>
+                            <span className="sm:hidden">Agregar</span>
                           </Button>
                         </div>
                       </CardHeader>

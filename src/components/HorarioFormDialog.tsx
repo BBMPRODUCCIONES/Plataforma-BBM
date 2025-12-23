@@ -1111,298 +1111,90 @@ export const HorarioFormDialog = ({
             </div>
           </DialogHeader>
 
-          {/* Content: Desktop uses CSS for layout, Mobile uses flex column */}
-          <div className="flex flex-col gap-6 horario-form-content">
-            {/* TOP SECTION: Nombre (left) + Fecha/Oficina/Casa/Eventos (right) */}
-            <div className={cn(
-              "horario-top-section",
-              isMobile && "flex flex-col gap-6"
-            )}>
-              {/* LEFT: Nombre */}
-              <div className={cn("space-y-4", isMobile && "order-last")}>
-                <div className="space-y-2">
-                  <Label className="text-sm font-bold uppercase">
-                    Nombre
-                    {isEmpleadoLocked && (
-                      <span className="ml-2 text-xs text-muted-foreground font-normal">(bloqueado)</span>
-                    )}
-                  </Label>
-                  {isEmpleadoLocked && empleadoId ? (
-                    <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border border-border">
-                      <span className="font-medium">{empleados.find(e => e.id === empleadoId)?.nombre || 'Empleado'}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ({empleados.find(e => e.id === empleadoId)?.cargo || 'Sin cargo'})
-                      </span>
-                    </div>
-                  ) : (
-                    <EmpleadoAutocomplete
-                      value={empleadoId || ''}
-                      onChange={(_, id) => {
-                        if (id) {
-                          setEmpleadoId(id);
-                        } else {
-                          setEmpleadoId(null);
-                        }
-                      }}
-                      useEmpleadoId={true}
-                      placeholder="Buscar empleado..."
-                    />
+          {/* Content: Desktop 2 columns, Mobile flex column */}
+          <div className={cn(
+            "horario-form-content",
+            isMobile && "flex flex-col gap-6"
+          )}>
+            {/* LEFT COLUMN: Nombre + Contexto + LLEGADA + SALIDA + CONTINGENCIA */}
+            <div className={cn("horario-left-column", isMobile && "order-last space-y-6")}>
+              {/* Nombre */}
+              <div className="space-y-2">
+                <Label className="text-sm font-bold uppercase">
+                  Nombre
+                  {isEmpleadoLocked && (
+                    <span className="ml-2 text-xs text-muted-foreground font-normal">(bloqueado)</span>
                   )}
-                  {!empleadoId && !isEmpleadoLocked && (
-                    <p className="text-xs text-amber-400">* Debes seleccionar un empleado de la lista</p>
-                  )}
-                  {!empleadoId && isEmpleadoLocked && (
-                    <p className="text-xs text-destructive">* No se pudo cargar el empleado vinculado a tu cuenta</p>
-                  )}
-                </div>
-
-                {/* Loading indicator */}
-                {loadingRecord && (
-                  <div className="text-center py-4 text-muted-foreground">
-                    Cargando registro...
+                </Label>
+                {isEmpleadoLocked && empleadoId ? (
+                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border border-border">
+                    <span className="font-medium">{empleados.find(e => e.id === empleadoId)?.nombre || 'Empleado'}</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({empleados.find(e => e.id === empleadoId)?.cargo || 'Sin cargo'})
+                    </span>
                   </div>
+                ) : (
+                  <EmpleadoAutocomplete
+                    value={empleadoId || ''}
+                    onChange={(_, id) => {
+                      if (id) {
+                        setEmpleadoId(id);
+                      } else {
+                        setEmpleadoId(null);
+                      }
+                    }}
+                    useEmpleadoId={true}
+                    placeholder="Buscar empleado..."
+                  />
+                )}
+                {!empleadoId && !isEmpleadoLocked && (
+                  <p className="text-xs text-amber-400">* Debes seleccionar un empleado de la lista</p>
+                )}
+                {!empleadoId && isEmpleadoLocked && (
+                  <p className="text-xs text-destructive">* No se pudo cargar el empleado vinculado a tu cuenta</p>
                 )}
               </div>
 
-              {/* RIGHT: Fecha + Oficina/Casa + Eventos */}
-              <div className={cn("space-y-4", isMobile && "order-first")}>
-                {/* Fecha */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-bold uppercase">
-                    Fecha
-                    {isFechaLocked && (
-                      <span className="ml-2 text-xs text-muted-foreground font-normal">(solo hoy)</span>
-                    )}
-                  </Label>
-                  {isFechaLocked ? (
-                    <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border border-border">
-                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{format(fecha, "PPP", { locale: es })}</span>
-                    </div>
-                  ) : (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {format(fecha, "PPP", { locale: es })}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={fecha}
-                          onSelect={(date) => date && setFecha(date)}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
+              {/* Context Summary (visible cuando hay contexto) */}
+              {(oficinaEnabled || casaEnabled || selectedEventIds.length > 0) && (
+                <div className="flex items-center gap-2 flex-wrap p-3 bg-muted/30 rounded-lg border border-border">
+                  <span className="text-xs text-muted-foreground">Contexto:</span>
+                  {oficinaEnabled && (
+                    <span className="inline-flex items-center gap-1 bg-primary/20 text-primary px-2 py-1 rounded text-xs">
+                      <Building2 className="h-3 w-3" />
+                      Oficina
+                    </span>
                   )}
-                  {isFechaLocked && (
-                    <p className="text-xs text-muted-foreground">En este panel solo puedes registrar el día de hoy.</p>
+                  {casaEnabled && (
+                    <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-500 px-2 py-1 rounded text-xs">
+                      <Home className="h-3 w-3" />
+                      Casa
+                    </span>
                   )}
-                </div>
-
-                {/* Oficina Toggle */}
-                <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    <Building2 className="h-5 w-5 text-primary" />
-                    <div>
-                      <Label className="text-sm font-bold">OFICINA</Label>
-                      <p className="text-xs text-muted-foreground">Registro de oficina</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={oficinaEnabled}
-                    onCheckedChange={handleOficinaToggle}
-                    disabled={!empleadoId || salidaRegistered}
-                  />
-                </div>
-
-                {/* Casa Toggle */}
-                <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    <Home className="h-5 w-5 text-amber-500" />
-                    <div>
-                      <Label className="text-sm font-bold">CASA</Label>
-                      <p className="text-xs text-muted-foreground">Trabajo remoto</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={casaEnabled}
-                    onCheckedChange={handleCasaToggle}
-                    disabled={!empleadoId || salidaRegistered}
-                  />
-                </div>
-
-                {/* Eventos */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-bold uppercase">Eventos</Label>
-                  
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={eventoSearch}
-                      onChange={(e) => setEventoSearch(e.target.value)}
-                      placeholder="Buscar evento..."
-                      className="pl-9"
-                      disabled={!empleadoId}
-                    />
-                  </div>
-
-                  <p className="text-[10px] text-muted-foreground">
-                    Eventos del {format(fecha, "d 'de' MMMM", { locale: es })}
-                    {empleadoId && ' • Los asignados aparecen primero'}
-                  </p>
-
-                  {/* Events list - no internal scroll on desktop */}
-                  <div className={cn(
-                    "border border-border rounded-lg bg-background",
-                    isMobile ? "max-h-48 overflow-y-auto" : "horario-events-list-desktop"
-                  )}>
-                    {filteredEvents.length > 0 ? (
-                      <>
-                        {(isMobile || showAllEvents ? filteredEvents : filteredEvents.slice(0, MAX_VISIBLE_EVENTS)).map((event) => {
-                          const isAssigned = isEmployeeAssignedToEvent(event, empleadoId);
-                          const isSelected = selectedEventIds.includes(event.id);
-                          
-                          return (
-                            <div
-                              key={event.id}
-                              className={cn(
-                                "flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer border-b border-border last:border-b-0",
-                                isSelected && "bg-primary/10"
-                              )}
-                              onClick={() => empleadoId && !salidaRegistered && toggleEventSelection(event.id)}
-                            >
-                              <Checkbox 
-                                checked={isSelected}
-                                disabled={!empleadoId || salidaRegistered}
-                                className="pointer-events-none"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm truncate">{event.evento}</p>
-                                {isAssigned && (
-                                  <p className="text-[10px] text-primary flex items-center gap-1">
-                                    <Star className="h-3 w-3 fill-primary" />
-                                    Asignado
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </>
-                    ) : (
-                      <div className="p-4 text-center text-sm text-muted-foreground">
-                        No hay eventos para esta fecha
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Ver más button (Desktop only) */}
-                  {!isMobile && filteredEvents.length > MAX_VISIBLE_EVENTS && (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="w-full text-xs h-8">
-                          Ver {filteredEvents.length - MAX_VISIBLE_EVENTS} eventos más
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 max-h-64 overflow-y-auto p-0" align="start">
-                        <div className="p-2 border-b border-border">
-                          <p className="text-xs font-medium">Todos los eventos ({filteredEvents.length})</p>
-                        </div>
-                        {filteredEvents.map((event) => {
-                          const isAssigned = isEmployeeAssignedToEvent(event, empleadoId);
-                          const isSelected = selectedEventIds.includes(event.id);
-                          
-                          return (
-                            <div
-                              key={event.id}
-                              className={cn(
-                                "flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer border-b border-border last:border-b-0",
-                                isSelected && "bg-primary/10"
-                              )}
-                              onClick={() => empleadoId && !salidaRegistered && toggleEventSelection(event.id)}
-                            >
-                              <Checkbox 
-                                checked={isSelected}
-                                disabled={!empleadoId || salidaRegistered}
-                                className="pointer-events-none"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm truncate">{event.evento}</p>
-                                {isAssigned && (
-                                  <p className="text-[10px] text-primary flex items-center gap-1">
-                                    <Star className="h-3 w-3 fill-primary" />
-                                    Asignado
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </PopoverContent>
-                    </Popover>
-                  )}
-
-                  {selectedEventIds.length > 0 && (
-                    <p className="text-xs text-primary">
-                      {selectedEventIds.length} evento{selectedEventIds.length > 1 ? 's' : ''} seleccionado{selectedEventIds.length > 1 ? 's' : ''}
-                    </p>
-                  )}
-
-                  {salidaRegistered && (
-                    <p className="text-xs text-amber-400">
-                      El contexto no puede modificarse después de registrar salida
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* REGISTRATION SECTION: Llegada, Salida, Contingencia in vertical flow */}
-            <div className="horario-registration-section">
-              {/* Single Registration Section */}
-              {showRegistrationForm && !loadingRecord ? (
-                <div className="border border-border rounded-lg p-4 space-y-6">
-                  {/* Context Summary */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {oficinaEnabled && (
-                      <span className="inline-flex items-center gap-1 bg-primary/20 text-primary px-2 py-1 rounded text-xs">
-                        <Building2 className="h-3 w-3" />
-                        Oficina
+                  {selectedEventIds.map(eventId => {
+                    const project = projects.find(p => p.id === eventId);
+                    return (
+                      <span key={eventId} className="inline-flex items-center gap-1 bg-primary/20 text-primary px-2 py-1 rounded text-xs">
+                        <Star className="h-3 w-3" />
+                        {project?.evento || 'Evento'}
                       </span>
-                    )}
-                    {casaEnabled && (
-                      <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-500 px-2 py-1 rounded text-xs">
-                        <Home className="h-3 w-3" />
-                        Casa
-                      </span>
-                    )}
-                    {selectedEventIds.map(eventId => {
-                      const project = projects.find(p => p.id === eventId);
-                      return (
-                        <span key={eventId} className="inline-flex items-center gap-1 bg-primary/20 text-primary px-2 py-1 rounded text-xs">
-                          <Star className="h-3 w-3" />
-                          {project?.evento || 'Evento'}
-                        </span>
-                      );
-                    })}
-                  </div>
+                    );
+                  })}
+                </div>
+              )}
 
-                  {/* Existing record info */}
-                  {existingRecord && (
-                    <div className="bg-muted/30 p-2 rounded text-xs text-muted-foreground">
-                      Registro existente para {format(fecha, "d 'de' MMMM", { locale: es })}
-                    </div>
-                  )}
+              {/* Loading indicator */}
+              {loadingRecord && (
+                <div className="text-center py-4 text-muted-foreground">
+                  Cargando registro...
+                </div>
+              )}
 
+              {/* REGISTRATION SECTIONS: LLEGADA + SALIDA + CONTINGENCIA */}
+              {showRegistrationForm && !loadingRecord && (
+                <>
                   {/* LLEGADA */}
-                  <div className="space-y-3">
+                  <div className="horario-registration-section space-y-3">
                     <div className="flex items-center justify-between">
                       <Label className="text-lg font-bold uppercase">Llegada</Label>
                       {llegadaRegistered && (
@@ -1471,7 +1263,7 @@ export const HorarioFormDialog = ({
                             className="text-xs text-primary hover:underline flex items-center gap-1"
                           >
                             <ExternalLink className="h-3 w-3" />
-                            Ver ubicación en Google Maps
+                            Ver en Maps
                           </a>
                         )}
                       </div>
@@ -1493,9 +1285,9 @@ export const HorarioFormDialog = ({
                   </div>
 
                   {/* SALIDA */}
-                  <div className="space-y-3">
+                  <div className="horario-registration-section space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className={cn("font-bold uppercase", isMobile ? "text-lg" : "text-sm")}>Salida</Label>
+                      <Label className="text-lg font-bold uppercase">Salida</Label>
                       {salidaRegistered && (
                         <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full flex items-center gap-1">
                           <Check className="h-3 w-3" />
@@ -1567,7 +1359,7 @@ export const HorarioFormDialog = ({
                             className="text-xs text-primary hover:underline flex items-center gap-1"
                           >
                             <ExternalLink className="h-3 w-3" />
-                            Ver ubicación en Google Maps
+                            Ver en Maps
                           </a>
                         )}
                       </div>
@@ -1588,7 +1380,7 @@ export const HorarioFormDialog = ({
                     </div>
                   </div>
 
-                  {/* Save Context Changes Button - visible when context modified and salida not registered */}
+                  {/* Save Context Changes Button */}
                   {hasLlegada && !salidaRegistered && contextModified && (
                     <div className="flex justify-center">
                       <Button
@@ -1604,7 +1396,7 @@ export const HorarioFormDialog = ({
 
                   {/* SALIDA DE CONTINGENCIA */}
                   {hasLlegada && (
-                    <div className="space-y-3 border-t border-border pt-4">
+                    <div className="horario-registration-section space-y-3">
                       <div className="flex items-center justify-between">
                         <Label className="text-lg font-bold uppercase flex items-center gap-2">
                           <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -1757,7 +1549,7 @@ export const HorarioFormDialog = ({
                             </div>
                           )}
                           
-                          {/* Contexto de contingencia chips - shown when locked or as summary */}
+                          {/* Contexto de contingencia chips */}
                           {(salidaContingencia?.contexto || existingRecord?.contingencia_contexto) && (
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-xs text-muted-foreground">Contexto guardado:</span>
@@ -1799,41 +1591,234 @@ export const HorarioFormDialog = ({
                             </div>
                           </div>
                         </div>
-                      ) : !showContingenciaContextDialog && (
-                        <div className="space-y-3">
+                      ) : !salidaContingencia && !contingenciaRegistered && !showContingenciaContextDialog && (
+                        <div className="flex items-center justify-center py-4">
                           <Button
                             type="button"
                             variant="outline"
                             onClick={() => setCameraContingenciaOpen(true)}
-                            disabled={loading || contingenciaRegistered}
-                            className="w-full gap-2 border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
+                            disabled={loading}
+                            className="gap-2 border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
                           >
-                            <Camera className="h-4 w-4" />
+                            <AlertTriangle className="h-4 w-4" />
                             Agregar salida de contingencia
                           </Button>
                         </div>
                       )}
-                      
-                      <p className="text-xs text-muted-foreground">
-                        Usa esta opción si necesitas registrar una salida adicional por contingencia.
-                      </p>
                     </div>
                   )}
+                </>
+              )}
 
-                  {/* Status message */}
-                  {llegadaRegistered && salidaRegistered && (
-                    <div className="bg-green-500/10 text-green-500 p-3 rounded-lg text-center text-sm">
-                      ✓ Registro completo para hoy
-                    </div>
-                  )}
-                </div>
-              ) : !loadingRecord && (
-                <div className="text-center text-muted-foreground py-12 border-2 border-dashed border-border rounded-lg">
-                  <p className="text-sm">Selecciona un empleado y luego activa Oficina, Casa o selecciona eventos como contexto</p>
+              {/* No context selected message */}
+              {!showRegistrationForm && !loadingRecord && empleadoId && (
+                <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-lg">
+                  <p>Selecciona al menos oficina, casa o un evento para comenzar el registro</p>
                 </div>
               )}
             </div>
+
+            {/* RIGHT COLUMN: Fecha + Oficina/Casa + Eventos */}
+            <div className={cn("horario-right-column", isMobile && "order-first space-y-4")}>
+              {/* Fecha */}
+              <div className="space-y-2">
+                <Label className="text-sm font-bold uppercase">
+                  Fecha
+                  {isFechaLocked && (
+                    <span className="ml-2 text-xs text-muted-foreground font-normal">(solo hoy)</span>
+                  )}
+                </Label>
+                {isFechaLocked ? (
+                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border border-border">
+                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{format(fecha, "PPP", { locale: es })}</span>
+                  </div>
+                ) : (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(fecha, "PPP", { locale: es })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={fecha}
+                        onSelect={(date) => date && setFecha(date)}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+                {isFechaLocked && (
+                  <p className="text-xs text-muted-foreground">En este panel solo puedes registrar el día de hoy.</p>
+                )}
+              </div>
+
+              {/* Oficina Toggle */}
+              <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  <div>
+                    <Label className="text-sm font-bold">OFICINA</Label>
+                    <p className="text-xs text-muted-foreground">Registro de oficina</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={oficinaEnabled}
+                  onCheckedChange={handleOficinaToggle}
+                  disabled={!empleadoId || salidaRegistered}
+                />
+              </div>
+
+              {/* Casa Toggle */}
+              <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <Home className="h-5 w-5 text-amber-500" />
+                  <div>
+                    <Label className="text-sm font-bold">CASA</Label>
+                    <p className="text-xs text-muted-foreground">Trabajo remoto</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={casaEnabled}
+                  onCheckedChange={handleCasaToggle}
+                  disabled={!empleadoId || salidaRegistered}
+                />
+              </div>
+
+              {/* Eventos */}
+              <div className="space-y-3">
+                <Label className="text-sm font-bold uppercase">Eventos</Label>
+                
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={eventoSearch}
+                    onChange={(e) => setEventoSearch(e.target.value)}
+                    placeholder="Buscar evento..."
+                    className="pl-9"
+                    disabled={!empleadoId}
+                  />
+                </div>
+
+                <p className="text-[10px] text-muted-foreground">
+                  Eventos del {format(fecha, "d 'de' MMMM", { locale: es })}
+                  {empleadoId && ' • Los asignados aparecen primero'}
+                </p>
+
+                {/* Events list */}
+                <div className={cn(
+                  "border border-border rounded-lg bg-background",
+                  isMobile ? "max-h-48 overflow-y-auto" : "horario-events-list-desktop"
+                )}>
+                  {filteredEvents.length > 0 ? (
+                    <>
+                      {(isMobile || showAllEvents ? filteredEvents : filteredEvents.slice(0, MAX_VISIBLE_EVENTS)).map((event) => {
+                        const isAssigned = isEmployeeAssignedToEvent(event, empleadoId);
+                        const isSelected = selectedEventIds.includes(event.id);
+                        
+                        return (
+                          <div
+                            key={event.id}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer border-b border-border last:border-b-0",
+                              isSelected && "bg-primary/10"
+                            )}
+                            onClick={() => empleadoId && !salidaRegistered && toggleEventSelection(event.id)}
+                          >
+                            <Checkbox 
+                              checked={isSelected}
+                              disabled={!empleadoId || salidaRegistered}
+                              className="pointer-events-none"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm truncate">{event.evento}</p>
+                              {isAssigned && (
+                                <p className="text-[10px] text-primary flex items-center gap-1">
+                                  <Star className="h-3 w-3 fill-primary" />
+                                  Asignado
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No hay eventos para esta fecha
+                    </div>
+                  )}
+                </div>
+
+                {/* Ver más button (Desktop only) */}
+                {!isMobile && filteredEvents.length > MAX_VISIBLE_EVENTS && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full text-xs h-8">
+                        Ver {filteredEvents.length - MAX_VISIBLE_EVENTS} eventos más
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 max-h-64 overflow-y-auto p-0" align="start">
+                      <div className="p-2 border-b border-border">
+                        <p className="text-xs font-medium">Todos los eventos ({filteredEvents.length})</p>
+                      </div>
+                      {filteredEvents.map((event) => {
+                        const isAssigned = isEmployeeAssignedToEvent(event, empleadoId);
+                        const isSelected = selectedEventIds.includes(event.id);
+                        
+                        return (
+                          <div
+                            key={event.id}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-2 hover:bg-muted cursor-pointer border-b border-border last:border-b-0",
+                              isSelected && "bg-primary/10"
+                            )}
+                            onClick={() => empleadoId && !salidaRegistered && toggleEventSelection(event.id)}
+                          >
+                            <Checkbox 
+                              checked={isSelected}
+                              disabled={!empleadoId || salidaRegistered}
+                              className="pointer-events-none"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm truncate">{event.evento}</p>
+                              {isAssigned && (
+                                <p className="text-[10px] text-primary flex items-center gap-1">
+                                  <Star className="h-3 w-3 fill-primary" />
+                                  Asignado
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </PopoverContent>
+                  </Popover>
+                )}
+
+                {selectedEventIds.length > 0 && (
+                  <p className="text-xs text-primary">
+                    {selectedEventIds.length} evento{selectedEventIds.length > 1 ? 's' : ''} seleccionado{selectedEventIds.length > 1 ? 's' : ''}
+                  </p>
+                )}
+
+                {salidaRegistered && (
+                  <p className="text-xs text-amber-400">
+                    El contexto no puede modificarse después de registrar salida
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
+
+
 
           {/* Footer con botón Salir - solo visible en móvil AWC */}
           <div className="horario-dialog-footer">

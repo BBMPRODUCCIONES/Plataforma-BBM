@@ -1714,8 +1714,8 @@ const PanelOperaciones = () => {
           >
             <div className="overflow-y-auto overflow-x-hidden max-h-[calc(90vh-2rem)] p-6">
               <DialogHeader className="mb-4">
-                <div className="flex items-center justify-between">
-                  <DialogTitle className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <DialogTitle className="flex items-center gap-2 min-w-0 flex-wrap">
                     {selectedProject?.evento}
                     {selectedProject && (
                       <StatusSelect
@@ -1725,29 +1725,31 @@ const PanelOperaciones = () => {
                     )}
                   </DialogTitle>
                   {selectedSection === "plantilla" && currentProjectData && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <FileDown className="h-4 w-4 mr-2" />
-                          Exportar
-                          <ChevronDown className="h-3 w-3 ml-1" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-popover border border-border">
-                        <DropdownMenuItem onClick={() => printPersonalYInventario(currentProjectData, true)}>
-                          <FileDown className="h-4 w-4 mr-2" />
-                          PDF Completo
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => printPersonal(currentProjectData, true)}>
-                          <Users className="h-4 w-4 mr-2" />
-                          Solo Personal
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => printInventario(currentProjectData, true)}>
-                          <Package className="h-4 w-4 mr-2" />
-                          Solo Inventario
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="self-end sm:self-auto">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <FileDown className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Exportar</span>
+                            <ChevronDown className="h-3 w-3 sm:ml-1" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-popover border border-border">
+                          <DropdownMenuItem onClick={() => printPersonalYInventario(currentProjectData, true)}>
+                            <FileDown className="h-4 w-4 mr-2" />
+                            PDF Completo
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => printPersonal(currentProjectData, true)}>
+                            <Users className="h-4 w-4 mr-2" />
+                            Solo Personal
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => printInventario(currentProjectData, true)}>
+                            <Package className="h-4 w-4 mr-2" />
+                            Solo Inventario
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   )}
                 </div>
               </DialogHeader>

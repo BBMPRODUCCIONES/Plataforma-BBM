@@ -2889,3 +2889,25 @@
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* ============================================
+   PERSONAL TABLE - FEEDBACK COLUMN FIX
+   Fixed width column with internal scroll
+   ============================================ */
+
+/* Force fixed table layout for Personal template table */
+.personal-feedback-cell {
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
+  overflow: hidden !important;
+}
+
+/* Mobile matrix table: override nowrap ONLY for feedback cells */
+.mobile-matrix-table td.personal-feedback-cell,
+.mobile-matrix-table th.personal-feedback-cell {
+  white-space: normal !important;
+  overflow: hidden !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}

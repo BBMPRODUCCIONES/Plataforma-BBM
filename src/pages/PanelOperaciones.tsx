@@ -1148,101 +1148,117 @@ const PanelOperaciones = () => {
           const feedbackValue = p.feedback || "";
           const displayName = p.nombre || "Personal";
           
-          // Pattern identical to HistorialCotizaciones feedback column
+          // Pattern IDENTICAL to HistorialCotizaciones feedback column
+          // Uses isMobile hook (not sm: breakpoint) for consistent behavior
           if (feedbackValue) {
-            return (
-              <div>
-                {/* Mobile: truncated + Dialog - hidden on sm+ */}
-                <div className="flex items-start gap-1 sm:hidden">
-                  <span className="personal-feedback-text line-clamp-2 flex-1 text-xs">{feedbackValue}</span>
+            return isMobile ? (
+              // Mobile: truncated text + dialog to view full feedback (same as Historial)
+              <div className="flex items-start gap-1">
+                <span className="line-clamp-2 flex-1 break-words text-xs">{feedbackValue}</span>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 min-h-6 min-w-6 flex-shrink-0">
+                      <MessageSquare className="h-3.5 w-3.5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-[90vw] max-h-[80vh]">
+                    <DialogHeader>
+                      <DialogTitle className="text-base">Feedback - {displayName}</DialogTitle>
+                    </DialogHeader>
+                    {canEditItem ? (
+                      <Textarea
+                        value={feedbackValue}
+                        onChange={(e) => projectId && updatePersonalItem(projectId, p.id, "feedback", e.target.value)}
+                        placeholder="Escribe el feedback..."
+                        className="min-h-[150px] resize-none"
+                      />
+                    ) : (
+                      <div className="whitespace-pre-wrap text-sm overflow-y-auto max-h-[60vh] pr-2">
+                        {feedbackValue}
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
+              </div>
+            ) : (
+              // Desktop: internal vertical scroll (same as Historial)
+              <div 
+                className="max-h-[80px] overflow-y-auto pr-1 break-words whitespace-pre-wrap scrollbar-thin text-xs"
+                title={feedbackValue}
+              >
+                {canEditItem ? (
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 min-h-6 min-w-6 flex-shrink-0">
-                        <MessageSquare className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="cursor-pointer hover:bg-muted/50 rounded p-1 -m-1">
+                        {feedbackValue}
+                      </div>
                     </DialogTrigger>
-                    <DialogContent className="max-w-[90vw] max-h-[80vh]">
+                    <DialogContent className="max-w-lg">
                       <DialogHeader>
-                        <DialogTitle className="text-base">Feedback - {displayName}</DialogTitle>
+                        <DialogTitle className="text-base">Editar Feedback - {displayName}</DialogTitle>
                       </DialogHeader>
-                      {canEditItem ? (
-                        <Textarea
-                          value={feedbackValue}
-                          onChange={(e) => projectId && updatePersonalItem(projectId, p.id, "feedback", e.target.value)}
-                          placeholder="Escribe el feedback..."
-                          className="min-h-[150px] resize-none"
-                        />
-                      ) : (
-                        <div className="whitespace-pre-wrap text-sm overflow-y-auto max-h-[60vh] pr-2">
-                          {feedbackValue}
-                        </div>
-                      )}
+                      <Textarea
+                        value={feedbackValue}
+                        onChange={(e) => projectId && updatePersonalItem(projectId, p.id, "feedback", e.target.value)}
+                        placeholder="Escribe el feedback..."
+                        className="min-h-[200px] resize-none"
+                      />
                     </DialogContent>
                   </Dialog>
-                </div>
-                
-                {/* Desktop: internal vertical scroll - hidden on mobile */}
-                <div 
-                  className="hidden sm:block max-h-[80px] overflow-y-auto pr-1 break-words whitespace-pre-wrap scrollbar-thin"
-                  title={feedbackValue}
-                >
-                  {canEditItem ? (
-                    <EditableCell
-                      value={p.feedback}
-                      type="text"
-                      placeholder="-"
-                      onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
-                      disabled={false}
-                    />
-                  ) : (
-                    <span className="text-xs">{feedbackValue}</span>
-                  )}
-                </div>
-              </div>
-            );
-          } else {
-            // No feedback - show placeholder
-            return (
-              <div>
-                <div className="flex items-start gap-1 sm:hidden">
-                  <span className="text-xs text-muted-foreground">-</span>
-                  {canEditItem && (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 min-h-6 min-w-6 flex-shrink-0">
-                          <MessageSquare className="h-3.5 w-3.5" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-[90vw] max-h-[80vh]">
-                        <DialogHeader>
-                          <DialogTitle className="text-base">Feedback - {displayName}</DialogTitle>
-                        </DialogHeader>
-                        <Textarea
-                          value=""
-                          onChange={(e) => projectId && updatePersonalItem(projectId, p.id, "feedback", e.target.value)}
-                          placeholder="Escribe el feedback..."
-                          className="min-h-[150px] resize-none"
-                        />
-                      </DialogContent>
-                    </Dialog>
-                  )}
-                </div>
-                <div className="hidden sm:block">
-                  {canEditItem ? (
-                    <EditableCell
-                      value={p.feedback}
-                      type="text"
-                      placeholder="-"
-                      onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
-                      disabled={false}
-                    />
-                  ) : (
-                    <span className="text-xs text-muted-foreground">-</span>
-                  )}
-                </div>
+                ) : (
+                  feedbackValue
+                )}
               </div>
             );
           }
+          
+          // No feedback yet - show placeholder with option to add
+          return canEditItem ? (
+            isMobile ? (
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground">-</span>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 min-h-6 min-w-6 flex-shrink-0">
+                      <MessageSquare className="h-3.5 w-3.5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-[90vw] max-h-[80vh]">
+                    <DialogHeader>
+                      <DialogTitle className="text-base">Feedback - {displayName}</DialogTitle>
+                    </DialogHeader>
+                    <Textarea
+                      value=""
+                      onChange={(e) => projectId && updatePersonalItem(projectId, p.id, "feedback", e.target.value)}
+                      placeholder="Escribe el feedback..."
+                      className="min-h-[150px] resize-none"
+                    />
+                  </DialogContent>
+                </Dialog>
+              </div>
+            ) : (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <div className="cursor-pointer hover:bg-muted/50 rounded p-1 text-xs text-muted-foreground">
+                    Agregar feedback...
+                  </div>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="text-base">Agregar Feedback - {displayName}</DialogTitle>
+                  </DialogHeader>
+                  <Textarea
+                    value=""
+                    onChange={(e) => projectId && updatePersonalItem(projectId, p.id, "feedback", e.target.value)}
+                    placeholder="Escribe el feedback..."
+                    className="min-h-[200px] resize-none"
+                  />
+                </DialogContent>
+              </Dialog>
+            )
+          ) : (
+            <span className="text-xs text-muted-foreground">-</span>
+          );
         },
       });
     }

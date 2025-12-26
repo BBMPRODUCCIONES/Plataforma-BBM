@@ -7,6 +7,7 @@ import { useProveedores } from "@/contexts/ProveedoresContext";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { EventLink } from "@/components/EventLink";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Download, Eye, Trash2, Loader2, ArrowLeft, FileText, Filter, X, Info, FileSpreadsheet } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Search, Download, Eye, Trash2, Loader2, ArrowLeft, FileText, Filter, X, Info, FileSpreadsheet, MessageSquare } from "lucide-react";
 import { MigrationDialog } from "@/components/MigrationDialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -93,6 +101,7 @@ const HistorialCotizaciones = () => {
   const { projects } = useProjects();
   const { user } = useAuth();
   const { role, canEdit } = useUserRole();
+  const isMobile = useIsMobile();
   const isAdmin = role?.toLowerCase() === "administrador";
   const isOperativo = role?.toLowerCase() === "operativo";
   const canEditFiles = canEdit();
@@ -853,12 +862,35 @@ const HistorialCotizaciones = () => {
                       {canSeeFeedback && (
                         <TableCell className="text-xs p-2 w-[200px] min-w-[200px] max-w-[200px]">
                           {group.feedback ? (
-                            <div 
-                              className="max-h-[80px] overflow-y-auto pr-1 break-words whitespace-pre-wrap scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent"
-                              title={group.feedback}
-                            >
-                              {group.feedback}
-                            </div>
+                            isMobile ? (
+                              // Mobile: truncated text + dialog to view full feedback
+                              <div className="flex items-start gap-1">
+                                <span className="line-clamp-2 flex-1 break-words">{group.feedback}</span>
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 min-h-6 min-w-6 flex-shrink-0">
+                                      <MessageSquare className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-[90vw] max-h-[80vh]">
+                                    <DialogHeader>
+                                      <DialogTitle className="text-base">Feedback - {group.proveedor_nombre}</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="whitespace-pre-wrap text-sm overflow-y-auto max-h-[60vh] pr-2">
+                                      {group.feedback}
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                              </div>
+                            ) : (
+                              // Desktop: internal vertical scroll
+                              <div 
+                                className="max-h-[80px] overflow-y-auto pr-1 break-words whitespace-pre-wrap scrollbar-thin"
+                                title={group.feedback}
+                              >
+                                {group.feedback}
+                              </div>
+                            )
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}

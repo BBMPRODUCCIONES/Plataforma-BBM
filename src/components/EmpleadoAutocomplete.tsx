@@ -6,9 +6,17 @@ import { useEmpleados } from "@/contexts/EmpleadosContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
+interface EmpleadoData {
+  nombre: string;
+  empleadoId?: string;
+  cedula?: string;
+  cargo?: string;
+  telefono?: string;
+}
+
 interface EmpleadoAutocompleteProps {
   value: string;
-  onChange: (value: string, empleadoId?: string, cedula?: string) => void;
+  onChange: (value: string, empleadoId?: string, cedula?: string, empleadoData?: EmpleadoData) => void;
   tipoPersonal?: "BBM" | "Proveedor" | "Transporte";
   useEmpleadoId?: boolean;
   placeholder?: string;
@@ -72,8 +80,15 @@ export function EmpleadoAutocomplete({
   }, [empleados, searchTerm]);
 
   const handleSelect = (empleado: typeof empleados[0]) => {
-    // Pass: nombre, empleadoId, cedula
-    onChange(empleado.nombre, empleado.id, empleado.cedula || "");
+    // Pass: nombre, empleadoId, cedula, and full empleado data (cargo, telefono)
+    const empleadoData: EmpleadoData = {
+      nombre: empleado.nombre,
+      empleadoId: empleado.id,
+      cedula: empleado.cedula || "",
+      cargo: empleado.cargo || "",
+      telefono: empleado.telefono || "",
+    };
+    onChange(empleado.nombre, empleado.id, empleado.cedula || "", empleadoData);
     setSearchTerm("");
     setOpen(false);
   };
@@ -243,7 +258,14 @@ export function EmpleadoAutocomplete({
             <div
               key={empleado.id}
               onClick={() => {
-                onChange(empleado.nombre, empleado.id, empleado.cedula || "");
+                const empleadoData: EmpleadoData = {
+                  nombre: empleado.nombre,
+                  empleadoId: empleado.id,
+                  cedula: empleado.cedula || "",
+                  cargo: empleado.cargo || "",
+                  telefono: empleado.telefono || "",
+                };
+                onChange(empleado.nombre, empleado.id, empleado.cedula || "", empleadoData);
                 setSearchTerm("");
                 setOpen(false);
               }}

@@ -930,13 +930,15 @@ const PanelOperaciones = () => {
                 tipoPersonal="BBM"
                 useEmpleadoId
                 fallbackName={p.nombre}
-                onChange={(nombreValue, empleadoId, cedula) => {
+                onChange={(nombreValue, empleadoId, cedula, empleadoData) => {
                   if (projectId) {
                     updatePersonalItemMultiple(projectId, p.id, {
                       nombre: nombreValue,
                       empleadoId: empleadoId,
                       cedula: cedula || "",
-                      cedulaOrigen: "empleado"
+                      cedulaOrigen: "empleado",
+                      cargo: empleadoData?.cargo || "",
+                      telefono: empleadoData?.telefono || "",
                     });
                   }
                 }}

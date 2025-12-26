@@ -1,12 +1,14 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { PersonalItem } from "@/types";
 
 interface MigrationStats {
   total: number;
   migrated: number;
   skipped: number;
   errors: number;
+  feedbackUpdated: number;
   errorDetails: string[];
 }
 
@@ -42,12 +44,12 @@ export function useCotizacionMigration(): UseCotizacionMigrationReturn {
   const [stats, setStats] = useState<MigrationStats | null>(null);
 
   const checkPendingCount = useCallback(async (): Promise<number> => {
+    // Count records that need migration (personal_item_id extraction or feedback backfill)
     const { count, error } = await supabase
       .from("supplier_cotizacion_history")
       .select("*", { count: "exact", head: true })
       .is("deleted_at", null)
-      .or("migrated.is.null,migrated.eq.false")
-      .is("personal_item_id", null);
+      .or("migrated.is.null,migrated.eq.false");
 
     if (error) {
       console.error("Error checking pending count:", error);
@@ -58,7 +60,7 @@ export function useCotizacionMigration(): UseCotizacionMigrationReturn {
 
   const runMigration = useCallback(async (): Promise<MigrationStats> => {
     if (isRunning) {
-      return { total: 0, migrated: 0, skipped: 0, errors: 0, errorDetails: [] };
+      return { total: 0, migrated: 0, skipped: 0, errors: 0, feedbackUpdated: 0, errorDetails: [] };
     }
 
     setIsRunning(true);
@@ -69,14 +71,15 @@ export function useCotizacionMigration(): UseCotizacionMigrationReturn {
       migrated: 0,
       skipped: 0,
       errors: 0,
+      feedbackUpdated: 0,
       errorDetails: [],
     };
 
     try {
-      // Get all non-migrated records that need personal_item_id
+      // Get all non-migrated records
       const { data: pendingRecords, error: fetchError } = await supabase
         .from("supplier_cotizacion_history")
-        .select("id, file_path, personal_item_id, migrated")
+        .select("id, file_path, personal_item_id, migrated, evento_id, feedback")
         .is("deleted_at", null)
         .or("migrated.is.null,migrated.eq.false");
 
@@ -88,67 +91,78 @@ export function useCotizacionMigration(): UseCotizacionMigrationReturn {
       finalStats.total = records.length;
       setProgress({ current: 0, total: records.length, percentage: 0 });
 
+      // Fetch all projects to get Personal feedback
+      const { data: projectsData, error: projectsError } = await supabase
+        .from("projects")
+        .select("id, personal")
+        .eq("is_deleted", false);
+
+      if (projectsError) {
+        console.error("Error fetching projects for feedback backfill:", projectsError);
+      }
+
+      // Build a map of project personal items for quick lookup
+      const personalFeedbackMap = new Map<string, string>();
+      if (projectsData) {
+        for (const project of projectsData) {
+          const personal = project.personal as unknown as PersonalItem[] | null;
+          if (personal && Array.isArray(personal)) {
+            for (const item of personal) {
+              if (item.feedback && (item.tipoPersonal === 'Proveedor' || item.tipoPersonal === 'Transporte')) {
+                // Key: projectId-personalItemId
+                personalFeedbackMap.set(`${project.id}-${item.id}`, item.feedback);
+              }
+            }
+          }
+        }
+      }
+
       // Process in batches
       for (let i = 0; i < records.length; i += BATCH_SIZE) {
         const batch = records.slice(i, i + BATCH_SIZE);
         
         for (const record of batch) {
           try {
-            // Check if already has personal_item_id
-            if (record.personal_item_id) {
-              // Just mark as migrated
-              const { error: updateError } = await supabase
-                .from("supplier_cotizacion_history")
-                .update({
-                  migrated: true,
-                  migrated_at: new Date().toISOString(),
-                })
-                .eq("id", record.id);
-
-              if (updateError) {
-                finalStats.errors++;
-                finalStats.errorDetails.push(`${record.id}: ${updateError.message}`);
-              } else {
-                finalStats.skipped++;
-              }
-              continue;
+            // Determine personal_item_id
+            let personalItemId = record.personal_item_id;
+            if (!personalItemId) {
+              personalItemId = extractPersonalItemIdFromPath(record.file_path);
             }
 
-            // Extract personal_item_id from file_path
-            const extractedId = extractPersonalItemIdFromPath(record.file_path);
-
-            if (!extractedId) {
-              // Cannot extract, mark as migrated but log
-              const { error: updateError } = await supabase
-                .from("supplier_cotizacion_history")
-                .update({
-                  migrated: true,
-                  migrated_at: new Date().toISOString(),
-                })
-                .eq("id", record.id);
-
-              if (updateError) {
-                finalStats.errors++;
-                finalStats.errorDetails.push(`${record.id}: ${updateError.message}`);
-              } else {
-                finalStats.skipped++;
-              }
-              continue;
+            // Check if we need to backfill feedback
+            let feedbackToSet = record.feedback || "";
+            if (!feedbackToSet && personalItemId && record.evento_id) {
+              const key = `${record.evento_id}-${personalItemId}`;
+              feedbackToSet = personalFeedbackMap.get(key) || "";
             }
 
-            // Update with extracted personal_item_id
+            // Prepare update data
+            const updateData: Record<string, any> = {
+              migrated: true,
+              migrated_at: new Date().toISOString(),
+            };
+
+            // Add personal_item_id if extracted and not already set
+            if (personalItemId && !record.personal_item_id) {
+              updateData.personal_item_id = personalItemId;
+            }
+
+            // Add feedback if backfilling
+            if (feedbackToSet && !record.feedback) {
+              updateData.feedback = feedbackToSet;
+              finalStats.feedbackUpdated++;
+            }
+
             const { error: updateError } = await supabase
               .from("supplier_cotizacion_history")
-              .update({
-                personal_item_id: extractedId,
-                migrated: true,
-                migrated_at: new Date().toISOString(),
-              })
+              .update(updateData)
               .eq("id", record.id);
 
             if (updateError) {
               finalStats.errors++;
               finalStats.errorDetails.push(`${record.id}: ${updateError.message}`);
+            } else if (record.personal_item_id && record.feedback) {
+              finalStats.skipped++;
             } else {
               finalStats.migrated++;
             }
@@ -184,6 +198,7 @@ export function useCotizacionMigration(): UseCotizacionMigrationReturn {
             migrated: finalStats.migrated,
             skipped: finalStats.skipped,
             errors: finalStats.errors,
+            feedbackUpdated: finalStats.feedbackUpdated,
             errorSample: finalStats.errorDetails.slice(0, 5),
           },
         });

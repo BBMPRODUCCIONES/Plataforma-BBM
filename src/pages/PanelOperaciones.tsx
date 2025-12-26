@@ -688,6 +688,7 @@ const PanelOperaciones = () => {
           file_size: attachment.size || 0,
           uploaded_by: user?.id || null,
           uploaded_by_email: user?.email || null,
+          feedback: personalItem.feedback || "", // Include feedback from Personal item
         };
 
         const { error } = await supabase.from("supplier_cotizacion_history").insert(historyRecord);
@@ -737,6 +738,31 @@ const PanelOperaciones = () => {
         value as Attachment[],
         currentItem.adjuntos || []
       );
+    }
+    
+    // If feedback field is being updated for Proveedor/Transporte, sync to history
+    if (field === 'feedback' && currentItem && (currentItem.tipoPersonal === 'Proveedor' || currentItem.tipoPersonal === 'Transporte')) {
+      await syncFeedbackToHistory(projectId, personalId, value as string);
+    }
+  };
+
+  // Sync feedback from Personal to supplier_cotizacion_history
+  const syncFeedbackToHistory = async (projectId: string, personalItemId: string, feedback: string) => {
+    try {
+      const { error } = await supabase
+        .from("supplier_cotizacion_history")
+        .update({ feedback: feedback || "" })
+        .eq("evento_id", projectId)
+        .eq("personal_item_id", personalItemId)
+        .is("deleted_at", null);
+
+      if (error) {
+        console.error("[FeedbackSync] Error syncing feedback to history:", error);
+      } else {
+        logger.debug("[FeedbackSync] Synced feedback to history:", { projectId, personalItemId });
+      }
+    } catch (err) {
+      console.error("[FeedbackSync] Exception syncing feedback:", err);
     }
   };
 

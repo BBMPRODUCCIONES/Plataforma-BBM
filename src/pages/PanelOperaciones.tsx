@@ -1045,22 +1045,6 @@ const PanelOperaciones = () => {
       });
     }
 
-    // Feedback column - always visible for all personnel
-    basePersonalCols.push({
-      key: "feedback",
-      header: "Feedback",
-      width: "200px",
-      mobileWidth: "200px",
-      render: (p: PersonalItem) => (
-        <EditableCell
-          value={p.feedback}
-          type="text"
-          placeholder="-"
-          onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
-        />
-      ),
-    });
-
     // Show Adjuntos column for Proveedor or Transporte
     if (hasProveedorOrTransporte) {
       basePersonalCols.push({
@@ -1081,6 +1065,22 @@ const PanelOperaciones = () => {
         ),
       });
     }
+
+    // Feedback column - always visible for all personnel
+    basePersonalCols.push({
+      key: "feedback",
+      header: "Feedback",
+      width: "200px",
+      mobileWidth: "200px",
+      render: (p: PersonalItem) => (
+        <EditableCell
+          value={p.feedback}
+          type="text"
+          placeholder="-"
+          onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
+        />
+      ),
+    });
     
     return basePersonalCols;
   }, [selectedProject?.id, currentProjectData?.personal]);

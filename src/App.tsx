@@ -27,6 +27,7 @@ import Clientes from "./pages/Clientes";
 import Empleados from "./pages/Empleados";
 import NotFound from "./pages/NotFound";
 import InstalarApp from "./pages/InstalarApp";
+import PanelReportes from "./pages/PanelReportes";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,12 @@ const App = () => (
                   <Route path="/historial-cotizaciones" element={
                     <ProtectedRoute requiredPanel="proveedores">
                       <HistorialCotizaciones />
+                    </ProtectedRoute>
+                  } />
+                  {/* Panel de Reportes - Admin only */}
+                  <Route path="/panel-reportes" element={
+                    <ProtectedRoute adminOnly>
+                      <PanelReportes />
                     </ProtectedRoute>
                   } />
 

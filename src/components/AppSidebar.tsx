@@ -11,6 +11,7 @@ import {
   Building2,
   LogOut,
   Loader2,
+  FileBarChart,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
@@ -35,6 +36,7 @@ const mainNavItems = [
   { title: "Panel Directivo", url: "/panel-directivo", icon: Briefcase, panel: "directivo" },
   { title: "Panel General", url: "/panel-general", icon: Grid3X3, panel: "general" },
   { title: "Panel Operaciones", url: "/panel-operaciones", icon: Wrench, panel: "operaciones" },
+  { title: "Panel de Reportes", url: "/panel-reportes", icon: FileBarChart, panel: "reportes", adminOnly: true },
   { title: "Proveedores", url: "/proveedores", icon: Users, panel: "proveedores" },
 ];
 
@@ -101,6 +103,9 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {mainNavItems.map((item) => {
+                    // Check admin-only items first
+                    if (item.adminOnly && !canEditStructure()) return null;
+                    
                     const hasAccess = canAccessPanel(item.panel);
                     // Don't render items user doesn't have access to
                     if (!hasAccess) return null;

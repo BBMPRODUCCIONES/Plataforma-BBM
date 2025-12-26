@@ -79,7 +79,7 @@ export function useCotizacionMigration(): UseCotizacionMigrationReturn {
       // Get all non-migrated records
       const { data: pendingRecords, error: fetchError } = await supabase
         .from("supplier_cotizacion_history")
-        .select("id, file_path, personal_item_id, migrated, evento_id, feedback")
+        .select("id, file_path, personal_item_id, migrated, evento_id, feedback, proveedor_id")
         .is("deleted_at", null)
         .or("migrated.is.null,migrated.eq.false");
 
@@ -101,16 +101,25 @@ export function useCotizacionMigration(): UseCotizacionMigrationReturn {
         console.error("Error fetching projects for feedback backfill:", projectsError);
       }
 
-      // Build a map of project personal items for quick lookup
-      const personalFeedbackMap = new Map<string, string>();
+      // Build maps for quick lookup
+      // Map 1: by personal_item_id -> feedback
+      const feedbackByItemId = new Map<string, string>();
+      // Map 2: by evento_id + proveedor_id -> feedback (fallback)
+      const feedbackByProveedorId = new Map<string, string>();
+      
       if (projectsData) {
         for (const project of projectsData) {
           const personal = project.personal as unknown as PersonalItem[] | null;
           if (personal && Array.isArray(personal)) {
             for (const item of personal) {
               if (item.feedback && (item.tipoPersonal === 'Proveedor' || item.tipoPersonal === 'Transporte')) {
-                // Key: projectId-personalItemId
-                personalFeedbackMap.set(`${project.id}-${item.id}`, item.feedback);
+                // Key 1: projectId-personalItemId
+                feedbackByItemId.set(`${project.id}-${item.id}`, item.feedback);
+                
+                // Key 2: projectId-proveedorId (for fallback matching)
+                if (item.proveedorId) {
+                  feedbackByProveedorId.set(`${project.id}-${item.proveedorId}`, item.feedback);
+                }
               }
             }
           }
@@ -131,9 +140,18 @@ export function useCotizacionMigration(): UseCotizacionMigrationReturn {
 
             // Check if we need to backfill feedback
             let feedbackToSet = record.feedback || "";
-            if (!feedbackToSet && personalItemId && record.evento_id) {
-              const key = `${record.evento_id}-${personalItemId}`;
-              feedbackToSet = personalFeedbackMap.get(key) || "";
+            if (!feedbackToSet && record.evento_id) {
+              // Strategy 1: Match by personal_item_id
+              if (personalItemId) {
+                const key1 = `${record.evento_id}-${personalItemId}`;
+                feedbackToSet = feedbackByItemId.get(key1) || "";
+              }
+              
+              // Strategy 2: Fallback to proveedor_id match
+              if (!feedbackToSet && record.proveedor_id) {
+                const key2 = `${record.evento_id}-${record.proveedor_id}`;
+                feedbackToSet = feedbackByProveedorId.get(key2) || "";
+              }
             }
 
             // Prepare update data

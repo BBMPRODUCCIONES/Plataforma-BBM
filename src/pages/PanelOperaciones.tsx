@@ -1066,24 +1066,27 @@ const PanelOperaciones = () => {
       });
     }
 
-    // Feedback column - always visible for all personnel
-    basePersonalCols.push({
-      key: "feedback",
-      header: "Feedback",
-      width: "200px",
-      mobileWidth: "200px",
-      render: (p: PersonalItem) => (
-        <EditableCell
-          value={p.feedback}
-          type="text"
-          placeholder="-"
-          onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
-        />
-      ),
-    });
+    // Feedback column - only visible to users with feedback permission
+    if (canViewFeedback()) {
+      basePersonalCols.push({
+        key: "feedback",
+        header: "Feedback",
+        width: "200px",
+        mobileWidth: "200px",
+        render: (p: PersonalItem) => (
+          <EditableCell
+            value={p.feedback}
+            type="text"
+            placeholder="-"
+            onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
+            disabled={!canEditFeedback()}
+          />
+        ),
+      });
+    }
     
     return basePersonalCols;
-  }, [selectedProject?.id, currentProjectData?.personal]);
+  }, [selectedProject?.id, currentProjectData?.personal, canViewFeedback, canEditFeedback]);
 
   const inventarioColumns = useMemo(() => {
     // Use currentProjectData?.id to get fresh project ID

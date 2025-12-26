@@ -1147,10 +1147,11 @@ const PanelOperaciones = () => {
           const feedbackValue = p.feedback || "";
           const displayName = p.nombre || "Personal";
           
-          // Mobile: truncated + Dialog to view/edit full feedback
-          if (isMobile) {
-            return (
-              <div className="flex items-start gap-1">
+          // Render BOTH versions with CSS-based visibility for reliable mobile/desktop detection
+          return (
+            <div>
+              {/* Mobile version - hidden on sm+ screens */}
+              <div className="flex items-start gap-1 sm:hidden">
                 <span className="line-clamp-2 flex-1 break-words text-xs">
                   {feedbackValue || <span className="text-muted-foreground">-</span>}
                 </span>
@@ -1185,19 +1186,17 @@ const PanelOperaciones = () => {
                   </DialogContent>
                 </Dialog>
               </div>
-            );
-          }
-          
-          // Desktop: EditableCell with internal scroll styling
-          return (
-            <div className="max-h-[80px] overflow-y-auto scrollbar-thin">
-              <EditableCell
-                value={p.feedback}
-                type="text"
-                placeholder="-"
-                onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
-                disabled={!canEditItem}
-              />
+              
+              {/* Desktop version - hidden on mobile, shown on sm+ */}
+              <div className="hidden sm:block max-h-[80px] overflow-y-auto scrollbar-thin">
+                <EditableCell
+                  value={p.feedback}
+                  type="text"
+                  placeholder="-"
+                  onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
+                  disabled={!canEditItem}
+                />
+              </div>
             </div>
           );
         },

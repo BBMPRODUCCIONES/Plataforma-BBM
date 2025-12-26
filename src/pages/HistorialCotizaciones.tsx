@@ -790,7 +790,7 @@ const HistorialCotizaciones = () => {
                     <TableHead className="w-[180px]">CORREO</TableHead>
                     <TableHead className="w-[200px]">TIPO DE PRODUCTO O SERVICIO</TableHead>
                     {canSeeFeedback && (
-                      <TableHead className="w-[180px]">FEEDBACK</TableHead>
+                      <TableHead className="w-[200px] min-w-[200px] max-w-[200px]">FEEDBACK</TableHead>
                     )}
                     <TableHead className="w-[250px]">COTIZACIONES</TableHead>
                   </TableRow>
@@ -851,11 +851,14 @@ const HistorialCotizaciones = () => {
                         {group.proveedor_tipo_producto_servicio || "-"}
                       </TableCell>
                       {canSeeFeedback && (
-                        <TableCell className="text-xs">
+                        <TableCell className="text-xs p-2 w-[200px] min-w-[200px] max-w-[200px]">
                           {group.feedback ? (
-                            <span className="line-clamp-2" title={group.feedback}>
+                            <div 
+                              className="max-h-[80px] overflow-y-auto pr-1 break-words whitespace-pre-wrap scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent"
+                              title={group.feedback}
+                            >
                               {group.feedback}
-                            </span>
+                            </div>
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}

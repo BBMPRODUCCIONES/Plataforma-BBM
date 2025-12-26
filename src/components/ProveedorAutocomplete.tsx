@@ -6,9 +6,14 @@ import { useProveedores } from "@/contexts/ProveedoresContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
+interface ProveedorData {
+  telefono?: string;
+  correo?: string;
+}
+
 interface ProveedorAutocompleteProps {
   value: string;
-  onChange: (value: string, proveedorId?: string) => void;
+  onChange: (value: string, proveedorId?: string, proveedorData?: ProveedorData) => void;
   placeholder?: string;
   className?: string;
 }
@@ -54,7 +59,10 @@ export function ProveedorAutocomplete({
   }, [proveedores, searchTerm]);
 
   const handleSelect = (proveedor: typeof proveedores[0]) => {
-    onChange(proveedor.nombre, proveedor.id);
+    onChange(proveedor.nombre, proveedor.id, {
+      telefono: proveedor.telefono || undefined,
+      correo: proveedor.correo || undefined,
+    });
     setSearchTerm("");
     setOpen(false);
   };

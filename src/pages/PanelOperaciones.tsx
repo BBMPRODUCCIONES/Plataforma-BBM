@@ -965,7 +965,7 @@ const PanelOperaciones = () => {
       },
       {
         key: "cedula",
-        header: "Cédula",
+        header: "Cédula-Nit",
         width: "140px",
         mobileWidth: "140px",
         render: (p: PersonalItem) => {

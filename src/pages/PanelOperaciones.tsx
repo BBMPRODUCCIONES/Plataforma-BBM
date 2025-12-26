@@ -945,15 +945,15 @@ const PanelOperaciones = () => {
               />
             );
           }
-          // Proveedor or Transporte - use ProveedorAutocomplete
           return (
             <ProveedorAutocomplete
               value={p.nombre}
-              onChange={(value, proveedorId) => {
+              onChange={(value, proveedorId, proveedorData) => {
                 if (projectId) {
                   updatePersonalItemMultiple(projectId, p.id, {
                     nombre: value,
                     proveedorId: proveedorId,
+                    telefono: proveedorData?.telefono || "",
                     cedulaOrigen: "manual"
                   });
                 }

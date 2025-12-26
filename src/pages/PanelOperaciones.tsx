@@ -1109,10 +1109,10 @@ const PanelOperaciones = () => {
     // Feedback column - DECOUPLED logic by tipoPersonal
     // BBM: uses canViewFeedback()/canEditFeedback() (special permission required for operativo)
     // Proveedor/Transporte: Admin and ALL Operativo can view/edit, Visual never
-    const isAdmin = role?.toLowerCase() === "administrador";
-    const isOperativo = role?.toLowerCase() === "operativo";
-    const canViewProveedorFeedback = isAdmin || isOperativo;
-    const canEditProveedorFeedback = isAdmin || isOperativo;
+    const isAdminRole = role?.toLowerCase() === "administrador";
+    const isOperativoRole = role?.toLowerCase() === "operativo";
+    const canViewProveedorFeedback = isAdminRole || isOperativoRole;
+    const canEditProveedorFeedback = isAdminRole || isOperativoRole;
     
     // Show feedback column if user can see BBM feedback OR can see Proveedor/Transporte feedback
     if (canViewFeedback() || canViewProveedorFeedback) {

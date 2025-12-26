@@ -92,10 +92,12 @@ const HistorialCotizaciones = () => {
   const { proveedores, loading: proveedoresLoading } = useProveedores();
   const { projects } = useProjects();
   const { user } = useAuth();
-  const { role, canEdit, canViewFeedback } = useUserRole();
+  const { role, canEdit } = useUserRole();
   const isAdmin = role?.toLowerCase() === "administrador";
+  const isOperativo = role?.toLowerCase() === "operativo";
   const canEditFiles = canEdit();
-  const canSeeFeedback = isAdmin || canViewFeedback();
+  // For Historial de Cotizaciones (Proveedor/Transporte only): Admin and ALL Operativo can see feedback
+  const canSeeFeedback = isAdmin || isOperativo;
 
   // Search & filter state
   const [searchTerm, setSearchTerm] = useState("");

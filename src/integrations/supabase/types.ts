@@ -427,6 +427,7 @@ export type Database = {
           deleted_by_email: string | null
           evento_id: string | null
           fecha: string
+          feedback: string | null
           file_name: string
           file_path: string
           file_size: number | null
@@ -452,6 +453,7 @@ export type Database = {
           deleted_by_email?: string | null
           evento_id?: string | null
           fecha?: string
+          feedback?: string | null
           file_name: string
           file_path: string
           file_size?: number | null
@@ -477,6 +479,7 @@ export type Database = {
           deleted_by_email?: string | null
           evento_id?: string | null
           fecha?: string
+          feedback?: string | null
           file_name?: string
           file_path?: string
           file_size?: number | null

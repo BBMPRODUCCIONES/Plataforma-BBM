@@ -59,6 +59,7 @@ interface CotizacionHistoryRecord {
   deleted_by: string | null;
   deleted_by_email: string | null;
   created_at: string;
+  feedback: string | null; // Feedback from Personal item
   // Joined from projects
   evento_nombre?: string;
 }
@@ -84,15 +85,17 @@ interface GroupedCotizacionRecord {
   personal_item_id: string | null;
   latestDate: string;
   files: FileInfo[];
+  feedback: string | null; // Feedback from Personal item
 }
 
 const HistorialCotizaciones = () => {
   const { proveedores, loading: proveedoresLoading } = useProveedores();
   const { projects } = useProjects();
   const { user } = useAuth();
-  const { role, canEdit } = useUserRole();
+  const { role, canEdit, canViewFeedback } = useUserRole();
   const isAdmin = role?.toLowerCase() === "administrador";
   const canEditFiles = canEdit();
+  const canSeeFeedback = isAdmin || canViewFeedback();
 
   // Search & filter state
   const [searchTerm, setSearchTerm] = useState("");
@@ -191,8 +194,15 @@ const HistorialCotizaciones = () => {
           evento_nombre: record.evento_nombre || "Sin evento",
           personal_item_id: personalItemId,
           latestDate: record.fecha,
-          files: []
+          files: [],
+          feedback: record.feedback || null,
         });
+      } else {
+        // Update feedback if newer record has it and current is empty
+        const group = groups.get(key)!;
+        if (record.feedback && !group.feedback) {
+          group.feedback = record.feedback;
+        }
       }
       
       const group = groups.get(key)!;
@@ -514,19 +524,25 @@ const HistorialCotizaciones = () => {
     }
 
     try {
-      // Prepare data for export
-      const exportData = filteredRecords.map((record) => ({
-        "FECHA": formatDate(record.fecha),
-        "EVENTO": record.evento_nombre || "Sin evento",
-        "CATEGORÍA": record.proveedor_categoria || "-",
-        "NOMBRE": record.proveedor_nombre,
-        "TELÉFONO": record.proveedor_telefono || "-",
-        "CORREO": record.proveedor_correo || "-",
-        "TIPO DE PRODUCTO O SERVICIO": record.proveedor_tipo_producto_servicio || "-",
-        "ARCHIVO": record.file_name,
-        "TAMAÑO": formatFileSize(record.file_size),
-        "SUBIDO POR": record.uploaded_by_email || "-",
-      }));
+      // Prepare data for export - include feedback only if user can see it
+      const exportData = filteredRecords.map((record) => {
+        const baseData: Record<string, string> = {
+          "FECHA": formatDate(record.fecha),
+          "EVENTO": record.evento_nombre || "Sin evento",
+          "CATEGORÍA": record.proveedor_categoria || "-",
+          "NOMBRE": record.proveedor_nombre,
+          "TELÉFONO": record.proveedor_telefono || "-",
+          "CORREO": record.proveedor_correo || "-",
+          "TIPO DE PRODUCTO O SERVICIO": record.proveedor_tipo_producto_servicio || "-",
+        };
+        if (canSeeFeedback) {
+          baseData["FEEDBACK"] = record.feedback || "-";
+        }
+        baseData["ARCHIVO"] = record.file_name;
+        baseData["TAMAÑO"] = formatFileSize(record.file_size);
+        baseData["SUBIDO POR"] = record.uploaded_by_email || "-";
+        return baseData;
+      });
 
       // Create workbook and worksheet
       const ws = XLSX.utils.json_to_sheet(exportData);
@@ -534,7 +550,19 @@ const HistorialCotizaciones = () => {
       XLSX.utils.book_append_sheet(wb, ws, "Historial Cotizaciones");
 
       // Set column widths
-      const colWidths = [
+      const colWidths = canSeeFeedback ? [
+        { wch: 18 }, // Fecha
+        { wch: 25 }, // Evento
+        { wch: 15 }, // Categoría
+        { wch: 25 }, // Nombre
+        { wch: 15 }, // Teléfono
+        { wch: 30 }, // Correo
+        { wch: 30 }, // Tipo Producto
+        { wch: 30 }, // Feedback
+        { wch: 35 }, // Archivo
+        { wch: 12 }, // Tamaño
+        { wch: 25 }, // Subido por
+      ] : [
         { wch: 18 }, // Fecha
         { wch: 25 }, // Evento
         { wch: 15 }, // Categoría
@@ -759,13 +787,16 @@ const HistorialCotizaciones = () => {
                     <TableHead className="w-[120px]">TELÉFONO</TableHead>
                     <TableHead className="w-[180px]">CORREO</TableHead>
                     <TableHead className="w-[200px]">TIPO DE PRODUCTO O SERVICIO</TableHead>
+                    {canSeeFeedback && (
+                      <TableHead className="w-[180px]">FEEDBACK</TableHead>
+                    )}
                     <TableHead className="w-[250px]">COTIZACIONES</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {groupedRecords.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-32 text-center">
+                      <TableCell colSpan={canSeeFeedback ? 9 : 8} className="h-32 text-center">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                           <FileText className="h-8 w-8 mb-2" />
                           <p className="text-sm font-medium mb-1">
@@ -817,6 +848,17 @@ const HistorialCotizaciones = () => {
                       <TableCell className="text-xs">
                         {group.proveedor_tipo_producto_servicio || "-"}
                       </TableCell>
+                      {canSeeFeedback && (
+                        <TableCell className="text-xs">
+                          {group.feedback ? (
+                            <span className="line-clamp-2" title={group.feedback}>
+                              {group.feedback}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>
                         {group.files.length === 1 ? (
                           // Single file: show inline

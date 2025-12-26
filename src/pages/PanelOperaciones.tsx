@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { logger } from "@/lib/logger";
 import Layout from "@/components/Layout";
@@ -40,6 +41,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Tooltip,
@@ -64,6 +66,7 @@ import { CajaMenorStatusIcon } from "@/components/CajaMenorStatusIcon";
 const PanelOperaciones = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isMobile = useIsMobile();
   const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
@@ -1125,44 +1128,84 @@ const PanelOperaciones = () => {
           const isBBM = p.tipoPersonal === "BBM";
           const isProveedorOrTransporte = p.tipoPersonal === "Proveedor" || p.tipoPersonal === "Transporte";
           
-          // Determine visibility based on tipoPersonal
+          // Determine visibility and edit permissions based on tipoPersonal
+          let canView = false;
+          let canEditItem = false;
+          
           if (isBBM) {
-            // BBM: requires special feedback permission
-            if (!canViewFeedback()) {
-              return <span className="text-xs text-muted-foreground">-</span>;
-            }
-            return (
-              <EditableCell
-                value={p.feedback}
-                type="text"
-                placeholder="-"
-                onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
-                disabled={!canEditFeedback()}
-              />
-            );
+            canView = canViewFeedback();
+            canEditItem = canEditFeedback();
           } else if (isProveedorOrTransporte) {
-            // Proveedor/Transporte: Admin and ALL Operativo can view/edit
-            if (!canViewProveedorFeedback) {
-              return <span className="text-xs text-muted-foreground">-</span>;
-            }
+            canView = canViewProveedorFeedback;
+            canEditItem = canEditProveedorFeedback;
+          }
+          
+          if (!canView) {
+            return <span className="text-xs text-muted-foreground">-</span>;
+          }
+          
+          const feedbackValue = p.feedback || "";
+          const displayName = p.nombre || "Personal";
+          
+          // Mobile: truncated + Dialog to view/edit full feedback
+          if (isMobile) {
             return (
-              <EditableCell
-                value={p.feedback}
-                type="text"
-                placeholder="-"
-                onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
-                disabled={!canEditProveedorFeedback}
-              />
+              <div className="flex items-start gap-1">
+                <span className="line-clamp-2 flex-1 break-words text-xs">
+                  {feedbackValue || <span className="text-muted-foreground">-</span>}
+                </span>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 min-h-6 min-w-6 flex-shrink-0"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-[90vw] max-h-[80vh]">
+                    <DialogHeader>
+                      <DialogTitle className="text-base">
+                        Feedback - {displayName}
+                      </DialogTitle>
+                    </DialogHeader>
+                    {canEditItem ? (
+                      <Textarea
+                        value={feedbackValue}
+                        onChange={(e) => projectId && updatePersonalItem(projectId, p.id, "feedback", e.target.value)}
+                        placeholder="Escribe el feedback..."
+                        className="min-h-[150px] resize-none"
+                      />
+                    ) : (
+                      <div className="whitespace-pre-wrap text-sm overflow-y-auto max-h-[60vh] pr-2">
+                        {feedbackValue || <span className="text-muted-foreground">Sin feedback</span>}
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
+              </div>
             );
           }
-          // Other types (if any) - no feedback
-          return <span className="text-xs text-muted-foreground">-</span>;
+          
+          // Desktop: EditableCell with internal scroll styling
+          return (
+            <div className="max-h-[80px] overflow-y-auto scrollbar-thin">
+              <EditableCell
+                value={p.feedback}
+                type="text"
+                placeholder="-"
+                onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
+                disabled={!canEditItem}
+              />
+            </div>
+          );
         },
       });
     }
     
     return basePersonalCols;
-  }, [selectedProject?.id, currentProjectData?.personal, canViewFeedback, canEditFeedback, role]);
+  }, [selectedProject?.id, currentProjectData?.personal, canViewFeedback, canEditFeedback, role, isMobile]);
 
   const inventarioColumns = useMemo(() => {
     // Use currentProjectData?.id to get fresh project ID

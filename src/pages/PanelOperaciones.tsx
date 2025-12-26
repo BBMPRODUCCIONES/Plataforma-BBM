@@ -796,9 +796,23 @@ const PanelOperaciones = () => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
     
-    // Permission check for non-admins
     const record = (project.cajaMenor || []).find(c => c.id === cajaMenorId);
-    if (!isAdmin && record && !canEditCajaMenorRecord(record)) {
+    if (!record) return;
+    
+    // Contingencia field: ONLY Administrador can edit
+    if (field === "contingencia" && !isAdmin) {
+      toast.error("Solo el administrador puede modificar el campo Contingencia");
+      return;
+    }
+    
+    // If record is approved, only 'estado' field can be changed (by users with approval permission)
+    if (isRecordApproved(record) && field !== "estado") {
+      toast.error("El registro está aprobado y no puede ser modificado");
+      return;
+    }
+    
+    // Permission check for non-admins on other fields
+    if (!isAdmin && !canEditCajaMenorRecord(record)) {
       toast.error("No tienes permiso para editar este registro");
       return;
     }
@@ -1413,12 +1427,17 @@ const PanelOperaciones = () => {
         mobileWidth: "120px",
         render: (c: CajaMenorItem) => {
           const value = c.contingencia || "No";
-          // Only Administrador can edit Contingencia column
-          const isAdmin = role?.toLowerCase() === "administrador";
+          // Only Administrador can edit Contingencia column, and only if not approved
+          const isAdminUser = role?.toLowerCase() === "administrador";
+          const isApproved = isRecordApproved(c);
+          const canEditContingencia = isAdminUser && !isApproved;
           
-          if (!isAdmin) {
+          if (!canEditContingencia) {
+            const tooltipText = !isAdminUser 
+              ? "Solo el rol administrativo puede modificar este campo"
+              : "Registro aprobado: edición bloqueada";
             return (
-              <div className="flex items-center gap-1" title="Solo el rol administrativo puede modificar este campo">
+              <div className="flex items-center gap-1" title={tooltipText}>
                 <span className={`text-sm px-2 py-0.5 rounded ${
                   value === "Sí" ? "bg-amber-500/10 text-amber-500" : "text-muted-foreground"
                 }`}>

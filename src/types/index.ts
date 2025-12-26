@@ -83,6 +83,7 @@ export interface PersonalItem {
   notas?: string;
   rutaTransporte?: string; // Campo para la ruta cuando es Transporte
   adjuntos?: Attachment[]; // Archivos adjuntos (solo para Proveedor y Transporte)
+  feedback?: string; // Feedback del personal
 }
 
 export interface InventarioItem {

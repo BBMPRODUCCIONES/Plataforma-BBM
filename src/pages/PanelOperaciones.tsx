@@ -1106,27 +1106,63 @@ const PanelOperaciones = () => {
       });
     }
 
-    // Feedback column - only visible to users with feedback permission
-    if (canViewFeedback()) {
+    // Feedback column - DECOUPLED logic by tipoPersonal
+    // BBM: uses canViewFeedback()/canEditFeedback() (special permission required for operativo)
+    // Proveedor/Transporte: Admin and ALL Operativo can view/edit, Visual never
+    const isAdmin = role?.toLowerCase() === "administrador";
+    const isOperativo = role?.toLowerCase() === "operativo";
+    const canViewProveedorFeedback = isAdmin || isOperativo;
+    const canEditProveedorFeedback = isAdmin || isOperativo;
+    
+    // Show feedback column if user can see BBM feedback OR can see Proveedor/Transporte feedback
+    if (canViewFeedback() || canViewProveedorFeedback) {
       basePersonalCols.push({
         key: "feedback",
         header: "Feedback",
         width: "200px",
         mobileWidth: "200px",
-        render: (p: PersonalItem) => (
-          <EditableCell
-            value={p.feedback}
-            type="text"
-            placeholder="-"
-            onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
-            disabled={!canEditFeedback()}
-          />
-        ),
+        render: (p: PersonalItem) => {
+          const isBBM = p.tipoPersonal === "BBM";
+          const isProveedorOrTransporte = p.tipoPersonal === "Proveedor" || p.tipoPersonal === "Transporte";
+          
+          // Determine visibility based on tipoPersonal
+          if (isBBM) {
+            // BBM: requires special feedback permission
+            if (!canViewFeedback()) {
+              return <span className="text-xs text-muted-foreground">-</span>;
+            }
+            return (
+              <EditableCell
+                value={p.feedback}
+                type="text"
+                placeholder="-"
+                onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
+                disabled={!canEditFeedback()}
+              />
+            );
+          } else if (isProveedorOrTransporte) {
+            // Proveedor/Transporte: Admin and ALL Operativo can view/edit
+            if (!canViewProveedorFeedback) {
+              return <span className="text-xs text-muted-foreground">-</span>;
+            }
+            return (
+              <EditableCell
+                value={p.feedback}
+                type="text"
+                placeholder="-"
+                onChange={(value) => projectId && updatePersonalItem(projectId, p.id, "feedback", value)}
+                disabled={!canEditProveedorFeedback}
+              />
+            );
+          }
+          // Other types (if any) - no feedback
+          return <span className="text-xs text-muted-foreground">-</span>;
+        },
       });
     }
     
     return basePersonalCols;
-  }, [selectedProject?.id, currentProjectData?.personal, canViewFeedback, canEditFeedback]);
+  }, [selectedProject?.id, currentProjectData?.personal, canViewFeedback, canEditFeedback, role]);
 
   const inventarioColumns = useMemo(() => {
     // Use currentProjectData?.id to get fresh project ID

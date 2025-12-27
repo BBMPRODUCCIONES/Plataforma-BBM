@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download, Image as ImageIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Search, Download, Image as ImageIcon, Loader2, Eye, DownloadIcon } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import * as XLSX from "xlsx";
-import { CajaMenorItem, Project } from "@/types";
+import { CajaMenorItem, Project, Attachment } from "@/types";
 import CajaMenorKPIs from "./CajaMenorKPIs";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FlattenedCajaMenorItem extends CajaMenorItem {
   eventoId: string;
@@ -36,6 +38,12 @@ const ReporteCajaMenor = () => {
   const [contingenciaFilter, setContingenciaFilter] = useState<string>("all");
   const [estadoFilter, setEstadoFilter] = useState<string>("all");
   const [eventoFilter, setEventoFilter] = useState<string>("all");
+
+  // Image gallery states
+  const [selectedImages, setSelectedImages] = useState<Attachment[]>([]);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+  const [loadingImages, setLoadingImages] = useState(false);
 
   const safeLower = (value?: string | null) => (value ?? "").toLowerCase();
 
@@ -199,6 +207,72 @@ const ReporteCajaMenor = () => {
       console.error(error);
     }
   }, [projects, updateProjectMultiple]);
+
+  // Get signed URL for an attachment
+  const getSignedUrl = async (attachment: Attachment): Promise<string | null> => {
+    // If we already have a direct URL, use it
+    if (attachment.url && attachment.url.startsWith('http')) {
+      return attachment.url;
+    }
+    
+    // Otherwise, get a signed URL from the edge function
+    if (!attachment.filePath || !attachment.bucket) return null;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("get-signed-url", {
+        body: { 
+          bucket: attachment.bucket, 
+          path: attachment.filePath, 
+          expiresIn: 3600 
+        },
+      });
+      
+      if (error || !data?.signedUrl) {
+        console.error("Error getting signed URL:", error);
+        return null;
+      }
+      return data.signedUrl;
+    } catch (err) {
+      console.error("Error invoking get-signed-url:", err);
+      return null;
+    }
+  };
+
+  // Handler to open image gallery
+  const handleOpenImages = async (imagenes: Attachment[]) => {
+    setSelectedImages(imagenes);
+    setImageDialogOpen(true);
+    setLoadingImages(true);
+    setImageUrls({});
+    
+    // Load all signed URLs
+    const urls: Record<string, string> = {};
+    for (const img of imagenes) {
+      const url = await getSignedUrl(img);
+      if (url) urls[img.id] = url;
+    }
+    setImageUrls(urls);
+    setLoadingImages(false);
+  };
+
+  // Download image
+  const handleDownloadImage = async (url: string, name: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Error downloading image:", err);
+      toast.error("Error al descargar la imagen");
+    }
+  };
 
   // Export to Excel
   const handleExport = () => {
@@ -451,10 +525,15 @@ const ReporteCajaMenor = () => {
                       {/* IMÁGENES */}
                       <TableCell className="text-center">
                         {item.imagenes && item.imagenes.length > 0 ? (
-                          <Badge variant="outline" className="gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 h-7 px-2"
+                            onClick={() => handleOpenImages(item.imagenes!)}
+                          >
                             <ImageIcon className="h-3 w-3" />
                             {item.imagenes.length}
-                          </Badge>
+                          </Button>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
@@ -548,6 +627,72 @@ const ReporteCajaMenor = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Image Gallery Dialog */}
+      <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              Imágenes del registro ({selectedImages.length})
+            </DialogTitle>
+          </DialogHeader>
+          
+          {loadingImages ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="mt-3 text-muted-foreground">Cargando imágenes...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-4">
+              {selectedImages.map((img) => {
+                const url = imageUrls[img.id];
+                return (
+                  <div 
+                    key={img.id} 
+                    className="relative group rounded-lg overflow-hidden border bg-muted/30"
+                  >
+                    {url ? (
+                      <>
+                        <img
+                          src={url}
+                          alt={img.name}
+                          className="w-full h-40 object-cover transition-transform group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button 
+                            size="icon" 
+                            variant="secondary" 
+                            className="h-9 w-9"
+                            onClick={() => window.open(url, "_blank")}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="secondary" 
+                            className="h-9 w-9"
+                            onClick={() => handleDownloadImage(url, img.name)}
+                          >
+                            <DownloadIcon className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 truncate">
+                          {img.name}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full h-40 flex items-center justify-center text-muted-foreground">
+                        <span className="text-sm">Error al cargar</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

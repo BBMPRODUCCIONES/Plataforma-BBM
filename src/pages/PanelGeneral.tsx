@@ -193,6 +193,7 @@ const PanelGeneral = () => {
             eventName={p.evento}
             isDeleted={p.isDeleted}
             className="font-medium"
+            source="general"
           />
         );
       case "avanzada":

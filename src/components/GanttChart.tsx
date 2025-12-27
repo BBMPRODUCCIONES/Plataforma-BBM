@@ -430,6 +430,7 @@ export function GanttChart({
                         eventName={project.evento}
                         isDeleted={isDeleted}
                         className="text-xs font-medium truncate"
+                        source="gantt"
                       />
                       {isDeleted && (
                         <span className="text-[9px] px-1 py-0.5 rounded bg-destructive/20 text-destructive font-medium whitespace-nowrap">

@@ -8,11 +8,14 @@ interface EventLinkProps {
   isDeleted?: boolean;
   variant?: "text" | "badge" | "chip";
   className?: string;
+  /** Optional source identifier for tracking where the navigation came from */
+  source?: string;
 }
 
 /**
  * Universal clickable event link component.
  * Redirects to Panel Operaciones with the event highlighted.
+ * Automatically resets filters to ensure the event is visible.
  */
 export const EventLink = ({
   eventId,
@@ -20,14 +23,15 @@ export const EventLink = ({
   isDeleted = false,
   variant = "text",
   className,
+  source = "link",
 }: EventLinkProps) => {
   const navigate = useNavigate();
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    // Navigate to Panel Operaciones with eventId as query param
-    navigate(`/panel-operaciones?eventId=${eventId}`);
+    // Navigate to Panel Operaciones with eventId and source as query params
+    navigate(`/panel-operaciones?eventId=${eventId}&source=${encodeURIComponent(source)}`);
   };
 
   if (variant === "badge" || variant === "chip") {

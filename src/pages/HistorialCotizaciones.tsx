@@ -837,6 +837,7 @@ const HistorialCotizaciones = () => {
                             eventId={group.evento_id}
                             eventName={group.evento_nombre || "Sin evento"}
                             variant="badge"
+                            source="historial"
                           />
                         ) : (
                           <Badge variant="outline" className="font-normal">

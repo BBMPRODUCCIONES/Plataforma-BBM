@@ -525,6 +525,7 @@ const ReporteCajaMenor = () => {
                           eventId={item.eventoId}
                           eventName={item.eventoNombre}
                           variant="text"
+                          source="reportes"
                         />
                       </TableCell>
                       {/* CONCEPTO */}

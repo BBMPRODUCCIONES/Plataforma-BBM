@@ -135,18 +135,56 @@ const PanelOperaciones = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProject?.id]);
 
-  // Handle eventId URL parameter - auto-highlight and scroll to event
+  // State to track if we're in "focus mode" (navigated via eventId link)
+  const [focusedEventSource, setFocusedEventSource] = useState<string | null>(null);
+
+  // Handle eventId URL parameter - auto-highlight, reset filters, and scroll to event
   useEffect(() => {
     const eventId = searchParams.get("eventId");
+    const source = searchParams.get("source") || "link";
+    
     if (!eventId || loading || projects.length === 0) return;
 
     // Prevent handling the same eventId multiple times in a row
     if (eventIdHandledRef.current === eventId) return;
     eventIdHandledRef.current = eventId;
 
-    // Find the project
+    // Find the project (search in ALL projects, not filtered)
     const project = projects.find((p) => p.id === eventId);
-    if (!project) return;
+    if (!project) {
+      toast.error("Evento no encontrado");
+      setSearchParams({}, { replace: true });
+      eventIdHandledRef.current = null;
+      return;
+    }
+
+    // === CRITICAL: Reset ALL filters to ensure the event is visible ===
+    // 1. Clear search term
+    setSearchTerm("");
+    
+    // 2. Reset status filter to show all
+    setStatusFilter("todos");
+    
+    // 3. Disable hide deleted (in case the event was soft-deleted)
+    setHideDeleted(false);
+    
+    // 4. Adjust date range to include the event's dates
+    // Set view mode to "custom" with a range that includes the event
+    const eventStartDate = parseISO(project.fechaMontajeInicio);
+    const eventEndDate = parseISO(project.fechaEjecucionFin);
+    
+    // Expand range slightly to give context (1 week before and after)
+    const rangeStart = new Date(eventStartDate);
+    rangeStart.setDate(rangeStart.getDate() - 7);
+    const rangeEnd = new Date(eventEndDate);
+    rangeEnd.setDate(rangeEnd.getDate() + 7);
+    
+    setGlobalViewMode("custom");
+    setGlobalDateRange({ from: rangeStart, to: rangeEnd });
+    setGlobalSelectedDate(eventStartDate);
+
+    // Set the source for the badge display
+    setFocusedEventSource(source);
 
     // Highlight the project row
     setHighlightedProjectId(eventId);
@@ -154,25 +192,39 @@ const PanelOperaciones = () => {
     // Switch to matrix tab (reliable, no DOM click)
     setActiveTab("matriz");
 
-    // Scroll to the row after a short delay (wait for tab content to mount)
+    // Show toast notification
+    toast.success(`Evento "${project.evento}" localizado`, {
+      description: "Los filtros se ajustaron automáticamente para mostrar el evento",
+      duration: 4000,
+    });
+
+    // Scroll to the row after a short delay (wait for tab content to mount and filters to apply)
     setTimeout(() => {
       const rowElement = document.querySelector(`[data-project-id="${eventId}"]`);
       if (rowElement) {
         rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Add additional visual focus
+        rowElement.classList.add("event-focus-pulse");
       }
-    }, 300);
+    }, 400);
 
     // Clear the URL param after handling, and allow clicking the same event again
     setTimeout(() => {
       setSearchParams({}, { replace: true });
       eventIdHandledRef.current = null;
-    }, 500);
+    }, 600);
 
-    // Remove highlight after 3 seconds
+    // Remove highlight and source badge after 5 seconds
     setTimeout(() => {
       setHighlightedProjectId(null);
-    }, 3000);
-  }, [searchParams, loading, projects, setSearchParams]);
+      setFocusedEventSource(null);
+      // Remove pulse class
+      const rowElement = document.querySelector(`[data-project-id="${eventId}"]`);
+      if (rowElement) {
+        rowElement.classList.remove("event-focus-pulse");
+      }
+    }, 5000);
+  }, [searchParams, loading, projects, setSearchParams, setGlobalViewMode, setGlobalDateRange, setGlobalSelectedDate]);
 
   // Check if user is admin
   const isAdmin = role?.toLowerCase() === "administrador";
@@ -302,16 +354,38 @@ const PanelOperaciones = () => {
   });
 
   const handleGanttProjectClick = (projectId: string) => {
+    // Find the project
+    const project = projects.find((p) => p.id === projectId);
+    
     setHighlightedProjectId(projectId);
     setActiveTab("matriz");
+    setFocusedEventSource("gantt");
+
+    // Show toast
+    if (project) {
+      toast.success(`Evento "${project.evento}" seleccionado`, {
+        duration: 2000,
+      });
+    }
 
     // Scroll to the row after switching tabs
     setTimeout(() => {
       const rowElement = document.querySelector(`[data-project-id="${projectId}"]`);
       if (rowElement) {
         rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        rowElement.classList.add("event-focus-pulse");
       }
     }, 300);
+
+    // Remove highlight after 5 seconds
+    setTimeout(() => {
+      setHighlightedProjectId(null);
+      setFocusedEventSource(null);
+      const rowElement = document.querySelector(`[data-project-id="${projectId}"]`);
+      if (rowElement) {
+        rowElement.classList.remove("event-focus-pulse");
+      }
+    }, 5000);
   };
 
   // Function to get render for each column type

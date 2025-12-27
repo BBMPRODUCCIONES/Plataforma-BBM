@@ -108,6 +108,8 @@ export interface CajaMenorItem {
   recursos: 'Recursos propios' | 'BBM' | 'Anticipo BBM' | ''; // Obligatorio
   contingencia: 'Sí' | 'No'; // Default: 'No'
   estado: 'Aprobado' | 'No aprobado';
+  procesoPago?: 'Pagado' | 'No pagado' | ''; // Campo para reportes (solo Admin puede editar)
+  createdAt?: string; // Fecha de creación del registro
 }
 
 export interface Proveedor {

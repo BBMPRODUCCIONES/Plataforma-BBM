@@ -1,57 +1,151 @@
+import { useState } from "react";
 import Layout from "@/components/Layout";
-import { FileBarChart, Clock, DollarSign, Wrench, Users } from "lucide-react";
+import { FileBarChart, DollarSign, ArrowLeft, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import ReporteCajaMenor from "@/components/reports/ReporteCajaMenor";
+
+type ReportView = "main" | "financieros" | "caja-menor";
 
 const PanelReportes = () => {
-  return (
-    <Layout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-foreground">Panel de Reportes</h1>
-          <p className="text-muted-foreground">
-            Reportes administrativos y analíticos
-          </p>
-        </div>
+  const [currentView, setCurrentView] = useState<ReportView>("main");
 
-        {/* Empty state card */}
-        <Card className="border-dashed">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <FileBarChart className="w-8 h-8 text-primary" />
+  const renderMainView = () => (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold text-foreground">Panel de Reportes</h1>
+        <p className="text-muted-foreground">
+          Reportes administrativos y analíticos
+        </p>
+      </div>
+
+      {/* Report Categories */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Reportes Financieros Card */}
+        <Card 
+          className="cursor-pointer hover:border-primary/50 transition-colors group"
+          onClick={() => setCurrentView("financieros")}
+        >
+          <CardHeader className="pb-2">
+            <div className="w-14 h-14 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3 group-hover:bg-emerald-500/20 transition-colors">
+              <DollarSign className="w-7 h-7 text-emerald-500" />
             </div>
-            <CardTitle className="text-lg">Centro de Reportes</CardTitle>
+            <CardTitle className="text-lg">Reportes Financieros</CardTitle>
           </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Aquí se centralizarán los reportes administrativos de la plataforma.
-            </p>
-            
-            {/* Future reports preview */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 max-w-2xl mx-auto">
-              <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-muted/30">
-                <Clock className="w-6 h-6 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground text-center">Reportes de Horas</span>
-              </div>
-              <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-muted/30">
-                <DollarSign className="w-6 h-6 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground text-center">Reportes Financieros</span>
-              </div>
-              <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-muted/30">
-                <Wrench className="w-6 h-6 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground text-center">Reportes Operativos</span>
-              </div>
-              <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-muted/30">
-                <Users className="w-6 h-6 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground text-center">Reportes de Personal</span>
-              </div>
-            </div>
-            
-            <p className="text-xs text-muted-foreground/70 pt-2">
-              Próximamente disponibles
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Reportes de gastos, caja menor y análisis financiero.
             </p>
           </CardContent>
         </Card>
+
+        {/* Placeholder cards for future reports */}
+        <Card className="opacity-50 cursor-not-allowed">
+          <CardHeader className="pb-2">
+            <div className="w-14 h-14 rounded-xl bg-muted/30 flex items-center justify-center mb-3">
+              <FileBarChart className="w-7 h-7 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-lg text-muted-foreground">Reportes de Horas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground/70">
+              Próximamente disponible
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="opacity-50 cursor-not-allowed">
+          <CardHeader className="pb-2">
+            <div className="w-14 h-14 rounded-xl bg-muted/30 flex items-center justify-center mb-3">
+              <FileBarChart className="w-7 h-7 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-lg text-muted-foreground">Reportes de Personal</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground/70">
+              Próximamente disponible
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
+  const renderFinancierosView = () => (
+    <div className="space-y-6">
+      {/* Header with back button */}
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setCurrentView("main")}
+          className="shrink-0"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-foreground">Reportes Financieros</h1>
+          <p className="text-muted-foreground">
+            Seleccione el tipo de reporte
+          </p>
+        </div>
+      </div>
+
+      {/* Financial Reports */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Reporte de Caja Menor */}
+        <Card 
+          className="cursor-pointer hover:border-primary/50 transition-colors group"
+          onClick={() => setCurrentView("caja-menor")}
+        >
+          <CardHeader className="pb-2">
+            <div className="w-14 h-14 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3 group-hover:bg-amber-500/20 transition-colors">
+              <Wallet className="w-7 h-7 text-amber-500" />
+            </div>
+            <CardTitle className="text-lg">Reporte de Caja Menor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Consolidado de gastos de caja menor de todos los eventos.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
+  const renderCajaMenorView = () => (
+    <div className="space-y-6">
+      {/* Header with back button */}
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setCurrentView("financieros")}
+          className="shrink-0"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-foreground">Reporte de Caja Menor</h1>
+          <p className="text-muted-foreground">
+            Consolidado de todos los eventos
+          </p>
+        </div>
+      </div>
+
+      {/* Caja Menor Report Component */}
+      <ReporteCajaMenor />
+    </div>
+  );
+
+  return (
+    <Layout>
+      <div className="p-6">
+        {currentView === "main" && renderMainView()}
+        {currentView === "financieros" && renderFinancierosView()}
+        {currentView === "caja-menor" && renderCajaMenorView()}
       </div>
     </Layout>
   );

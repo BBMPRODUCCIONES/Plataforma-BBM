@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { es } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { CajaMenorItem, Project } from "@/types";
 import CajaMenorKPIs from "./CajaMenorKPIs";
+import { toast } from "sonner";
 
 interface FlattenedCajaMenorItem extends CajaMenorItem {
   eventoId: string;
@@ -21,7 +22,7 @@ interface FlattenedCajaMenorItem extends CajaMenorItem {
 }
 
 const ReporteCajaMenor = () => {
-  const { projects } = useProjects();
+  const { projects, updateProjectMultiple } = useProjects();
 
   // Filter states
   const [globalSearch, setGlobalSearch] = useState("");
@@ -174,6 +175,34 @@ const ReporteCajaMenor = () => {
     eventoFilter,
   ]);
 
+  // Handle proceso pago change
+  const handleProcesoPagoChange = useCallback(async (
+    eventoId: string,
+    itemId: string,
+    newValue: 'Pago' | 'No pago'
+  ) => {
+    const project = projects.find(p => p.id === eventoId);
+    if (!project) return;
+
+    const cajaMenor = Array.isArray(project.cajaMenor) ? [...project.cajaMenor] : [];
+    const itemIndex = cajaMenor.findIndex(item => item.id === itemId);
+    if (itemIndex === -1) return;
+
+    // Update the procesoPago field
+    cajaMenor[itemIndex] = {
+      ...cajaMenor[itemIndex],
+      procesoPago: newValue === 'Pago' ? 'Pagado' : 'No pagado'
+    };
+
+    try {
+      await updateProjectMultiple(eventoId, { cajaMenor });
+      toast.success(`Estado de pago actualizado a "${newValue}"`);
+    } catch (error) {
+      toast.error("Error al actualizar el estado de pago");
+      console.error(error);
+    }
+  }, [projects, updateProjectMultiple]);
+
   // Export to Excel
   const handleExport = () => {
     const exportData = filteredItems.map((item) => ({
@@ -266,8 +295,8 @@ const ReporteCajaMenor = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="Pagado">Pagado</SelectItem>
-                  <SelectItem value="No pagado">No pagado</SelectItem>
+                  <SelectItem value="Pagado">Pago</SelectItem>
+                  <SelectItem value="No pagado">No pago</SelectItem>
                   <SelectItem value="__sin_asignar__">Sin asignar</SelectItem>
                 </SelectContent>
               </Select>
@@ -485,20 +514,32 @@ const ReporteCajaMenor = () => {
                           {item.estado || "-"}
                         </Badge>
                       </TableCell>
-                      {/* PROCESO DE PAGO */}
+                      {/* PROCESO DE PAGO - Dropdown editable */}
                       <TableCell>
-                        <Badge
-                          variant={item.procesoPago === "Pagado" ? "default" : "secondary"}
-                          className={
-                            item.procesoPago === "Pagado"
-                              ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
-                              : item.procesoPago === "No pagado"
-                                ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
-                                : "bg-muted text-muted-foreground"
-                          }
+                        <Select
+                          value={item.procesoPago === "Pagado" ? "Pago" : item.procesoPago === "No pagado" ? "No pago" : ""}
+                          onValueChange={(value: 'Pago' | 'No pago') => handleProcesoPagoChange(item.eventoId, item.id, value)}
                         >
-                          {item.procesoPago || "Sin asignar"}
-                        </Badge>
+                          <SelectTrigger 
+                            className={`h-8 w-[120px] text-xs font-medium border-2 ${
+                              item.procesoPago === "Pagado"
+                                ? "bg-green-500/20 border-green-500 text-green-600 dark:text-green-400"
+                                : item.procesoPago === "No pagado"
+                                  ? "bg-red-500/20 border-red-500 text-red-600 dark:text-red-400"
+                                  : "bg-muted border-muted-foreground/30 text-muted-foreground"
+                            }`}
+                          >
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Pago" className="text-green-600 dark:text-green-400 font-medium">
+                              Pago
+                            </SelectItem>
+                            <SelectItem value="No pago" className="text-red-600 dark:text-red-400 font-medium">
+                              No pago
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                     </TableRow>
                   ))

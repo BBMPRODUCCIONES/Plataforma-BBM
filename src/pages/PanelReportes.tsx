@@ -142,7 +142,7 @@ const PanelReportes = () => {
 
   return (
     <Layout>
-      <div className="p-6">
+      <div className="min-h-[50vh]">
         {currentView === "main" && renderMainView()}
         {currentView === "financieros" && renderFinancierosView()}
         {currentView === "caja-menor" && renderCajaMenorView()}

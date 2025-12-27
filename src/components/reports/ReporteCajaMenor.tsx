@@ -177,18 +177,18 @@ const ReporteCajaMenor = () => {
   // Export to Excel
   const handleExport = () => {
     const exportData = filteredItems.map((item) => ({
+      "# RECIBO": item.recibo,
       FECHA: formatDateExport(item.fecha),
-      RECIBO: item.recibo,
-      "PROCESO DE PAGO": item.procesoPago || "",
       EMPLEADO: item.empleadoNombre || "",
+      EVENTO: item.eventoNombre,
       CONCEPTO: item.concepto || "",
       IMÁGENES: item.imagenes?.length || 0,
-      "VALOR (COP)": item.valor,
       CATEGORÍA: item.categoria || "",
       RECURSOS: item.recursos || "",
       CONTINGENCIA: item.contingencia || "No",
+      "VALOR (COP)": item.valor,
       ESTADO: item.estado || "",
-      EVENTO: item.eventoNombre,
+      "PROCESO DE PAGO": item.procesoPago || "",
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -197,18 +197,18 @@ const ReporteCajaMenor = () => {
 
     // Auto-size columns
     const colWidths = [
+      { wch: 14 }, // # RECIBO
       { wch: 12 }, // FECHA
-      { wch: 14 }, // RECIBO
-      { wch: 16 }, // PROCESO DE PAGO
       { wch: 25 }, // EMPLEADO
+      { wch: 25 }, // EVENTO
       { wch: 30 }, // CONCEPTO
       { wch: 10 }, // IMÁGENES
-      { wch: 15 }, // VALOR
       { wch: 14 }, // CATEGORÍA
       { wch: 16 }, // RECURSOS
       { wch: 12 }, // CONTINGENCIA
+      { wch: 15 }, // VALOR
       { wch: 12 }, // ESTADO
-      { wch: 25 }, // EVENTO
+      { wch: 16 }, // PROCESO DE PAGO
     ];
     ws["!cols"] = colWidths;
 
@@ -389,18 +389,18 @@ const ReporteCajaMenor = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-[hsl(var(--table-header))]">
+                  <TableHead className="whitespace-nowrap"># RECIBO</TableHead>
                   <TableHead className="whitespace-nowrap">FECHA</TableHead>
-                  <TableHead className="whitespace-nowrap">RECIBO</TableHead>
-                  <TableHead className="whitespace-nowrap">PROCESO DE PAGO</TableHead>
                   <TableHead className="whitespace-nowrap">EMPLEADO</TableHead>
+                  <TableHead className="whitespace-nowrap">EVENTO</TableHead>
                   <TableHead className="whitespace-nowrap">CONCEPTO</TableHead>
                   <TableHead className="whitespace-nowrap text-center">IMÁGENES</TableHead>
-                  <TableHead className="whitespace-nowrap text-right">VALOR (COP)</TableHead>
                   <TableHead className="whitespace-nowrap">CATEGORÍA</TableHead>
                   <TableHead className="whitespace-nowrap">RECURSOS</TableHead>
                   <TableHead className="whitespace-nowrap">CONTINGENCIA</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">VALOR (COP)</TableHead>
                   <TableHead className="whitespace-nowrap">ESTADO</TableHead>
-                  <TableHead className="whitespace-nowrap">EVENTO</TableHead>
+                  <TableHead className="whitespace-nowrap">PROCESO DE PAGO</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -413,22 +413,17 @@ const ReporteCajaMenor = () => {
                 ) : (
                   filteredItems.map((item) => (
                     <TableRow key={`${item.eventoId}-${item.id}`}>
-                      <TableCell className="whitespace-nowrap">{formatDateDisplay(item.fecha)}</TableCell>
+                      {/* # RECIBO */}
                       <TableCell className="whitespace-nowrap font-mono text-xs">{item.recibo}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={item.procesoPago === "Pagado" ? "default" : "secondary"}
-                          className={
-                            item.procesoPago === "Pagado"
-                              ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
-                              : "bg-muted text-muted-foreground"
-                          }
-                        >
-                          {item.procesoPago || "Sin asignar"}
-                        </Badge>
-                      </TableCell>
+                      {/* FECHA */}
+                      <TableCell className="whitespace-nowrap">{formatDateDisplay(item.fecha)}</TableCell>
+                      {/* EMPLEADO */}
                       <TableCell className="max-w-[150px] truncate">{item.empleadoNombre || "-"}</TableCell>
+                      {/* EVENTO */}
+                      <TableCell className="max-w-[200px] truncate font-medium">{item.eventoNombre}</TableCell>
+                      {/* CONCEPTO */}
                       <TableCell className="max-w-[200px] truncate">{item.concepto || "-"}</TableCell>
+                      {/* IMÁGENES */}
                       <TableCell className="text-center">
                         {item.imagenes && item.imagenes.length > 0 ? (
                           <Badge variant="outline" className="gap-1">
@@ -439,9 +434,7 @@ const ReporteCajaMenor = () => {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right font-medium whitespace-nowrap">
-                        {formatCurrency(Number(item.valor || 0))}
-                      </TableCell>
+                      {/* CATEGORÍA */}
                       <TableCell>
                         <Badge
                           variant="outline"
@@ -456,11 +449,13 @@ const ReporteCajaMenor = () => {
                           {item.categoria || "-"}
                         </Badge>
                       </TableCell>
+                      {/* RECURSOS */}
                       <TableCell>
                         <Badge variant="secondary" className="text-xs">
                           {item.recursos || "-"}
                         </Badge>
                       </TableCell>
+                      {/* CONTINGENCIA */}
                       <TableCell>
                         {item.contingencia === "Sí" ? (
                           <Badge
@@ -473,6 +468,11 @@ const ReporteCajaMenor = () => {
                           <span className="text-muted-foreground text-sm">No</span>
                         )}
                       </TableCell>
+                      {/* VALOR (COP) */}
+                      <TableCell className="text-right font-medium whitespace-nowrap">
+                        {formatCurrency(Number(item.valor || 0))}
+                      </TableCell>
+                      {/* ESTADO */}
                       <TableCell>
                         <Badge
                           variant={item.estado === "Aprobado" ? "default" : "destructive"}
@@ -485,7 +485,21 @@ const ReporteCajaMenor = () => {
                           {item.estado || "-"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate font-medium">{item.eventoNombre}</TableCell>
+                      {/* PROCESO DE PAGO */}
+                      <TableCell>
+                        <Badge
+                          variant={item.procesoPago === "Pagado" ? "default" : "secondary"}
+                          className={
+                            item.procesoPago === "Pagado"
+                              ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                              : item.procesoPago === "No pagado"
+                                ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
+                                : "bg-muted text-muted-foreground"
+                          }
+                        >
+                          {item.procesoPago || "Sin asignar"}
+                        </Badge>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}

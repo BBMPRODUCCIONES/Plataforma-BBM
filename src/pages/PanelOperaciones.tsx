@@ -136,9 +136,43 @@ const PanelOperaciones = () => {
   }, [selectedProject?.id]);
 
   // State to track if we're in "focus mode" (navigated via eventId link)
+  const [focusedEventId, setFocusedEventId] = useState<string | null>(null);
+  const [focusedEventName, setFocusedEventName] = useState<string | null>(null);
   const [focusedEventSource, setFocusedEventSource] = useState<string | null>(null);
 
-  // Handle eventId URL parameter - auto-highlight, reset filters, and scroll to event
+  // Helper function to scroll to element with retry mechanism
+  const scrollToEventWithRetry = (eventId: string, maxAttempts = 10) => {
+    let attempts = 0;
+    const tryScroll = () => {
+      const rowElement = document.querySelector(`[data-project-id="${eventId}"]`);
+      if (rowElement) {
+        rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        rowElement.classList.add("event-focus-pulse");
+        return true;
+      }
+      attempts++;
+      if (attempts < maxAttempts) {
+        requestAnimationFrame(tryScroll);
+      }
+      return false;
+    };
+    // Start after a short delay to allow React to render
+    setTimeout(() => tryScroll(), 100);
+  };
+
+  // Exit focus mode - returns to normal filtered view
+  const exitFocusMode = () => {
+    setFocusedEventId(null);
+    setFocusedEventName(null);
+    setFocusedEventSource(null);
+    setHighlightedProjectId(null);
+    // Clean up pulse class
+    document.querySelectorAll('.event-focus-pulse').forEach(el => {
+      el.classList.remove('event-focus-pulse');
+    });
+  };
+
+  // Handle eventId URL parameter - FOCUS MODE: bypass all filters and show only this event
   useEffect(() => {
     const eventId = searchParams.get("eventId");
     const source = searchParams.get("source") || "link";
@@ -149,7 +183,7 @@ const PanelOperaciones = () => {
     if (eventIdHandledRef.current === eventId) return;
     eventIdHandledRef.current = eventId;
 
-    // Find the project (search in ALL projects, not filtered)
+    // Find the project (search in ALL projects, including deleted)
     const project = projects.find((p) => p.id === eventId);
     if (!project) {
       toast.error("Evento no encontrado");
@@ -158,73 +192,32 @@ const PanelOperaciones = () => {
       return;
     }
 
-    // === CRITICAL: Reset ALL filters to ensure the event is visible ===
-    // 1. Clear search term
-    setSearchTerm("");
-    
-    // 2. Reset status filter to show all
-    setStatusFilter("todos");
-    
-    // 3. Disable hide deleted (in case the event was soft-deleted)
-    setHideDeleted(false);
-    
-    // 4. Adjust date range to include the event's dates
-    // Set view mode to "custom" with a range that includes the event
-    const eventStartDate = parseISO(project.fechaMontajeInicio);
-    const eventEndDate = parseISO(project.fechaEjecucionFin);
-    
-    // Expand range slightly to give context (1 week before and after)
-    const rangeStart = new Date(eventStartDate);
-    rangeStart.setDate(rangeStart.getDate() - 7);
-    const rangeEnd = new Date(eventEndDate);
-    rangeEnd.setDate(rangeEnd.getDate() + 7);
-    
-    setGlobalViewMode("custom");
-    setGlobalDateRange({ from: rangeStart, to: rangeEnd });
-    setGlobalSelectedDate(eventStartDate);
-
-    // Set the source for the badge display
+    // === ACTIVATE FOCUS MODE ===
+    // This bypasses ALL filters by setting focusedEventId
+    setFocusedEventId(eventId);
+    setFocusedEventName(project.evento);
     setFocusedEventSource(source);
-
-    // Highlight the project row
     setHighlightedProjectId(eventId);
 
-    // Switch to matrix tab (reliable, no DOM click)
+    // Switch to matrix tab
     setActiveTab("matriz");
 
     // Show toast notification
     toast.success(`Evento "${project.evento}" localizado`, {
-      description: "Los filtros se ajustaron automáticamente para mostrar el evento",
+      description: "Modo foco activado - mostrando solo este evento",
       duration: 4000,
     });
 
-    // Scroll to the row after a short delay (wait for tab content to mount and filters to apply)
-    setTimeout(() => {
-      const rowElement = document.querySelector(`[data-project-id="${eventId}"]`);
-      if (rowElement) {
-        rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
-        // Add additional visual focus
-        rowElement.classList.add("event-focus-pulse");
-      }
-    }, 400);
+    // Scroll to the row with retry mechanism
+    scrollToEventWithRetry(eventId);
 
-    // Clear the URL param after handling, and allow clicking the same event again
+    // Clear the URL param after handling
     setTimeout(() => {
       setSearchParams({}, { replace: true });
       eventIdHandledRef.current = null;
-    }, 600);
+    }, 300);
 
-    // Remove highlight and source badge after 5 seconds
-    setTimeout(() => {
-      setHighlightedProjectId(null);
-      setFocusedEventSource(null);
-      // Remove pulse class
-      const rowElement = document.querySelector(`[data-project-id="${eventId}"]`);
-      if (rowElement) {
-        rowElement.classList.remove("event-focus-pulse");
-      }
-    }, 5000);
-  }, [searchParams, loading, projects, setSearchParams, setGlobalViewMode, setGlobalDateRange, setGlobalSelectedDate]);
+  }, [searchParams, loading, projects, setSearchParams]);
 
   // Check if user is admin
   const isAdmin = role?.toLowerCase() === "administrador";
@@ -331,61 +324,59 @@ const PanelOperaciones = () => {
     return "";
   };
 
-  const filteredProjects = projects.filter((p) => {
-    // Show all by default, hide deleted only when hideDeleted is enabled
-    const matchesDeleted = !hideDeleted || !p.isDeleted;
+  // FOCUS MODE: If focusedEventId is set, ONLY show that event (bypass all filters)
+  const filteredProjects = useMemo(() => {
+    // Focus mode - show ONLY the focused event, ignoring all filters
+    if (focusedEventId) {
+      const focused = projects.find(p => p.id === focusedEventId);
+      return focused ? [focused] : [];
+    }
     
-    const matchesSearch =
-      p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
-    
-    const range = getDateRange();
-    const projectStart = parseISO(p.fechaMontajeInicio);
-    const projectEnd = parseISO(p.fechaEjecucionFin);
-    const matchesDate = 
-      isWithinInterval(projectStart, range) ||
-      isWithinInterval(projectEnd, range) ||
-      (projectStart <= range.start && projectEnd >= range.end);
+    // Normal filter mode
+    return projects.filter((p) => {
+      // Show all by default, hide deleted only when hideDeleted is enabled
+      const matchesDeleted = !hideDeleted || !p.isDeleted;
+      
+      const matchesSearch =
+        p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
+      
+      const range = getDateRange();
+      const projectStart = parseISO(p.fechaMontajeInicio);
+      const projectEnd = parseISO(p.fechaEjecucionFin);
+      const matchesDate = 
+        isWithinInterval(projectStart, range) ||
+        isWithinInterval(projectEnd, range) ||
+        (projectStart <= range.start && projectEnd >= range.end);
 
-    return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
-  });
+      return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
+    });
+  }, [focusedEventId, projects, hideDeleted, searchTerm, statusFilter, globalViewMode, globalSelectedDate, globalDateRange]);
 
   const handleGanttProjectClick = (projectId: string) => {
     // Find the project
     const project = projects.find((p) => p.id === projectId);
     
+    // Activate focus mode (same as external navigation)
+    setFocusedEventId(projectId);
+    setFocusedEventName(project?.evento || null);
+    setFocusedEventSource("gantt");
     setHighlightedProjectId(projectId);
     setActiveTab("matriz");
-    setFocusedEventSource("gantt");
 
     // Show toast
     if (project) {
       toast.success(`Evento "${project.evento}" seleccionado`, {
+        description: "Modo foco activado",
         duration: 2000,
       });
     }
 
-    // Scroll to the row after switching tabs
-    setTimeout(() => {
-      const rowElement = document.querySelector(`[data-project-id="${projectId}"]`);
-      if (rowElement) {
-        rowElement.scrollIntoView({ behavior: "smooth", block: "center" });
-        rowElement.classList.add("event-focus-pulse");
-      }
-    }, 300);
-
-    // Remove highlight after 5 seconds
-    setTimeout(() => {
-      setHighlightedProjectId(null);
-      setFocusedEventSource(null);
-      const rowElement = document.querySelector(`[data-project-id="${projectId}"]`);
-      if (rowElement) {
-        rowElement.classList.remove("event-focus-pulse");
-      }
-    }, 5000);
+    // Scroll to the row with retry mechanism
+    scrollToEventWithRetry(projectId);
   };
 
   // Function to get render for each column type
@@ -1864,11 +1855,60 @@ const PanelOperaciones = () => {
           selectedDate={globalSelectedDate}
           dateRange={dateRange}
           statusFilter={statusFilter}
-          onViewModeChange={setGlobalViewMode}
-          onDateChange={setGlobalSelectedDate}
-          onDateRangeChange={(range) => range ? setGlobalDateRange({ from: range.start, to: range.end }) : setGlobalDateRange(undefined)}
-          onStatusChange={setStatusFilter}
+          onViewModeChange={(mode) => {
+            exitFocusMode();
+            setGlobalViewMode(mode);
+          }}
+          onDateChange={(date) => {
+            exitFocusMode();
+            setGlobalSelectedDate(date);
+          }}
+          onDateRangeChange={(range) => {
+            exitFocusMode();
+            range ? setGlobalDateRange({ from: range.start, to: range.end }) : setGlobalDateRange(undefined);
+          }}
+          onStatusChange={(status) => {
+            exitFocusMode();
+            setStatusFilter(status);
+          }}
         />
+
+        {/* Focus Mode Banner - shows when navigated from another panel */}
+        {focusedEventId && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-primary/10 border border-primary/20 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20">
+                <Search className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Modo foco: <span className="text-primary">{focusedEventName}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {focusedEventSource === "gantt" 
+                    ? "Desde vista Gantt" 
+                    : focusedEventSource === "reportes" 
+                      ? "Desde Panel de Reportes"
+                      : focusedEventSource === "directivo"
+                        ? "Desde Panel Directivo"
+                        : focusedEventSource === "horarios"
+                          ? "Desde Gestión de Horarios"
+                          : focusedEventSource === "historial"
+                            ? "Desde Historial de Cotizaciones"
+                            : "Navegación externa"}
+                </p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={exitFocusMode}
+              className="shrink-0"
+            >
+              Salir del modo foco
+            </Button>
+          </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "matriz" | "gantt")} className="space-y-4">
           {/* Mobile-optimized controls: toggle visible without scroll */}
@@ -1885,7 +1925,10 @@ const PanelOperaciones = () => {
                 <Switch
                   id="hide-deleted-operaciones"
                   checked={hideDeleted}
-                  onCheckedChange={setHideDeleted}
+                  onCheckedChange={(checked) => {
+                    exitFocusMode();
+                    setHideDeleted(checked);
+                  }}
                 />
                 <Label htmlFor="hide-deleted-operaciones" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
                   Ocultar eliminados
@@ -1896,7 +1939,10 @@ const PanelOperaciones = () => {
                 <Input
                   placeholder="Buscar..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    exitFocusMode();
+                    setSearchTerm(e.target.value);
+                  }}
                   className="pl-9 h-9"
                 />
               </div>

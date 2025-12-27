@@ -15,6 +15,7 @@ import { CajaMenorItem, Project, Attachment } from "@/types";
 import CajaMenorKPIs from "./CajaMenorKPIs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { EventLink } from "@/components/EventLink";
 
 interface FlattenedCajaMenorItem extends CajaMenorItem {
   eventoId: string;
@@ -519,7 +520,13 @@ const ReporteCajaMenor = () => {
                       {/* EMPLEADO */}
                       <TableCell className="max-w-[150px] truncate">{item.empleadoNombre || "-"}</TableCell>
                       {/* EVENTO */}
-                      <TableCell className="max-w-[200px] truncate font-medium">{item.eventoNombre}</TableCell>
+                      <TableCell className="max-w-[200px]">
+                        <EventLink
+                          eventId={item.eventoId}
+                          eventName={item.eventoNombre}
+                          variant="text"
+                        />
+                      </TableCell>
                       {/* CONCEPTO */}
                       <TableCell className="max-w-[200px] truncate">{item.concepto || "-"}</TableCell>
                       {/* IMÁGENES */}

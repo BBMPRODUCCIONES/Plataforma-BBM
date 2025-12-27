@@ -142,8 +142,14 @@ const ReporteCajaMenor = () => {
         return false;
       }
 
-      // Dropdown filters
-      if (procesoPagoFilter !== "all" && (item.procesoPago || "") !== procesoPagoFilter) return false;
+      // Dropdown filters - use sentinel value "__sin_asignar__" for unassigned
+      if (procesoPagoFilter !== "all") {
+        if (procesoPagoFilter === "__sin_asignar__") {
+          if (item.procesoPago && item.procesoPago.trim() !== "") return false;
+        } else {
+          if ((item.procesoPago || "") !== procesoPagoFilter) return false;
+        }
+      }
       if (empleadoFilter !== "all" && item.empleadoNombre !== empleadoFilter) return false;
       if (categoriaFilter !== "all" && item.categoria !== categoriaFilter) return false;
       if (recursosFilter !== "all" && item.recursos !== recursosFilter) return false;
@@ -262,7 +268,7 @@ const ReporteCajaMenor = () => {
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="Pagado">Pagado</SelectItem>
                   <SelectItem value="No pagado">No pagado</SelectItem>
-                  <SelectItem value="">Sin asignar</SelectItem>
+                  <SelectItem value="__sin_asignar__">Sin asignar</SelectItem>
                 </SelectContent>
               </Select>
             </div>

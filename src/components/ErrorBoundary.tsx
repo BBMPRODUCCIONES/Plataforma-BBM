@@ -1,6 +1,6 @@
 import React from "react";
 
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,17 +9,19 @@ type ErrorBoundaryProps = {
   title?: string;
   description?: string;
   children: React.ReactNode;
+  showDetails?: boolean;
 };
 
 type ErrorBoundaryState = {
   hasError: boolean;
   error?: unknown;
+  showTechnical: boolean;
 };
 
 export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false };
+  state: ErrorBoundaryState = { hasError: false, showTechnical: false };
 
-  static getDerivedStateFromError(error: unknown): ErrorBoundaryState {
+  static getDerivedStateFromError(error: unknown): Partial<ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
@@ -28,14 +30,25 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
   }
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: undefined });
+    this.setState({ hasError: false, error: undefined, showTechnical: false });
   };
+
+  private toggleTechnical = () => {
+    this.setState((prev) => ({ showTechnical: !prev.showTechnical }));
+  };
+
+  private getErrorMessage(): string {
+    const { error } = this.state;
+    if (error instanceof Error) return error.message;
+    if (typeof error === "string") return error;
+    return "Error desconocido";
+  }
 
   render() {
     if (!this.state.hasError) return this.props.children;
 
     return (
-      <Card>
+      <Card className="border-destructive/40">
         <CardContent className="p-6">
           <div className="flex items-start gap-3">
             <div className="rounded-md bg-destructive/10 p-2">
@@ -49,6 +62,28 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
                 {this.props.description ??
                   "Intenta recargar esta sección. Si el problema continúa, revisa los datos del reporte."}
               </p>
+
+              {this.props.showDetails && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={this.toggleTechnical}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {this.state.showTechnical ? (
+                      <ChevronUp className="h-3 w-3" />
+                    ) : (
+                      <ChevronDown className="h-3 w-3" />
+                    )}
+                    Detalles técnicos
+                  </button>
+                  {this.state.showTechnical && (
+                    <pre className="mt-2 p-2 bg-muted/50 rounded text-xs text-muted-foreground overflow-x-auto max-w-full">
+                      {this.getErrorMessage()}
+                    </pre>
+                  )}
+                </div>
+              )}
 
               <div className="pt-3">
                 <Button onClick={this.handleReset} variant="outline" className="gap-2">

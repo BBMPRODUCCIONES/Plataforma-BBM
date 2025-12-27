@@ -119,7 +119,8 @@ const PanelReportes = () => {
       {/* Caja Menor Report Component */}
       <ErrorBoundary
         title="No se pudo cargar el reporte de Caja Menor"
-        description="Esto suele pasar por un registro con datos incompletos (fecha/categoría/estado). Presiona Reintentar o revisa los registros." 
+        description="Esto suele pasar por un registro con datos incompletos (fecha/categoría/estado). Presiona Reintentar o revisa los registros."
+        showDetails
       >
         <ReporteCajaMenor />
       </ErrorBoundary>

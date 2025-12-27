@@ -30,8 +30,13 @@ export const EventLink = ({
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    // Navigate to Panel Operaciones with eventId and source as query params
-    navigate(`/panel-operaciones?eventId=${eventId}&source=${encodeURIComponent(source)}`);
+    // Navigate to Panel Operaciones with eventId, eventName and source as query params
+    const params = new URLSearchParams({
+      eventId,
+      eventName,
+      source,
+    });
+    navigate(`/panel-operaciones?${params.toString()}`);
   };
 
   if (variant === "badge" || variant === "chip") {

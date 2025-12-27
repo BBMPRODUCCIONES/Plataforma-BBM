@@ -143,13 +143,10 @@ const ReporteCajaMenor = () => {
         return false;
       }
 
-      // Dropdown filters - use sentinel value "__sin_asignar__" for unassigned
+      // Dropdown filters - treat empty/undefined procesoPago as "No pagado"
       if (procesoPagoFilter !== "all") {
-        if (procesoPagoFilter === "__sin_asignar__") {
-          if (item.procesoPago && item.procesoPago.trim() !== "") return false;
-        } else {
-          if ((item.procesoPago || "") !== procesoPagoFilter) return false;
-        }
+        const efectivoProcesoPago = item.procesoPago || "No pagado";
+        if (efectivoProcesoPago !== procesoPagoFilter) return false;
       }
       if (empleadoFilter !== "all" && item.empleadoNombre !== empleadoFilter) return false;
       if (categoriaFilter !== "all" && item.categoria !== categoriaFilter) return false;
@@ -217,7 +214,7 @@ const ReporteCajaMenor = () => {
       CONTINGENCIA: item.contingencia || "No",
       "VALOR (COP)": item.valor,
       ESTADO: item.estado || "",
-      "PROCESO DE PAGO": item.procesoPago || "",
+      "PROCESO DE PAGO": item.procesoPago === "Pagado" ? "Pagado" : "No pagado",
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -297,7 +294,6 @@ const ReporteCajaMenor = () => {
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="Pagado">Pago</SelectItem>
                   <SelectItem value="No pagado">No pago</SelectItem>
-                  <SelectItem value="__sin_asignar__">Sin asignar</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -517,19 +513,17 @@ const ReporteCajaMenor = () => {
                       {/* PROCESO DE PAGO - Dropdown editable */}
                       <TableCell>
                         <Select
-                          value={item.procesoPago === "Pagado" ? "Pago" : item.procesoPago === "No pagado" ? "No pago" : ""}
+                          value={item.procesoPago === "Pagado" ? "Pago" : "No pago"}
                           onValueChange={(value: 'Pago' | 'No pago') => handleProcesoPagoChange(item.eventoId, item.id, value)}
                         >
                           <SelectTrigger 
                             className={`h-8 w-[120px] text-xs font-medium border-2 ${
                               item.procesoPago === "Pagado"
                                 ? "bg-green-500/20 border-green-500 text-green-600 dark:text-green-400"
-                                : item.procesoPago === "No pagado"
-                                  ? "bg-red-500/20 border-red-500 text-red-600 dark:text-red-400"
-                                  : "bg-muted border-muted-foreground/30 text-muted-foreground"
+                                : "bg-red-500/20 border-red-500 text-red-600 dark:text-red-400"
                             }`}
                           >
-                            <SelectValue placeholder="Seleccionar" />
+                            <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Pago" className="text-green-600 dark:text-green-400 font-medium">

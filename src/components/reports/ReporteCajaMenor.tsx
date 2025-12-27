@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download, Image as ImageIcon, Calendar } from "lucide-react";
-import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { Search, Download, Image as ImageIcon } from "lucide-react";
+import { format, parseISO, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { CajaMenorItem, Project } from "@/types";
@@ -22,7 +22,7 @@ interface FlattenedCajaMenorItem extends CajaMenorItem {
 
 const ReporteCajaMenor = () => {
   const { projects } = useProjects();
-  
+
   // Filter states
   const [globalSearch, setGlobalSearch] = useState("");
   const [fechaDesde, setFechaDesde] = useState("");
@@ -36,62 +36,97 @@ const ReporteCajaMenor = () => {
   const [estadoFilter, setEstadoFilter] = useState<string>("all");
   const [eventoFilter, setEventoFilter] = useState<string>("all");
 
+  const safeLower = (value?: string | null) => (value ?? "").toLowerCase();
+
+  const safeDate = (value?: string | null) => {
+    if (!value) return null;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+
+  const formatDateDisplay = (value?: string | null) => {
+    const d = safeDate(value);
+    return d ? format(d, "dd/MM/yyyy", { locale: es }) : "-";
+  };
+
+  const formatDateExport = (value?: string | null) => {
+    const d = safeDate(value);
+    return d ? format(d, "dd/MM/yyyy", { locale: es }) : "";
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
   // Flatten all caja menor items from all projects
   const allCajaMenorItems = useMemo((): FlattenedCajaMenorItem[] => {
     const items: FlattenedCajaMenorItem[] = [];
-    
+
     projects.forEach((project: Project) => {
-      if (project.cajaMenor && project.cajaMenor.length > 0) {
-        project.cajaMenor.forEach((item, index) => {
-          // Generate receipt number based on item ID
-          const reciboNum = item.id.replace(/\D/g, '').slice(-6).padStart(6, '0');
-          
-          items.push({
-            ...item,
-            eventoId: project.id,
-            eventoNombre: project.evento || 'Sin nombre',
-            recibo: `RCM-${reciboNum}`,
-            fecha: item.createdAt || project.createdAt,
-          });
+      const caja = Array.isArray(project.cajaMenor) ? project.cajaMenor : [];
+      if (caja.length === 0) return;
+
+      caja.forEach((item, index) => {
+        // Generate receipt number based on item ID (avoid crashes if id is missing)
+        const rawId = typeof item.id === "string" ? item.id : String(item.id ?? index);
+        const reciboNum = rawId.replace(/\D/g, "").slice(-6).padStart(6, "0");
+
+        items.push({
+          ...item,
+          eventoId: project.id,
+          eventoNombre: project.evento || "Sin nombre",
+          recibo: `RCM-${reciboNum}`,
+          fecha: item.createdAt || project.createdAt || "",
         });
-      }
+      });
     });
-    
-    // Sort by date descending
-    return items.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+
+    // Sort by date descending (invalid dates go last)
+    return items.sort((a, b) => {
+      const tb = safeDate(b.fecha)?.getTime() ?? 0;
+      const ta = safeDate(a.fecha)?.getTime() ?? 0;
+      return tb - ta;
+    });
   }, [projects]);
 
   // Get unique values for filters
-  const uniqueEmpleados = useMemo(() => 
-    [...new Set(allCajaMenorItems.map(i => i.empleadoNombre).filter(Boolean))].sort(),
+  const uniqueEmpleados = useMemo(
+    () => [...new Set(allCajaMenorItems.map((i) => i.empleadoNombre).filter(Boolean))].sort(),
     [allCajaMenorItems]
   );
-  
-  const uniqueEventos = useMemo(() => 
-    [...new Set(allCajaMenorItems.map(i => i.eventoNombre).filter(Boolean))].sort(),
+
+  const uniqueEventos = useMemo(
+    () => [...new Set(allCajaMenorItems.map((i) => i.eventoNombre).filter(Boolean))].sort(),
     [allCajaMenorItems]
   );
 
   // Apply all filters
   const filteredItems = useMemo(() => {
-    return allCajaMenorItems.filter(item => {
+    return allCajaMenorItems.filter((item) => {
       // Global search
       if (globalSearch) {
         const searchLower = globalSearch.toLowerCase();
-        const matchesSearch = 
-          item.recibo.toLowerCase().includes(searchLower) ||
-          item.eventoNombre.toLowerCase().includes(searchLower) ||
-          (item.empleadoNombre?.toLowerCase() || '').includes(searchLower) ||
-          (item.concepto?.toLowerCase() || '').includes(searchLower) ||
-          item.categoria.toLowerCase().includes(searchLower) ||
-          item.recursos.toLowerCase().includes(searchLower) ||
-          item.estado.toLowerCase().includes(searchLower);
+        const matchesSearch =
+          safeLower(item.recibo).includes(searchLower) ||
+          safeLower(item.eventoNombre).includes(searchLower) ||
+          safeLower(item.empleadoNombre).includes(searchLower) ||
+          safeLower(item.concepto).includes(searchLower) ||
+          safeLower(item.categoria).includes(searchLower) ||
+          safeLower(item.recursos).includes(searchLower) ||
+          safeLower(item.estado).includes(searchLower);
         if (!matchesSearch) return false;
       }
 
       // Date range filter
       if (fechaDesde || fechaHasta) {
-        const itemDate = new Date(item.fecha);
+        const itemDate = safeDate(item.fecha);
+        if (!itemDate) return false;
+
         if (fechaDesde) {
           const fromDate = startOfDay(parseISO(fechaDesde));
           if (itemDate < fromDate) return false;
@@ -103,12 +138,12 @@ const ReporteCajaMenor = () => {
       }
 
       // Recibo filter
-      if (reciboFilter && !item.recibo.toLowerCase().includes(reciboFilter.toLowerCase())) {
+      if (reciboFilter && !safeLower(item.recibo).includes(reciboFilter.toLowerCase())) {
         return false;
       }
 
       // Dropdown filters
-      if (procesoPagoFilter !== "all" && (item.procesoPago || '') !== procesoPagoFilter) return false;
+      if (procesoPagoFilter !== "all" && (item.procesoPago || "") !== procesoPagoFilter) return false;
       if (empleadoFilter !== "all" && item.empleadoNombre !== empleadoFilter) return false;
       if (categoriaFilter !== "all" && item.categoria !== categoriaFilter) return false;
       if (recursosFilter !== "all" && item.recursos !== recursosFilter) return false;
@@ -118,30 +153,42 @@ const ReporteCajaMenor = () => {
 
       return true;
     });
-  }, [allCajaMenorItems, globalSearch, fechaDesde, fechaHasta, reciboFilter, procesoPagoFilter, 
-      empleadoFilter, categoriaFilter, recursosFilter, contingenciaFilter, estadoFilter, eventoFilter]);
+  }, [
+    allCajaMenorItems,
+    globalSearch,
+    fechaDesde,
+    fechaHasta,
+    reciboFilter,
+    procesoPagoFilter,
+    empleadoFilter,
+    categoriaFilter,
+    recursosFilter,
+    contingenciaFilter,
+    estadoFilter,
+    eventoFilter,
+  ]);
 
   // Export to Excel
   const handleExport = () => {
-    const exportData = filteredItems.map(item => ({
-      'FECHA': item.fecha ? format(new Date(item.fecha), 'dd/MM/yyyy', { locale: es }) : '',
-      'RECIBO': item.recibo,
-      'PROCESO DE PAGO': item.procesoPago || '',
-      'EMPLEADO': item.empleadoNombre || '',
-      'CONCEPTO': item.concepto || '',
-      'IMÁGENES': item.imagenes?.length || 0,
-      'VALOR (COP)': item.valor,
-      'CATEGORÍA': item.categoria,
-      'RECURSOS': item.recursos,
-      'CONTINGENCIA': item.contingencia || 'No',
-      'ESTADO': item.estado,
-      'EVENTO': item.eventoNombre,
+    const exportData = filteredItems.map((item) => ({
+      FECHA: formatDateExport(item.fecha),
+      RECIBO: item.recibo,
+      "PROCESO DE PAGO": item.procesoPago || "",
+      EMPLEADO: item.empleadoNombre || "",
+      CONCEPTO: item.concepto || "",
+      IMÁGENES: item.imagenes?.length || 0,
+      "VALOR (COP)": item.valor,
+      CATEGORÍA: item.categoria || "",
+      RECURSOS: item.recursos || "",
+      CONTINGENCIA: item.contingencia || "No",
+      ESTADO: item.estado || "",
+      EVENTO: item.eventoNombre,
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Reporte Caja Menor");
-    
+
     // Auto-size columns
     const colWidths = [
       { wch: 12 }, // FECHA
@@ -157,18 +204,9 @@ const ReporteCajaMenor = () => {
       { wch: 12 }, // ESTADO
       { wch: 25 }, // EVENTO
     ];
-    ws['!cols'] = colWidths;
-    
-    XLSX.writeFile(wb, `Reporte_Caja_Menor_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
-  };
+    ws["!cols"] = colWidths;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+    XLSX.writeFile(wb, `Reporte_Caja_Menor_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   };
 
   return (
@@ -195,21 +233,11 @@ const ReporteCajaMenor = () => {
             {/* Date Range */}
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Fecha Desde</label>
-              <Input
-                type="date"
-                value={fechaDesde}
-                onChange={(e) => setFechaDesde(e.target.value)}
-                className="h-9"
-              />
+              <Input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} className="h-9" />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Fecha Hasta</label>
-              <Input
-                type="date"
-                value={fechaHasta}
-                onChange={(e) => setFechaHasta(e.target.value)}
-                className="h-9"
-              />
+              <Input type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} className="h-9" />
             </div>
 
             {/* Recibo */}
@@ -248,8 +276,10 @@ const ReporteCajaMenor = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {uniqueEmpleados.map(emp => (
-                    <SelectItem key={emp} value={emp!}>{emp}</SelectItem>
+                  {uniqueEmpleados.map((emp) => (
+                    <SelectItem key={emp} value={emp!}>
+                      {emp}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -326,8 +356,10 @@ const ReporteCajaMenor = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {uniqueEventos.map(evt => (
-                    <SelectItem key={evt} value={evt!}>{evt}</SelectItem>
+                  {uniqueEventos.map((evt) => (
+                    <SelectItem key={evt} value={evt!}>
+                      {evt}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -350,7 +382,7 @@ const ReporteCajaMenor = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/50">
+                <TableRow className="bg-[hsl(var(--table-header))]">
                   <TableHead className="whitespace-nowrap">FECHA</TableHead>
                   <TableHead className="whitespace-nowrap">RECIBO</TableHead>
                   <TableHead className="whitespace-nowrap">PROCESO DE PAGO</TableHead>
@@ -375,30 +407,22 @@ const ReporteCajaMenor = () => {
                 ) : (
                   filteredItems.map((item) => (
                     <TableRow key={`${item.eventoId}-${item.id}`}>
-                      <TableCell className="whitespace-nowrap">
-                        {item.fecha ? format(new Date(item.fecha), 'dd/MM/yyyy', { locale: es }) : '-'}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap font-mono text-xs">
-                        {item.recibo}
-                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{formatDateDisplay(item.fecha)}</TableCell>
+                      <TableCell className="whitespace-nowrap font-mono text-xs">{item.recibo}</TableCell>
                       <TableCell>
-                        <Badge 
-                          variant={item.procesoPago === 'Pagado' ? 'default' : 'secondary'}
+                        <Badge
+                          variant={item.procesoPago === "Pagado" ? "default" : "secondary"}
                           className={
-                            item.procesoPago === 'Pagado' 
-                              ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20' 
-                              : 'bg-muted text-muted-foreground'
+                            item.procesoPago === "Pagado"
+                              ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                              : "bg-muted text-muted-foreground"
                           }
                         >
-                          {item.procesoPago || 'Sin asignar'}
+                          {item.procesoPago || "Sin asignar"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="max-w-[150px] truncate">
-                        {item.empleadoNombre || '-'}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {item.concepto || '-'}
-                      </TableCell>
+                      <TableCell className="max-w-[150px] truncate">{item.empleadoNombre || "-"}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{item.concepto || "-"}</TableCell>
                       <TableCell className="text-center">
                         {item.imagenes && item.imagenes.length > 0 ? (
                           <Badge variant="outline" className="gap-1">
@@ -410,25 +434,33 @@ const ReporteCajaMenor = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-right font-medium whitespace-nowrap">
-                        {formatCurrency(item.valor)}
+                        {formatCurrency(Number(item.valor || 0))}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={
-                          item.categoria === 'Transporte' ? 'border-blue-500/50 text-blue-500' :
-                          item.categoria === 'Alimentación' ? 'border-orange-500/50 text-orange-500' :
-                          'border-purple-500/50 text-purple-500'
-                        }>
-                          {item.categoria}
+                        <Badge
+                          variant="outline"
+                          className={
+                            item.categoria === "Transporte"
+                              ? "border-blue-500/50 text-blue-500"
+                              : item.categoria === "Alimentación"
+                                ? "border-orange-500/50 text-orange-500"
+                                : "border-purple-500/50 text-purple-500"
+                          }
+                        >
+                          {item.categoria || "-"}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="text-xs">
-                          {item.recursos || '-'}
+                          {item.recursos || "-"}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {item.contingencia === 'Sí' ? (
-                          <Badge variant="destructive" className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/20">
+                        {item.contingencia === "Sí" ? (
+                          <Badge
+                            variant="destructive"
+                            className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
+                          >
                             Sí
                           </Badge>
                         ) : (
@@ -436,27 +468,25 @@ const ReporteCajaMenor = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge 
-                          variant={item.estado === 'Aprobado' ? 'default' : 'destructive'}
+                        <Badge
+                          variant={item.estado === "Aprobado" ? "default" : "destructive"}
                           className={
-                            item.estado === 'Aprobado' 
-                              ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20' 
-                              : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
+                            item.estado === "Aprobado"
+                              ? "bg-green-500/10 text-green-500 hover:bg-green-500/20"
+                              : "bg-red-500/10 text-red-500 hover:bg-red-500/20"
                           }
                         >
-                          {item.estado}
+                          {item.estado || "-"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate font-medium">
-                        {item.eventoNombre}
-                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate font-medium">{item.eventoNombre}</TableCell>
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
           </div>
-          
+
           {/* Results count */}
           <div className="p-4 border-t text-sm text-muted-foreground">
             Mostrando {filteredItems.length} de {allCajaMenorItems.length} registros

@@ -281,20 +281,15 @@ export function CalendarFilter({
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className={cn(
-            "w-auto p-0 bg-popover border border-border shadow-lg z-[100]",
-            !isMobile &&
-              "h-[calc(var(--radix-popover-content-available-height)-12px)] max-h-[calc(var(--radix-popover-content-available-height)-12px)] overflow-hidden"
-          )}
+          className="w-auto p-0 bg-popover border border-border shadow-lg z-[100]"
           align="start"
           sideOffset={!isMobile ? 8 : 4}
-          sticky={!isMobile ? "always" : undefined}
-          avoidCollisions={!isMobile ? true : undefined}
-          collisionPadding={!isMobile ? { top: 20, bottom: 20, left: 16, right: 16 } : undefined}
+          avoidCollisions={true}
+          collisionPadding={{ top: 20, bottom: 20, left: 16, right: 16 }}
         >
-          <div className={cn("flex flex-col", !isMobile && "h-full min-h-0")}>
-            {/* Header con rango seleccionado y botón Aplicar - SIEMPRE VISIBLE */}
-            <div className="flex flex-shrink-0 items-center justify-between p-3 border-b border-border bg-muted/50">
+          <div className="flex flex-col">
+            {/* Header con rango seleccionado y botón Aplicar */}
+            <div className="flex flex-shrink-0 items-center justify-between p-2 border-b border-border bg-muted/50">
               <div className="text-xs text-muted-foreground">
                 {tempRange?.from && tempRange?.to ? (
                   <span className="font-medium text-foreground">
@@ -304,41 +299,44 @@ export function CalendarFilter({
                   <span>Selecciona un rango de fechas</span>
                 )}
               </div>
-              <Button size="sm" className="h-7 text-xs ml-4" onClick={applyRange} disabled={!tempRange?.from || !tempRange?.to}>
+              <Button size="sm" className="h-6 text-xs ml-4 px-3" onClick={applyRange} disabled={!tempRange?.from || !tempRange?.to}>
                 Aplicar
               </Button>
             </div>
             
             {/* Contenido con presets y calendario */}
-            <div className={cn("flex overflow-hidden", !isMobile ? "flex-1 min-h-0" : "max-h-[60vh]")}>
+            <div className={cn("flex", isMobile && "max-h-[60vh] overflow-y-auto")}>
               {/* Presets */}
-              <div className="border-r border-border p-3 space-y-1 min-w-[140px] overflow-y-auto min-h-0">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Presets</p>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("last7")}>
+              <div className={cn(
+                "border-r border-border p-2 space-y-0.5 min-w-[130px]",
+                !isMobile && "max-h-[280px] overflow-y-auto"
+              )}>
+                <p className="text-xs font-semibold text-muted-foreground mb-1.5">Presets</p>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("last7")}>
                   Últimos 7 días
                 </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("last30")}>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("last30")}>
                   Últimos 30 días
                 </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("last90")}>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("last90")}>
                   Últimos 90 días
                 </Button>
-                <div className="border-t border-border my-2" />
-                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("thisWeek")}>
+                <div className="border-t border-border my-1.5" />
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisWeek")}>
                   Esta semana
                 </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("thisMonth")}>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisMonth")}>
                   Este mes
                 </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("thisQuarter")}>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisQuarter")}>
                   Este trimestre
                 </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("thisYear")}>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisYear")}>
                   Este año
                 </Button>
               </div>
-              {/* Calendar */}
-              <div className="p-3 overflow-y-auto min-h-0">
+              {/* Calendar - Compacto para web */}
+              <div className="p-2">
                 <Calendar
                   mode="range"
                   selected={tempRange}
@@ -346,6 +344,29 @@ export function CalendarFilter({
                   numberOfMonths={2}
                   locale={es}
                   className="pointer-events-auto"
+                  classNames={!isMobile ? {
+                    months: "flex flex-row gap-3",
+                    month: "space-y-1",
+                    caption: "flex justify-center pt-0.5 relative items-center",
+                    caption_label: "text-xs font-medium",
+                    nav: "space-x-1 flex items-center",
+                    nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input hover:bg-accent hover:text-accent-foreground",
+                    nav_button_previous: "absolute left-0.5",
+                    nav_button_next: "absolute right-0.5",
+                    table: "w-full border-collapse",
+                    head_row: "flex",
+                    head_cell: "text-muted-foreground rounded-md w-7 font-normal text-[0.65rem]",
+                    row: "flex w-full mt-0.5",
+                    cell: "h-7 w-7 text-center text-xs p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                    day: "h-7 w-7 p-0 font-normal text-xs aria-selected:opacity-100 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground",
+                    day_range_end: "day-range-end",
+                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                    day_today: "bg-accent text-accent-foreground",
+                    day_outside: "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+                    day_disabled: "text-muted-foreground opacity-50",
+                    day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                    day_hidden: "invisible",
+                  } : undefined}
                 />
               </div>
             </div>

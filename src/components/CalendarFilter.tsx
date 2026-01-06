@@ -279,10 +279,12 @@ export function CalendarFilter({
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-auto p-0 bg-popover border border-border shadow-lg z-50" 
+          className="w-auto p-0 bg-popover border border-border shadow-lg z-[100]" 
           align="start"
-          sideOffset={4}
+          side="bottom"
+          sideOffset={8}
           avoidCollisions={true}
+          collisionPadding={{ top: 20, bottom: 20, left: 16, right: 16 }}
         >
           <div className="flex flex-col">
             {/* Header con rango seleccionado y botón Aplicar - SIEMPRE VISIBLE */}
@@ -302,7 +304,7 @@ export function CalendarFilter({
             </div>
             
             {/* Contenido con presets y calendario */}
-            <div className="flex max-h-[60vh] overflow-hidden">
+            <div className="flex max-h-[calc(80vh-60px)] overflow-hidden">
               {/* Presets */}
               <div className="border-r border-border p-3 space-y-1 min-w-[140px] overflow-y-auto">
                 <p className="text-xs font-semibold text-muted-foreground mb-2">Presets</p>

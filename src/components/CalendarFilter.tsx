@@ -309,16 +309,6 @@ export function CalendarFilter({
               {/* Presets */}
               <div className="border-r border-border p-2 space-y-0.5 min-w-[130px]">
                 <p className="text-xs font-semibold text-muted-foreground mb-1.5">Presets</p>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("last7")}>
-                  Últimos 7 días
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("last30")}>
-                  Últimos 30 días
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("last90")}>
-                  Últimos 90 días
-                </Button>
-                <div className="border-t border-border my-1.5" />
                 <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisWeek")}>
                   Esta semana
                 </Button>
@@ -327,9 +317,6 @@ export function CalendarFilter({
                 </Button>
                 <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisQuarter")}>
                   Este trimestre
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisYear")}>
-                  Este año
                 </Button>
               </div>
               {/* Calendar - Compacto para web */}

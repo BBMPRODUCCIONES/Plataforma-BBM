@@ -283,11 +283,12 @@ export function CalendarFilter({
         <PopoverContent 
           className={cn(
             "w-auto p-0 bg-popover border border-border shadow-lg z-[100]",
-            !isMobile && "max-h-[calc(100vh-220px)] overflow-hidden"
+            !isMobile &&
+              "h-[calc(var(--radix-popover-content-available-height)-12px)] max-h-[calc(var(--radix-popover-content-available-height)-12px)] overflow-hidden"
           )}
           align="start"
-          side={!isMobile ? "bottom" : undefined}
           sideOffset={!isMobile ? 8 : 4}
+          sticky={!isMobile ? "always" : undefined}
           avoidCollisions={!isMobile ? true : undefined}
           collisionPadding={!isMobile ? { top: 20, bottom: 20, left: 16, right: 16 } : undefined}
         >

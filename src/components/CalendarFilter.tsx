@@ -294,15 +294,120 @@ export function CalendarFilter({
         <PopoverContent 
           className={cn(
             "p-0 bg-popover border border-border shadow-lg z-[100]",
-            isMobile ? "w-[calc(100vw-32px)] max-w-[360px]" : "w-auto"
+            isMobile && isLandscape 
+              ? "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-auto max-h-[90vh]"
+              : isMobile 
+                ? "w-[calc(100vw-32px)] max-w-[360px]" 
+                : "w-auto"
           )}
-          align="start"
+          align={isMobile && isLandscape ? "center" : "start"}
           sideOffset={!isMobile ? 8 : 4}
-          avoidCollisions={true}
+          avoidCollisions={!isMobile || !isLandscape}
           collisionPadding={{ top: 20, bottom: 20, left: 16, right: 16 }}
         >
-          {isMobile ? (
-            /* Layout Móvil - Stack vertical compacto */
+          {isMobile && isLandscape ? (
+            /* Layout Landscape Móvil - Centrado en viewport */
+            <div className="flex flex-col max-h-[85vh] rounded-lg overflow-hidden">
+              {/* Header con rango y botón cerrar */}
+              <div className="flex items-center justify-between p-2 border-b border-border bg-muted/50 flex-shrink-0">
+                <p className="text-xs font-medium">
+                  {tempRange?.from && tempRange?.to ? (
+                    <span className="text-foreground">
+                      {format(tempRange.from, "d MMM", { locale: es })} - {format(tempRange.to, "d MMM yyyy", { locale: es })}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Selecciona un rango</span>
+                  )}
+                </p>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7 touch-manipulation"
+                  onClick={() => setRangePickerOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Contenido: Presets verticales + 2 Calendarios */}
+              <div className="flex flex-1 overflow-hidden">
+                {/* Presets verticales compactos */}
+                <div className="border-r border-border p-2 space-y-1 flex-shrink-0">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="w-full justify-start h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
+                    onClick={() => applyPreset("thisWeek")}
+                  >
+                    Esta semana
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="w-full justify-start h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
+                    onClick={() => applyPreset("thisMonth")}
+                  >
+                    Este mes
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="w-full justify-start h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
+                    onClick={() => applyPreset("thisQuarter")}
+                  >
+                    Este trimestre
+                  </Button>
+                </div>
+                
+                {/* Calendario 2 meses lado a lado */}
+                <div className="p-2 overflow-auto">
+                  <Calendar
+                    mode="range"
+                    selected={tempRange}
+                    onSelect={handleRangeSelect}
+                    numberOfMonths={2}
+                    locale={es}
+                    className="pointer-events-auto"
+                    classNames={{
+                      months: "flex flex-row gap-2",
+                      month: "space-y-1",
+                      caption: "flex justify-center pt-0 relative items-center",
+                      caption_label: "text-xs font-medium",
+                      nav: "space-x-1 flex items-center",
+                      nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input",
+                      nav_button_previous: "absolute left-0",
+                      nav_button_next: "absolute right-0",
+                      table: "w-full border-collapse",
+                      head_row: "flex",
+                      head_cell: "text-muted-foreground rounded-md w-7 font-normal text-[0.6rem]",
+                      row: "flex w-full mt-0.5",
+                      cell: "h-7 w-7 text-center text-xs p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                      day: "h-7 w-7 p-0 font-normal text-xs aria-selected:opacity-100 inline-flex items-center justify-center rounded-md",
+                      day_range_end: "day-range-end",
+                      day_selected: "bg-primary text-primary-foreground",
+                      day_today: "bg-accent text-accent-foreground",
+                      day_outside: "day-outside text-muted-foreground opacity-50",
+                      day_disabled: "text-muted-foreground opacity-50",
+                      day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                      day_hidden: "invisible",
+                    }}
+                  />
+                </div>
+              </div>
+              
+              {/* Footer con botón Aplicar siempre visible */}
+              <div className="p-2 border-t border-border bg-popover flex-shrink-0">
+                <Button 
+                  className="w-full h-10 text-sm touch-manipulation" 
+                  onClick={applyRange} 
+                  disabled={!tempRange?.from || !tempRange?.to}
+                >
+                  Aplicar
+                </Button>
+              </div>
+            </div>
+          ) : isMobile ? (
+            /* Layout Portrait Móvil - Stack vertical compacto */
             <div className="flex flex-col">
               {/* Header con rango seleccionado */}
               <div className="p-2 border-b border-border bg-popover">
@@ -345,13 +450,13 @@ export function CalendarFilter({
                 </Button>
               </div>
               
-              {/* Calendario compacto - 1 mes en portrait, 2 en landscape */}
+              {/* Calendario compacto - 1 mes en portrait */}
               <div className="p-2 flex justify-center">
                 <Calendar
                   mode="range"
                   selected={tempRange}
                   onSelect={handleRangeSelect}
-                  numberOfMonths={isLandscape ? 2 : 1}
+                  numberOfMonths={1}
                   locale={es}
                   className="pointer-events-auto"
                   classNames={{

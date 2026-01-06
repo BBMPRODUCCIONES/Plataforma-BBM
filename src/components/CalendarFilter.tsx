@@ -302,11 +302,11 @@ export function CalendarFilter({
           collisionPadding={{ top: 20, bottom: 20, left: 16, right: 16 }}
         >
           {isMobile ? (
-            /* Layout Móvil - Stack vertical */
-            <div className="flex flex-col max-h-[75vh]">
-              {/* Header sticky con rango seleccionado */}
-              <div className="sticky top-0 z-10 p-3 border-b border-border bg-popover">
-                <p className="text-sm font-medium text-center">
+            /* Layout Móvil - Stack vertical compacto */
+            <div className="flex flex-col">
+              {/* Header con rango seleccionado */}
+              <div className="p-2 border-b border-border bg-popover">
+                <p className="text-xs font-medium text-center">
                   {tempRange?.from && tempRange?.to ? (
                     <span className="text-foreground">
                       {format(tempRange.from, "d MMM", { locale: es })} - {format(tempRange.to, "d MMM yyyy", { locale: es })}
@@ -318,11 +318,11 @@ export function CalendarFilter({
               </div>
               
               {/* Presets horizontales como chips */}
-              <div className="flex gap-2 p-3 border-b border-border overflow-x-auto flex-shrink-0">
+              <div className="flex gap-1.5 p-2 border-b border-border overflow-x-auto flex-shrink-0">
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  className="h-9 px-3 text-xs whitespace-nowrap touch-manipulation"
+                  className="h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
                   onClick={() => applyPreset("thisWeek")}
                 >
                   Esta semana
@@ -330,7 +330,7 @@ export function CalendarFilter({
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  className="h-9 px-3 text-xs whitespace-nowrap touch-manipulation"
+                  className="h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
                   onClick={() => applyPreset("thisMonth")}
                 >
                   Este mes
@@ -338,15 +338,15 @@ export function CalendarFilter({
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  className="h-9 px-3 text-xs whitespace-nowrap touch-manipulation"
+                  className="h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
                   onClick={() => applyPreset("thisQuarter")}
                 >
                   Este trimestre
                 </Button>
               </div>
               
-              {/* Calendario scrollable - 1 mes en portrait, 2 en landscape */}
-              <div className="flex-1 overflow-y-auto p-3 flex justify-center">
+              {/* Calendario compacto - 1 mes en portrait, 2 en landscape */}
+              <div className="p-2 flex justify-center">
                 <Calendar
                   mode="range"
                   selected={tempRange}
@@ -354,13 +354,36 @@ export function CalendarFilter({
                   numberOfMonths={isLandscape ? 2 : 1}
                   locale={es}
                   className="pointer-events-auto"
+                  classNames={{
+                    months: "flex flex-col sm:flex-row gap-2",
+                    month: "space-y-1",
+                    caption: "flex justify-center pt-0 relative items-center",
+                    caption_label: "text-xs font-medium",
+                    nav: "space-x-1 flex items-center",
+                    nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input",
+                    nav_button_previous: "absolute left-0",
+                    nav_button_next: "absolute right-0",
+                    table: "w-full border-collapse",
+                    head_row: "flex",
+                    head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.65rem]",
+                    row: "flex w-full mt-0.5",
+                    cell: "h-8 w-8 text-center text-xs p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                    day: "h-8 w-8 p-0 font-normal text-xs aria-selected:opacity-100 inline-flex items-center justify-center rounded-md",
+                    day_range_end: "day-range-end",
+                    day_selected: "bg-primary text-primary-foreground",
+                    day_today: "bg-accent text-accent-foreground",
+                    day_outside: "day-outside text-muted-foreground opacity-50",
+                    day_disabled: "text-muted-foreground opacity-50",
+                    day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                    day_hidden: "invisible",
+                  }}
                 />
               </div>
               
-              {/* Footer sticky con botón Aplicar */}
-              <div className="sticky bottom-0 p-3 border-t border-border bg-popover">
+              {/* Botón Aplicar directamente debajo del calendario */}
+              <div className="p-2 pt-0">
                 <Button 
-                  className="w-full h-11 text-sm touch-manipulation" 
+                  className="w-full h-10 text-sm touch-manipulation" 
                   onClick={applyRange} 
                   disabled={!tempRange?.from || !tempRange?.to}
                 >

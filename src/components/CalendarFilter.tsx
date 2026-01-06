@@ -8,6 +8,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Dialog,
+  DialogContent,
+  DialogOverlay,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -272,9 +277,9 @@ export function CalendarFilter({
         ))}
       </div>
 
-      {/* Custom Range Button */}
-      <Popover open={rangePickerOpen} onOpenChange={setRangePickerOpen}>
-        <PopoverTrigger asChild>
+      {/* Custom Range Button - Landscape Mobile uses Dialog for true centering */}
+      {isMobile && isLandscape ? (
+        <>
           <Button
             variant={viewMode === "custom" ? "default" : "outline"}
             size="sm"
@@ -288,29 +293,12 @@ export function CalendarFilter({
             }}
           >
             <CalendarRange className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
-            <span className="hidden sm:inline">Rango</span>
           </Button>
-        </PopoverTrigger>
-        <PopoverContent 
-          className={cn(
-            "p-0 bg-popover border border-border shadow-lg z-[100]",
-            isMobile && isLandscape 
-              ? "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-auto max-h-[90vh]"
-              : isMobile 
-                ? "w-[calc(100vw-32px)] max-w-[360px]" 
-                : "w-auto"
-          )}
-          align={isMobile && isLandscape ? "center" : "start"}
-          sideOffset={!isMobile ? 8 : 4}
-          avoidCollisions={!isMobile || !isLandscape}
-          collisionPadding={{ top: 20, bottom: 20, left: 16, right: 16 }}
-        >
-          {isMobile && isLandscape ? (
-            /* Layout Landscape Móvil - Centrado en viewport */
-            <div className="flex flex-col max-h-[85vh] rounded-lg overflow-hidden">
+          <Dialog open={rangePickerOpen} onOpenChange={setRangePickerOpen}>
+            <DialogContent className="max-w-[95vw] max-h-[90vh] p-0 gap-0 overflow-hidden">
               {/* Header con rango y botón cerrar */}
-              <div className="flex items-center justify-between p-2 border-b border-border bg-muted/50 flex-shrink-0">
-                <p className="text-xs font-medium">
+              <div className="flex items-center justify-between p-3 border-b border-border bg-muted/50 flex-shrink-0">
+                <p className="text-sm font-medium">
                   {tempRange?.from && tempRange?.to ? (
                     <span className="text-foreground">
                       {format(tempRange.from, "d MMM", { locale: es })} - {format(tempRange.to, "d MMM yyyy", { locale: es })}
@@ -319,14 +307,6 @@ export function CalendarFilter({
                     <span className="text-muted-foreground">Selecciona un rango</span>
                   )}
                 </p>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-7 w-7 touch-manipulation"
-                  onClick={() => setRangePickerOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
               </div>
               
               {/* Contenido: Presets verticales + 2 Calendarios */}
@@ -336,7 +316,7 @@ export function CalendarFilter({
                   <Button 
                     size="sm" 
                     variant="ghost" 
-                    className="w-full justify-start h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
+                    className="w-full justify-start h-8 px-2 text-xs whitespace-nowrap touch-manipulation"
                     onClick={() => applyPreset("thisWeek")}
                   >
                     Esta semana
@@ -344,7 +324,7 @@ export function CalendarFilter({
                   <Button 
                     size="sm" 
                     variant="ghost" 
-                    className="w-full justify-start h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
+                    className="w-full justify-start h-8 px-2 text-xs whitespace-nowrap touch-manipulation"
                     onClick={() => applyPreset("thisMonth")}
                   >
                     Este mes
@@ -352,7 +332,7 @@ export function CalendarFilter({
                   <Button 
                     size="sm" 
                     variant="ghost" 
-                    className="w-full justify-start h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
+                    className="w-full justify-start h-8 px-2 text-xs whitespace-nowrap touch-manipulation"
                     onClick={() => applyPreset("thisQuarter")}
                   >
                     Este trimestre
@@ -396,7 +376,7 @@ export function CalendarFilter({
               </div>
               
               {/* Footer con botón Aplicar siempre visible */}
-              <div className="p-2 border-t border-border bg-popover flex-shrink-0">
+              <div className="p-3 border-t border-border bg-popover flex-shrink-0">
                 <Button 
                   className="w-full h-10 text-sm touch-manipulation" 
                   onClick={applyRange} 
@@ -405,170 +385,201 @@ export function CalendarFilter({
                   Aplicar
                 </Button>
               </div>
-            </div>
-          ) : isMobile ? (
-            /* Layout Portrait Móvil - Stack vertical compacto */
-            <div className="flex flex-col">
-              {/* Header con rango seleccionado */}
-              <div className="p-2 border-b border-border bg-popover">
-                <p className="text-xs font-medium text-center">
-                  {tempRange?.from && tempRange?.to ? (
-                    <span className="text-foreground">
-                      {format(tempRange.from, "d MMM", { locale: es })} - {format(tempRange.to, "d MMM yyyy", { locale: es })}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">Selecciona un rango</span>
-                  )}
-                </p>
-              </div>
-              
-              {/* Presets horizontales como chips */}
-              <div className="flex gap-1.5 p-2 border-b border-border overflow-x-auto flex-shrink-0">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
-                  onClick={() => applyPreset("thisWeek")}
-                >
-                  Esta semana
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
-                  onClick={() => applyPreset("thisMonth")}
-                >
-                  Este mes
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
-                  onClick={() => applyPreset("thisQuarter")}
-                >
-                  Este trimestre
-                </Button>
-              </div>
-              
-              {/* Calendario compacto - 1 mes en portrait */}
-              <div className="p-2 flex justify-center">
-                <Calendar
-                  mode="range"
-                  selected={tempRange}
-                  onSelect={handleRangeSelect}
-                  numberOfMonths={1}
-                  locale={es}
-                  className="pointer-events-auto"
-                  classNames={{
-                    months: "flex flex-col sm:flex-row gap-2",
-                    month: "space-y-1",
-                    caption: "flex justify-center pt-0 relative items-center",
-                    caption_label: "text-xs font-medium",
-                    nav: "space-x-1 flex items-center",
-                    nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input",
-                    nav_button_previous: "absolute left-0",
-                    nav_button_next: "absolute right-0",
-                    table: "w-full border-collapse",
-                    head_row: "flex",
-                    head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.65rem]",
-                    row: "flex w-full mt-0.5",
-                    cell: "h-8 w-8 text-center text-xs p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                    day: "h-8 w-8 p-0 font-normal text-xs aria-selected:opacity-100 inline-flex items-center justify-center rounded-md",
-                    day_range_end: "day-range-end",
-                    day_selected: "bg-primary text-primary-foreground",
-                    day_today: "bg-accent text-accent-foreground",
-                    day_outside: "day-outside text-muted-foreground opacity-50",
-                    day_disabled: "text-muted-foreground opacity-50",
-                    day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
-                    day_hidden: "invisible",
-                  }}
-                />
-              </div>
-              
-              {/* Botón Aplicar directamente debajo del calendario */}
-              <div className="p-2 pt-0">
-                <Button 
-                  className="w-full h-10 text-sm touch-manipulation" 
-                  onClick={applyRange} 
-                  disabled={!tempRange?.from || !tempRange?.to}
-                >
-                  Aplicar
-                </Button>
-              </div>
-            </div>
-          ) : (
-            /* Layout Web - Horizontal con presets laterales */
-            <div className="flex flex-col">
-              {/* Header con rango seleccionado y botón Aplicar */}
-              <div className="flex flex-shrink-0 items-center justify-between p-2 border-b border-border bg-muted/50">
-                <div className="text-xs text-muted-foreground">
-                  {tempRange?.from && tempRange?.to ? (
-                    <span className="font-medium text-foreground">
-                      {format(tempRange.from, "d MMM yyyy", { locale: es })} - {format(tempRange.to, "d MMM yyyy", { locale: es })}
-                    </span>
-                  ) : (
-                    <span>Selecciona un rango de fechas</span>
-                  )}
+            </DialogContent>
+          </Dialog>
+        </>
+      ) : (
+        <Popover open={rangePickerOpen} onOpenChange={setRangePickerOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant={viewMode === "custom" ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                "h-10 sm:h-7 px-3 text-xs gap-1.5 touch-manipulation min-w-[44px]",
+                viewMode === "custom" && "bg-primary text-primary-foreground"
+              )}
+              onClick={() => {
+                handleViewModeChange("custom");
+                setRangePickerOpen(true);
+              }}
+            >
+              <CalendarRange className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <span className="hidden sm:inline">Rango</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent 
+            className={cn(
+              "p-0 bg-popover border border-border shadow-lg z-[100]",
+              isMobile ? "w-[calc(100vw-32px)] max-w-[360px]" : "w-auto"
+            )}
+            align="start"
+            sideOffset={!isMobile ? 8 : 4}
+            collisionPadding={{ top: 20, bottom: 20, left: 16, right: 16 }}
+          >
+            {isMobile ? (
+              /* Layout Portrait Móvil - Stack vertical compacto */
+              <div className="flex flex-col">
+                {/* Header con rango seleccionado */}
+                <div className="p-2 border-b border-border bg-popover">
+                  <p className="text-xs font-medium text-center">
+                    {tempRange?.from && tempRange?.to ? (
+                      <span className="text-foreground">
+                        {format(tempRange.from, "d MMM", { locale: es })} - {format(tempRange.to, "d MMM yyyy", { locale: es })}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Selecciona un rango</span>
+                    )}
+                  </p>
                 </div>
-                <Button size="sm" className="h-6 text-xs ml-4 px-3" onClick={applyRange} disabled={!tempRange?.from || !tempRange?.to}>
-                  Aplicar
-                </Button>
-              </div>
-              
-              {/* Contenido con presets y calendario */}
-              <div className="flex">
-                {/* Presets */}
-                <div className="border-r border-border p-2 space-y-0.5 min-w-[130px]">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">Presets</p>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisWeek")}>
+                
+                {/* Presets horizontales como chips */}
+                <div className="flex gap-1.5 p-2 border-b border-border overflow-x-auto flex-shrink-0">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
+                    onClick={() => applyPreset("thisWeek")}
+                  >
                     Esta semana
                   </Button>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisMonth")}>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
+                    onClick={() => applyPreset("thisMonth")}
+                  >
                     Este mes
                   </Button>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisQuarter")}>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-7 px-2 text-xs whitespace-nowrap touch-manipulation"
+                    onClick={() => applyPreset("thisQuarter")}
+                  >
                     Este trimestre
                   </Button>
                 </div>
-                {/* Calendar - Compacto para web */}
-                <div className="p-2">
+                
+                {/* Calendario compacto - 1 mes en portrait */}
+                <div className="p-2 flex justify-center">
                   <Calendar
                     mode="range"
                     selected={tempRange}
                     onSelect={handleRangeSelect}
-                    numberOfMonths={2}
+                    numberOfMonths={1}
                     locale={es}
                     className="pointer-events-auto"
                     classNames={{
-                      months: "flex flex-row gap-3",
-                      month: "space-y-1",
-                      caption: "flex justify-center pt-0.5 relative items-center",
-                      caption_label: "text-xs font-medium",
+                      months: "flex flex-col",
+                      month: "space-y-2",
+                      caption: "flex justify-center pt-1 relative items-center",
+                      caption_label: "text-sm font-medium",
                       nav: "space-x-1 flex items-center",
-                      nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input hover:bg-accent hover:text-accent-foreground",
-                      nav_button_previous: "absolute left-0.5",
-                      nav_button_next: "absolute right-0.5",
+                      nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input",
+                      nav_button_previous: "absolute left-1",
+                      nav_button_next: "absolute right-1",
                       table: "w-full border-collapse",
                       head_row: "flex",
-                      head_cell: "text-muted-foreground rounded-md w-7 font-normal text-[0.65rem]",
-                      row: "flex w-full mt-0.5",
-                      cell: "h-7 w-7 text-center text-xs p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                      day: "h-7 w-7 p-0 font-normal text-xs aria-selected:opacity-100 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground",
+                      head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.7rem]",
+                      row: "flex w-full mt-1",
+                      cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                      day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 inline-flex items-center justify-center rounded-md touch-manipulation",
                       day_range_end: "day-range-end",
-                      day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                      day_selected: "bg-primary text-primary-foreground",
                       day_today: "bg-accent text-accent-foreground",
-                      day_outside: "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+                      day_outside: "day-outside text-muted-foreground opacity-50",
                       day_disabled: "text-muted-foreground opacity-50",
                       day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
                       day_hidden: "invisible",
                     }}
                   />
                 </div>
+                
+                {/* Footer con botón Aplicar */}
+                <div className="p-2 border-t border-border bg-popover">
+                  <Button 
+                    className="w-full h-10 text-sm touch-manipulation" 
+                    onClick={applyRange} 
+                    disabled={!tempRange?.from || !tempRange?.to}
+                  >
+                    Aplicar
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
-        </PopoverContent>
-      </Popover>
+            ) : (
+              /* Layout Web - Horizontal con presets laterales */
+              <div className="flex flex-col">
+                {/* Header con rango seleccionado y botón Aplicar */}
+                <div className="flex flex-shrink-0 items-center justify-between p-2 border-b border-border bg-muted/50">
+                  <div className="text-xs text-muted-foreground">
+                    {tempRange?.from && tempRange?.to ? (
+                      <span className="font-medium text-foreground">
+                        {format(tempRange.from, "d MMM yyyy", { locale: es })} - {format(tempRange.to, "d MMM yyyy", { locale: es })}
+                      </span>
+                    ) : (
+                      <span>Selecciona un rango de fechas</span>
+                    )}
+                  </div>
+                  <Button size="sm" className="h-6 text-xs ml-4 px-3" onClick={applyRange} disabled={!tempRange?.from || !tempRange?.to}>
+                    Aplicar
+                  </Button>
+                </div>
+                
+                {/* Contenido con presets y calendario */}
+                <div className="flex">
+                  {/* Presets */}
+                  <div className="border-r border-border p-2 space-y-0.5 min-w-[130px]">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1.5">Presets</p>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisWeek")}>
+                      Esta semana
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisMonth")}>
+                      Este mes
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("thisQuarter")}>
+                      Este trimestre
+                    </Button>
+                  </div>
+                  {/* Calendar - Compacto para web */}
+                  <div className="p-2">
+                    <Calendar
+                      mode="range"
+                      selected={tempRange}
+                      onSelect={handleRangeSelect}
+                      numberOfMonths={2}
+                      locale={es}
+                      className="pointer-events-auto"
+                      classNames={{
+                        months: "flex flex-row gap-3",
+                        month: "space-y-1",
+                        caption: "flex justify-center pt-0.5 relative items-center",
+                        caption_label: "text-xs font-medium",
+                        nav: "space-x-1 flex items-center",
+                        nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input hover:bg-accent hover:text-accent-foreground",
+                        nav_button_previous: "absolute left-0.5",
+                        nav_button_next: "absolute right-0.5",
+                        table: "w-full border-collapse",
+                        head_row: "flex",
+                        head_cell: "text-muted-foreground rounded-md w-7 font-normal text-[0.65rem]",
+                        row: "flex w-full mt-0.5",
+                        cell: "h-7 w-7 text-center text-xs p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                        day: "h-7 w-7 p-0 font-normal text-xs aria-selected:opacity-100 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground",
+                        day_range_end: "day-range-end",
+                        day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                        day_today: "bg-accent text-accent-foreground",
+                        day_outside: "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+                        day_disabled: "text-muted-foreground opacity-50",
+                        day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                        day_hidden: "invisible",
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+      )}
 
       {/* Navigation */}
       <div className="flex items-center gap-1 flex-shrink-0">

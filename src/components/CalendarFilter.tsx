@@ -307,10 +307,7 @@ export function CalendarFilter({
             {/* Contenido con presets y calendario */}
             <div className={cn("flex", isMobile && "max-h-[60vh] overflow-y-auto")}>
               {/* Presets */}
-              <div className={cn(
-                "border-r border-border p-2 space-y-0.5 min-w-[130px]",
-                !isMobile && "max-h-[280px] overflow-y-auto"
-              )}>
+              <div className="border-r border-border p-2 space-y-0.5 min-w-[130px]">
                 <p className="text-xs font-semibold text-muted-foreground mb-1.5">Presets</p>
                 <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-6" onClick={() => applyPreset("last7")}>
                   Últimos 7 días

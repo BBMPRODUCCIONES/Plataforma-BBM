@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -74,6 +75,7 @@ export function CalendarFilter({
   onDateRangeChange,
   onStatusChange,
 }: CalendarFilterProps) {
+  const isMobile = useIsMobile();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [rangePickerOpen, setRangePickerOpen] = useState(false);
   const [tempRange, setTempRange] = useState<DateRange | undefined>(
@@ -279,16 +281,19 @@ export function CalendarFilter({
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-auto p-0 bg-popover border border-border shadow-lg z-[100]" 
+          className={cn(
+            "w-auto p-0 bg-popover border border-border shadow-lg z-[100]",
+            !isMobile && "max-h-[calc(100vh-220px)] overflow-hidden"
+          )}
           align="start"
-          side="bottom"
-          sideOffset={8}
-          avoidCollisions={true}
-          collisionPadding={{ top: 20, bottom: 20, left: 16, right: 16 }}
+          side={!isMobile ? "bottom" : undefined}
+          sideOffset={!isMobile ? 8 : 4}
+          avoidCollisions={!isMobile ? true : undefined}
+          collisionPadding={!isMobile ? { top: 20, bottom: 20, left: 16, right: 16 } : undefined}
         >
-          <div className="flex flex-col">
+          <div className={cn("flex flex-col", !isMobile && "h-full min-h-0")}>
             {/* Header con rango seleccionado y botón Aplicar - SIEMPRE VISIBLE */}
-            <div className="flex items-center justify-between p-3 border-b border-border bg-muted/50">
+            <div className="flex flex-shrink-0 items-center justify-between p-3 border-b border-border bg-muted/50">
               <div className="text-xs text-muted-foreground">
                 {tempRange?.from && tempRange?.to ? (
                   <span className="font-medium text-foreground">
@@ -304,9 +309,9 @@ export function CalendarFilter({
             </div>
             
             {/* Contenido con presets y calendario */}
-            <div className="flex max-h-[calc(80vh-60px)] overflow-hidden">
+            <div className={cn("flex overflow-hidden", !isMobile ? "flex-1 min-h-0" : "max-h-[60vh]")}>
               {/* Presets */}
-              <div className="border-r border-border p-3 space-y-1 min-w-[140px] overflow-y-auto">
+              <div className="border-r border-border p-3 space-y-1 min-w-[140px] overflow-y-auto min-h-0">
                 <p className="text-xs font-semibold text-muted-foreground mb-2">Presets</p>
                 <Button variant="ghost" size="sm" className="w-full justify-start text-xs h-7" onClick={() => applyPreset("last7")}>
                   Últimos 7 días
@@ -332,7 +337,7 @@ export function CalendarFilter({
                 </Button>
               </div>
               {/* Calendar */}
-              <div className="p-3 overflow-y-auto">
+              <div className="p-3 overflow-y-auto min-h-0">
                 <Calendar
                   mode="range"
                   selected={tempRange}

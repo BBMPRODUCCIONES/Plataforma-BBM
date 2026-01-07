@@ -339,12 +339,12 @@ export function CalendarFilter({
                     "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
                     "flex flex-col",
                     isLandscape 
-                      ? "w-[min(98vw,780px)] max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-24px)]"
+                      ? "w-[min(98vw,850px)] max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-24px)]"
                       : "w-[min(95vw,360px)] max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-24px)]"
                   )}
                 >
                   {/* Header fijo */}
-                  <div className="flex items-center justify-between p-2 border-b border-border bg-muted/50 flex-shrink-0">
+                  <div className="flex items-center justify-between p-2 pr-1 border-b border-border bg-muted/50 flex-shrink-0">
                     <p className="text-xs font-medium">
                       {tempRange?.from && tempRange?.to ? (
                         <span className="text-foreground">
@@ -354,7 +354,7 @@ export function CalendarFilter({
                         <span className="text-muted-foreground">Selecciona un rango</span>
                       )}
                     </p>
-                    <DialogPrimitive.Close className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2">
+                    <DialogPrimitive.Close className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center">
                       <X className="h-5 w-5" />
                       <span className="sr-only">Cerrar</span>
                     </DialogPrimitive.Close>
@@ -365,11 +365,11 @@ export function CalendarFilter({
                     {isLandscape ? (
                       /* Layout Landscape: Presets compactos izquierda + 2 calendarios más pequeños */
                       <div className="flex h-full">
-                        <div className="border-r border-border p-1 space-y-0.5 flex-shrink-0">
+                        <div className="border-r border-border px-0.5 py-1 space-y-0.5 flex-shrink-0">
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="w-full justify-start h-7 px-1.5 text-[10px] whitespace-nowrap touch-manipulation"
+                            className="w-full justify-start h-6 px-1 text-[9px] whitespace-nowrap touch-manipulation"
                             onClick={() => applyPreset("thisWeek")}
                           >
                             Esta semana
@@ -377,7 +377,7 @@ export function CalendarFilter({
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="w-full justify-start h-7 px-1.5 text-[10px] whitespace-nowrap touch-manipulation"
+                            className="w-full justify-start h-6 px-1 text-[9px] whitespace-nowrap touch-manipulation"
                             onClick={() => applyPreset("thisMonth")}
                           >
                             Este mes
@@ -385,13 +385,13 @@ export function CalendarFilter({
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="w-full justify-start h-7 px-1.5 text-[10px] whitespace-nowrap touch-manipulation"
+                            className="w-full justify-start h-6 px-1 text-[9px] whitespace-nowrap touch-manipulation"
                             onClick={() => applyPreset("thisQuarter")}
                           >
                             Este trimestre
                           </Button>
                         </div>
-                        <div className="p-1.5 overflow-auto flex-1 flex justify-center items-start">
+                        <div className="p-1 overflow-auto flex-1 flex justify-center items-start">
                           <Calendar
                             mode="range"
                             selected={tempRange}
@@ -402,18 +402,18 @@ export function CalendarFilter({
                             classNames={{
                               months: "flex flex-row gap-1",
                               month: "space-y-0.5",
-                              caption: "flex justify-center pt-0 relative items-center h-6",
-                              caption_label: "text-[10px] font-medium",
+                              caption: "flex justify-center pt-0 relative items-center h-5",
+                              caption_label: "text-[9px] font-medium",
                               nav: "space-x-1 flex items-center",
-                              nav_button: "h-5 w-5 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input touch-manipulation",
+                              nav_button: "h-4 w-4 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input touch-manipulation",
                               nav_button_previous: "absolute left-0",
                               nav_button_next: "absolute right-0",
                               table: "w-full border-collapse",
                               head_row: "flex",
-                              head_cell: "text-muted-foreground rounded-md w-6 font-normal text-[9px]",
+                              head_cell: "text-muted-foreground rounded-md w-5 font-normal text-[8px]",
                               row: "flex w-full mt-0",
-                              cell: "h-6 w-6 text-center text-[10px] p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                              day: "h-6 w-6 p-0 font-normal text-[10px] aria-selected:opacity-100 inline-flex items-center justify-center rounded-md touch-manipulation",
+                              cell: "h-5 w-5 text-center text-[9px] p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                              day: "h-5 w-5 p-0 font-normal text-[9px] aria-selected:opacity-100 inline-flex items-center justify-center rounded-md touch-manipulation",
                               day_range_end: "day-range-end",
                               day_selected: "bg-primary text-primary-foreground",
                               day_today: "bg-accent text-accent-foreground",

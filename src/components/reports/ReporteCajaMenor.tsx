@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +30,7 @@ interface FlattenedCajaMenorItem extends CajaMenorItem {
 const KNOWN_CATEGORIAS = ["compras", "alimentación", "alimentacion", "transporte", "servicios", "materiales", "equipos", "otros"];
 const KNOWN_ESTADOS = ["aprobado", "no aprobado", "pendiente", "rechazado"];
 const KNOWN_RECURSOS = ["caja menor", "anticipos", "reembolso"];
+const KNOWN_PROCESO_PAGO = ["pagado", "no pagado"];
 
 // Normalize text for comparison (remove accents, lowercase)
 const normalize = (text: string): string => {
@@ -49,7 +50,16 @@ interface ClassifiedTokens {
   contingencias: string[];
   recibos: string[];
   recursos: string[];
+  procesoPago: string[];
   textoLibre: string[];
+}
+
+// Suggestion types for autocomplete
+interface Suggestion {
+  type: 'contingencia' | 'estado' | 'procesoPago' | 'categoria' | 'empleado' | 'evento' | 'recibo' | 'recursos';
+  label: string;
+  value: string;
+  displayLabel: string;
 }
 
 const ReporteCajaMenor = () => {
@@ -65,6 +75,10 @@ const ReporteCajaMenor = () => {
 
   // Smart search state (single input for all filters)
   const [smartSearch, setSmartSearch] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Image gallery states
   const [selectedImages, setSelectedImages] = useState<Attachment[]>([]);
@@ -147,6 +161,209 @@ const ReporteCajaMenor = () => {
     return Array.from(set);
   }, [allCajaMenorItems]);
 
+  // Get unique empleados with original names for display
+  const uniqueEmpleadosDisplay = useMemo(() => {
+    const map = new Map<string, string>();
+    allCajaMenorItems.forEach(item => {
+      if (item.empleadoNombre) {
+        map.set(normalize(item.empleadoNombre), item.empleadoNombre);
+      }
+    });
+    return Array.from(map.entries());
+  }, [allCajaMenorItems]);
+
+  // Get unique eventos with original names for display
+  const uniqueEventosDisplay = useMemo(() => {
+    const map = new Map<string, string>();
+    allCajaMenorItems.forEach(item => {
+      if (item.eventoNombre) {
+        map.set(normalize(item.eventoNombre), item.eventoNombre);
+      }
+    });
+    return Array.from(map.entries());
+  }, [allCajaMenorItems]);
+
+  // Get unique recibos for suggestions
+  const uniqueRecibos = useMemo(() => {
+    const set = new Set<string>();
+    allCajaMenorItems.forEach(item => {
+      if (item.recibo) set.add(item.recibo);
+    });
+    return Array.from(set);
+  }, [allCajaMenorItems]);
+
+  // Get the current token being typed (after last comma)
+  const currentToken = useMemo(() => {
+    const parts = smartSearch.split(',');
+    return parts[parts.length - 1].trim().toLowerCase();
+  }, [smartSearch]);
+
+  // Generate autocomplete suggestions based on current input
+  const suggestions = useMemo((): Suggestion[] => {
+    if (currentToken.length < 2) return [];
+    
+    const results: Suggestion[] = [];
+    const normalizedToken = normalize(currentToken);
+    
+    // Contingencia suggestions
+    if ("contingencia".includes(normalizedToken) || normalizedToken.includes("cont")) {
+      results.push(
+        { type: 'contingencia', label: 'Contingencia: Sí', value: 'contingencia:si', displayLabel: 'Contingencia: Sí' },
+        { type: 'contingencia', label: 'Contingencia: No', value: 'contingencia:no', displayLabel: 'Contingencia: No' }
+      );
+    }
+
+    // Estado suggestions
+    if ("estado".includes(normalizedToken) || normalizedToken.includes("estado")) {
+      results.push(
+        { type: 'estado', label: 'Estado: Aprobado', value: 'estado:aprobado', displayLabel: 'Estado: Aprobado' },
+        { type: 'estado', label: 'Estado: No aprobado', value: 'estado:no aprobado', displayLabel: 'Estado: No aprobado' }
+      );
+    }
+
+    // Proceso de pago suggestions
+    if ("pago".includes(normalizedToken) || "proceso".includes(normalizedToken) || normalizedToken.includes("pago") || normalizedToken.includes("proceso")) {
+      results.push(
+        { type: 'procesoPago', label: 'Proceso de pago: Pagado', value: 'pago:pagado', displayLabel: 'Proceso de pago: Pagado' },
+        { type: 'procesoPago', label: 'Proceso de pago: No pagado', value: 'pago:no pagado', displayLabel: 'Proceso de pago: No pagado' }
+      );
+    }
+
+    // Categoría suggestions
+    if ("categoria".includes(normalizedToken) || "cat".includes(normalizedToken)) {
+      KNOWN_CATEGORIAS.filter(c => c !== 'alimentacion').forEach(cat => {
+        const displayCat = cat.charAt(0).toUpperCase() + cat.slice(1);
+        results.push({ type: 'categoria', label: displayCat, value: cat, displayLabel: `Categoría: ${displayCat}` });
+      });
+    } else {
+      // Also suggest categories that match the token
+      KNOWN_CATEGORIAS.filter(c => c !== 'alimentacion').forEach(cat => {
+        if (normalize(cat).includes(normalizedToken) || normalizedToken.includes(normalize(cat).slice(0, 3))) {
+          const displayCat = cat.charAt(0).toUpperCase() + cat.slice(1);
+          if (!results.find(r => r.value === cat)) {
+            results.push({ type: 'categoria', label: displayCat, value: cat, displayLabel: `Categoría: ${displayCat}` });
+          }
+        }
+      });
+    }
+
+    // Empleado suggestions (show matching employees)
+    if ("empleado".includes(normalizedToken) || "emp".includes(normalizedToken)) {
+      uniqueEmpleadosDisplay.slice(0, 8).forEach(([_, displayName]) => {
+        results.push({ type: 'empleado', label: displayName, value: displayName, displayLabel: `Empleado: ${displayName}` });
+      });
+    } else {
+      // Match against actual employee names
+      uniqueEmpleadosDisplay
+        .filter(([normalized]) => normalized.includes(normalizedToken))
+        .slice(0, 8)
+        .forEach(([_, displayName]) => {
+          if (!results.find(r => r.type === 'empleado' && r.value === displayName)) {
+            results.push({ type: 'empleado', label: displayName, value: displayName, displayLabel: `Empleado: ${displayName}` });
+          }
+        });
+    }
+
+    // Evento suggestions (show matching events)
+    if ("evento".includes(normalizedToken) || "ev".includes(normalizedToken)) {
+      uniqueEventosDisplay.slice(0, 8).forEach(([_, displayName]) => {
+        results.push({ type: 'evento', label: displayName, value: displayName, displayLabel: `Evento: ${displayName}` });
+      });
+    } else {
+      // Match against actual event names
+      uniqueEventosDisplay
+        .filter(([normalized]) => normalized.includes(normalizedToken))
+        .slice(0, 8)
+        .forEach(([_, displayName]) => {
+          if (!results.find(r => r.type === 'evento' && r.value === displayName)) {
+            results.push({ type: 'evento', label: displayName, value: displayName, displayLabel: `Evento: ${displayName}` });
+          }
+        });
+    }
+
+    // Recibo suggestions
+    if (normalizedToken.includes("rcm") || /^\d+$/.test(normalizedToken)) {
+      uniqueRecibos
+        .filter(r => normalize(r).includes(normalizedToken))
+        .slice(0, 8)
+        .forEach(recibo => {
+          results.push({ type: 'recibo', label: recibo, value: recibo, displayLabel: `Recibo: ${recibo}` });
+        });
+    }
+
+    // Recursos suggestions
+    if ("recursos".includes(normalizedToken) || normalizedToken.includes("rec")) {
+      KNOWN_RECURSOS.forEach(rec => {
+        const displayRec = rec.charAt(0).toUpperCase() + rec.slice(1);
+        results.push({ type: 'recursos', label: displayRec, value: rec, displayLabel: `Recursos: ${displayRec}` });
+      });
+    }
+
+    return results.slice(0, 10); // Limit to 10 suggestions
+  }, [currentToken, uniqueEmpleadosDisplay, uniqueEventosDisplay, uniqueRecibos]);
+
+  // Handle suggestion selection
+  const handleSelectSuggestion = useCallback((suggestion: Suggestion) => {
+    const parts = smartSearch.split(',');
+    parts.pop(); // Remove current incomplete token
+    const newValue = parts.length > 0 
+      ? parts.map(p => p.trim()).join(', ') + ', ' + suggestion.value
+      : suggestion.value;
+    setSmartSearch(newValue + ', ');
+    setShowSuggestions(false);
+    setSelectedSuggestionIndex(-1);
+    inputRef.current?.focus();
+  }, [smartSearch]);
+
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedSuggestionIndex(prev => 
+        prev < suggestions.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedSuggestionIndex(prev => 
+        prev > 0 ? prev - 1 : suggestions.length - 1
+      );
+    } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
+      e.preventDefault();
+      handleSelectSuggestion(suggestions[selectedSuggestionIndex]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setSelectedSuggestionIndex(-1);
+    }
+  }, [showSuggestions, suggestions, selectedSuggestionIndex, handleSelectSuggestion]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current && 
+        !suggestionsRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Show suggestions when typing
+  useEffect(() => {
+    if (suggestions.length > 0 && currentToken.length >= 2) {
+      setShowSuggestions(true);
+      setSelectedSuggestionIndex(-1);
+    } else {
+      setShowSuggestions(false);
+    }
+  }, [suggestions, currentToken]);
+
   // Classify tokens into types
   const classifiedTokens = useMemo((): ClassifiedTokens => {
     const result: ClassifiedTokens = {
@@ -157,6 +374,7 @@ const ReporteCajaMenor = () => {
       contingencias: [],
       recibos: [],
       recursos: [],
+      procesoPago: [],
       textoLibre: []
     };
 
@@ -176,8 +394,8 @@ const ReporteCajaMenor = () => {
         result.recibos.push(token);
         classified = true;
       }
-      // Priority 2: Contingencia
-      else if (normalized.includes("contingencia")) {
+      // Priority 2: Contingencia (format: "contingencia:si" or "contingencia sí")
+      else if (normalized.includes("contingencia") || normalized.startsWith("contingencia:")) {
         if (normalized.includes("si") || normalized.includes("sí") || normalized.includes("yes")) {
           result.contingencias.push("Sí");
         } else if (normalized.includes("no")) {
@@ -185,27 +403,36 @@ const ReporteCajaMenor = () => {
         }
         classified = true;
       }
-      // Priority 3: Estado
-      else if (KNOWN_ESTADOS.some(e => normalized === e || normalized.includes(e))) {
-        result.estados.push(token);
+      // Priority 3: Proceso de pago (format: "pago:pagado" or "proceso de pago")
+      else if (normalized.includes("pago:") || (normalized.includes("pago") && (normalized.includes("pagado") || normalized.includes("no pagado")))) {
+        if (normalized.includes("no pagado") || normalized === "pago:no pagado") {
+          result.procesoPago.push("No pagado");
+        } else if (normalized.includes("pagado")) {
+          result.procesoPago.push("Pagado");
+        }
         classified = true;
       }
-      // Priority 4: Categoría
+      // Priority 4: Estado (format: "estado:aprobado")
+      else if (normalized.includes("estado:") || KNOWN_ESTADOS.some(e => normalized === e || normalized.includes(e))) {
+        result.estados.push(token.replace(/estado:/i, '').trim());
+        classified = true;
+      }
+      // Priority 5: Categoría
       else if (KNOWN_CATEGORIAS.some(c => normalize(c) === normalized || normalized.includes(normalize(c)))) {
         result.categorias.push(token);
         classified = true;
       }
-      // Priority 5: Recursos
+      // Priority 6: Recursos
       else if (KNOWN_RECURSOS.some(r => normalize(r) === normalized || normalized.includes(normalize(r)))) {
         result.recursos.push(token);
         classified = true;
       }
-      // Priority 6: Empleado (partial match against known employees)
+      // Priority 7: Empleado (partial match against known employees)
       else if (uniqueEmpleados.some(emp => emp.includes(normalized) || normalized.includes(emp.split(' ')[0]))) {
         result.empleados.push(token);
         classified = true;
       }
-      // Priority 7: Evento (partial match against known events)
+      // Priority 8: Evento (partial match against known events)
       else if (uniqueEventos.some(ev => ev.includes(normalized) || normalized.split(' ').some(word => ev.includes(word) && word.length > 3))) {
         result.eventos.push(token);
         classified = true;
@@ -240,7 +467,7 @@ const ReporteCajaMenor = () => {
       // STEP 2: If no search, return all
       if (!hasActiveFilters) return true;
 
-      const { categorias, empleados, eventos, estados, contingencias, recibos, recursos, textoLibre } = classifiedTokens;
+      const { categorias, empleados, eventos, estados, contingencias, recibos, recursos, procesoPago, textoLibre } = classifiedTokens;
 
       // Helper to check if any token matches a field (OR logic)
       const matchesAny = (tokens: string[], fieldValue: string | undefined | null): boolean => {
@@ -272,6 +499,9 @@ const ReporteCajaMenor = () => {
 
       // Recursos (OR)
       if (recursos.length > 0 && !matchesAny(recursos, item.recursos)) return false;
+
+      // Proceso de pago (OR)
+      if (procesoPago.length > 0 && !matchesAny(procesoPago, item.procesoPago || "No pagado")) return false;
 
       // Texto libre (OR across all fields)
       if (textoLibre.length > 0) {
@@ -452,16 +682,63 @@ const ReporteCajaMenor = () => {
             onStatusChange={() => {}} // Not used in reports
           />
 
-          {/* Smart Search - Single intelligent input */}
+          {/* Smart Search with Autocomplete */}
           <div className="space-y-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
               <Input
-                placeholder="Buscar por empleado, evento, categoría, concepto, contingencia... (usa comas para combinar)"
+                ref={inputRef}
+                placeholder="Buscar por empleado, evento, categoría, contingencia, estado, proceso de pago... (usa comas)"
                 value={smartSearch}
                 onChange={(e) => setSmartSearch(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                 className="pl-10 h-11"
               />
+              
+              {/* Autocomplete Suggestions Dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div 
+                  ref={suggestionsRef}
+                  className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto"
+                >
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      key={`${suggestion.type}-${suggestion.value}-${index}`}
+                      type="button"
+                      onClick={() => handleSelectSuggestion(suggestion)}
+                      className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-colors ${
+                        index === selectedSuggestionIndex 
+                          ? 'bg-accent text-accent-foreground' 
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <Badge 
+                        variant="outline" 
+                        className={`text-[10px] shrink-0 ${
+                          suggestion.type === 'contingencia' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' :
+                          suggestion.type === 'estado' ? 'bg-green-500/10 text-green-600 border-green-500/30' :
+                          suggestion.type === 'procesoPago' ? 'bg-rose-500/10 text-rose-600 border-rose-500/30' :
+                          suggestion.type === 'categoria' ? 'bg-orange-500/10 text-orange-600 border-orange-500/30' :
+                          suggestion.type === 'empleado' ? 'bg-blue-500/10 text-blue-600 border-blue-500/30' :
+                          suggestion.type === 'evento' ? 'bg-purple-500/10 text-purple-600 border-purple-500/30' :
+                          suggestion.type === 'recibo' ? 'bg-gray-500/10 text-gray-600 border-gray-500/30' :
+                          'bg-teal-500/10 text-teal-600 border-teal-500/30'
+                        }`}
+                      >
+                        {suggestion.type === 'contingencia' ? 'Cont.' :
+                         suggestion.type === 'estado' ? 'Estado' :
+                         suggestion.type === 'procesoPago' ? 'Pago' :
+                         suggestion.type === 'categoria' ? 'Cat.' :
+                         suggestion.type === 'empleado' ? 'Emp.' :
+                         suggestion.type === 'evento' ? 'Evento' :
+                         suggestion.type === 'recibo' ? 'Recibo' : 'Rec.'}
+                      </Badge>
+                      <span className="truncate">{suggestion.displayLabel}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Filter Summary - Shows detected filter groups */}
@@ -513,6 +790,16 @@ const ReporteCajaMenor = () => {
                     {classifiedTokens.contingencias.map((cont, i) => (
                       <Badge key={i} variant="secondary" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/20">
                         {cont}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {classifiedTokens.procesoPago.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Proceso de pago:</span>
+                    {classifiedTokens.procesoPago.map((pago, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs bg-rose-500/10 text-rose-600 border-rose-500/20">
+                        {pago}
                       </Badge>
                     ))}
                   </div>

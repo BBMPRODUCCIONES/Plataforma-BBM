@@ -323,8 +323,8 @@ export function CalendarFilter({
                 style={{
                   paddingTop: "calc(env(safe-area-inset-top, 0px) + 24px)",
                   paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)",
-                  paddingLeft: "24px",
-                  paddingRight: "24px",
+                  paddingLeft: "calc(env(safe-area-inset-left, 0px) + 24px)",
+                  paddingRight: "calc(env(safe-area-inset-right, 0px) + 24px)",
                 }}
               >
                 {/* Overlay oscuro */}
@@ -391,7 +391,7 @@ export function CalendarFilter({
                             Este trimestre
                           </Button>
                         </div>
-                        <div className="p-1.5 overflow-auto flex-1 flex justify-center items-start min-h-0">
+                        <div className="p-1 overflow-x-auto flex-1 flex justify-start items-start min-h-0">
                           <Calendar
                             mode="range"
                             selected={tempRange}
@@ -400,20 +400,20 @@ export function CalendarFilter({
                             locale={es}
                             className="pointer-events-auto"
                             classNames={{
-                              months: "flex flex-row gap-2",
-                              month: "space-y-1",
-                              caption: "flex justify-center pt-0 relative items-center h-6",
-                              caption_label: "text-xs font-medium",
+                              months: "flex flex-row gap-1",
+                              month: "space-y-0.5",
+                              caption: "flex justify-center pt-0 relative items-center h-5",
+                              caption_label: "text-sm font-medium",
                               nav: "space-x-1 flex items-center",
                               nav_button: "h-5 w-5 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input touch-manipulation",
                               nav_button_previous: "absolute left-0",
                               nav_button_next: "absolute right-0",
                               table: "w-full border-collapse",
                               head_row: "flex",
-                              head_cell: "text-muted-foreground rounded-md w-6 font-normal text-[10px]",
-                              row: "flex w-full mt-0.5",
-                              cell: "h-6 w-6 text-center text-xs p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                              day: "h-6 w-6 p-0 font-normal text-xs aria-selected:opacity-100 inline-flex items-center justify-center rounded-md touch-manipulation",
+                              head_cell: "text-muted-foreground rounded-md w-7 font-normal text-xs",
+                              row: "flex w-full mt-0",
+                              cell: "h-6 w-7 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                              day: "h-6 w-7 p-0 font-normal text-sm aria-selected:opacity-100 inline-flex items-center justify-center rounded-md touch-manipulation",
                               day_range_end: "day-range-end",
                               day_selected: "bg-primary text-primary-foreground",
                               day_today: "bg-accent text-accent-foreground",
@@ -492,9 +492,9 @@ export function CalendarFilter({
                   </div>
                   
                   {/* Footer fijo con botón Aplicar */}
-                  <div className="p-2 border-t border-border bg-popover flex-shrink-0">
+                  <div className="p-1.5 border-t border-border bg-popover flex-shrink-0">
                     <Button 
-                      className="w-full h-9 text-sm touch-manipulation" 
+                      className="w-full h-8 text-sm touch-manipulation" 
                       onClick={applyRange} 
                       disabled={!tempRange?.from || !tempRange?.to}
                     >

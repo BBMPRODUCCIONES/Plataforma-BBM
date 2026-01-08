@@ -76,7 +76,7 @@ const DonutChart = ({
   const outerRadius = size * 0.42;
   const innerRadius = size * 0.28;
   const externalLabelRadius = size * 0.50; // White percentages OUTSIDE
-  const internalLabelRadius = size * 0.15; // Colored contingency percentages INSIDE (more centered)
+  const internalLabelRadius = size * 0.21; // Colored contingency percentages INSIDE (near inner edge)
 
   // Calculate segments with angles
   const segments = useMemo(() => {
@@ -179,7 +179,7 @@ const DonutChart = ({
             dominantBaseline="middle"
             fill={segment.color}
             style={{ 
-              fontSize: size > 180 ? '11px' : '9px',
+              fontSize: size > 180 ? '10px' : '8px',
               fontWeight: 600,
               filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.4))" 
             }}
@@ -190,12 +190,12 @@ const DonutChart = ({
       })}
 
       {/* Center content - only contingencia text and percentage */}
-      <foreignObject x={center - 40} y={center - 22} width={80} height={44}>
+      <foreignObject x={center - 35} y={center - 18} width={70} height={36}>
         <div className="w-full h-full flex flex-col items-center justify-center">
-          <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
+          <span className="text-[8px] uppercase tracking-wider text-muted-foreground/60">
             contingencia
           </span>
-          <span className="text-base font-bold text-foreground/80">
+          <span className="text-sm font-bold text-foreground/80">
             {contingenciaPct.toFixed(0)}%
           </span>
         </div>

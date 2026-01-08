@@ -56,20 +56,27 @@ interface CategoryStats {
   };
 }
 
-// SVG Donut Component - Single donut with colored percentages on edge
+// SVG Donut Component - Single donut with white external + colored internal percentages
 const DonutChart = ({ 
   data, 
   contingenciaPct,
+  contingenciaByRecurso,
   size = 200 
 }: { 
   data: DonutSegment[];
   contingenciaPct: number;
+  contingenciaByRecurso: {
+    recursosPropios: ResourceContingencia;
+    bbm: ResourceContingencia;
+    anticipo: ResourceContingencia;
+  };
   size?: number;
 }) => {
   const center = size / 2;
   const outerRadius = size * 0.42;
   const innerRadius = size * 0.26;
-  const labelRadius = size * 0.34; // Colored percentages on the donut edge
+  const externalLabelRadius = size * 0.50; // White percentages OUTSIDE
+  const internalLabelRadius = size * 0.20; // Colored contingency percentages INSIDE
 
   // Calculate segments with angles
   const segments = useMemo(() => {
@@ -109,6 +116,20 @@ const DonutChart = ({
     return polarToCartesian(midAngle, radius);
   };
 
+  // Get contingency percentage for a segment name
+  const getContingenciaPct = (segmentName: string): number => {
+    switch (segmentName) {
+      case "Recursos propios":
+        return contingenciaByRecurso.recursosPropios.percentage;
+      case "BBM":
+        return contingenciaByRecurso.bbm.percentage;
+      case "Anticipo BBM":
+        return contingenciaByRecurso.anticipo.percentage;
+      default:
+        return 0;
+    }
+  };
+
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
       {/* Main donut segments */}
@@ -121,22 +142,22 @@ const DonutChart = ({
         />
       ))}
 
-      {/* Colored percentage labels on the donut edge */}
+      {/* WHITE percentage labels OUTSIDE the donut (distribution by value) */}
       {segments.map((segment, index) => {
         if (segment.percentage < 3) return null;
-        const pos = getLabelPosition(segment.startAngle, segment.endAngle, labelRadius);
+        const pos = getLabelPosition(segment.startAngle, segment.endAngle, externalLabelRadius);
         return (
           <text
-            key={`label-${index}`}
+            key={`external-label-${index}`}
             x={pos.x}
             y={pos.y}
             textAnchor="middle"
             dominantBaseline="middle"
-            fill={segment.color}
+            fill="white"
             style={{ 
-              fontSize: size > 180 ? '14px' : '11px',
+              fontSize: size > 180 ? '16px' : '13px',
               fontWeight: 700,
-              filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))" 
+              filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.5))" 
             }}
           >
             {segment.percentage.toFixed(0)}%
@@ -144,13 +165,37 @@ const DonutChart = ({
         );
       })}
 
+      {/* COLORED percentage labels INSIDE the donut (contingency by resource) */}
+      {segments.map((segment, index) => {
+        const contingencia = getContingenciaPct(segment.name);
+        if (segment.percentage < 3) return null;
+        const pos = getLabelPosition(segment.startAngle, segment.endAngle, internalLabelRadius);
+        return (
+          <text
+            key={`internal-label-${index}`}
+            x={pos.x}
+            y={pos.y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill={segment.color}
+            style={{ 
+              fontSize: size > 180 ? '11px' : '9px',
+              fontWeight: 600,
+              filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.4))" 
+            }}
+          >
+            {contingencia.toFixed(0)}%
+          </text>
+        );
+      })}
+
       {/* Center content - only contingencia text and percentage */}
       <foreignObject x={center - 40} y={center - 22} width={80} height={44}>
         <div className="w-full h-full flex flex-col items-center justify-center">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
             contingencia
           </span>
-          <span className="text-lg font-bold text-foreground">
+          <span className="text-base font-bold text-foreground/80">
             {contingenciaPct.toFixed(0)}%
           </span>
         </div>
@@ -310,6 +355,7 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                   <DonutChart
                     data={cat.donutData}
                     contingenciaPct={cat.contingenciaPct}
+                    contingenciaByRecurso={cat.contingenciaByRecurso}
                     size={200}
                   />
                 ) : (

@@ -321,10 +321,10 @@ export function CalendarFilter({
               <div 
                 className="fixed inset-0 z-50 flex items-center justify-center"
                 style={{
-                  paddingTop: "calc(env(safe-area-inset-top, 0px) + 24px)",
-                  paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)",
-                  paddingLeft: "calc(env(safe-area-inset-left, 0px) + 24px)",
-                  paddingRight: "calc(env(safe-area-inset-right, 0px) + 24px)",
+                  paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)",
+                  paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+                  paddingLeft: "calc(env(safe-area-inset-left, 0px) + 16px)",
+                  paddingRight: "calc(env(safe-area-inset-right, 0px) + 16px)",
                 }}
               >
                 {/* Overlay oscuro */}
@@ -344,7 +344,7 @@ export function CalendarFilter({
                   )}
                 >
                   {/* Header fijo */}
-                  <div className="flex items-center justify-between px-2 py-1 border-b border-border bg-muted/50 flex-shrink-0">
+                  <div className="flex items-center justify-between px-2 py-0.5 border-b border-border bg-muted/50 flex-shrink-0">
                     <p className="text-xs font-medium">
                       {tempRange?.from && tempRange?.to ? (
                         <span className="text-foreground">
@@ -365,7 +365,7 @@ export function CalendarFilter({
                     {isLandscape ? (
                       /* Layout Landscape: Presets compactos izquierda + 2 calendarios más pequeños */
                       <div className="flex h-full">
-                        <div className="border-r border-border px-1 py-1 space-y-0 flex-shrink-0">
+                        <div className="border-r border-border px-1 py-0.5 space-y-0 flex-shrink-0">
                           <Button 
                             size="sm" 
                             variant="ghost" 
@@ -391,7 +391,7 @@ export function CalendarFilter({
                             Este trimestre
                           </Button>
                         </div>
-                        <div className="p-1 overflow-x-auto flex-1 flex justify-start items-start min-h-0">
+                        <div className="p-0.5 overflow-x-auto flex-1 flex justify-start items-start min-h-0">
                           <Calendar
                             mode="range"
                             selected={tempRange}
@@ -492,9 +492,9 @@ export function CalendarFilter({
                   </div>
                   
                   {/* Footer fijo con botón Aplicar */}
-                  <div className="p-1.5 border-t border-border bg-popover flex-shrink-0">
+                  <div className="p-1 border-t border-border bg-popover flex-shrink-0">
                     <Button 
-                      className="w-full h-8 text-sm touch-manipulation" 
+                      className="w-full h-7 text-sm touch-manipulation"
                       onClick={applyRange} 
                       disabled={!tempRange?.from || !tempRange?.to}
                     >

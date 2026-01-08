@@ -74,9 +74,9 @@ const DonutChart = ({
 }) => {
   const center = size / 2;
   const outerRadius = size * 0.42;
-  const innerRadius = size * 0.26;
+  const innerRadius = size * 0.28;
   const externalLabelRadius = size * 0.50; // White percentages OUTSIDE
-  const internalLabelRadius = size * 0.20; // Colored contingency percentages INSIDE
+  const internalLabelRadius = size * 0.15; // Colored contingency percentages INSIDE (more centered)
 
   // Calculate segments with angles
   const segments = useMemo(() => {

@@ -26,6 +26,32 @@ interface FlattenedCajaMenorItem extends CajaMenorItem {
   fecha: string;
 }
 
+// Known categories for classification
+const KNOWN_CATEGORIAS = ["compras", "alimentación", "alimentacion", "transporte", "servicios", "materiales", "equipos", "otros"];
+const KNOWN_ESTADOS = ["aprobado", "no aprobado", "pendiente", "rechazado"];
+const KNOWN_RECURSOS = ["caja menor", "anticipos", "reembolso"];
+
+// Normalize text for comparison (remove accents, lowercase)
+const normalize = (text: string): string => {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+};
+
+// Token classification types
+interface ClassifiedTokens {
+  categorias: string[];
+  empleados: string[];
+  eventos: string[];
+  estados: string[];
+  contingencias: string[];
+  recibos: string[];
+  recursos: string[];
+  textoLibre: string[];
+}
+
 const ReporteCajaMenor = () => {
   const { projects, updateProjectMultiple } = useProjects();
   const { 
@@ -104,7 +130,102 @@ const ReporteCajaMenor = () => {
     });
   }, [projects]);
 
-  // Smart filtering logic
+  // Get unique values for classification
+  const uniqueEmpleados = useMemo(() => {
+    const set = new Set<string>();
+    allCajaMenorItems.forEach(item => {
+      if (item.empleadoNombre) set.add(normalize(item.empleadoNombre));
+    });
+    return Array.from(set);
+  }, [allCajaMenorItems]);
+
+  const uniqueEventos = useMemo(() => {
+    const set = new Set<string>();
+    allCajaMenorItems.forEach(item => {
+      if (item.eventoNombre) set.add(normalize(item.eventoNombre));
+    });
+    return Array.from(set);
+  }, [allCajaMenorItems]);
+
+  // Classify tokens into types
+  const classifiedTokens = useMemo((): ClassifiedTokens => {
+    const result: ClassifiedTokens = {
+      categorias: [],
+      empleados: [],
+      eventos: [],
+      estados: [],
+      contingencias: [],
+      recibos: [],
+      recursos: [],
+      textoLibre: []
+    };
+
+    if (!smartSearch.trim()) return result;
+
+    const tokens = smartSearch
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t.length > 0);
+
+    tokens.forEach(token => {
+      const normalized = normalize(token);
+      let classified = false;
+
+      // Priority 1: Recibo (RCM-XXXX pattern)
+      if (/^rcm-?\d+$/i.test(normalized) || /^\d{4,}$/.test(normalized)) {
+        result.recibos.push(token);
+        classified = true;
+      }
+      // Priority 2: Contingencia
+      else if (normalized.includes("contingencia")) {
+        if (normalized.includes("si") || normalized.includes("sí") || normalized.includes("yes")) {
+          result.contingencias.push("Sí");
+        } else if (normalized.includes("no")) {
+          result.contingencias.push("No");
+        }
+        classified = true;
+      }
+      // Priority 3: Estado
+      else if (KNOWN_ESTADOS.some(e => normalized === e || normalized.includes(e))) {
+        result.estados.push(token);
+        classified = true;
+      }
+      // Priority 4: Categoría
+      else if (KNOWN_CATEGORIAS.some(c => normalize(c) === normalized || normalized.includes(normalize(c)))) {
+        result.categorias.push(token);
+        classified = true;
+      }
+      // Priority 5: Recursos
+      else if (KNOWN_RECURSOS.some(r => normalize(r) === normalized || normalized.includes(normalize(r)))) {
+        result.recursos.push(token);
+        classified = true;
+      }
+      // Priority 6: Empleado (partial match against known employees)
+      else if (uniqueEmpleados.some(emp => emp.includes(normalized) || normalized.includes(emp.split(' ')[0]))) {
+        result.empleados.push(token);
+        classified = true;
+      }
+      // Priority 7: Evento (partial match against known events)
+      else if (uniqueEventos.some(ev => ev.includes(normalized) || normalized.split(' ').some(word => ev.includes(word) && word.length > 3))) {
+        result.eventos.push(token);
+        classified = true;
+      }
+
+      // If not classified, add to texto libre
+      if (!classified) {
+        result.textoLibre.push(token);
+      }
+    });
+
+    return result;
+  }, [smartSearch, uniqueEmpleados, uniqueEventos]);
+
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return Object.values(classifiedTokens).some(arr => arr.length > 0);
+  }, [classifiedTokens]);
+
+  // Smart filtering logic with OR within types, AND between types
   const filteredItems = useMemo(() => {
     return allCajaMenorItems.filter((item) => {
       // STEP 1: Date range filter (if defined)
@@ -116,41 +237,63 @@ const ReporteCajaMenor = () => {
         if (globalDateRange.to && itemDate > endOfDay(globalDateRange.to)) return false;
       }
 
-      // STEP 2: Smart search by tokens (comma-separated)
-      if (smartSearch.trim()) {
-        // Split by commas and clean up whitespace
-        const tokens = smartSearch
-          .split(',')
-          .map(t => t.trim().toLowerCase())
-          .filter(t => t.length > 0);
+      // STEP 2: If no search, return all
+      if (!hasActiveFilters) return true;
 
-        // ALL tokens must match (AND logic)
-        return tokens.every(token => {
-          // Build searchable text from all relevant fields
-          const searchableFields = [
-            item.recibo,
-            item.eventoNombre,
-            item.empleadoNombre,
-            item.concepto,
-            item.categoria,
-            item.recursos,
-            item.estado,
-            item.contingencia,
-            item.procesoPago === "Pagado" ? "pagado pago" : "no pagado no pago"
-          ];
+      const { categorias, empleados, eventos, estados, contingencias, recibos, recursos, textoLibre } = classifiedTokens;
 
-          const searchableText = searchableFields
-            .filter(Boolean)
-            .map(v => v!.toLowerCase())
-            .join(' ');
+      // Helper to check if any token matches a field (OR logic)
+      const matchesAny = (tokens: string[], fieldValue: string | undefined | null): boolean => {
+        if (tokens.length === 0) return true; // No filter for this type
+        if (!fieldValue) return false;
+        const normalizedField = normalize(fieldValue);
+        return tokens.some(token => normalizedField.includes(normalize(token)));
+      };
 
-          return searchableText.includes(token);
-        });
+      // Check each type (AND between types)
+      
+      // Categorías (OR)
+      if (categorias.length > 0 && !matchesAny(categorias, item.categoria)) return false;
+
+      // Empleados (OR)
+      if (empleados.length > 0 && !matchesAny(empleados, item.empleadoNombre)) return false;
+
+      // Eventos (OR)
+      if (eventos.length > 0 && !matchesAny(eventos, item.eventoNombre)) return false;
+
+      // Estados (OR)
+      if (estados.length > 0 && !matchesAny(estados, item.estado)) return false;
+
+      // Contingencias (OR)
+      if (contingencias.length > 0 && !matchesAny(contingencias, item.contingencia || "No")) return false;
+
+      // Recibos (OR)
+      if (recibos.length > 0 && !matchesAny(recibos, item.recibo)) return false;
+
+      // Recursos (OR)
+      if (recursos.length > 0 && !matchesAny(recursos, item.recursos)) return false;
+
+      // Texto libre (OR across all fields)
+      if (textoLibre.length > 0) {
+        const allText = [
+          item.recibo,
+          item.eventoNombre,
+          item.empleadoNombre,
+          item.concepto,
+          item.categoria,
+          item.recursos,
+          item.estado,
+          item.contingencia,
+          item.procesoPago
+        ].filter(Boolean).map(v => normalize(v!)).join(' ');
+
+        const matchesTextoLibre = textoLibre.some(token => allText.includes(normalize(token)));
+        if (!matchesTextoLibre) return false;
       }
 
       return true;
     });
-  }, [allCajaMenorItems, globalDateRange, smartSearch]);
+  }, [allCajaMenorItems, globalDateRange, classifiedTokens, hasActiveFilters]);
 
   // Handle proceso pago change
   const handleProcesoPagoChange = useCallback(async (
@@ -310,14 +453,102 @@ const ReporteCajaMenor = () => {
           />
 
           {/* Smart Search - Single intelligent input */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por empleado, evento, categoría, concepto, contingencia... (usa comas para combinar)"
-              value={smartSearch}
-              onChange={(e) => setSmartSearch(e.target.value)}
-              className="pl-10 h-11"
-            />
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por empleado, evento, categoría, concepto, contingencia... (usa comas para combinar)"
+                value={smartSearch}
+                onChange={(e) => setSmartSearch(e.target.value)}
+                className="pl-10 h-11"
+              />
+            </div>
+
+            {/* Filter Summary - Shows detected filter groups */}
+            {hasActiveFilters && (
+              <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg border border-border/50">
+                {classifiedTokens.empleados.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Empleados:</span>
+                    {classifiedTokens.empleados.map((emp, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 border-blue-500/20">
+                        {emp}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {classifiedTokens.eventos.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Eventos:</span>
+                    {classifiedTokens.eventos.map((ev, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs bg-purple-500/10 text-purple-600 border-purple-500/20">
+                        {ev}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {classifiedTokens.categorias.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Categorías:</span>
+                    {classifiedTokens.categorias.map((cat, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">
+                        {cat}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {classifiedTokens.estados.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Estados:</span>
+                    {classifiedTokens.estados.map((est, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
+                        {est}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {classifiedTokens.contingencias.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Contingencia:</span>
+                    {classifiedTokens.contingencias.map((cont, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/20">
+                        {cont}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {classifiedTokens.recursos.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Recursos:</span>
+                    {classifiedTokens.recursos.map((rec, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs bg-teal-500/10 text-teal-600 border-teal-500/20">
+                        {rec}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {classifiedTokens.recibos.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Recibos:</span>
+                    {classifiedTokens.recibos.map((rec, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs bg-gray-500/10 text-gray-600 border-gray-500/20">
+                        {rec}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {classifiedTokens.textoLibre.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Búsqueda:</span>
+                    {classifiedTokens.textoLibre.map((txt, i) => (
+                      <Badge key={i} variant="outline" className="text-xs">
+                        {txt}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Export Button */}

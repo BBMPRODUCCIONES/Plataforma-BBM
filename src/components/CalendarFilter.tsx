@@ -337,14 +337,14 @@ export function CalendarFilter({
                     "relative bg-popover border border-border rounded-lg shadow-lg overflow-hidden",
                     "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                     "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-                    "flex flex-col",
+                    "flex flex-col min-h-0",
                     isLandscape 
-                      ? "w-[min(96vw,800px)] max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-48px)]"
-                      : "w-[min(95vw,360px)] max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-24px)]"
+                      ? "w-full max-w-[760px] max-h-full"
+                      : "w-full max-w-[340px] max-h-full"
                   )}
                 >
                   {/* Header fijo */}
-                  <div className="flex items-center justify-between p-2 pr-1 border-b border-border bg-muted/50 flex-shrink-0">
+                  <div className="flex items-center justify-between px-2 py-1 border-b border-border bg-muted/50 flex-shrink-0">
                     <p className="text-xs font-medium">
                       {tempRange?.from && tempRange?.to ? (
                         <span className="text-foreground">
@@ -354,22 +354,22 @@ export function CalendarFilter({
                         <span className="text-muted-foreground">Selecciona un rango</span>
                       )}
                     </p>
-                    <DialogPrimitive.Close className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center">
-                      <X className="h-5 w-5" />
+                    <DialogPrimitive.Close className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 touch-manipulation min-h-[40px] min-w-[40px] flex items-center justify-center">
+                      <X className="h-4 w-4" />
                       <span className="sr-only">Cerrar</span>
                     </DialogPrimitive.Close>
                   </div>
                   
                   {/* Body scrollable */}
-                  <div className="flex-1 overflow-auto">
+                  <div className="flex-1 overflow-auto min-h-0">
                     {isLandscape ? (
                       /* Layout Landscape: Presets compactos izquierda + 2 calendarios más pequeños */
                       <div className="flex h-full">
-                        <div className="border-r border-border px-1 py-1.5 space-y-0.5 flex-shrink-0">
+                        <div className="border-r border-border px-1 py-1 space-y-0 flex-shrink-0">
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="w-full justify-start h-7 px-1.5 text-[10px] whitespace-nowrap touch-manipulation"
+                            className="w-full justify-start h-6 px-1.5 text-[10px] whitespace-nowrap touch-manipulation"
                             onClick={() => applyPreset("thisWeek")}
                           >
                             Esta semana
@@ -377,7 +377,7 @@ export function CalendarFilter({
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="w-full justify-start h-7 px-1.5 text-[10px] whitespace-nowrap touch-manipulation"
+                            className="w-full justify-start h-6 px-1.5 text-[10px] whitespace-nowrap touch-manipulation"
                             onClick={() => applyPreset("thisMonth")}
                           >
                             Este mes
@@ -385,13 +385,13 @@ export function CalendarFilter({
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="w-full justify-start h-7 px-1.5 text-[10px] whitespace-nowrap touch-manipulation"
+                            className="w-full justify-start h-6 px-1.5 text-[10px] whitespace-nowrap touch-manipulation"
                             onClick={() => applyPreset("thisQuarter")}
                           >
                             Este trimestre
                           </Button>
                         </div>
-                        <div className="p-2 overflow-auto flex-1 flex justify-center items-start">
+                        <div className="p-1.5 overflow-auto flex-1 flex justify-center items-start min-h-0">
                           <Calendar
                             mode="range"
                             selected={tempRange}
@@ -492,9 +492,9 @@ export function CalendarFilter({
                   </div>
                   
                   {/* Footer fijo con botón Aplicar */}
-                  <div className="p-3 border-t border-border bg-popover flex-shrink-0">
+                  <div className="p-2 border-t border-border bg-popover flex-shrink-0">
                     <Button 
-                      className="w-full h-11 text-sm touch-manipulation" 
+                      className="w-full h-9 text-sm touch-manipulation" 
                       onClick={applyRange} 
                       disabled={!tempRange?.from || !tempRange?.to}
                     >

@@ -321,10 +321,10 @@ export function CalendarFilter({
               <div 
                 className="fixed inset-0 z-50 flex items-center justify-center"
                 style={{
-                  paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)",
-                  paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-                  paddingLeft: "12px",
-                  paddingRight: "12px",
+                  paddingTop: "calc(env(safe-area-inset-top, 0px) + 24px)",
+                  paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)",
+                  paddingLeft: "24px",
+                  paddingRight: "24px",
                 }}
               >
                 {/* Overlay oscuro */}

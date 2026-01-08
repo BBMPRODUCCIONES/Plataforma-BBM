@@ -257,10 +257,10 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
 
                       {/* Contingencia - Centro del Donut */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-[9px] uppercase tracking-wide text-muted-foreground mb-1">
+                        <span className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
                           contingencia
                         </span>
-                        <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+                        <div className="flex items-center gap-2 text-sm font-bold">
                           {cat.contingenciaByRecurso.recursosPropios.totalRecords > 0 && (
                             <span style={{ color: COLORS.recursosPropios }}>
                               {cat.contingenciaByRecurso.recursosPropios.percentage.toFixed(0)}%

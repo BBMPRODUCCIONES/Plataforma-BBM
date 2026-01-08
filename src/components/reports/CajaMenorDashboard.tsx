@@ -364,63 +364,57 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
               {/* Resource breakdown with full values and contingency */}
               <div className="mt-3 w-full space-y-2">
                 {cat.recursosPropios.valor > 0 && (
-                  <div className="text-xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.recursosPropios }} />
-                        <span className="text-muted-foreground">Rec. propios</span>
-                      </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.recursosPropios }} />
+                      <span className="text-muted-foreground">Rec. propios</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-foreground">
                         {formatCurrency(cat.recursosPropios.valor)}
                       </span>
-                    </div>
-                    {cat.contingenciaByRecurso.recursosPropios.contingenciaValor > 0 && (
-                      <div className="flex justify-end mt-0.5">
-                        <span className="text-[10px] text-amber-500/80">
-                          contingencia {formatCurrency(cat.contingenciaByRecurso.recursosPropios.contingenciaValor)}
+                      {cat.contingenciaByRecurso.recursosPropios.contingenciaValor > 0 && (
+                        <span className="text-[10px] text-muted-foreground/70">
+                          ({formatCurrency(cat.contingenciaByRecurso.recursosPropios.contingenciaValor)})
                         </span>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
                 {cat.bbm.valor > 0 && (
-                  <div className="text-xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.bbm }} />
-                        <span className="text-muted-foreground">BBM</span>
-                      </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.bbm }} />
+                      <span className="text-muted-foreground">BBM</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-foreground">
                         {formatCurrency(cat.bbm.valor)}
                       </span>
-                    </div>
-                    {cat.contingenciaByRecurso.bbm.contingenciaValor > 0 && (
-                      <div className="flex justify-end mt-0.5">
-                        <span className="text-[10px] text-amber-500/80">
-                          contingencia {formatCurrency(cat.contingenciaByRecurso.bbm.contingenciaValor)}
+                      {cat.contingenciaByRecurso.bbm.contingenciaValor > 0 && (
+                        <span className="text-[10px] text-muted-foreground/70">
+                          ({formatCurrency(cat.contingenciaByRecurso.bbm.contingenciaValor)})
                         </span>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
                 {cat.anticipo.valor > 0 && (
-                  <div className="text-xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.anticipo }} />
-                        <span className="text-muted-foreground">Anticipo</span>
-                      </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.anticipo }} />
+                      <span className="text-muted-foreground">Anticipo</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-foreground">
                         {formatCurrency(cat.anticipo.valor)}
                       </span>
-                    </div>
-                    {cat.contingenciaByRecurso.anticipo.contingenciaValor > 0 && (
-                      <div className="flex justify-end mt-0.5">
-                        <span className="text-[10px] text-amber-500/80">
-                          contingencia {formatCurrency(cat.contingenciaByRecurso.anticipo.contingenciaValor)}
+                      {cat.contingenciaByRecurso.anticipo.contingenciaValor > 0 && (
+                        <span className="text-[10px] text-muted-foreground/70">
+                          ({formatCurrency(cat.contingenciaByRecurso.anticipo.contingenciaValor)})
                         </span>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
                 {cat.donutData.length === 0 && (

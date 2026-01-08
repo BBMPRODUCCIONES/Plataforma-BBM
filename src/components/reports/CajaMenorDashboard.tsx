@@ -46,7 +46,6 @@ interface CategoryStats {
     bbm: ResourceContingencia;
     anticipo: ResourceContingencia;
   };
-  contingenciaArcs: { name: string; value: number; maxValue: number; color: string; percentage: number }[];
 }
 
 const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
@@ -128,31 +127,6 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
         },
       ].filter((d) => d.value > 0);
 
-      // Contingencia arcs data - for thin internal arcs
-      const contingenciaArcs = [
-        { 
-          name: "Rec. propios", 
-          value: contingenciaByRecurso.recursosPropios.percentage, 
-          maxValue: 100,
-          color: COLORS.recursosPropios,
-          percentage: contingenciaByRecurso.recursosPropios.percentage
-        },
-        { 
-          name: "BBM", 
-          value: contingenciaByRecurso.bbm.percentage, 
-          maxValue: 100,
-          color: COLORS.bbm,
-          percentage: contingenciaByRecurso.bbm.percentage
-        },
-        { 
-          name: "Anticipo", 
-          value: contingenciaByRecurso.anticipo.percentage, 
-          maxValue: 100,
-          color: COLORS.anticipo,
-          percentage: contingenciaByRecurso.anticipo.percentage
-        },
-      ].filter((d) => d.value > 0);
-
       return {
         name: categoria,
         total,
@@ -172,7 +146,6 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
         contingenciaPct,
         donutData,
         contingenciaByRecurso,
-        contingenciaArcs,
       };
     });
 
@@ -217,24 +190,6 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
     );
   };
 
-  // SVG arc path generator for contingencia arcs
-  const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
-    const start = polarToCartesian(x, y, radius, endAngle);
-    const end = polarToCartesian(x, y, radius, startAngle);
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    return [
-      "M", start.x, start.y,
-      "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
-    ].join(" ");
-  };
-
-  const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
-    const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
-    return {
-      x: centerX + (radius * Math.cos(angleInRadians)),
-      y: centerY + (radius * Math.sin(angleInRadians))
-    };
-  };
 
   return (
     <Card className="bg-card/50 border-border/50 backdrop-blur-sm">
@@ -251,13 +206,7 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
 
         {/* Categories Grid with Donuts */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          {categoriaStats.map((cat) => {
-            // Calculate contingencia arc positions
-            const arcRadius = 48;
-            const center = { x: 100, y: 100 }; // For 200x200 viewBox
-            let currentAngle = -90; // Start from top
-            
-            return (
+          {categoriaStats.map((cat) => (
               <div 
                 key={cat.name} 
                 className="flex flex-col items-center p-4 rounded-xl bg-background/50 border border-border/30 transition-all duration-300 hover:border-border/60"
@@ -306,33 +255,6 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                         </PieChart>
                       </ResponsiveContainer>
 
-                      {/* Contingencia Arcs - SVG overlay */}
-                      <svg 
-                        className="absolute inset-0 w-full h-full pointer-events-none"
-                        viewBox="0 0 200 200"
-                      >
-                        {cat.contingenciaArcs.map((arc, index) => {
-                          const arcLength = (arc.percentage / 100) * 120; // Each resource gets 120 degrees max
-                          const startAngle = currentAngle;
-                          const endAngle = startAngle + arcLength;
-                          currentAngle += 120; // Advance for next resource
-                          
-                          if (arc.percentage === 0) return null;
-                          
-                          return (
-                            <path
-                              key={`arc-${index}`}
-                              d={describeArc(100, 100, arcRadius, startAngle, Math.min(endAngle, startAngle + arcLength))}
-                              fill="none"
-                              stroke={arc.color}
-                              strokeWidth="4"
-                              strokeLinecap="round"
-                              opacity={0.8}
-                              className="transition-all duration-500"
-                            />
-                          );
-                        })}
-                      </svg>
                     </>
                   ) : (
                     <div className="w-full h-full rounded-full border-4 border-dashed border-muted flex items-center justify-center">
@@ -421,8 +343,7 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                   </div>
                 )}
               </div>
-            );
-          })}
+            ))}
         </div>
 
         {/* Legend */}

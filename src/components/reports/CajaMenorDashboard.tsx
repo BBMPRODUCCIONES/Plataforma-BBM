@@ -56,25 +56,20 @@ interface CategoryStats {
   };
 }
 
-// SVG Donut Component with external labels and thin contingency ring
+// SVG Donut Component - Single donut with colored percentages on edge
 const DonutChart = ({ 
   data, 
-  contingenciaByRecurso,
   contingenciaPct,
   size = 200 
 }: { 
   data: DonutSegment[];
-  contingenciaByRecurso: CategoryStats['contingenciaByRecurso'];
   contingenciaPct: number;
   size?: number;
 }) => {
   const center = size / 2;
-  const outerRadius = size * 0.38;
+  const outerRadius = size * 0.42;
   const innerRadius = size * 0.26;
-  const contingencyRadius = size * 0.19; // Thin ring inside donut
-  const contingencyStroke = 2;
-  const externalLabelRadius = size * 0.48; // Large white percentages outside
-  const contingencyLabelRadius = size * 0.23; // Colored percentages near contingency ring (inside donut)
+  const labelRadius = size * 0.34; // Colored percentages on the donut edge
 
   // Calculate segments with angles
   const segments = useMemo(() => {
@@ -88,32 +83,6 @@ const DonutChart = ({
     });
   }, [data]);
 
-  // Calculate contingency arcs
-  const contingencyArcs = useMemo(() => {
-    const arcs: { color: string; percentage: number; startAngle: number; endAngle: number }[] = [];
-    
-    const resourceMap = [
-      { color: COLORS.recursosPropios, data: contingenciaByRecurso.recursosPropios },
-      { color: COLORS.bbm, data: contingenciaByRecurso.bbm },
-      { color: COLORS.anticipo, data: contingenciaByRecurso.anticipo },
-    ];
-
-    resourceMap.forEach(({ color, data: contData }) => {
-      const segment = segments.find(s => s.color === color);
-      if (segment && contData.totalRecords > 0 && contData.percentage > 0) {
-        const arcAngle = ((segment.endAngle - segment.startAngle) * contData.percentage) / 100;
-        arcs.push({
-          color,
-          percentage: contData.percentage,
-          startAngle: segment.startAngle,
-          endAngle: segment.startAngle + arcAngle,
-        });
-      }
-    });
-
-    return arcs;
-  }, [segments, contingenciaByRecurso]);
-
   // Convert polar to cartesian
   const polarToCartesian = (angle: number, radius: number) => {
     const rad = (angle * Math.PI) / 180;
@@ -123,42 +92,21 @@ const DonutChart = ({
     };
   };
 
-  // Create arc path
-  const createArc = (startAngle: number, endAngle: number, radius: number, innerRad?: number) => {
-    const start = polarToCartesian(startAngle, radius);
-    const end = polarToCartesian(endAngle, radius);
+  // Create arc path for donut segment
+  const createArc = (startAngle: number, endAngle: number, outerR: number, innerR: number) => {
+    const start = polarToCartesian(startAngle, outerR);
+    const end = polarToCartesian(endAngle, outerR);
+    const innerStart = polarToCartesian(startAngle, innerR);
+    const innerEnd = polarToCartesian(endAngle, innerR);
     const largeArc = endAngle - startAngle > 180 ? 1 : 0;
 
-    if (innerRad !== undefined) {
-      const innerStart = polarToCartesian(startAngle, innerRad);
-      const innerEnd = polarToCartesian(endAngle, innerRad);
-      return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y} L ${innerEnd.x} ${innerEnd.y} A ${innerRad} ${innerRad} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y} Z`;
-    }
-
-    return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+    return `M ${start.x} ${start.y} A ${outerR} ${outerR} 0 ${largeArc} 1 ${end.x} ${end.y} L ${innerEnd.x} ${innerEnd.y} A ${innerR} ${innerR} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y} Z`;
   };
 
   // Get label position at mid-angle
   const getLabelPosition = (startAngle: number, endAngle: number, radius: number) => {
     const midAngle = (startAngle + endAngle) / 2;
     return polarToCartesian(midAngle, radius);
-  };
-
-  // Get text anchor based on angle
-  const getTextAnchor = (startAngle: number, endAngle: number) => {
-    const midAngle = (startAngle + endAngle) / 2;
-    const normalizedAngle = ((midAngle % 360) + 360) % 360;
-    if (normalizedAngle > 90 && normalizedAngle < 270) return "end";
-    if (normalizedAngle === 90 || normalizedAngle === 270) return "middle";
-    return "start";
-  };
-
-  // Get contingency percentage for a segment
-  const getContingencyForSegment = (segment: DonutSegment) => {
-    if (segment.color === COLORS.recursosPropios) return contingenciaByRecurso.recursosPropios;
-    if (segment.color === COLORS.bbm) return contingenciaByRecurso.bbm;
-    if (segment.color === COLORS.anticipo) return contingenciaByRecurso.anticipo;
-    return null;
   };
 
   return (
@@ -173,35 +121,22 @@ const DonutChart = ({
         />
       ))}
 
-      {/* Contingency thin ring */}
-      {contingencyArcs.map((arc, index) => (
-        <path
-          key={`contingency-${index}`}
-          d={createArc(arc.startAngle, arc.endAngle, contingencyRadius)}
-          fill="none"
-          stroke={arc.color}
-          strokeWidth={contingencyStroke}
-          strokeLinecap="round"
-          className="transition-all duration-300"
-          opacity={0.9}
-        />
-      ))}
-
-      {/* External percentage labels - WHITE and LARGE (positioned outside donut) */}
+      {/* Colored percentage labels on the donut edge */}
       {segments.map((segment, index) => {
         if (segment.percentage < 3) return null;
-        const pos = getLabelPosition(segment.startAngle, segment.endAngle, externalLabelRadius);
+        const pos = getLabelPosition(segment.startAngle, segment.endAngle, labelRadius);
         return (
           <text
             key={`label-${index}`}
             x={pos.x}
             y={pos.y}
-            textAnchor={getTextAnchor(segment.startAngle, segment.endAngle)}
+            textAnchor="middle"
             dominantBaseline="middle"
-            className="fill-foreground font-bold"
+            fill={segment.color}
             style={{ 
-              fontSize: size > 180 ? '18px' : '14px',
-              filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))" 
+              fontSize: size > 180 ? '14px' : '11px',
+              fontWeight: 700,
+              filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))" 
             }}
           >
             {segment.percentage.toFixed(0)}%
@@ -209,36 +144,13 @@ const DonutChart = ({
         );
       })}
 
-      {/* Colored contingency percentages - positioned near the arc (between main donut and center) */}
-      {segments.map((segment, index) => {
-        const contData = getContingencyForSegment(segment);
-        if (!contData || contData.totalRecords === 0) return null;
-        const pos = getLabelPosition(segment.startAngle, segment.endAngle, contingencyLabelRadius);
-        return (
-          <text
-            key={`cont-label-${index}`}
-            x={pos.x}
-            y={pos.y}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill={segment.color}
-            style={{ 
-              fontSize: size > 180 ? '11px' : '9px',
-              fontWeight: 600,
-            }}
-          >
-            {contData.percentage.toFixed(0)}%
-          </text>
-        );
-      })}
-
-      {/* Center content - only contingencia text and average */}
-      <foreignObject x={center - 35} y={center - 18} width={70} height={36}>
+      {/* Center content - only contingencia text and percentage */}
+      <foreignObject x={center - 40} y={center - 22} width={80} height={44}>
         <div className="w-full h-full flex flex-col items-center justify-center">
-          <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
             contingencia
           </span>
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-lg font-bold text-foreground">
             {contingenciaPct.toFixed(0)}%
           </span>
         </div>
@@ -397,7 +309,6 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                 {cat.donutData.length > 0 ? (
                   <DonutChart
                     data={cat.donutData}
-                    contingenciaByRecurso={cat.contingenciaByRecurso}
                     contingenciaPct={cat.contingenciaPct}
                     size={200}
                   />

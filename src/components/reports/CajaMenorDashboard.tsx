@@ -29,6 +29,7 @@ interface ResourceContingencia {
   totalRecords: number;
   contingenciaRecords: number;
   percentage: number;
+  contingenciaValor: number; // Sum of COP for contingency items
 }
 
 interface DonutSegment {
@@ -214,14 +215,7 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
     }).format(value);
   };
 
-  const formatCurrencyShort = (value: number) => {
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`;
-    } else if (value >= 1000) {
-      return `$${(value / 1000).toFixed(0)}K`;
-    }
-    return formatCurrency(value);
-  };
+  // Removed formatCurrencyShort - now all values are shown complete
 
   const { totalPagos, categoriaStats } = useMemo(() => {
     const totalPagos = items.reduce((sum, item) => sum + (item.valor || 0), 0);
@@ -242,12 +236,14 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
       const bbmVal = bbmItems.reduce((sum, i) => sum + (i.valor || 0), 0);
       const anticipoVal = anticipoItems.reduce((sum, i) => sum + (i.valor || 0), 0);
 
-      // Contingencia by RECORD COUNT per resource
+      // Contingencia by RECORD COUNT per resource + monetary value
       const calcContingencia = (resourceItems: typeof categoryItems): ResourceContingencia => {
         const totalRecords = resourceItems.length;
-        const contingenciaRecords = resourceItems.filter((i) => i.contingencia === "Sí").length;
+        const contingenciaItems = resourceItems.filter((i) => i.contingencia === "Sí");
+        const contingenciaRecords = contingenciaItems.length;
+        const contingenciaValor = contingenciaItems.reduce((sum, i) => sum + (i.valor || 0), 0);
         const percentage = totalRecords > 0 ? (contingenciaRecords / totalRecords) * 100 : 0;
-        return { totalRecords, contingenciaRecords, percentage };
+        return { totalRecords, contingenciaRecords, percentage, contingenciaValor };
       };
 
       const contingenciaByRecurso = {
@@ -365,39 +361,66 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                 )}
               </div>
 
-              {/* Resource breakdown */}
-              <div className="mt-3 w-full space-y-1.5">
+              {/* Resource breakdown with full values and contingency */}
+              <div className="mt-3 w-full space-y-2">
                 {cat.recursosPropios.valor > 0 && (
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.recursosPropios }} />
-                      <span className="text-muted-foreground">Rec. propios</span>
+                  <div className="text-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.recursosPropios }} />
+                        <span className="text-muted-foreground">Rec. propios</span>
+                      </div>
+                      <span className="font-semibold text-foreground">
+                        {formatCurrency(cat.recursosPropios.valor)}
+                      </span>
                     </div>
-                    <span className="font-medium text-foreground">
-                      {formatCurrencyShort(cat.recursosPropios.valor)}
-                    </span>
+                    {cat.contingenciaByRecurso.recursosPropios.contingenciaValor > 0 && (
+                      <div className="flex justify-end mt-0.5">
+                        <span className="text-[10px] text-amber-500/80">
+                          contingencia {formatCurrency(cat.contingenciaByRecurso.recursosPropios.contingenciaValor)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
                 {cat.bbm.valor > 0 && (
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.bbm }} />
-                      <span className="text-muted-foreground">BBM</span>
+                  <div className="text-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.bbm }} />
+                        <span className="text-muted-foreground">BBM</span>
+                      </div>
+                      <span className="font-semibold text-foreground">
+                        {formatCurrency(cat.bbm.valor)}
+                      </span>
                     </div>
-                    <span className="font-medium text-foreground">
-                      {formatCurrencyShort(cat.bbm.valor)}
-                    </span>
+                    {cat.contingenciaByRecurso.bbm.contingenciaValor > 0 && (
+                      <div className="flex justify-end mt-0.5">
+                        <span className="text-[10px] text-amber-500/80">
+                          contingencia {formatCurrency(cat.contingenciaByRecurso.bbm.contingenciaValor)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
                 {cat.anticipo.valor > 0 && (
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.anticipo }} />
-                      <span className="text-muted-foreground">Anticipo</span>
+                  <div className="text-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.anticipo }} />
+                        <span className="text-muted-foreground">Anticipo</span>
+                      </div>
+                      <span className="font-semibold text-foreground">
+                        {formatCurrency(cat.anticipo.valor)}
+                      </span>
                     </div>
-                    <span className="font-medium text-foreground">
-                      {formatCurrencyShort(cat.anticipo.valor)}
-                    </span>
+                    {cat.contingenciaByRecurso.anticipo.contingenciaValor > 0 && (
+                      <div className="flex justify-end mt-0.5">
+                        <span className="text-[10px] text-amber-500/80">
+                          contingencia {formatCurrency(cat.contingenciaByRecurso.anticipo.contingenciaValor)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
                 {cat.donutData.length === 0 && (

@@ -164,7 +164,7 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
               </p>
 
               {/* Donut Chart */}
-              <div className="relative w-[140px] h-[140px] md:w-[160px] md:h-[160px]">
+              <div className="relative w-[160px] h-[160px] md:w-[180px] md:h-[180px]">
                 {cat.donutData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -172,8 +172,8 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                         data={cat.donutData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={40}
-                        outerRadius={60}
+                        innerRadius={55}
+                        outerRadius={70}
                         paddingAngle={2}
                         dataKey="value"
                         isAnimationActive={true}

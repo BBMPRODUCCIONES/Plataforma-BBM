@@ -71,10 +71,10 @@ const DonutChart = ({
   const center = size / 2;
   const outerRadius = size * 0.38;
   const innerRadius = size * 0.26;
-  const contingencyRadius = size * 0.22;
+  const contingencyRadius = size * 0.19; // Thin ring inside donut
   const contingencyStroke = 2;
-  const externalLabelRadius = size * 0.48;
-  const contingencyLabelRadius = size * 0.32;
+  const externalLabelRadius = size * 0.48; // Large white percentages outside
+  const contingencyLabelRadius = size * 0.23; // Colored percentages near contingency ring (inside donut)
 
   // Calculate segments with angles
   const segments = useMemo(() => {

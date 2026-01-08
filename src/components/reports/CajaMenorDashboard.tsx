@@ -70,10 +70,11 @@ const DonutChart = ({
 }) => {
   const center = size / 2;
   const outerRadius = size * 0.38;
-  const innerRadius = size * 0.28;
-  const contingencyRadius = size * 0.24;
-  const contingencyStroke = 3;
-  const labelRadius = size * 0.46;
+  const innerRadius = size * 0.26;
+  const contingencyRadius = size * 0.22;
+  const contingencyStroke = 2;
+  const externalLabelRadius = size * 0.48;
+  const contingencyLabelRadius = size * 0.32;
 
   // Calculate segments with angles
   const segments = useMemo(() => {
@@ -91,14 +92,12 @@ const DonutChart = ({
   const contingencyArcs = useMemo(() => {
     const arcs: { color: string; percentage: number; startAngle: number; endAngle: number }[] = [];
     
-    // Map resource colors to their contingency data
     const resourceMap = [
-      { color: COLORS.recursosPropios, data: contingenciaByRecurso.recursosPropios, name: "Recursos propios" },
-      { color: COLORS.bbm, data: contingenciaByRecurso.bbm, name: "BBM" },
-      { color: COLORS.anticipo, data: contingenciaByRecurso.anticipo, name: "Anticipo BBM" },
+      { color: COLORS.recursosPropios, data: contingenciaByRecurso.recursosPropios },
+      { color: COLORS.bbm, data: contingenciaByRecurso.bbm },
+      { color: COLORS.anticipo, data: contingenciaByRecurso.anticipo },
     ];
 
-    // Find corresponding segment for each resource
     resourceMap.forEach(({ color, data: contData }) => {
       const segment = segments.find(s => s.color === color);
       if (segment && contData.totalRecords > 0 && contData.percentage > 0) {
@@ -131,28 +130,35 @@ const DonutChart = ({
     const largeArc = endAngle - startAngle > 180 ? 1 : 0;
 
     if (innerRad !== undefined) {
-      // Donut segment
       const innerStart = polarToCartesian(startAngle, innerRad);
       const innerEnd = polarToCartesian(endAngle, innerRad);
       return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y} L ${innerEnd.x} ${innerEnd.y} A ${innerRad} ${innerRad} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y} Z`;
     }
 
-    // Simple arc
     return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}`;
   };
 
-  // Calculate label position for segment
-  const getLabelPosition = (startAngle: number, endAngle: number) => {
+  // Get label position at mid-angle
+  const getLabelPosition = (startAngle: number, endAngle: number, radius: number) => {
     const midAngle = (startAngle + endAngle) / 2;
-    return polarToCartesian(midAngle, labelRadius);
+    return polarToCartesian(midAngle, radius);
   };
 
   // Get text anchor based on angle
-  const getTextAnchor = (angle: number) => {
-    const normalizedAngle = ((angle % 360) + 360) % 360;
+  const getTextAnchor = (startAngle: number, endAngle: number) => {
+    const midAngle = (startAngle + endAngle) / 2;
+    const normalizedAngle = ((midAngle % 360) + 360) % 360;
     if (normalizedAngle > 90 && normalizedAngle < 270) return "end";
     if (normalizedAngle === 90 || normalizedAngle === 270) return "middle";
     return "start";
+  };
+
+  // Get contingency percentage for a segment
+  const getContingencyForSegment = (segment: DonutSegment) => {
+    if (segment.color === COLORS.recursosPropios) return contingenciaByRecurso.recursosPropios;
+    if (segment.color === COLORS.bbm) return contingenciaByRecurso.bbm;
+    if (segment.color === COLORS.anticipo) return contingenciaByRecurso.anticipo;
+    return null;
   };
 
   return (
@@ -181,59 +187,60 @@ const DonutChart = ({
         />
       ))}
 
-      {/* External percentage labels - WHITE and LARGE */}
+      {/* External percentage labels - WHITE and LARGE (positioned outside donut) */}
       {segments.map((segment, index) => {
-        if (segment.percentage < 5) return null;
-        const pos = getLabelPosition(segment.startAngle, segment.endAngle);
-        const midAngle = (segment.startAngle + segment.endAngle) / 2;
+        if (segment.percentage < 3) return null;
+        const pos = getLabelPosition(segment.startAngle, segment.endAngle, externalLabelRadius);
         return (
           <text
             key={`label-${index}`}
             x={pos.x}
             y={pos.y}
-            textAnchor={getTextAnchor(midAngle)}
+            textAnchor={getTextAnchor(segment.startAngle, segment.endAngle)}
             dominantBaseline="middle"
-            className="fill-foreground font-bold text-lg md:text-xl"
-            style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))" }}
+            className="fill-foreground font-bold"
+            style={{ 
+              fontSize: size > 180 ? '18px' : '14px',
+              filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))" 
+            }}
           >
             {segment.percentage.toFixed(0)}%
           </text>
         );
       })}
 
-      {/* Center content */}
-      <foreignObject x={center - 45} y={center - 30} width={90} height={60}>
+      {/* Colored contingency percentages - positioned near the arc (between main donut and center) */}
+      {segments.map((segment, index) => {
+        const contData = getContingencyForSegment(segment);
+        if (!contData || contData.totalRecords === 0) return null;
+        const pos = getLabelPosition(segment.startAngle, segment.endAngle, contingencyLabelRadius);
+        return (
+          <text
+            key={`cont-label-${index}`}
+            x={pos.x}
+            y={pos.y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill={segment.color}
+            style={{ 
+              fontSize: size > 180 ? '11px' : '9px',
+              fontWeight: 600,
+            }}
+          >
+            {contData.percentage.toFixed(0)}%
+          </text>
+        );
+      })}
+
+      {/* Center content - only contingencia text and average */}
+      <foreignObject x={center - 35} y={center - 18} width={70} height={36}>
         <div className="w-full h-full flex flex-col items-center justify-center">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
             contingencia
           </span>
-          {/* Colored percentages for each resource */}
-          <div className="flex items-center justify-center gap-1 mt-1 flex-wrap">
-            {contingenciaByRecurso.recursosPropios.totalRecords > 0 && (
-              <span 
-                className="text-xs font-bold"
-                style={{ color: COLORS.recursosPropios }}
-              >
-                {contingenciaByRecurso.recursosPropios.percentage.toFixed(0)}%
-              </span>
-            )}
-            {contingenciaByRecurso.bbm.totalRecords > 0 && (
-              <span 
-                className="text-xs font-bold"
-                style={{ color: COLORS.bbm }}
-              >
-                {contingenciaByRecurso.bbm.percentage.toFixed(0)}%
-              </span>
-            )}
-            {contingenciaByRecurso.anticipo.totalRecords > 0 && (
-              <span 
-                className="text-xs font-bold"
-                style={{ color: COLORS.anticipo }}
-              >
-                {contingenciaByRecurso.anticipo.percentage.toFixed(0)}%
-              </span>
-            )}
-          </div>
+          <span className="text-xs font-medium text-muted-foreground">
+            {contingenciaPct.toFixed(0)}%
+          </span>
         </div>
       </foreignObject>
     </svg>

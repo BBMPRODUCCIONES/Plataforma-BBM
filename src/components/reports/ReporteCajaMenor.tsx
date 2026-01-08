@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useProjects } from "@/contexts/ProjectsContext";
+import { useDateRange } from "@/contexts/DateRangeContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, Download, Image as ImageIcon, Loader2, Eye, DownloadIcon } from "lucide-react";
-import { format, parseISO, startOfDay, endOfDay } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { CajaMenorItem, Project, Attachment } from "@/types";
@@ -16,6 +17,7 @@ import CajaMenorKPIs from "./CajaMenorKPIs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { EventLink } from "@/components/EventLink";
+import { CalendarFilter } from "@/components/CalendarFilter";
 
 interface FlattenedCajaMenorItem extends CajaMenorItem {
   eventoId: string;
@@ -26,19 +28,17 @@ interface FlattenedCajaMenorItem extends CajaMenorItem {
 
 const ReporteCajaMenor = () => {
   const { projects, updateProjectMultiple } = useProjects();
+  const { 
+    globalDateRange, 
+    setGlobalDateRange, 
+    globalViewMode, 
+    setGlobalViewMode, 
+    globalSelectedDate, 
+    setGlobalSelectedDate 
+  } = useDateRange();
 
-  // Filter states
-  const [globalSearch, setGlobalSearch] = useState("");
-  const [fechaDesde, setFechaDesde] = useState("");
-  const [fechaHasta, setFechaHasta] = useState("");
-  const [reciboFilter, setReciboFilter] = useState("");
-  const [procesoPagoFilter, setProcesoPagoFilter] = useState<string>("all");
-  const [empleadoFilter, setEmpleadoFilter] = useState<string>("all");
-  const [categoriaFilter, setCategoriaFilter] = useState<string>("all");
-  const [recursosFilter, setRecursosFilter] = useState<string>("all");
-  const [contingenciaFilter, setContingenciaFilter] = useState<string>("all");
-  const [estadoFilter, setEstadoFilter] = useState<string>("all");
-  const [eventoFilter, setEventoFilter] = useState<string>("all");
+  // Smart search state (single input for all filters)
+  const [smartSearch, setSmartSearch] = useState("");
 
   // Image gallery states
   const [selectedImages, setSelectedImages] = useState<Attachment[]>([]);
@@ -104,82 +104,53 @@ const ReporteCajaMenor = () => {
     });
   }, [projects]);
 
-  // Get unique values for filters
-  const uniqueEmpleados = useMemo(
-    () => [...new Set(allCajaMenorItems.map((i) => i.empleadoNombre).filter(Boolean))].sort(),
-    [allCajaMenorItems]
-  );
-
-  const uniqueEventos = useMemo(
-    () => [...new Set(allCajaMenorItems.map((i) => i.eventoNombre).filter(Boolean))].sort(),
-    [allCajaMenorItems]
-  );
-
-  // Apply all filters
+  // Smart filtering logic
   const filteredItems = useMemo(() => {
     return allCajaMenorItems.filter((item) => {
-      // Global search
-      if (globalSearch) {
-        const searchLower = globalSearch.toLowerCase();
-        const matchesSearch =
-          safeLower(item.recibo).includes(searchLower) ||
-          safeLower(item.eventoNombre).includes(searchLower) ||
-          safeLower(item.empleadoNombre).includes(searchLower) ||
-          safeLower(item.concepto).includes(searchLower) ||
-          safeLower(item.categoria).includes(searchLower) ||
-          safeLower(item.recursos).includes(searchLower) ||
-          safeLower(item.estado).includes(searchLower);
-        if (!matchesSearch) return false;
-      }
-
-      // Date range filter
-      if (fechaDesde || fechaHasta) {
+      // STEP 1: Date range filter (if defined)
+      if (globalDateRange?.from || globalDateRange?.to) {
         const itemDate = safeDate(item.fecha);
         if (!itemDate) return false;
 
-        if (fechaDesde) {
-          const fromDate = startOfDay(parseISO(fechaDesde));
-          if (itemDate < fromDate) return false;
-        }
-        if (fechaHasta) {
-          const toDate = endOfDay(parseISO(fechaHasta));
-          if (itemDate > toDate) return false;
-        }
+        if (globalDateRange.from && itemDate < startOfDay(globalDateRange.from)) return false;
+        if (globalDateRange.to && itemDate > endOfDay(globalDateRange.to)) return false;
       }
 
-      // Recibo filter
-      if (reciboFilter && !safeLower(item.recibo).includes(reciboFilter.toLowerCase())) {
-        return false;
-      }
+      // STEP 2: Smart search by tokens (comma-separated)
+      if (smartSearch.trim()) {
+        // Split by commas and clean up whitespace
+        const tokens = smartSearch
+          .split(',')
+          .map(t => t.trim().toLowerCase())
+          .filter(t => t.length > 0);
 
-      // Dropdown filters - treat empty/undefined procesoPago as "No pagado"
-      if (procesoPagoFilter !== "all") {
-        const efectivoProcesoPago = item.procesoPago || "No pagado";
-        if (efectivoProcesoPago !== procesoPagoFilter) return false;
+        // ALL tokens must match (AND logic)
+        return tokens.every(token => {
+          // Build searchable text from all relevant fields
+          const searchableFields = [
+            item.recibo,
+            item.eventoNombre,
+            item.empleadoNombre,
+            item.concepto,
+            item.categoria,
+            item.recursos,
+            item.estado,
+            item.contingencia,
+            item.procesoPago === "Pagado" ? "pagado pago" : "no pagado no pago"
+          ];
+
+          const searchableText = searchableFields
+            .filter(Boolean)
+            .map(v => v!.toLowerCase())
+            .join(' ');
+
+          return searchableText.includes(token);
+        });
       }
-      if (empleadoFilter !== "all" && item.empleadoNombre !== empleadoFilter) return false;
-      if (categoriaFilter !== "all" && item.categoria !== categoriaFilter) return false;
-      if (recursosFilter !== "all" && item.recursos !== recursosFilter) return false;
-      if (contingenciaFilter !== "all" && item.contingencia !== contingenciaFilter) return false;
-      if (estadoFilter !== "all" && item.estado !== estadoFilter) return false;
-      if (eventoFilter !== "all" && item.eventoNombre !== eventoFilter) return false;
 
       return true;
     });
-  }, [
-    allCajaMenorItems,
-    globalSearch,
-    fechaDesde,
-    fechaHasta,
-    reciboFilter,
-    procesoPagoFilter,
-    empleadoFilter,
-    categoriaFilter,
-    recursosFilter,
-    contingenciaFilter,
-    estadoFilter,
-    eventoFilter,
-  ]);
+  }, [allCajaMenorItems, globalDateRange, smartSearch]);
 
   // Handle proceso pago change
   const handleProcesoPagoChange = useCallback(async (
@@ -321,155 +292,32 @@ const ReporteCajaMenor = () => {
       {/* KPIs Dashboard */}
       <CajaMenorKPIs items={filteredItems} />
 
-      {/* Filters Section */}
+      {/* Filters Section - Simplified */}
       <Card>
         <CardContent className="p-4 space-y-4">
-          {/* Global Search */}
+          {/* CalendarFilter - Same as Panel de Operaciones/Directivo */}
+          <CalendarFilter
+            viewMode={globalViewMode}
+            selectedDate={globalSelectedDate}
+            dateRange={globalDateRange ? { start: globalDateRange.from!, end: globalDateRange.to } : undefined}
+            statusFilter="todos"
+            onViewModeChange={setGlobalViewMode}
+            onDateChange={setGlobalSelectedDate}
+            onDateRangeChange={(range) => {
+              range ? setGlobalDateRange({ from: range.start, to: range.end }) : setGlobalDateRange(undefined);
+            }}
+            onStatusChange={() => {}} // Not used in reports
+          />
+
+          {/* Smart Search - Single intelligent input */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar en reporte... (recibo, evento, empleado, concepto, categoría, recursos, estado)"
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-              className="pl-10"
+              placeholder="Buscar por empleado, evento, categoría, concepto, contingencia... (usa comas para combinar)"
+              value={smartSearch}
+              onChange={(e) => setSmartSearch(e.target.value)}
+              className="pl-10 h-11"
             />
-          </div>
-
-          {/* Column Filters */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {/* Date Range */}
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Fecha Desde</label>
-              <Input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} className="h-9" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Fecha Hasta</label>
-              <Input type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} className="h-9" />
-            </div>
-
-            {/* Recibo */}
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Recibo</label>
-              <Input
-                placeholder="RCM-..."
-                value={reciboFilter}
-                onChange={(e) => setReciboFilter(e.target.value)}
-                className="h-9"
-              />
-            </div>
-
-            {/* Proceso de Pago */}
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Proceso de Pago</label>
-              <Select value={procesoPagoFilter} onValueChange={setProcesoPagoFilter}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="Pagado">Pago</SelectItem>
-                  <SelectItem value="No pagado">No pago</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Empleado */}
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Empleado</label>
-              <Select value={empleadoFilter} onValueChange={setEmpleadoFilter}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {uniqueEmpleados.map((emp) => (
-                    <SelectItem key={emp} value={emp!}>
-                      {emp}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Categoría */}
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Categoría</label>
-              <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="Transporte">Transporte</SelectItem>
-                  <SelectItem value="Alimentación">Alimentación</SelectItem>
-                  <SelectItem value="Compras">Compras</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Recursos */}
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Recursos</label>
-              <Select value={recursosFilter} onValueChange={setRecursosFilter}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="Recursos propios">Recursos propios</SelectItem>
-                  <SelectItem value="BBM">BBM</SelectItem>
-                  <SelectItem value="Anticipo BBM">Anticipo BBM</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Contingencia */}
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Contingencia</label>
-              <Select value={contingenciaFilter} onValueChange={setContingenciaFilter}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="Sí">Sí</SelectItem>
-                  <SelectItem value="No">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Estado */}
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Estado</label>
-              <Select value={estadoFilter} onValueChange={setEstadoFilter}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="Aprobado">Aprobado</SelectItem>
-                  <SelectItem value="No aprobado">No aprobado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Evento */}
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Evento</label>
-              <Select value={eventoFilter} onValueChange={setEventoFilter}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {uniqueEventos.map((evt) => (
-                    <SelectItem key={evt} value={evt!}>
-                      {evt}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           {/* Export Button */}

@@ -40,14 +40,13 @@ interface CategoryStats {
   bbm: { valor: number; percentage: number };
   anticipo: { valor: number; percentage: number };
   contingenciaPct: number;
-  donutData: { name: string; value: number; color: string }[];
-  // Contingencia por recurso (por cantidad de registros)
+  donutData: { name: string; value: number; color: string; percentage: number }[];
   contingenciaByRecurso: {
     recursosPropios: ResourceContingencia;
     bbm: ResourceContingencia;
     anticipo: ResourceContingencia;
   };
-  innerDonutData: { name: string; value: number; color: string }[];
+  contingenciaArcs: { name: string; value: number; maxValue: number; color: string; percentage: number }[];
 }
 
 const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
@@ -107,30 +106,50 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
       const totalContingenciaRecords = categoryItems.filter((i) => i.contingencia === "Sí").length;
       const contingenciaPct = totalRecords > 0 ? (totalContingenciaRecords / totalRecords) * 100 : 0;
 
-      // Outer donut data (by value)
+      // Outer donut data (by value) with percentage
       const donutData = [
-        { name: "Recursos propios", value: recursosPropiosVal, color: COLORS.recursosPropios },
-        { name: "BBM", value: bbmVal, color: COLORS.bbm },
-        { name: "Anticipo BBM", value: anticipoVal, color: COLORS.anticipo },
-      ].filter((d) => d.value > 0);
-
-      // Inner donut data (contingencia by record count per resource)
-      // Shows the proportion of contingencia records per resource type
-      const innerDonutData = [
         { 
-          name: "Rec. propios", 
-          value: contingenciaByRecurso.recursosPropios.contingenciaRecords, 
-          color: COLORS.recursosPropios 
+          name: "Recursos propios", 
+          value: recursosPropiosVal, 
+          color: COLORS.recursosPropios,
+          percentage: total > 0 ? (recursosPropiosVal / total) * 100 : 0
         },
         { 
           name: "BBM", 
-          value: contingenciaByRecurso.bbm.contingenciaRecords, 
-          color: COLORS.bbm 
+          value: bbmVal, 
+          color: COLORS.bbm,
+          percentage: total > 0 ? (bbmVal / total) * 100 : 0
+        },
+        { 
+          name: "Anticipo BBM", 
+          value: anticipoVal, 
+          color: COLORS.anticipo,
+          percentage: total > 0 ? (anticipoVal / total) * 100 : 0
+        },
+      ].filter((d) => d.value > 0);
+
+      // Contingencia arcs data - for thin internal arcs
+      const contingenciaArcs = [
+        { 
+          name: "Rec. propios", 
+          value: contingenciaByRecurso.recursosPropios.percentage, 
+          maxValue: 100,
+          color: COLORS.recursosPropios,
+          percentage: contingenciaByRecurso.recursosPropios.percentage
+        },
+        { 
+          name: "BBM", 
+          value: contingenciaByRecurso.bbm.percentage, 
+          maxValue: 100,
+          color: COLORS.bbm,
+          percentage: contingenciaByRecurso.bbm.percentage
         },
         { 
           name: "Anticipo", 
-          value: contingenciaByRecurso.anticipo.contingenciaRecords, 
-          color: COLORS.anticipo 
+          value: contingenciaByRecurso.anticipo.percentage, 
+          maxValue: 100,
+          color: COLORS.anticipo,
+          percentage: contingenciaByRecurso.anticipo.percentage
         },
       ].filter((d) => d.value > 0);
 
@@ -153,7 +172,7 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
         contingenciaPct,
         donutData,
         contingenciaByRecurso,
-        innerDonutData,
+        contingenciaArcs,
       };
     });
 
@@ -167,9 +186,7 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
         <div className="bg-card border border-border rounded-lg p-2 shadow-lg">
           <p className="text-sm font-medium text-foreground">{data.name}</p>
           <p className="text-sm text-muted-foreground">
-            {typeof data.value === "number" && data.value >= 1000 
-              ? formatCurrency(data.value) 
-              : `${data.value} registros`}
+            {formatCurrency(data.value)} ({data.percentage.toFixed(0)}%)
           </p>
         </div>
       );
@@ -177,17 +194,46 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
     return null;
   };
 
-  const InnerTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-card border border-border rounded-lg p-2 shadow-lg">
-          <p className="text-sm font-medium text-foreground">{data.name}</p>
-          <p className="text-sm text-muted-foreground">{data.value} contingencia(s)</p>
-        </div>
-      );
-    }
-    return null;
+  // Custom label for pie chart segments
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }: any) => {
+    if (percent < 0.05) return null; // Don't show label for very small segments
+    
+    const RADIAN = Math.PI / 180;
+    const radius = outerRadius + 18;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="currentColor"
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+        className="text-[10px] md:text-xs font-semibold fill-foreground"
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
+  // SVG arc path generator for contingencia arcs
+  const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
+    const start = polarToCartesian(x, y, radius, endAngle);
+    const end = polarToCartesian(x, y, radius, startAngle);
+    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+    return [
+      "M", start.x, start.y,
+      "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
+    ].join(" ");
+  };
+
+  const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
+    const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+    return {
+      x: centerX + (radius * Math.cos(angleInRadians)),
+      y: centerY + (radius * Math.sin(angleInRadians))
+    };
   };
 
   return (
@@ -205,150 +251,178 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
 
         {/* Categories Grid with Donuts */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          {categoriaStats.map((cat) => (
-            <div 
-              key={cat.name} 
-              className="flex flex-col items-center p-4 rounded-xl bg-background/50 border border-border/30 transition-all duration-300 hover:border-border/60"
-            >
-              {/* Category Header */}
-              <div className="text-center mb-2">
-                <span 
-                  className="text-lg md:text-xl font-bold"
-                  style={{ color: CATEGORY_COLORS[cat.name as keyof typeof CATEGORY_COLORS] }}
-                >
-                  {cat.percentage.toFixed(0)}%
-                </span>
-                <span className="text-sm md:text-base font-medium text-muted-foreground ml-2">
-                  {cat.name.toUpperCase()}
-                </span>
-              </div>
-              <p className="text-sm md:text-base font-semibold text-foreground mb-3">
-                {formatCurrency(cat.total)}
-              </p>
-
-              {/* Double Donut Chart */}
-              <div className="relative w-[180px] h-[180px] md:w-[200px] md:h-[200px]">
-                {cat.donutData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      {/* Outer Ring - Resource Distribution by VALUE */}
-                      <Pie
-                        data={cat.donutData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                        isAnimationActive={true}
-                        animationDuration={500}
-                      >
-                        {cat.donutData.map((entry, index) => (
-                          <Cell key={`outer-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      
-                      {/* Inner Ring - Contingencia by RECORD COUNT */}
-                      {cat.innerDonutData.length > 0 && (
-                        <Pie
-                          data={cat.innerDonutData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={35}
-                          outerRadius={50}
-                          paddingAngle={2}
-                          dataKey="value"
-                          isAnimationActive={true}
-                          animationDuration={500}
-                        >
-                          {cat.innerDonutData.map((entry, index) => (
-                            <Cell key={`inner-${index}`} fill={entry.color} opacity={0.7} />
-                          ))}
-                        </Pie>
-                      )}
-                      
-                      <Tooltip content={<CustomTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="w-full h-full rounded-full border-4 border-dashed border-muted flex items-center justify-center">
-                    <span className="text-xs text-muted-foreground">Sin datos</span>
-                  </div>
-                )}
-                
-                {/* Center text - Contingencia */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-[9px] md:text-[10px] text-muted-foreground uppercase tracking-tight font-medium">
-                    Contingencia
+          {categoriaStats.map((cat) => {
+            // Calculate contingencia arc positions
+            const arcRadius = 48;
+            const center = { x: 100, y: 100 }; // For 200x200 viewBox
+            let currentAngle = -90; // Start from top
+            
+            return (
+              <div 
+                key={cat.name} 
+                className="flex flex-col items-center p-4 rounded-xl bg-background/50 border border-border/30 transition-all duration-300 hover:border-border/60"
+              >
+                {/* Category Header */}
+                <div className="text-center mb-2">
+                  <span 
+                    className="text-lg md:text-xl font-bold"
+                    style={{ color: CATEGORY_COLORS[cat.name as keyof typeof CATEGORY_COLORS] }}
+                  >
+                    {cat.percentage.toFixed(0)}%
                   </span>
-                  <span className="text-lg md:text-xl font-bold text-foreground">
-                    {cat.contingenciaPct.toFixed(0)}%
+                  <span className="text-sm md:text-base font-medium text-muted-foreground ml-2">
+                    {cat.name.toUpperCase()}
                   </span>
                 </div>
-              </div>
+                <p className="text-sm md:text-base font-semibold text-foreground mb-3">
+                  {formatCurrency(cat.total)}
+                </p>
 
-              {/* Resource breakdown with contingencia info */}
-              <div className="mt-3 w-full space-y-1.5">
-                {cat.recursosPropios.valor > 0 && (
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.recursosPropios }} />
-                      <span className="text-muted-foreground">Rec. propios</span>
+                {/* Donut Chart with Contingencia Arcs */}
+                <div className="relative w-[200px] h-[200px] md:w-[220px] md:h-[220px]">
+                  {cat.donutData.length > 0 ? (
+                    <>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          {/* Main Donut - Resource Distribution by VALUE */}
+                          <Pie
+                            data={cat.donutData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={55}
+                            outerRadius={75}
+                            paddingAngle={2}
+                            dataKey="value"
+                            isAnimationActive={true}
+                            animationDuration={500}
+                            label={renderCustomLabel}
+                            labelLine={false}
+                          >
+                            {cat.donutData.map((entry, index) => (
+                              <Cell key={`outer-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+
+                      {/* Contingencia Arcs - SVG overlay */}
+                      <svg 
+                        className="absolute inset-0 w-full h-full pointer-events-none"
+                        viewBox="0 0 200 200"
+                      >
+                        {cat.contingenciaArcs.map((arc, index) => {
+                          const arcLength = (arc.percentage / 100) * 120; // Each resource gets 120 degrees max
+                          const startAngle = currentAngle;
+                          const endAngle = startAngle + arcLength;
+                          currentAngle += 120; // Advance for next resource
+                          
+                          if (arc.percentage === 0) return null;
+                          
+                          return (
+                            <path
+                              key={`arc-${index}`}
+                              d={describeArc(100, 100, arcRadius, startAngle, Math.min(endAngle, startAngle + arcLength))}
+                              fill="none"
+                              stroke={arc.color}
+                              strokeWidth="4"
+                              strokeLinecap="round"
+                              opacity={0.8}
+                              className="transition-all duration-500"
+                            />
+                          );
+                        })}
+                      </svg>
+                    </>
+                  ) : (
+                    <div className="w-full h-full rounded-full border-4 border-dashed border-muted flex items-center justify-center">
+                      <span className="text-xs text-muted-foreground">Sin datos</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                  )}
+                </div>
+
+                {/* Resource breakdown */}
+                <div className="mt-3 w-full space-y-1.5">
+                  {cat.recursosPropios.valor > 0 && (
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.recursosPropios }} />
+                        <span className="text-muted-foreground">Rec. propios</span>
+                      </div>
                       <span className="font-medium text-foreground">
                         {formatCurrencyShort(cat.recursosPropios.valor)}
                       </span>
-                      {cat.contingenciaByRecurso.recursosPropios.contingenciaRecords > 0 && (
-                        <span className="text-[10px] text-muted-foreground">
-                          ({cat.contingenciaByRecurso.recursosPropios.percentage.toFixed(0)}% cont.)
-                        </span>
-                      )}
                     </div>
-                  </div>
-                )}
-                {cat.bbm.valor > 0 && (
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.bbm }} />
-                      <span className="text-muted-foreground">BBM</span>
-                    </div>
-                    <div className="flex items-center gap-2">
+                  )}
+                  {cat.bbm.valor > 0 && (
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.bbm }} />
+                        <span className="text-muted-foreground">BBM</span>
+                      </div>
                       <span className="font-medium text-foreground">
                         {formatCurrencyShort(cat.bbm.valor)}
                       </span>
-                      {cat.contingenciaByRecurso.bbm.contingenciaRecords > 0 && (
-                        <span className="text-[10px] text-muted-foreground">
-                          ({cat.contingenciaByRecurso.bbm.percentage.toFixed(0)}% cont.)
-                        </span>
-                      )}
                     </div>
-                  </div>
-                )}
-                {cat.anticipo.valor > 0 && (
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.anticipo }} />
-                      <span className="text-muted-foreground">Anticipo</span>
-                    </div>
-                    <div className="flex items-center gap-2">
+                  )}
+                  {cat.anticipo.valor > 0 && (
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.anticipo }} />
+                        <span className="text-muted-foreground">Anticipo</span>
+                      </div>
                       <span className="font-medium text-foreground">
                         {formatCurrencyShort(cat.anticipo.valor)}
                       </span>
-                      {cat.contingenciaByRecurso.anticipo.contingenciaRecords > 0 && (
-                        <span className="text-[10px] text-muted-foreground">
-                          ({cat.contingenciaByRecurso.anticipo.percentage.toFixed(0)}% cont.)
-                        </span>
+                    </div>
+                  )}
+                  {cat.donutData.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center">Sin registros</p>
+                  )}
+                </div>
+
+                {/* Contingencia Info - Clear text below */}
+                {cat.donutData.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border/30 w-full">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5 text-center font-medium">
+                      Contingencia
+                    </p>
+                    <div className="flex justify-center gap-3 text-[11px]">
+                      {cat.contingenciaByRecurso.recursosPropios.totalRecords > 0 && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.recursosPropios }} />
+                          <span className="text-foreground font-medium">
+                            {cat.contingenciaByRecurso.recursosPropios.percentage.toFixed(0)}%
+                          </span>
+                        </div>
+                      )}
+                      {cat.contingenciaByRecurso.bbm.totalRecords > 0 && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.bbm }} />
+                          <span className="text-foreground font-medium">
+                            {cat.contingenciaByRecurso.bbm.percentage.toFixed(0)}%
+                          </span>
+                        </div>
+                      )}
+                      {cat.contingenciaByRecurso.anticipo.totalRecords > 0 && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.anticipo }} />
+                          <span className="text-foreground font-medium">
+                            {cat.contingenciaByRecurso.anticipo.percentage.toFixed(0)}%
+                          </span>
+                        </div>
+                      )}
+                      {cat.contingenciaByRecurso.recursosPropios.totalRecords === 0 &&
+                       cat.contingenciaByRecurso.bbm.totalRecords === 0 &&
+                       cat.contingenciaByRecurso.anticipo.totalRecords === 0 && (
+                        <span className="text-muted-foreground text-[10px]">Sin registros</span>
                       )}
                     </div>
                   </div>
                 )}
-                {cat.donutData.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center">Sin registros</p>
-                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Legend */}

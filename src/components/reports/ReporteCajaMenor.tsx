@@ -13,7 +13,7 @@ import { format, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { CajaMenorItem, Project, Attachment } from "@/types";
-import CajaMenorKPIs from "./CajaMenorKPIs";
+import CajaMenorDashboard from "./CajaMenorDashboard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { EventLink } from "@/components/EventLink";
@@ -662,8 +662,8 @@ const ReporteCajaMenor = () => {
 
   return (
     <div className="space-y-6">
-      {/* KPIs Dashboard */}
-      <CajaMenorKPIs items={filteredItems} />
+      {/* Financial Dashboard with Donut Charts */}
+      <CajaMenorDashboard items={filteredItems} />
 
       {/* Filters Section - Simplified */}
       <Card>

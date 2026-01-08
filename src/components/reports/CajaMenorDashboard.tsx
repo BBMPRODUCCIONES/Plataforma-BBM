@@ -227,7 +227,7 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                   {formatCurrency(cat.total)}
                 </p>
 
-                {/* Donut Chart with Contingencia Arcs */}
+                {/* Donut Chart with Contingencia in Center */}
                 <div className="relative w-[200px] h-[200px] md:w-[220px] md:h-[220px]">
                   {cat.donutData.length > 0 ? (
                     <>
@@ -255,6 +255,29 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                         </PieChart>
                       </ResponsiveContainer>
 
+                      {/* Contingencia - Centro del Donut */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span className="text-[9px] uppercase tracking-wide text-muted-foreground mb-1">
+                          contingencia
+                        </span>
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+                          {cat.contingenciaByRecurso.recursosPropios.totalRecords > 0 && (
+                            <span style={{ color: COLORS.recursosPropios }}>
+                              {cat.contingenciaByRecurso.recursosPropios.percentage.toFixed(0)}%
+                            </span>
+                          )}
+                          {cat.contingenciaByRecurso.bbm.totalRecords > 0 && (
+                            <span style={{ color: COLORS.bbm }}>
+                              {cat.contingenciaByRecurso.bbm.percentage.toFixed(0)}%
+                            </span>
+                          )}
+                          {cat.contingenciaByRecurso.anticipo.totalRecords > 0 && (
+                            <span style={{ color: COLORS.anticipo }}>
+                              {cat.contingenciaByRecurso.anticipo.percentage.toFixed(0)}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </>
                   ) : (
                     <div className="w-full h-full rounded-full border-4 border-dashed border-muted flex items-center justify-center">
@@ -303,45 +326,6 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                   )}
                 </div>
 
-                {/* Contingencia Info - Clear text below */}
-                {cat.donutData.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border/30 w-full">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5 text-center font-medium">
-                      Contingencia
-                    </p>
-                    <div className="flex justify-center gap-3 text-[11px]">
-                      {cat.contingenciaByRecurso.recursosPropios.totalRecords > 0 && (
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.recursosPropios }} />
-                          <span className="text-foreground font-medium">
-                            {cat.contingenciaByRecurso.recursosPropios.percentage.toFixed(0)}%
-                          </span>
-                        </div>
-                      )}
-                      {cat.contingenciaByRecurso.bbm.totalRecords > 0 && (
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.bbm }} />
-                          <span className="text-foreground font-medium">
-                            {cat.contingenciaByRecurso.bbm.percentage.toFixed(0)}%
-                          </span>
-                        </div>
-                      )}
-                      {cat.contingenciaByRecurso.anticipo.totalRecords > 0 && (
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.anticipo }} />
-                          <span className="text-foreground font-medium">
-                            {cat.contingenciaByRecurso.anticipo.percentage.toFixed(0)}%
-                          </span>
-                        </div>
-                      )}
-                      {cat.contingenciaByRecurso.recursosPropios.totalRecords === 0 &&
-                       cat.contingenciaByRecurso.bbm.totalRecords === 0 &&
-                       cat.contingenciaByRecurso.anticipo.totalRecords === 0 && (
-                        <span className="text-muted-foreground text-[10px]">Sin registros</span>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             ))}
         </div>

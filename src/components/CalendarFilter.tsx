@@ -339,7 +339,7 @@ export function CalendarFilter({
                     "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
                     "flex flex-col",
                     isLandscape 
-                      ? "w-[min(98vw,850px)] max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-24px)]"
+                      ? "w-[min(99vw,920px)] max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-24px)]"
                       : "w-[min(95vw,360px)] max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-24px)]"
                   )}
                 >
@@ -365,11 +365,11 @@ export function CalendarFilter({
                     {isLandscape ? (
                       /* Layout Landscape: Presets compactos izquierda + 2 calendarios más pequeños */
                       <div className="flex h-full">
-                        <div className="border-r border-border px-0.5 py-1 space-y-0.5 flex-shrink-0">
+                        <div className="border-r border-border px-1 py-1.5 space-y-0.5 flex-shrink-0">
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="w-full justify-start h-6 px-1 text-[9px] whitespace-nowrap touch-manipulation"
+                            className="w-full justify-start h-7 px-1.5 text-[10px] whitespace-nowrap touch-manipulation"
                             onClick={() => applyPreset("thisWeek")}
                           >
                             Esta semana
@@ -377,7 +377,7 @@ export function CalendarFilter({
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="w-full justify-start h-6 px-1 text-[9px] whitespace-nowrap touch-manipulation"
+                            className="w-full justify-start h-7 px-1.5 text-[10px] whitespace-nowrap touch-manipulation"
                             onClick={() => applyPreset("thisMonth")}
                           >
                             Este mes
@@ -385,13 +385,13 @@ export function CalendarFilter({
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="w-full justify-start h-6 px-1 text-[9px] whitespace-nowrap touch-manipulation"
+                            className="w-full justify-start h-7 px-1.5 text-[10px] whitespace-nowrap touch-manipulation"
                             onClick={() => applyPreset("thisQuarter")}
                           >
                             Este trimestre
                           </Button>
                         </div>
-                        <div className="p-1 overflow-auto flex-1 flex justify-center items-start">
+                        <div className="p-2 overflow-auto flex-1 flex justify-center items-start">
                           <Calendar
                             mode="range"
                             selected={tempRange}
@@ -400,20 +400,20 @@ export function CalendarFilter({
                             locale={es}
                             className="pointer-events-auto"
                             classNames={{
-                              months: "flex flex-row gap-1",
-                              month: "space-y-0.5",
-                              caption: "flex justify-center pt-0 relative items-center h-5",
-                              caption_label: "text-[9px] font-medium",
+                              months: "flex flex-row gap-3",
+                              month: "space-y-1",
+                              caption: "flex justify-center pt-0 relative items-center h-7",
+                              caption_label: "text-xs font-medium",
                               nav: "space-x-1 flex items-center",
-                              nav_button: "h-4 w-4 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input touch-manipulation",
+                              nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center rounded-md border border-input touch-manipulation",
                               nav_button_previous: "absolute left-0",
                               nav_button_next: "absolute right-0",
                               table: "w-full border-collapse",
                               head_row: "flex",
-                              head_cell: "text-muted-foreground rounded-md w-5 font-normal text-[8px]",
-                              row: "flex w-full mt-0",
-                              cell: "h-5 w-5 text-center text-[9px] p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                              day: "h-5 w-5 p-0 font-normal text-[9px] aria-selected:opacity-100 inline-flex items-center justify-center rounded-md touch-manipulation",
+                              head_cell: "text-muted-foreground rounded-md w-7 font-normal text-[10px]",
+                              row: "flex w-full mt-0.5",
+                              cell: "h-7 w-7 text-center text-xs p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                              day: "h-7 w-7 p-0 font-normal text-xs aria-selected:opacity-100 inline-flex items-center justify-center rounded-md touch-manipulation",
                               day_range_end: "day-range-end",
                               day_selected: "bg-primary text-primary-foreground",
                               day_today: "bg-accent text-accent-foreground",

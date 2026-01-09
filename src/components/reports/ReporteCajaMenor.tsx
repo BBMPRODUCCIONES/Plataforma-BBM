@@ -117,7 +117,10 @@ const ReporteCajaMenor = () => {
   const allCajaMenorItems = useMemo((): FlattenedCajaMenorItem[] => {
     const items: FlattenedCajaMenorItem[] = [];
 
-    projects.forEach((project: Project) => {
+    // Filter out deleted projects - they should not appear in reports
+    const activeProjects = projects.filter((p: Project) => !p.isDeleted);
+
+    activeProjects.forEach((project: Project) => {
       const caja = Array.isArray(project.cajaMenor) ? project.cajaMenor : [];
       if (caja.length === 0) return;
 

@@ -333,7 +333,7 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
             {totalContingencia > 0 && (
               <div className="flex flex-col items-start border-l border-border/50 pl-4">
                 <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wide">Contingencia</span>
-                <span className="text-sm md:text-lg font-semibold text-amber-500">
+                <span className="text-sm md:text-lg font-semibold text-muted-foreground">
                   {formatCurrency(totalContingencia)}
                 </span>
               </div>
@@ -366,7 +366,7 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                 {formatCurrency(cat.total)}
               </p>
               {cat.contingenciaTotal > 0 && (
-                <p className="text-[10px] text-amber-500/80 mb-2">
+                <p className="text-[10px] text-muted-foreground mb-2">
                   Cont: {formatCurrency(cat.contingenciaTotal)}
                 </p>
               )}

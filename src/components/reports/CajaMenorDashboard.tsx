@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CajaMenorItem } from "@/types";
+import { Car, Utensils, ShoppingBag } from "lucide-react";
 
 interface FlattenedCajaMenorItem extends CajaMenorItem {
   eventoId: string;
@@ -337,7 +338,10 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                 >
                   {cat.percentage.toFixed(0)}%
                 </span>
-                <span className="text-sm md:text-base font-medium text-muted-foreground ml-2 uppercase">
+                <span className="text-sm md:text-base font-medium text-muted-foreground ml-2 uppercase inline-flex items-center gap-1.5">
+                  {cat.name === "Transporte" && <Car className="w-4 h-4" />}
+                  {cat.name === "Alimentación" && <Utensils className="w-4 h-4" />}
+                  {cat.name === "Compras" && <ShoppingBag className="w-4 h-4" />}
                   {cat.name}
                 </span>
               </div>

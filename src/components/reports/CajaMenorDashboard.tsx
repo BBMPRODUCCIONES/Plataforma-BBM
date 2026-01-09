@@ -50,6 +50,7 @@ interface CategoryStats {
   bbm: { valor: number; percentage: number };
   anticipo: { valor: number; percentage: number };
   contingenciaPct: number;
+  contingenciaTotal: number;
   donutData: DonutSegment[];
   contingenciaByRecurso: {
     recursosPropios: ResourceContingencia;
@@ -218,8 +219,11 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
 
   // Removed formatCurrencyShort - now all values are shown complete
 
-  const { totalPagos, categoriaStats } = useMemo(() => {
+  const { totalPagos, totalContingencia, categoriaStats } = useMemo(() => {
     const totalPagos = items.reduce((sum, item) => sum + (item.valor || 0), 0);
+    const totalContingencia = items
+      .filter(item => item.contingencia === "Sí")
+      .reduce((sum, item) => sum + (item.valor || 0), 0);
 
     const categories: ("Transporte" | "Alimentación" | "Compras")[] = ["Transporte", "Alimentación", "Compras"];
     
@@ -255,8 +259,10 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
 
       // Total contingencia percentage (weighted by record count)
       const totalRecords = categoryItems.length;
-      const totalContingenciaRecords = categoryItems.filter((i) => i.contingencia === "Sí").length;
+      const contingenciaItems = categoryItems.filter((i) => i.contingencia === "Sí");
+      const totalContingenciaRecords = contingenciaItems.length;
       const contingenciaPct = totalRecords > 0 ? (totalContingenciaRecords / totalRecords) * 100 : 0;
+      const contingenciaTotal = contingenciaItems.reduce((sum, i) => sum + (i.valor || 0), 0);
 
       // Donut data (by value) with percentage
       const donutData: DonutSegment[] = [
@@ -303,12 +309,13 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
           percentage: total > 0 ? (anticipoVal / total) * 100 : 0,
         },
         contingenciaPct,
+        contingenciaTotal,
         donutData,
         contingenciaByRecurso,
       };
     });
 
-    return { totalPagos, categoriaStats };
+    return { totalPagos, totalContingencia, categoriaStats };
   }, [items]);
 
   return (
@@ -319,9 +326,19 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
           <h2 className="text-sm md:text-base font-medium text-muted-foreground uppercase tracking-wider mb-1">
             Total de Pagos
           </h2>
-          <p className="text-2xl md:text-4xl font-bold text-foreground transition-all duration-300">
-            {formatCurrency(totalPagos)}
-          </p>
+          <div className="flex items-center justify-center gap-4">
+            <p className="text-2xl md:text-4xl font-bold text-foreground transition-all duration-300">
+              {formatCurrency(totalPagos)}
+            </p>
+            {totalContingencia > 0 && (
+              <div className="flex flex-col items-start border-l border-border/50 pl-4">
+                <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wide">Contingencia</span>
+                <span className="text-sm md:text-lg font-semibold text-amber-500">
+                  {formatCurrency(totalContingencia)}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Categories Grid with Donuts */}
@@ -345,9 +362,15 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                   {cat.name}
                 </span>
               </div>
-              <p className="text-sm md:text-base font-semibold text-foreground mb-3">
+              <p className="text-sm md:text-base font-semibold text-foreground">
                 {formatCurrency(cat.total)}
               </p>
+              {cat.contingenciaTotal > 0 && (
+                <p className="text-[10px] text-amber-500/80 mb-2">
+                  Cont: {formatCurrency(cat.contingenciaTotal)}
+                </p>
+              )}
+              {cat.contingenciaTotal === 0 && <div className="mb-3" />}
 
               {/* Custom SVG Donut Chart */}
               <div className="relative">

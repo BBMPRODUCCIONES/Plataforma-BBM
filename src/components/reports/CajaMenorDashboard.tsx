@@ -78,7 +78,7 @@ const DonutChart = ({
   const center = size / 2;
   const outerRadius = size * 0.42;
   const innerRadius = size * 0.28;
-  const externalLabelRadius = size * 0.50; // White percentages OUTSIDE
+  const externalLabelRadius = size * 0.58; // White percentages OUTSIDE (more spacing)
   const internalLabelRadius = size * 0.21; // Colored contingency percentages INSIDE (near inner edge)
 
   // Calculate segments with angles - NORMALIZED to ensure full circle

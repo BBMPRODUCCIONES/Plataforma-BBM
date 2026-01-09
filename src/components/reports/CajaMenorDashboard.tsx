@@ -14,9 +14,9 @@ interface CajaMenorDashboardProps {
 }
 
 const COLORS = {
-  recursosPropios: "#22c55e", // Green
+  recursosPropios: "#f59e0b", // Amber/Gold - neutral
   bbm: "#06b6d4",             // Cyan
-  anticipo: "#ef4444",        // Red
+  anticipo: "#a855f7",        // Purple - neutral
 };
 
 const CATEGORY_COLORS = {

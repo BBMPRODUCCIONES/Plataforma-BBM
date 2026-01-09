@@ -81,13 +81,23 @@ const DonutChart = ({
   const externalLabelRadius = size * 0.50; // White percentages OUTSIDE
   const internalLabelRadius = size * 0.21; // Colored contingency percentages INSIDE (near inner edge)
 
-  // Calculate segments with angles
+  // Calculate segments with angles - NORMALIZED to ensure full circle
   const segments = useMemo(() => {
+    const totalPercentage = data.reduce((sum, segment) => sum + segment.percentage, 0);
+    
     let currentAngle = -90; // Start from top
-    return data.map((segment) => {
-      const angle = (segment.percentage / 100) * 360;
+    return data.map((segment, index) => {
+      const normalizedPercentage = totalPercentage > 0 
+        ? (segment.percentage / totalPercentage) * 100 
+        : 0;
+      
+      const angle = (normalizedPercentage / 100) * 360;
       const startAngle = currentAngle;
-      const endAngle = currentAngle + angle;
+      
+      // For the last segment, ensure it ends exactly at 270 degrees (full circle from -90)
+      const isLast = index === data.length - 1;
+      const endAngle = isLast ? 270 : currentAngle + angle;
+      
       currentAngle = endAngle;
       return { ...segment, startAngle, endAngle };
     });

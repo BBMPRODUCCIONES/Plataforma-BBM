@@ -362,22 +362,32 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
               </div>
 
               {/* Resource breakdown with full values and contingency */}
-              <div className="mt-3 w-full space-y-2">
+              <div className="mt-3 w-full space-y-1.5">
+                {/* Column headers */}
+                {(cat.recursosPropios.valor > 0 || cat.bbm.valor > 0 || cat.anticipo.valor > 0) && (
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground/50 mb-1 border-b border-border/20 pb-1">
+                    <span className="pl-4">Recurso</span>
+                    <div className="flex items-center">
+                      <span className="w-24 text-right">Total</span>
+                      <span className="w-20 text-right">Cont.</span>
+                    </div>
+                  </div>
+                )}
                 {cat.recursosPropios.valor > 0 && (
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.recursosPropios }} />
                       <span className="text-muted-foreground">Rec. propios</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-foreground">
+                    <div className="flex items-center">
+                      <span className="font-semibold text-foreground w-24 text-right">
                         {formatCurrency(cat.recursosPropios.valor)}
                       </span>
-                      {cat.contingenciaByRecurso.recursosPropios.contingenciaValor > 0 && (
-                        <span className="text-[10px] text-muted-foreground/70">
-                          ({formatCurrency(cat.contingenciaByRecurso.recursosPropios.contingenciaValor)})
-                        </span>
-                      )}
+                      <span className="text-[10px] text-muted-foreground/70 w-20 text-right">
+                        {cat.contingenciaByRecurso.recursosPropios.contingenciaValor > 0 
+                          ? `(${formatCurrency(cat.contingenciaByRecurso.recursosPropios.contingenciaValor)})`
+                          : ''}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -387,15 +397,15 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.bbm }} />
                       <span className="text-muted-foreground">BBM</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-foreground">
+                    <div className="flex items-center">
+                      <span className="font-semibold text-foreground w-24 text-right">
                         {formatCurrency(cat.bbm.valor)}
                       </span>
-                      {cat.contingenciaByRecurso.bbm.contingenciaValor > 0 && (
-                        <span className="text-[10px] text-muted-foreground/70">
-                          ({formatCurrency(cat.contingenciaByRecurso.bbm.contingenciaValor)})
-                        </span>
-                      )}
+                      <span className="text-[10px] text-muted-foreground/70 w-20 text-right">
+                        {cat.contingenciaByRecurso.bbm.contingenciaValor > 0 
+                          ? `(${formatCurrency(cat.contingenciaByRecurso.bbm.contingenciaValor)})`
+                          : ''}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -405,15 +415,15 @@ const CajaMenorDashboard = ({ items }: CajaMenorDashboardProps) => {
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.anticipo }} />
                       <span className="text-muted-foreground">Anticipo</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-foreground">
+                    <div className="flex items-center">
+                      <span className="font-semibold text-foreground w-24 text-right">
                         {formatCurrency(cat.anticipo.valor)}
                       </span>
-                      {cat.contingenciaByRecurso.anticipo.contingenciaValor > 0 && (
-                        <span className="text-[10px] text-muted-foreground/70">
-                          ({formatCurrency(cat.contingenciaByRecurso.anticipo.contingenciaValor)})
-                        </span>
-                      )}
+                      <span className="text-[10px] text-muted-foreground/70 w-20 text-right">
+                        {cat.contingenciaByRecurso.anticipo.contingenciaValor > 0 
+                          ? `(${formatCurrency(cat.contingenciaByRecurso.anticipo.contingenciaValor)})`
+                          : ''}
+                      </span>
                     </div>
                   </div>
                 )}

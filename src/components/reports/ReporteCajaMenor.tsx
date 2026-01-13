@@ -664,12 +664,14 @@ const ReporteCajaMenor = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Financial Dashboard with Donut Charts */}
-      <CajaMenorDashboard items={filteredItems} />
+    <div className="flex flex-col h-full min-h-0 gap-4">
+      {/* Financial Dashboard with Donut Charts - fixed height */}
+      <div className="flex-shrink-0">
+        <CajaMenorDashboard items={filteredItems} />
+      </div>
 
-      {/* Filters Section - Simplified */}
-      <Card>
+      {/* Filters Section - fixed height */}
+      <Card className="flex-shrink-0">
         <CardContent className="p-4 space-y-4">
           {/* CalendarFilter - Same as Panel de Operaciones/Directivo */}
           <CalendarFilter
@@ -851,17 +853,13 @@ const ReporteCajaMenor = () => {
         </CardContent>
       </Card>
 
-      {/* Data Table - Full height container with both scrolls visible */}
+      {/* Data Table - takes all remaining space */}
       <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <CardContent className="p-0 flex flex-col min-h-0 flex-1 overflow-hidden">
           {/* Scrollable container - both scrolls always visible in viewport */}
           <div 
-            className="flex-1 reportes-scroll-container"
-            style={{ 
-              maxHeight: 'calc(100vh - 340px)', 
-              minHeight: '400px',
-              overflow: 'scroll'
-            }}
+            className="flex-1 min-h-0 reportes-scroll-container"
+            style={{ overflow: 'scroll' }}
           >
             <Table className="min-w-[1400px]">
               <TableHeader className="sticky top-0 z-10 bg-background">

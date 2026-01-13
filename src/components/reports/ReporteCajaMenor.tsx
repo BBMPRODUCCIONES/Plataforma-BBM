@@ -859,7 +859,8 @@ const ReporteCajaMenor = () => {
             className="flex-1 reportes-scroll-container"
             style={{ 
               maxHeight: 'calc(100vh - 340px)', 
-              minHeight: '400px'
+              minHeight: '400px',
+              overflow: 'scroll'
             }}
           >
             <Table className="min-w-[1400px]">

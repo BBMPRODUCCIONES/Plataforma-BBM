@@ -2987,7 +2987,7 @@ tr[data-highlighted="true"] {
 
 /* Contenedor de scroll con scrollbars siempre visibles */
 .reportes-scroll-container {
-  overflow: auto !important;
+  overflow: scroll !important;
   scrollbar-gutter: stable;
 }
 

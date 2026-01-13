@@ -2980,3 +2980,42 @@ tr[data-highlighted="true"] {
     transform: translateX(0);
   }
 }
+
+/* ============================================
+   REPORTE CAJA MENOR - SCROLL SIEMPRE VISIBLE
+   ============================================ */
+
+/* Contenedor de scroll con scrollbars siempre visibles */
+.reportes-scroll-container {
+  overflow: auto !important;
+  scrollbar-gutter: stable;
+}
+
+/* Forzar scrollbars visibles en WebKit (Chrome, Safari, Edge) */
+.reportes-scroll-container::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+  display: block !important;
+}
+
+.reportes-scroll-container::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.3);
+  border-radius: 6px;
+}
+
+.reportes-scroll-container::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.4);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.reportes-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.6);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.reportes-scroll-container::-webkit-scrollbar-corner {
+  background: hsl(var(--muted) / 0.3);
+}

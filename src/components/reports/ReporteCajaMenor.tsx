@@ -851,12 +851,13 @@ const ReporteCajaMenor = () => {
         </CardContent>
       </Card>
 
-      {/* Data Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
+      {/* Data Table - Fixed height with always visible horizontal scroll */}
+      <Card className="flex-1 flex flex-col min-h-0">
+        <CardContent className="p-0 flex flex-col min-h-0 flex-1">
+          {/* Scrollable container with fixed height */}
+          <div className="overflow-x-auto overflow-y-auto flex-1" style={{ maxHeight: 'calc(100vh - 420px)', minHeight: '300px' }}>
+            <Table className="min-w-[1400px]">
+              <TableHeader className="sticky top-0 z-10">
                 <TableRow className="bg-[hsl(var(--table-header))]">
                   <TableHead className="whitespace-nowrap"># RECIBO</TableHead>
                   <TableHead className="whitespace-nowrap">FECHA</TableHead>
@@ -998,8 +999,8 @@ const ReporteCajaMenor = () => {
             </Table>
           </div>
 
-          {/* Results count */}
-          <div className="p-4 border-t text-sm text-muted-foreground">
+          {/* Results count - always visible at bottom */}
+          <div className="p-4 border-t text-sm text-muted-foreground flex-shrink-0">
             Mostrando {filteredItems.length} de {allCajaMenorItems.length} registros
           </div>
         </CardContent>

@@ -72,13 +72,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r border-sidebar-border">
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-14 h-14 rounded-lg overflow-hidden flex items-center justify-center bg-black shadow-lg flex-shrink-0">
+      <SidebarHeader className="p-3 border-b border-sidebar-border">
+        <div className="flex items-center">
+          <div className="w-[100px] h-[50px] rounded-md overflow-hidden flex items-center justify-center bg-black p-2">
             <img 
               src={bbmLogo} 
               alt="BBM Producciones" 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           </div>
         </div>

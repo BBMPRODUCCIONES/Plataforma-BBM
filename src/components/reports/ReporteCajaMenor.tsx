@@ -870,9 +870,9 @@ const ReporteCajaMenor = () => {
             <Table className="min-w-[1400px] reportes-table">
               <TableHeader className="sticky top-0 z-20 bg-card shadow-sm">
                 <TableRow className="bg-[hsl(var(--table-header))]">
-                  <TableHead className="whitespace-nowrap sticky-col-1"># RECIBO</TableHead>
-                  <TableHead className="whitespace-nowrap sticky-col-2">FECHA</TableHead>
-                  <TableHead className="whitespace-nowrap sticky-col-3">EMPLEADO</TableHead>
+                  <TableHead className="whitespace-nowrap"># RECIBO</TableHead>
+                  <TableHead className="whitespace-nowrap">FECHA</TableHead>
+                  <TableHead className="whitespace-nowrap">EMPLEADO</TableHead>
                   <TableHead className="whitespace-nowrap">EVENTO</TableHead>
                   <TableHead className="whitespace-nowrap">CONCEPTO</TableHead>
                   <TableHead className="whitespace-nowrap text-center">IMÁGENES</TableHead>
@@ -894,12 +894,12 @@ const ReporteCajaMenor = () => {
                 ) : (
                   filteredItems.map((item) => (
                     <TableRow key={`${item.eventoId}-${item.id}`}>
-                      {/* # RECIBO - sticky col 1 */}
-                      <TableCell className="whitespace-nowrap font-mono text-xs sticky-col-1">{item.recibo}</TableCell>
-                      {/* FECHA - sticky col 2 */}
-                      <TableCell className="whitespace-nowrap sticky-col-2">{formatDateDisplay(item.fecha)}</TableCell>
-                      {/* EMPLEADO - sticky col 3 */}
-                      <TableCell className="max-w-[150px] truncate sticky-col-3">{item.empleadoNombre || "-"}</TableCell>
+                      {/* # RECIBO */}
+                      <TableCell className="whitespace-nowrap font-mono text-xs">{item.recibo}</TableCell>
+                      {/* FECHA */}
+                      <TableCell className="whitespace-nowrap">{formatDateDisplay(item.fecha)}</TableCell>
+                      {/* EMPLEADO */}
+                      <TableCell className="max-w-[150px] truncate">{item.empleadoNombre || "-"}</TableCell>
                       {/* EVENTO */}
                       <TableCell className="max-w-[200px]">
                         <EventLink

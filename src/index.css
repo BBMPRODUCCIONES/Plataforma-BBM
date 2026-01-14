@@ -3027,43 +3027,26 @@ tr[data-highlighted="true"] {
 
 /* ============================================
    Reporte Caja Menor - Mobile/ACW Optimization
-   REAL scroll behavior (not drag-libre canvas)
-   3 sticky columns: #RECIBO, FECHA, EMPLEADO
+   Desktop-like scroll: sticky header only
    ============================================ */
 @media (max-width: 768px) {
-  /* CRITICAL: Disable scroll on ALL inner wrappers - only main container scrolls */
+  /* Disable scroll on inner wrappers - only main container scrolls */
   .reportes-scroll-container > div,
   .reportes-scroll-container .mobile-scroll-container,
   .reportes-scroll-container [class*="overflow"] {
     overflow: visible !important;
-    -webkit-overflow-scrolling: unset !important;
-    min-width: unset !important;
     width: 100% !important;
     height: auto !important;
   }
   
-  /* MAIN scroll container - REAL scroll behavior */
+  /* Main scroll container - normal scroll like desktop */
   .reportes-scroll-container {
-    overflow-x: scroll !important;
-    overflow-y: scroll !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    scroll-behavior: smooth;
-    overscroll-behavior: contain;
-    /* CRITICAL: touch-action: auto = normal scroll, NOT drag-libre */
     touch-action: auto !important;
-    
-    /* Height for ~5 visible rows (row ~50px + header ~60px = 310px min) */
+    overscroll-behavior: contain;
     height: clamp(320px, calc(100dvh - 260px), 500px) !important;
-    
-    /* Hide scrollbars for app-like feel but keep functionality */
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  
-  .reportes-scroll-container::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
   }
   
   /* Table min-width to force horizontal scroll */
@@ -3071,72 +3054,18 @@ tr[data-highlighted="true"] {
     min-width: 1300px !important;
   }
   
-  /* Better touch targets */
+  /* Sticky header only (like desktop) */
+  .reportes-scroll-container thead {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    background: hsl(var(--table-header)) !important;
+  }
+  
+  /* Better legibility on mobile */
   .reportes-scroll-container td,
   .reportes-scroll-container th {
     padding: 12px 10px !important;
     font-size: 13px !important;
-  }
-  
-  /* Sticky header for vertical scroll */
-  .reportes-scroll-container thead {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 30 !important;
-  }
-  
-  /* ========== 3 STICKY COLUMNS ========== */
-  
-  /* Column 1: #RECIBO */
-  .reportes-scroll-container .sticky-col-1 {
-    position: sticky !important;
-    left: 0 !important;
-    z-index: 15 !important;
-    min-width: 95px !important;
-    background: hsl(var(--card)) !important;
-  }
-  
-  /* Column 2: FECHA */
-  .reportes-scroll-container .sticky-col-2 {
-    position: sticky !important;
-    left: 95px !important;
-    z-index: 14 !important;
-    min-width: 90px !important;
-    background: hsl(var(--card)) !important;
-  }
-  
-  /* Column 3: EMPLEADO */
-  .reportes-scroll-container .sticky-col-3 {
-    position: sticky !important;
-    left: 185px !important;
-    z-index: 13 !important;
-    min-width: 130px !important;
-    background: hsl(var(--card)) !important;
-  }
-  
-  /* Header sticky columns need higher z-index + header background */
-  .reportes-scroll-container thead .sticky-col-1 {
-    z-index: 33 !important;
-    background: hsl(var(--table-header)) !important;
-  }
-  .reportes-scroll-container thead .sticky-col-2 {
-    z-index: 32 !important;
-    background: hsl(var(--table-header)) !important;
-  }
-  .reportes-scroll-container thead .sticky-col-3 {
-    z-index: 31 !important;
-    background: hsl(var(--table-header)) !important;
-  }
-  
-  /* Shadow on last sticky column to indicate more content */
-  .reportes-scroll-container .sticky-col-3::after {
-    content: "";
-    position: absolute;
-    right: -6px;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.12), transparent);
-    pointer-events: none;
   }
 }

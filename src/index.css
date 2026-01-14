@@ -3024,3 +3024,83 @@ tr[data-highlighted="true"] {
 .reportes-scroll-container::-webkit-scrollbar-corner {
   background: hsl(var(--muted) / 0.3);
 }
+
+/* ============================================
+   REPORTE CAJA MENOR - MOBILE/ACW OPTIMIZATION
+   Native app-like touch scrolling experience
+   ============================================ */
+@media (max-width: 768px) {
+  .reportes-scroll-container {
+    /* Touch-native scrolling */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+    touch-action: pan-x pan-y;
+    
+    /* Adjust height for mobile viewport */
+    height: clamp(300px, calc(100dvh - 280px), 500px) !important;
+  }
+  
+  /* Hide scrollbars on mobile for app-like feel */
+  .reportes-scroll-container::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  
+  .reportes-scroll-container {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+  
+  /* Table adjustments for mobile */
+  .reportes-scroll-container table {
+    min-width: 1200px; /* Force horizontal scroll */
+  }
+  
+  /* Better touch targets */
+  .reportes-scroll-container th,
+  .reportes-scroll-container td {
+    padding: 12px 10px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Sticky header for mobile vertical scroll */
+  .reportes-scroll-container thead {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: hsl(var(--card));
+  }
+  
+  /* First column sticky for horizontal scroll (#RECIBO) */
+  .reportes-scroll-container th:first-child,
+  .reportes-scroll-container td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 15;
+    background: hsl(var(--card));
+    min-width: 100px;
+  }
+  
+  /* Header first cell higher z-index (intersection point) */
+  .reportes-scroll-container thead th:first-child {
+    z-index: 25;
+  }
+  
+  /* Visual separator shadow for sticky column */
+  .reportes-scroll-container td:first-child {
+    position: relative;
+  }
+  
+  .reportes-scroll-container td:first-child::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -4px;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to right, hsl(var(--border) / 0.3), transparent);
+    pointer-events: none;
+  }
+}

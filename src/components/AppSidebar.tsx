@@ -1,5 +1,4 @@
 import {
-  Briefcase,
   Grid3X3,
   Wrench,
   Users,
@@ -12,7 +11,9 @@ import {
   LogOut,
   Loader2,
   FileBarChart,
+  Briefcase,
 } from "lucide-react";
+import bbmLogoSidebar from "@/assets/bbm-logo-sidebar.png";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -73,12 +74,16 @@ export function AppSidebar() {
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Briefcase className="w-5 h-5 text-primary" />
+          <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-black">
+            <img 
+              src={bbmLogoSidebar} 
+              alt="BBM Producciones" 
+              className="w-full h-full object-contain p-1"
+            />
           </div>
           <div className="flex flex-col">
-            <span className="font-semibold text-sidebar-foreground text-sm">Producción</span>
-            <span className="text-xs text-muted-foreground">Eventos</span>
+            <span className="font-semibold text-sidebar-foreground text-sm">BBM</span>
+            <span className="text-xs text-muted-foreground">Producciones</span>
           </div>
         </div>
       </SidebarHeader>

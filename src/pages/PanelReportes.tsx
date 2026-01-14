@@ -99,9 +99,9 @@ const PanelReportes = () => {
   );
 
   const renderCajaMenorView = () => (
-    <div className="space-y-4">
-      {/* Header with back button */}
-      <div className="flex items-center gap-4">
+    <div className="flex flex-col h-[calc(100vh-120px)] gap-4">
+      {/* Header with back button - fixed */}
+      <div className="flex items-center gap-4 flex-shrink-0">
         <Button
           variant="ghost"
           size="icon"
@@ -116,14 +116,16 @@ const PanelReportes = () => {
         </div>
       </div>
 
-      {/* Caja Menor Report Component */}
-      <ErrorBoundary
-        title="No se pudo cargar el reporte de Caja Menor"
-        description="Esto suele pasar por un registro con datos incompletos (fecha/categoría/estado). Presiona Reintentar o revisa los registros."
-        showDetails
-      >
-        <ReporteCajaMenor />
-      </ErrorBoundary>
+      {/* Caja Menor Report Component - takes remaining height */}
+      <div className="flex-1 min-h-0">
+        <ErrorBoundary
+          title="No se pudo cargar el reporte de Caja Menor"
+          description="Esto suele pasar por un registro con datos incompletos (fecha/categoría/estado). Presiona Reintentar o revisa los registros."
+          showDetails
+        >
+          <ReporteCajaMenor />
+        </ErrorBoundary>
+      </div>
     </div>
   );
 

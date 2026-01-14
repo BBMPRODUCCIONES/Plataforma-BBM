@@ -867,52 +867,52 @@ const ReporteCajaMenor = () => {
               overflowY: 'auto'
             }}
           >
-            <Table className="min-w-[1400px] reportes-table">
-              <TableHeader className="sticky top-0 z-20 bg-card shadow-sm">
-                <TableRow className="bg-[hsl(var(--table-header))]">
-                  <TableHead className="whitespace-nowrap"># RECIBO</TableHead>
-                  <TableHead className="whitespace-nowrap">FECHA</TableHead>
-                  <TableHead className="whitespace-nowrap">EMPLEADO</TableHead>
-                  <TableHead className="whitespace-nowrap">EVENTO</TableHead>
-                  <TableHead className="whitespace-nowrap">CONCEPTO</TableHead>
-                  <TableHead className="whitespace-nowrap text-center">IMÁGENES</TableHead>
-                  <TableHead className="whitespace-nowrap">CATEGORÍA</TableHead>
-                  <TableHead className="whitespace-nowrap">RECURSOS</TableHead>
-                  <TableHead className="whitespace-nowrap">CONTINGENCIA</TableHead>
-                  <TableHead className="whitespace-nowrap text-right">VALOR (COP)</TableHead>
-                  <TableHead className="whitespace-nowrap">ESTADO</TableHead>
-                  <TableHead className="whitespace-nowrap">PROCESO DE PAGO</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <table className="w-full min-w-[1400px] caption-bottom text-sm reportes-table">
+              <thead className="sticky top-0 z-20 bg-card shadow-sm [&_tr]:border-b">
+                <tr className="bg-[hsl(var(--table-header))] border-b transition-colors">
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap"># RECIBO</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap">FECHA</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap">EMPLEADO</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap">EVENTO</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap">CONCEPTO</th>
+                  <th className="h-12 px-4 text-center align-middle font-medium text-muted-foreground whitespace-nowrap">IMÁGENES</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap">CATEGORÍA</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap">RECURSOS</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap">CONTINGENCIA</th>
+                  <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground whitespace-nowrap">VALOR (COP)</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap">ESTADO</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap">PROCESO DE PAGO</th>
+                </tr>
+              </thead>
+              <tbody className="[&_tr:last-child]:border-0">
                 {filteredItems.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                  <tr className="border-b transition-colors hover:bg-muted/50">
+                    <td colSpan={12} className="p-4 align-middle text-center py-8 text-muted-foreground">
                       No hay registros de caja menor
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ) : (
                   filteredItems.map((item) => (
-                    <TableRow key={`${item.eventoId}-${item.id}`}>
+                    <tr key={`${item.eventoId}-${item.id}`} className="border-b transition-colors hover:bg-muted/50">
                       {/* # RECIBO */}
-                      <TableCell className="whitespace-nowrap font-mono text-xs">{item.recibo}</TableCell>
+                      <td className="p-4 align-middle whitespace-nowrap font-mono text-xs">{item.recibo}</td>
                       {/* FECHA */}
-                      <TableCell className="whitespace-nowrap">{formatDateDisplay(item.fecha)}</TableCell>
+                      <td className="p-4 align-middle whitespace-nowrap">{formatDateDisplay(item.fecha)}</td>
                       {/* EMPLEADO */}
-                      <TableCell className="max-w-[150px] truncate">{item.empleadoNombre || "-"}</TableCell>
+                      <td className="p-4 align-middle max-w-[150px] truncate">{item.empleadoNombre || "-"}</td>
                       {/* EVENTO */}
-                      <TableCell className="max-w-[200px]">
+                      <td className="p-4 align-middle max-w-[200px]">
                         <EventLink
                           eventId={item.eventoId}
                           eventName={item.eventoNombre}
                           variant="text"
                           source="reportes"
                         />
-                      </TableCell>
+                      </td>
                       {/* CONCEPTO */}
-                      <TableCell className="max-w-[200px] truncate">{item.concepto || "-"}</TableCell>
+                      <td className="p-4 align-middle max-w-[200px] truncate">{item.concepto || "-"}</td>
                       {/* IMÁGENES */}
-                      <TableCell className="text-center">
+                      <td className="p-4 align-middle text-center">
                         {item.imagenes && item.imagenes.length > 0 ? (
                           <Button
                             variant="outline"
@@ -926,9 +926,9 @@ const ReporteCajaMenor = () => {
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
-                      </TableCell>
+                      </td>
                       {/* CATEGORÍA */}
-                      <TableCell>
+                      <td className="p-4 align-middle">
                         <Badge
                           variant="outline"
                           className={
@@ -941,15 +941,15 @@ const ReporteCajaMenor = () => {
                         >
                           {item.categoria || "-"}
                         </Badge>
-                      </TableCell>
+                      </td>
                       {/* RECURSOS */}
-                      <TableCell>
+                      <td className="p-4 align-middle">
                         <Badge variant="secondary" className="text-xs">
                           {item.recursos || "-"}
                         </Badge>
-                      </TableCell>
+                      </td>
                       {/* CONTINGENCIA */}
-                      <TableCell>
+                      <td className="p-4 align-middle">
                         {item.contingencia === "Sí" ? (
                           <Badge
                             variant="destructive"
@@ -960,13 +960,13 @@ const ReporteCajaMenor = () => {
                         ) : (
                           <span className="text-muted-foreground text-sm">No</span>
                         )}
-                      </TableCell>
+                      </td>
                       {/* VALOR (COP) */}
-                      <TableCell className="text-right font-medium whitespace-nowrap">
+                      <td className="p-4 align-middle text-right font-medium whitespace-nowrap">
                         {formatCurrency(Number(item.valor || 0))}
-                      </TableCell>
+                      </td>
                       {/* ESTADO */}
-                      <TableCell>
+                      <td className="p-4 align-middle">
                         <Badge
                           variant={item.estado === "Aprobado" ? "default" : "destructive"}
                           className={
@@ -977,9 +977,9 @@ const ReporteCajaMenor = () => {
                         >
                           {item.estado || "-"}
                         </Badge>
-                      </TableCell>
+                      </td>
                       {/* PROCESO DE PAGO - Dropdown editable */}
-                      <TableCell>
+                      <td className="p-4 align-middle">
                         <Select
                           value={item.procesoPago === "Pagado" ? "Pago" : "No pago"}
                           onValueChange={(value: 'Pago' | 'No pago') => handleProcesoPagoChange(item.eventoId, item.id, value)}
@@ -1002,12 +1002,12 @@ const ReporteCajaMenor = () => {
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))
                 )}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
         </CardContent>
         

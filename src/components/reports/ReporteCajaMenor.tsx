@@ -853,17 +853,17 @@ const ReporteCajaMenor = () => {
         </CardContent>
       </Card>
 
-      {/* Data Table - full remaining height with dual scroll */}
-      <Card className="flex-1 flex flex-col min-h-[400px]">
-        <CardContent className="p-0 flex-1 flex flex-col min-h-0">
-          {/* Scrollable container - both scrolls always visible within viewport */}
+      {/* Data Table - fixed height container with both scrolls always visible */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          {/* Fixed height scrollable container - no page scroll needed */}
           <div 
-            className="reportes-scroll-container flex-1"
+            className="reportes-scroll-container"
             style={{ 
-              maxHeight: 'calc(100vh - 420px)', 
-              minHeight: '320px',
-              overflowX: 'auto',
-              overflowY: 'auto'
+              height: 'calc(100vh - 480px)', 
+              minHeight: '280px',
+              maxHeight: '500px',
+              overflow: 'auto'
             }}
           >
             <Table className="min-w-[1400px]">
@@ -1008,12 +1008,12 @@ const ReporteCajaMenor = () => {
               </TableBody>
             </Table>
           </div>
-
-          {/* Results count - always visible at bottom */}
-          <div className="px-4 py-2 border-t text-sm text-muted-foreground">
-            Mostrando {filteredItems.length} de {allCajaMenorItems.length} registros
-          </div>
         </CardContent>
+        
+        {/* Results count - always visible at bottom outside scroll */}
+        <div className="px-4 py-2 border-t text-sm text-muted-foreground bg-card">
+          Mostrando {filteredItems.length} de {allCajaMenorItems.length} registros
+        </div>
       </Card>
 
       {/* Image Gallery Dialog */}

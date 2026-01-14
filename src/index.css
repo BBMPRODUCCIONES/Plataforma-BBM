@@ -2991,77 +2991,46 @@ tr[data-highlighted="true"] {
   scrollbar-gutter: stable;
 }
 
+/* Sticky header for the report table (more reliable than sticky THEAD on mobile) */
+.reportes-scroll-container .reportes-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: hsl(var(--table-header));
+}
+
 /* Disable internal Table scroll so .reportes-scroll-container controls it */
-.reportes-scroll-container .mobile-scroll-container {
-  overflow: visible !important;
-}
-
-/* Forzar scrollbars visibles en WebKit (Chrome, Safari, Edge) */
-.reportes-scroll-container::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-  display: block !important;
-}
-
-.reportes-scroll-container::-webkit-scrollbar-track {
-  background: hsl(var(--muted) / 0.3);
-  border-radius: 6px;
-}
-
-.reportes-scroll-container::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.4);
-  border-radius: 6px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-.reportes-scroll-container::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.6);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-.reportes-scroll-container::-webkit-scrollbar-corner {
-  background: hsl(var(--muted) / 0.3);
-}
+/* (table in ReporteCajaMenor is native HTML; no inner scroll wrapper needed) */
 
 /* ============================================
    Reporte Caja Menor - Mobile/ACW Optimization
-   Desktop-like scroll: sticky header only
+   Desktop-like scroll: sticky header + dual scroll in the viewport
    ============================================ */
 @media (max-width: 768px) {
-  /* Disable scroll on inner wrappers - only main container scrolls */
-  .reportes-scroll-container > div,
-  .reportes-scroll-container .mobile-scroll-container,
-  .reportes-scroll-container [class*="overflow"] {
-    overflow: visible !important;
-    width: 100% !important;
-    height: auto !important;
-  }
-  
-  /* Main scroll container - normal scroll like desktop */
+  /* Main scroll container (single source of truth for scroll) */
   .reportes-scroll-container {
-    overflow-x: auto !important;
-    overflow-y: auto !important;
+    overflow: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    touch-action: auto !important;
+    touch-action: pan-x pan-y !important;
     overscroll-behavior: contain;
     height: clamp(320px, calc(100dvh - 260px), 500px) !important;
   }
-  
+
   /* Table min-width to force horizontal scroll */
   .reportes-scroll-container .reportes-table {
     min-width: 1300px !important;
+    border-collapse: separate;
+    border-spacing: 0;
   }
-  
-  /* Sticky header only (like desktop) */
-  .reportes-scroll-container thead {
+
+  /* Sticky header (use TH for better mobile browser support than THEAD) */
+  .reportes-scroll-container .reportes-table thead th {
     position: sticky !important;
     top: 0 !important;
     z-index: 20 !important;
     background: hsl(var(--table-header)) !important;
   }
-  
+
   /* Better legibility on mobile */
   .reportes-scroll-container td,
   .reportes-scroll-container th {
@@ -3069,3 +3038,4 @@ tr[data-highlighted="true"] {
     font-size: 13px !important;
   }
 }
+

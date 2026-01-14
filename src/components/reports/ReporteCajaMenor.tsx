@@ -868,7 +868,7 @@ const ReporteCajaMenor = () => {
             }}
           >
             <table className="w-full min-w-[1400px] caption-bottom text-sm reportes-table">
-              <thead className="sticky top-0 z-20 bg-card shadow-sm [&_tr]:border-b">
+              <thead className="[&_tr]:border-b">
                 <tr className="bg-[hsl(var(--table-header))] border-b transition-colors">
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap"># RECIBO</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap">FECHA</th>

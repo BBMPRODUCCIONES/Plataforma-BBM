@@ -853,17 +853,16 @@ const ReporteCajaMenor = () => {
         </CardContent>
       </Card>
 
-      {/* Data Table - fixed height viewport with internal dual scroll */}
+      {/* Data Table - viewport with internal dual scroll (scroll occurs HERE) */}
       <Card className="flex-shrink-0">
         <CardContent className="p-0">
-          {/* Scrollable viewport - SAFE: min-height ensures visibility */}
+          {/* RED BOX viewport: height clamp ensures min 360px, adapts to screen, max 600px */}
           <div 
             className="reportes-scroll-container"
             style={{ 
               width: '100%',
               maxWidth: '100%',
-              minHeight: '360px',
-              maxHeight: 'calc(100vh - 320px)',
+              height: 'clamp(360px, calc(100dvh - 320px), 600px)',
               overflowX: 'auto',
               overflowY: 'auto'
             }}

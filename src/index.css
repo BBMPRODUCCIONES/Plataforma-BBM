@@ -2987,8 +2987,13 @@ tr[data-highlighted="true"] {
 
 /* Contenedor de scroll con scrollbars siempre visibles */
 .reportes-scroll-container {
-  overflow: scroll !important;
+  overflow: auto !important;
   scrollbar-gutter: stable;
+}
+
+/* Disable internal Table scroll so .reportes-scroll-container controls it */
+.reportes-scroll-container .mobile-scroll-container {
+  overflow: visible !important;
 }
 
 /* Forzar scrollbars visibles en WebKit (Chrome, Safari, Edge) */

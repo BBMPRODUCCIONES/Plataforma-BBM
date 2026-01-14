@@ -99,9 +99,9 @@ const PanelReportes = () => {
   );
 
   const renderCajaMenorView = () => (
-    <div className="flex flex-col h-[calc(100vh-140px)] min-h-0 gap-4">
-      {/* Header with back button - fixed height */}
-      <div className="flex items-center gap-4 flex-shrink-0">
+    <div className="space-y-4">
+      {/* Header with back button */}
+      <div className="flex items-center gap-4">
         <Button
           variant="ghost"
           size="icon"
@@ -116,22 +116,20 @@ const PanelReportes = () => {
         </div>
       </div>
 
-      {/* Caja Menor Report Component - takes remaining height */}
-      <div className="flex-1 min-h-0 flex flex-col">
-        <ErrorBoundary
-          title="No se pudo cargar el reporte de Caja Menor"
-          description="Esto suele pasar por un registro con datos incompletos (fecha/categoría/estado). Presiona Reintentar o revisa los registros."
-          showDetails
-        >
-          <ReporteCajaMenor />
-        </ErrorBoundary>
-      </div>
+      {/* Caja Menor Report Component */}
+      <ErrorBoundary
+        title="No se pudo cargar el reporte de Caja Menor"
+        description="Esto suele pasar por un registro con datos incompletos (fecha/categoría/estado). Presiona Reintentar o revisa los registros."
+        showDetails
+      >
+        <ReporteCajaMenor />
+      </ErrorBoundary>
     </div>
   );
 
   return (
     <Layout>
-      <div className={`h-full ${isMobile ? "px-3 pt-2 pb-20" : ""}`}>
+      <div className={`min-h-[50vh] ${isMobile ? "px-3 pt-2 pb-20" : ""}`}>
         {currentView === "main" && renderMainView()}
         {currentView === "financieros" && renderFinancierosView()}
         {currentView === "caja-menor" && renderCajaMenorView()}

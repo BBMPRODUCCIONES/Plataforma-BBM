@@ -854,18 +854,18 @@ const ReporteCajaMenor = () => {
       </Card>
 
       {/* Data Table - fixed height viewport with internal dual scroll */}
-      <Card className="flex-1 flex flex-col overflow-hidden">
-        <CardContent className="p-0 flex-1 flex flex-col min-h-0">
-          {/* Scrollable viewport - height fills available space, both scrolls internal */}
+      <Card className="flex-shrink-0">
+        <CardContent className="p-0">
+          {/* Scrollable viewport - SAFE: min-height ensures visibility */}
           <div 
-            className="reportes-scroll-container flex-1"
+            className="reportes-scroll-container"
             style={{ 
-              height: 'calc(100vh - 420px)', 
-              minHeight: '320px',
-              maxHeight: '600px',
+              width: '100%',
+              maxWidth: '100%',
+              minHeight: '360px',
+              maxHeight: 'calc(100vh - 320px)',
               overflowX: 'auto',
-              overflowY: 'auto',
-              position: 'relative'
+              overflowY: 'auto'
             }}
           >
             <Table className="min-w-[1400px]">

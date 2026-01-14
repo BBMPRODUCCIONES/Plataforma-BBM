@@ -11,7 +11,8 @@ import {
   UserPlus,
   ChevronLeft,
   MoreVertical,
-  Plus
+  Plus,
+  FileBarChart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +43,7 @@ const routeConfig: Record<string, RouteConfigItem> = {
   "/proveedores": { title: "Proveedores", icon: Users, primaryAction: { icon: Plus, label: "Nuevo" } },
   "/historial-cotizaciones": { title: "Historial", icon: Users, showBack: true },
   "/calendar": { title: "Calendario", icon: Calendar },
+  "/panel-reportes": { title: "Reportes", icon: FileBarChart },
   "/usuarios": { title: "Usuarios", icon: UserPlus, primaryAction: { icon: Plus, label: "Invitar" } },
   "/clientes": { title: "Clientes", icon: Building2, primaryAction: { icon: Plus, label: "Nuevo" } },
   "/empleados": { title: "Empleados", icon: Users, primaryAction: { icon: Plus, label: "Nuevo" } },

@@ -3026,11 +3026,12 @@ tr[data-highlighted="true"] {
 }
 
 /* ============================================
-   REPORTE CAJA MENOR - MOBILE/ACW OPTIMIZATION
-   Native app-like touch scrolling experience
+   Reporte Caja Menor - Mobile/ACW Optimization
+   REAL scroll behavior (not drag-libre canvas)
+   3 sticky columns: #RECIBO, FECHA, EMPLEADO
    ============================================ */
 @media (max-width: 768px) {
-  /* CRITICAL: Disable scroll on ALL inner wrappers */
+  /* CRITICAL: Disable scroll on ALL inner wrappers - only main container scrolls */
   .reportes-scroll-container > div,
   .reportes-scroll-container .mobile-scroll-container,
   .reportes-scroll-container [class*="overflow"] {
@@ -3041,77 +3042,101 @@ tr[data-highlighted="true"] {
     height: auto !important;
   }
   
-  /* ONLY the main container handles scroll */
+  /* MAIN scroll container - REAL scroll behavior */
   .reportes-scroll-container {
-    overflow: auto !important;
+    overflow-x: scroll !important;
+    overflow-y: scroll !important;
     -webkit-overflow-scrolling: touch !important;
     scroll-behavior: smooth;
     overscroll-behavior: contain;
-    touch-action: pan-x pan-y !important;
+    /* CRITICAL: touch-action: auto = normal scroll, NOT drag-libre */
+    touch-action: auto !important;
     
-    /* Adjust height for mobile viewport */
-    height: clamp(300px, calc(100dvh - 280px), 500px) !important;
+    /* Height for ~5 visible rows (row ~50px + header ~60px = 310px min) */
+    height: clamp(320px, calc(100dvh - 260px), 500px) !important;
     
-    /* Firefox/IE scrollbar hide */
+    /* Hide scrollbars for app-like feel but keep functionality */
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
   
-  /* Hide scrollbars on mobile for app-like feel */
   .reportes-scroll-container::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
   }
   
-  /* Table adjustments for mobile */
-  .reportes-scroll-container table {
-    min-width: 1200px !important; /* Force horizontal scroll */
+  /* Table min-width to force horizontal scroll */
+  .reportes-scroll-container .reportes-table {
+    min-width: 1300px !important;
   }
   
   /* Better touch targets */
-  .reportes-scroll-container th,
-  .reportes-scroll-container td {
+  .reportes-scroll-container td,
+  .reportes-scroll-container th {
     padding: 12px 10px !important;
     font-size: 13px !important;
   }
   
-  /* Sticky header for mobile vertical scroll */
+  /* Sticky header for vertical scroll */
   .reportes-scroll-container thead {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    background: hsl(var(--card));
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 30 !important;
   }
   
-  /* First column sticky for horizontal scroll (#RECIBO) */
-  .reportes-scroll-container th:first-child,
-  .reportes-scroll-container td:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 15;
-    background: hsl(var(--card));
-    min-width: 100px;
+  /* ========== 3 STICKY COLUMNS ========== */
+  
+  /* Column 1: #RECIBO */
+  .reportes-scroll-container .sticky-col-1 {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 15 !important;
+    min-width: 95px !important;
+    background: hsl(var(--card)) !important;
   }
   
-  /* Header first cell higher z-index (intersection point) */
-  .reportes-scroll-container thead th:first-child {
-    z-index: 25;
+  /* Column 2: FECHA */
+  .reportes-scroll-container .sticky-col-2 {
+    position: sticky !important;
+    left: 95px !important;
+    z-index: 14 !important;
+    min-width: 90px !important;
+    background: hsl(var(--card)) !important;
   }
   
-  /* Visual separator shadow for sticky column */
-  .reportes-scroll-container td:first-child {
-    position: relative;
+  /* Column 3: EMPLEADO */
+  .reportes-scroll-container .sticky-col-3 {
+    position: sticky !important;
+    left: 185px !important;
+    z-index: 13 !important;
+    min-width: 130px !important;
+    background: hsl(var(--card)) !important;
   }
   
-  .reportes-scroll-container td:first-child::after {
+  /* Header sticky columns need higher z-index + header background */
+  .reportes-scroll-container thead .sticky-col-1 {
+    z-index: 33 !important;
+    background: hsl(var(--table-header)) !important;
+  }
+  .reportes-scroll-container thead .sticky-col-2 {
+    z-index: 32 !important;
+    background: hsl(var(--table-header)) !important;
+  }
+  .reportes-scroll-container thead .sticky-col-3 {
+    z-index: 31 !important;
+    background: hsl(var(--table-header)) !important;
+  }
+  
+  /* Shadow on last sticky column to indicate more content */
+  .reportes-scroll-container .sticky-col-3::after {
     content: "";
     position: absolute;
+    right: -6px;
     top: 0;
-    right: -4px;
     bottom: 0;
-    width: 4px;
-    background: linear-gradient(to right, hsl(var(--border) / 0.3), transparent);
+    width: 6px;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.12), transparent);
     pointer-events: none;
   }
 }

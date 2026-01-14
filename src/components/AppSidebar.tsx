@@ -74,7 +74,7 @@ export function AppSidebar() {
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="p-3 border-b border-sidebar-border">
         <div className="flex items-center">
-          <div className="w-[100px] h-[50px] rounded-md overflow-hidden flex items-center justify-center bg-black p-2">
+          <div className="w-[100px] h-[50px] rounded-md overflow-hidden flex items-center justify-center p-2">
             <img 
               src={bbmLogo} 
               alt="BBM Producciones" 

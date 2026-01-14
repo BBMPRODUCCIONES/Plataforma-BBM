@@ -853,21 +853,23 @@ const ReporteCajaMenor = () => {
         </CardContent>
       </Card>
 
-      {/* Data Table - fixed height container with both scrolls always visible */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-0">
-          {/* Fixed height scrollable container - no page scroll needed */}
+      {/* Data Table - fixed height viewport with internal dual scroll */}
+      <Card className="flex-1 flex flex-col overflow-hidden">
+        <CardContent className="p-0 flex-1 flex flex-col min-h-0">
+          {/* Scrollable viewport - height fills available space, both scrolls internal */}
           <div 
-            className="reportes-scroll-container"
+            className="reportes-scroll-container flex-1"
             style={{ 
-              height: 'calc(100vh - 480px)', 
-              minHeight: '280px',
-              maxHeight: '500px',
-              overflow: 'auto'
+              height: 'calc(100vh - 420px)', 
+              minHeight: '320px',
+              maxHeight: '600px',
+              overflowX: 'auto',
+              overflowY: 'auto',
+              position: 'relative'
             }}
           >
             <Table className="min-w-[1400px]">
-              <TableHeader className="sticky top-0 z-10 bg-background">
+              <TableHeader className="sticky top-0 z-20 bg-card shadow-sm">
                 <TableRow className="bg-[hsl(var(--table-header))]">
                   <TableHead className="whitespace-nowrap"># RECIBO</TableHead>
                   <TableHead className="whitespace-nowrap">FECHA</TableHead>

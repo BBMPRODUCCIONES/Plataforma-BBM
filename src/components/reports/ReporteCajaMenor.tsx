@@ -125,10 +125,10 @@ const ReporteCajaMenor = () => {
       if (caja.length === 0) return;
 
       caja.forEach((item, index) => {
-        // Generate receipt number based on item ID, starting from 100,000
+        // Generate receipt number starting from 100,000 with no upper limit
         const rawId = typeof item.id === "string" ? item.id : String(item.id ?? index);
         const numericPart = parseInt(rawId.replace(/\D/g, "").slice(-5) || "0", 10);
-        const reciboNum = String(100000 + (numericPart % 99999)).padStart(6, "0");
+        const reciboNum = String(100000 + numericPart);
 
         items.push({
           ...item,

@@ -1993,7 +1993,9 @@ const PanelOperaciones = () => {
             
             // Validate Caja Menor required fields ONLY when viewing cajaMenor section
             if (selectedSection === "cajaMenor") {
+              console.log('[PanelOperaciones] Validating Caja Menor section, selectedSection:', selectedSection);
               const cajaMenorItems = currentProjectData.cajaMenor || [];
+              console.log('[PanelOperaciones] Caja Menor items count:', cajaMenorItems.length, 'forceClose:', forceCloseAttempt);
               if (cajaMenorItems.length > 0 && !forceCloseAttempt) {
                 const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
                   const sinImagen = !item.imagenes || item.imagenes.length === 0;
@@ -2012,9 +2014,7 @@ const PanelOperaciones = () => {
                     if (!item.categoria?.trim()) faltantes.push("categoría");
                     if (!item.recursos?.trim()) faltantes.push("recurso");
                     if (faltantes.length > 0) {
-                      const displayName = item.empleadoNombre && !item.empleadoNombre.includes("@") && !item.empleadoNombre.includes(".") 
-                        ? item.empleadoNombre 
-                        : `Registro Caja Menor #${idx + 1}`;
+                      const displayName = `Gasto #${idx + 1}`;
                       errores.push(`${displayName}: falta ${faltantes.join(", ")}`);
                     }
                   });
@@ -2034,6 +2034,8 @@ const PanelOperaciones = () => {
                   return;
                 }
               }
+            } else {
+              console.log('[PanelOperaciones] Skipping Caja Menor validation, selectedSection:', selectedSection);
             }
             
             // Save pending notes before closing

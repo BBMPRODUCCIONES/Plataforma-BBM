@@ -150,6 +150,7 @@ const DateRangePickerField = ({
   required?: boolean;
 }) => {
   const [open, setOpen] = useState(false);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   const formatDateRange = () => {
     if (!range?.from) return "Seleccionar rango";
@@ -172,11 +173,11 @@ const DateRangePickerField = ({
               error && "border-destructive"
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {formatDateRange()}
+            <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+            <span className="truncate">{formatDateRange()}</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0" align="start" side="bottom">
           <Calendar
             mode="range"
             selected={range}
@@ -186,7 +187,7 @@ const DateRangePickerField = ({
                 setOpen(false);
               }
             }}
-            numberOfMonths={2}
+            numberOfMonths={isMobile ? 1 : 2}
             locale={es}
             className="pointer-events-auto"
           />
@@ -306,17 +307,17 @@ export function NewProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-2xl max-sm:max-w-[95vw] max-sm:max-h-[85vh] max-sm:p-4">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Plus className="h-5 w-5" />
             Nuevo Proyecto
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-4 sm:space-y-6 py-2 sm:py-4">
           {/* Información General */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="centroCostos">Centro de Costos</Label>
               <Input
@@ -338,7 +339,7 @@ export function NewProjectDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="cliente">Cliente *</Label>
               <Select
@@ -384,7 +385,7 @@ export function NewProjectDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="avanzada">Avanzada</Label>
               <Select
@@ -423,7 +424,7 @@ export function NewProjectDialog({
           </div>
 
           {/* Sección Montaje */}
-          <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+          <div className="rounded-lg border bg-muted/30 p-3 sm:p-4 space-y-3 sm:space-y-4">
             <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-500"></span>
               MONTAJE
@@ -441,14 +442,14 @@ export function NewProjectDialog({
             />
 
             <div>
-              <Label className="text-sm font-medium mb-3 block">Hora Montaje</Label>
-              <div className="flex items-end gap-3">
+              <Label className="text-sm font-medium mb-2 sm:mb-3 block">Hora Montaje</Label>
+              <div className="flex flex-wrap items-end gap-2 sm:gap-3">
                 <TimeInputManual
                   label="Inicio"
                   value={formData.horaMontajeInicio || "09:00"}
                   onChange={(value) => setFormData({ ...formData, horaMontajeInicio: value })}
                 />
-                <span className="text-muted-foreground pb-2.5">—</span>
+                <span className="text-muted-foreground pb-2.5 hidden sm:inline">—</span>
                 <TimeInputManual
                   label="Fin"
                   value={formData.horaMontajeFin || "18:00"}
@@ -459,7 +460,7 @@ export function NewProjectDialog({
           </div>
 
           {/* Sección Ejecución */}
-          <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+          <div className="rounded-lg border bg-muted/30 p-3 sm:p-4 space-y-3 sm:space-y-4">
             <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500"></span>
               EJECUCIÓN
@@ -477,14 +478,14 @@ export function NewProjectDialog({
             />
 
             <div>
-              <Label className="text-sm font-medium mb-3 block">Hora Ejecución</Label>
-              <div className="flex items-end gap-3">
+              <Label className="text-sm font-medium mb-2 sm:mb-3 block">Hora Ejecución</Label>
+              <div className="flex flex-wrap items-end gap-2 sm:gap-3">
                 <TimeInputManual
                   label="Inicio"
                   value={formData.horaEjecucionInicio || "08:00"}
                   onChange={(value) => setFormData({ ...formData, horaEjecucionInicio: value })}
                 />
-                <span className="text-muted-foreground pb-2.5">—</span>
+                <span className="text-muted-foreground pb-2.5 hidden sm:inline">—</span>
                 <TimeInputManual
                   label="Fin"
                   value={formData.horaEjecucionFin || "22:00"}
@@ -495,7 +496,7 @@ export function NewProjectDialog({
           </div>
 
           {/* Información Adicional */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="administrativoResponsable">Administrativo Responsable</Label>
               <Input
@@ -533,11 +534,11 @@ export function NewProjectDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit}>
+          <Button onClick={handleSubmit} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Crear Proyecto
           </Button>

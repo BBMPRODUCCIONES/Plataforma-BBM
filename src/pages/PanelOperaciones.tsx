@@ -2337,10 +2337,9 @@ const PanelOperaciones = () => {
                                 contingencia: "No",
                                 estado: "No aprobado",
                               };
-                              toast.info("Recuerda seleccionar el tipo de recursos");
                               try {
                                 await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);
-                                toast.success("Registro de caja menor agregado");
+                                toast.success("Registro creado. Completa: Imagen, Valor, Categoría y Recurso antes de cerrar.", { duration: 5000 });
                               } catch (err) {
                                 console.error('[PanelOperaciones] Error adding caja menor:', err);
                                 toast.error("Error al agregar registro");

@@ -2336,6 +2336,7 @@ const PanelOperaciones = () => {
                                 recursos: "",
                                 contingencia: "No",
                                 estado: "No aprobado",
+                                createdAt: new Date().toISOString(),
                               };
                               try {
                                 await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);

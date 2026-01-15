@@ -119,7 +119,6 @@ const PanelOperaciones = () => {
   const [localNotasImagenes, setLocalNotasImagenes] = useState<Array<{id: string; url: string; name: string}>>([]);
   const [localFeedbackAdjuntos, setLocalFeedbackAdjuntos] = useState<Attachment[]>([]);
   const [horarioFormOpen, setHorarioFormOpen] = useState(false);
-  const [forceCloseAttempt, setForceCloseAttempt] = useState(false);
 
   // Sync local state when project changes (not on every keystroke)
   useEffect(() => {

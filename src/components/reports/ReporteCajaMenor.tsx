@@ -120,15 +120,17 @@ const ReporteCajaMenor = () => {
     // Filter out deleted projects - they should not appear in reports
     const activeProjects = projects.filter((p: Project) => !p.isDeleted);
 
+    // Sequential counter starting from 100000
+    let receiptCounter = 100000;
+
     activeProjects.forEach((project: Project) => {
       const caja = Array.isArray(project.cajaMenor) ? project.cajaMenor : [];
       if (caja.length === 0) return;
 
-      caja.forEach((item, index) => {
-        // Generate receipt number starting from 100,000 with no upper limit
-        const rawId = typeof item.id === "string" ? item.id : String(item.id ?? index);
-        const numericPart = parseInt(rawId.replace(/\D/g, "").slice(-5) || "0", 10);
-        const reciboNum = String(100000 + numericPart);
+      caja.forEach((item) => {
+        // Generate sequential receipt number starting from 100,000
+        const reciboNum = String(receiptCounter).padStart(6, "0");
+        receiptCounter++;
 
         items.push({
           ...item,

@@ -204,7 +204,11 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
         <button onclick="window.print()">
           📄 Guardar PDF
         </button>
+        <button onclick="saveAsImage()">
+          📷 Guardar Foto
+        </button>
       </div>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
       <script>
         function goBack() {
           // Try multiple methods to go back
@@ -216,6 +220,37 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
             // Fallback: redirect to origin
             window.location.href = window.location.origin;
           }
+        }
+        
+        function saveAsImage() {
+          // Hide action bar temporarily for screenshot
+          const actionBar = document.querySelector('.mobile-action-bar');
+          actionBar.style.display = 'none';
+          
+          // Capture the entire body as image
+          html2canvas(document.body, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            scrollY: -window.scrollY,
+            windowHeight: document.body.scrollHeight
+          }).then(function(canvas) {
+            // Show action bar again
+            actionBar.style.display = 'flex';
+            
+            // Convert to blob and trigger download
+            canvas.toBlob(function(blob) {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.download = '${options.title.replace(/[^a-zA-Z0-9]/g, '_')}_' + new Date().toISOString().split('T')[0] + '.png';
+              link.href = url;
+              link.click();
+              URL.revokeObjectURL(url);
+            }, 'image/png');
+          }).catch(function(err) {
+            actionBar.style.display = 'flex';
+            alert('Error al guardar imagen: ' + err.message);
+          });
         }
       </script>
       

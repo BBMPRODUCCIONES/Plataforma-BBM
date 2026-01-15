@@ -118,7 +118,7 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
           content: "✓";
         }
         
-        /* Mobile action bar */
+        /* Mobile action bar - always visible */
         .mobile-action-bar {
           position: fixed;
           top: 0;
@@ -127,17 +127,19 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
           background: #1a1a2e;
           color: white;
           padding: 12px 16px;
+          padding-top: calc(12px + env(safe-area-inset-top, 0px));
           display: flex;
           justify-content: space-between;
           align-items: center;
           z-index: 9999;
           box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          gap: 8px;
         }
         .mobile-action-bar button {
           background: #f97316;
           color: white;
           border: none;
-          padding: 10px 16px;
+          padding: 12px 16px;
           border-radius: 8px;
           font-size: 14px;
           font-weight: 600;
@@ -145,23 +147,29 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
           display: flex;
           align-items: center;
           gap: 6px;
+          min-height: 44px;
+          -webkit-tap-highlight-color: transparent;
         }
         .mobile-action-bar button:active {
           background: #ea580c;
+          transform: scale(0.98);
         }
         .mobile-action-bar .back-btn {
-          background: transparent;
+          background: rgba(255,255,255,0.15);
           border: 1px solid rgba(255,255,255,0.3);
         }
+        .mobile-action-bar .back-btn:active {
+          background: rgba(255,255,255,0.25);
+        }
         .mobile-action-bar .title {
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 600;
           flex: 1;
           text-align: center;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          padding: 0 8px;
+          padding: 0 4px;
         }
         
         @media print {
@@ -172,14 +180,42 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
     </head>
     <body>
       <div class="mobile-action-bar no-print">
-        <button class="back-btn" onclick="window.close()">
+        <button class="back-btn" onclick="goBack()">
           ← Volver
         </button>
         <span class="title">${options.title}</span>
-        <button onclick="window.print()">
-          🖨️ Imprimir
+        <button onclick="sharePrint()">
+          📤 Guardar
         </button>
       </div>
+      <script>
+        function goBack() {
+          // Try multiple methods to go back
+          if (window.opener) {
+            window.close();
+          } else if (history.length > 1) {
+            history.back();
+          } else {
+            // Fallback: redirect to origin
+            window.location.href = window.location.origin;
+          }
+        }
+        function sharePrint() {
+          // On mobile, use share API if available, otherwise print
+          if (navigator.share) {
+            // Try to share the page
+            navigator.share({
+              title: document.title,
+              url: window.location.href
+            }).catch(() => {
+              // If share fails, fallback to print
+              window.print();
+            });
+          } else {
+            window.print();
+          }
+        }
+      </script>
       
       <div class="header">
         <h1>${options.title}</h1>

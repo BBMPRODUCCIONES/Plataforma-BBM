@@ -94,6 +94,26 @@ const ReporteCajaMenor = () => {
     return Number.isNaN(d.getTime()) ? null : d;
   };
 
+  // Backfill createdAt for old Caja Menor items (IDs like: cm1700000000000)
+  const inferCajaMenorCreatedAtFromId = (id?: unknown): string | null => {
+    if (typeof id !== "string") return null;
+    const match = id.match(/^cm(\d{10,})$/);
+    if (!match) return null;
+
+    const ms = Number(match[1]);
+    if (!Number.isFinite(ms)) return null;
+
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return null;
+
+    const min = new Date("2010-01-01T00:00:00.000Z").getTime();
+    const max = new Date("2100-01-01T00:00:00.000Z").getTime();
+    const t = d.getTime();
+    if (t < min || t > max) return null;
+
+    return d.toISOString();
+  };
+
   const formatDateDisplay = (value?: string | null) => {
     const d = safeDate(value);
     return d ? format(d, "dd/MM/yyyy", { locale: es }) : "-";
@@ -132,12 +152,18 @@ const ReporteCajaMenor = () => {
         const reciboNum = String(receiptCounter).padStart(6, "0");
         receiptCounter++;
 
+        const fechaCuentaCobro =
+          item.createdAt ||
+          inferCajaMenorCreatedAtFromId((item as any).id) ||
+          project.createdAt ||
+          "";
+
         items.push({
           ...item,
           eventoId: project.id,
           eventoNombre: project.evento || "Sin nombre",
           recibo: `RCM-${reciboNum}`,
-          fecha: item.createdAt || project.createdAt || "",
+          fecha: fechaCuentaCobro,
         });
       });
     });

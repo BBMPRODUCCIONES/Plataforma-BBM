@@ -1990,12 +1990,10 @@ const PanelOperaciones = () => {
               }
             }
             
-            // Validate Caja Menor required fields ONLY when viewing cajaMenor section
+            // Warn about Caja Menor incomplete fields (non-blocking - just a warning)
             if (selectedSection === "cajaMenor") {
-              console.log('[PanelOperaciones] Validating Caja Menor section, selectedSection:', selectedSection);
               const cajaMenorItems = currentProjectData.cajaMenor || [];
-              console.log('[PanelOperaciones] Caja Menor items count:', cajaMenorItems.length, 'forceClose:', forceCloseAttempt);
-              if (cajaMenorItems.length > 0 && !forceCloseAttempt) {
+              if (cajaMenorItems.length > 0) {
                 const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
                   const sinImagen = !item.imagenes || item.imagenes.length === 0;
                   const sinValor = !item.valor || item.valor === 0;
@@ -2013,28 +2011,15 @@ const PanelOperaciones = () => {
                     if (!item.categoria?.trim()) faltantes.push("categoría");
                     if (!item.recursos?.trim()) faltantes.push("recurso");
                     if (faltantes.length > 0) {
-                      const displayName = `Gasto #${idx + 1}`;
-                      errores.push(`${displayName}: falta ${faltantes.join(", ")}`);
+                      errores.push(`Gasto #${idx + 1}: falta ${faltantes.join(", ")}`);
                     }
                   });
+                  // Show warning but DON'T block closing
                   toast.error(`Caja Menor incompleta:\n${errores.slice(0, 3).join("\n")}${errores.length > 3 ? `\n...y ${errores.length - 3} más` : ""}`, { 
-                    duration: 8000,
-                    action: {
-                      label: "Cerrar de todos modos",
-                      onClick: () => {
-                        setSelectedProject(null);
-                        setSelectedSection(null);
-                        setForceCloseAttempt(false);
-                      }
-                    }
+                    duration: 6000
                   });
-                  setForceCloseAttempt(true);
-                  setTimeout(() => setForceCloseAttempt(false), 5000);
-                  return;
                 }
               }
-            } else {
-              console.log('[PanelOperaciones] Skipping Caja Menor validation, selectedSection:', selectedSection);
             }
             
             // Save pending notes before closing
@@ -2060,7 +2045,6 @@ const PanelOperaciones = () => {
           }
           setSelectedProject(null);
           setSelectedSection(null);
-          setForceCloseAttempt(false);
         }}>
           <DialogContent 
             className="w-[95vw] !max-w-[1400px] sm:!max-w-[1400px] max-h-[90vh] p-0"

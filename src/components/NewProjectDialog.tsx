@@ -307,15 +307,27 @@ export function NewProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-2xl max-sm:max-w-[95vw] max-sm:max-h-[85vh] max-sm:p-4">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <Plus className="h-5 w-5" />
-            Nuevo Proyecto
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className={cn(
+        "sm:max-w-2xl max-h-[90vh] overflow-hidden",
+        "max-sm:fixed max-sm:inset-0 max-sm:max-w-full max-sm:max-h-full max-sm:w-full max-sm:h-[100dvh]",
+        "max-sm:rounded-none max-sm:border-0 max-sm:p-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:top-0 max-sm:left-0"
+      )}>
+        <div className="sm:contents max-sm:flex max-sm:flex-col max-sm:h-full">
+          <DialogHeader className={cn(
+            "max-sm:sticky max-sm:top-0 max-sm:z-10 max-sm:bg-background",
+            "max-sm:pt-[calc(env(safe-area-inset-top)+12px)]",
+            "max-sm:px-4 max-sm:pb-3 max-sm:border-b max-sm:shrink-0"
+          )}>
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Plus className="h-5 w-5" />
+              Nuevo Proyecto
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4 sm:space-y-6 py-2 sm:py-4">
+          <div className={cn(
+            "space-y-4 sm:space-y-6 py-2 sm:py-4 sm:overflow-y-auto sm:max-h-[calc(90vh-140px)]",
+            "max-sm:flex-1 max-sm:overflow-y-auto max-sm:px-4 max-sm:py-4"
+          )}>
           {/* Información General */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
@@ -532,17 +544,23 @@ export function NewProjectDialog({
               onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
             />
           </div>
-        </div>
+          </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            Crear Proyecto
-          </Button>
-        </DialogFooter>
+          <DialogFooter className={cn(
+            "flex-col sm:flex-row gap-2 sm:gap-0",
+            "max-sm:sticky max-sm:bottom-0 max-sm:bg-background max-sm:shrink-0",
+            "max-sm:pb-[calc(env(safe-area-inset-bottom)+12px)]",
+            "max-sm:px-4 max-sm:pt-3 max-sm:border-t"
+          )}>
+            <Button variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-2" />
+              Crear Proyecto
+            </Button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1990,6 +1990,34 @@ const PanelOperaciones = () => {
               }
             }
             
+            // Validate Caja Menor required fields before closing
+            if (selectedSection === "cajaMenor") {
+              const cajaMenorItems = currentProjectData.cajaMenor || [];
+              const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
+                const sinImagen = !item.imagenes || item.imagenes.length === 0;
+                const sinValor = !item.valor || item.valor === 0;
+                const sinCategoria = !item.categoria?.trim();
+                const sinRecurso = !item.recursos?.trim();
+                return sinImagen || sinValor || sinCategoria || sinRecurso;
+              });
+              
+              if (registrosIncompletos.length > 0) {
+                const errores: string[] = [];
+                registrosIncompletos.forEach((item: CajaMenorItem) => {
+                  const faltantes: string[] = [];
+                  if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
+                  if (!item.valor || item.valor === 0) faltantes.push("valor");
+                  if (!item.categoria?.trim()) faltantes.push("categoría");
+                  if (!item.recursos?.trim()) faltantes.push("recurso");
+                  if (faltantes.length > 0) {
+                    errores.push(`${item.empleadoNombre || "Registro"}: falta ${faltantes.join(", ")}`);
+                  }
+                });
+                toast.error(`Registros incompletos en Caja Menor:\n${errores.slice(0, 3).join("\n")}${errores.length > 3 ? `\n...y ${errores.length - 3} más` : ""}`, { duration: 6000 });
+                return; // Prevent closing
+              }
+            }
+            
             // Save pending notes before closing
             if (localNotasProveedor !== (currentProjectData.notasCotizacionProveedor || "")) {
               updateProject(currentProjectData.id, "notasCotizacionProveedor", localNotasProveedor);

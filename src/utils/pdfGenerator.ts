@@ -173,13 +173,30 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
         }
         
         @media print {
-          body { padding: 20px; padding-top: 20px; }
-          .no-print, .mobile-action-bar { display: none !important; }
+          /* En iOS/PWA a veces el "modo impresión" es la única vista; mantenemos la barra para poder volver */
+          body { padding: 20px; padding-top: 100px; }
+          .no-print { display: none !important; }
+          .mobile-action-bar {
+            display: flex !important;
+            background: #ffffff;
+            color: #111111;
+            box-shadow: none;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          .mobile-action-bar button {
+            background: #111111;
+            color: #ffffff;
+          }
+          .mobile-action-bar .back-btn {
+            background: #ffffff;
+            color: #111111;
+            border: 1px solid #111111;
+          }
         }
       </style>
     </head>
     <body>
-      <div class="mobile-action-bar no-print">
+      <div class="mobile-action-bar"> 
         <button class="back-btn" onclick="goBack()">
           ← Volver
         </button>

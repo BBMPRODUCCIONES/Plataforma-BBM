@@ -119,6 +119,7 @@ const PanelOperaciones = () => {
   const [localNotasImagenes, setLocalNotasImagenes] = useState<Array<{id: string; url: string; name: string}>>([]);
   const [localFeedbackAdjuntos, setLocalFeedbackAdjuntos] = useState<Attachment[]>([]);
   const [horarioFormOpen, setHorarioFormOpen] = useState(false);
+  const [forceCloseAttempt, setForceCloseAttempt] = useState(false);
 
   // Sync local state when project changes (not on every keystroke)
   useEffect(() => {
@@ -1991,8 +1992,9 @@ const PanelOperaciones = () => {
             }
             
             // Validate Caja Menor required fields before closing (always validate if there are cajaMenor items)
+            // Allow force close on second attempt
             const cajaMenorItems = currentProjectData.cajaMenor || [];
-            if (cajaMenorItems.length > 0) {
+            if (cajaMenorItems.length > 0 && !forceCloseAttempt) {
               const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
                 const sinImagen = !item.imagenes || item.imagenes.length === 0;
                 const sinValor = !item.valor || item.valor === 0;
@@ -2003,18 +2005,25 @@ const PanelOperaciones = () => {
               
               if (registrosIncompletos.length > 0) {
                 const errores: string[] = [];
-                registrosIncompletos.forEach((item: CajaMenorItem) => {
+                registrosIncompletos.forEach((item: CajaMenorItem, idx: number) => {
                   const faltantes: string[] = [];
                   if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
                   if (!item.valor || item.valor === 0) faltantes.push("valor");
                   if (!item.categoria?.trim()) faltantes.push("categoría");
                   if (!item.recursos?.trim()) faltantes.push("recurso");
                   if (faltantes.length > 0) {
-                    errores.push(`${item.empleadoNombre || "Registro"}: falta ${faltantes.join(", ")}`);
+                    // Use a more descriptive label for Caja Menor records
+                    const displayName = item.empleadoNombre && !item.empleadoNombre.includes("@") && !item.empleadoNombre.includes(".") 
+                      ? item.empleadoNombre 
+                      : `Registro Caja Menor #${idx + 1}`;
+                    errores.push(`${displayName}: falta ${faltantes.join(", ")}`);
                   }
                 });
-                toast.error(`Registros incompletos en Caja Menor:\n${errores.slice(0, 3).join("\n")}${errores.length > 3 ? `\n...y ${errores.length - 3} más` : ""}`, { duration: 6000 });
-                return; // Prevent closing
+                toast.error(`Caja Menor incompleta:\n${errores.slice(0, 3).join("\n")}${errores.length > 3 ? `\n...y ${errores.length - 3} más` : ""}\n\nPresione X nuevamente para cerrar de todos modos.`, { duration: 6000 });
+                setForceCloseAttempt(true);
+                // Reset force close flag after 5 seconds
+                setTimeout(() => setForceCloseAttempt(false), 5000);
+                return; // Prevent closing on first attempt
               }
             }
             
@@ -2041,6 +2050,7 @@ const PanelOperaciones = () => {
           }
           setSelectedProject(null);
           setSelectedSection(null);
+          setForceCloseAttempt(false);
         }}>
           <DialogContent 
             className="w-[95vw] !max-w-[1400px] sm:!max-w-[1400px] max-h-[90vh] p-0"

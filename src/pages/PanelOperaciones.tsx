@@ -1991,39 +1991,48 @@ const PanelOperaciones = () => {
               }
             }
             
-            // Validate Caja Menor required fields before closing (always validate if there are cajaMenor items)
-            // Allow force close on second attempt
-            const cajaMenorItems = currentProjectData.cajaMenor || [];
-            if (cajaMenorItems.length > 0 && !forceCloseAttempt) {
-              const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
-                const sinImagen = !item.imagenes || item.imagenes.length === 0;
-                const sinValor = !item.valor || item.valor === 0;
-                const sinCategoria = !item.categoria?.trim();
-                const sinRecurso = !item.recursos?.trim();
-                return sinImagen || sinValor || sinCategoria || sinRecurso;
-              });
-              
-              if (registrosIncompletos.length > 0) {
-                const errores: string[] = [];
-                registrosIncompletos.forEach((item: CajaMenorItem, idx: number) => {
-                  const faltantes: string[] = [];
-                  if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
-                  if (!item.valor || item.valor === 0) faltantes.push("valor");
-                  if (!item.categoria?.trim()) faltantes.push("categoría");
-                  if (!item.recursos?.trim()) faltantes.push("recurso");
-                  if (faltantes.length > 0) {
-                    // Use a more descriptive label for Caja Menor records
-                    const displayName = item.empleadoNombre && !item.empleadoNombre.includes("@") && !item.empleadoNombre.includes(".") 
-                      ? item.empleadoNombre 
-                      : `Registro Caja Menor #${idx + 1}`;
-                    errores.push(`${displayName}: falta ${faltantes.join(", ")}`);
-                  }
+            // Validate Caja Menor required fields ONLY when viewing cajaMenor section
+            if (selectedSection === "cajaMenor") {
+              const cajaMenorItems = currentProjectData.cajaMenor || [];
+              if (cajaMenorItems.length > 0 && !forceCloseAttempt) {
+                const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
+                  const sinImagen = !item.imagenes || item.imagenes.length === 0;
+                  const sinValor = !item.valor || item.valor === 0;
+                  const sinCategoria = !item.categoria?.trim();
+                  const sinRecurso = !item.recursos?.trim();
+                  return sinImagen || sinValor || sinCategoria || sinRecurso;
                 });
-                toast.error(`Caja Menor incompleta:\n${errores.slice(0, 3).join("\n")}${errores.length > 3 ? `\n...y ${errores.length - 3} más` : ""}\n\nPresione X nuevamente para cerrar de todos modos.`, { duration: 6000 });
-                setForceCloseAttempt(true);
-                // Reset force close flag after 5 seconds
-                setTimeout(() => setForceCloseAttempt(false), 5000);
-                return; // Prevent closing on first attempt
+                
+                if (registrosIncompletos.length > 0) {
+                  const errores: string[] = [];
+                  registrosIncompletos.forEach((item: CajaMenorItem, idx: number) => {
+                    const faltantes: string[] = [];
+                    if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
+                    if (!item.valor || item.valor === 0) faltantes.push("valor");
+                    if (!item.categoria?.trim()) faltantes.push("categoría");
+                    if (!item.recursos?.trim()) faltantes.push("recurso");
+                    if (faltantes.length > 0) {
+                      const displayName = item.empleadoNombre && !item.empleadoNombre.includes("@") && !item.empleadoNombre.includes(".") 
+                        ? item.empleadoNombre 
+                        : `Registro Caja Menor #${idx + 1}`;
+                      errores.push(`${displayName}: falta ${faltantes.join(", ")}`);
+                    }
+                  });
+                  toast.error(`Caja Menor incompleta:\n${errores.slice(0, 3).join("\n")}${errores.length > 3 ? `\n...y ${errores.length - 3} más` : ""}`, { 
+                    duration: 8000,
+                    action: {
+                      label: "Cerrar de todos modos",
+                      onClick: () => {
+                        setSelectedProject(null);
+                        setSelectedSection(null);
+                        setForceCloseAttempt(false);
+                      }
+                    }
+                  });
+                  setForceCloseAttempt(true);
+                  setTimeout(() => setForceCloseAttempt(false), 5000);
+                  return;
+                }
               }
             }
             

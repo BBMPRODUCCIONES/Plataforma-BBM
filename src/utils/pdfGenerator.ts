@@ -16,6 +16,7 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
     <html>
     <head>
       <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${options.title}</title>
       <style>
         * {
@@ -29,6 +30,7 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
           line-height: 1.4;
           color: #333;
           padding: 20px;
+          padding-top: 80px;
         }
         .header {
           text-align: center;
@@ -115,13 +117,70 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
         .checkbox.checked::after {
           content: "✓";
         }
+        
+        /* Mobile action bar */
+        .mobile-action-bar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          background: #1a1a2e;
+          color: white;
+          padding: 12px 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          z-index: 9999;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .mobile-action-bar button {
+          background: #f97316;
+          color: white;
+          border: none;
+          padding: 10px 16px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .mobile-action-bar button:active {
+          background: #ea580c;
+        }
+        .mobile-action-bar .back-btn {
+          background: transparent;
+          border: 1px solid rgba(255,255,255,0.3);
+        }
+        .mobile-action-bar .title {
+          font-size: 14px;
+          font-weight: 600;
+          flex: 1;
+          text-align: center;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          padding: 0 8px;
+        }
+        
         @media print {
-          body { padding: 0; }
-          .no-print { display: none; }
+          body { padding: 20px; padding-top: 20px; }
+          .no-print, .mobile-action-bar { display: none !important; }
         }
       </style>
     </head>
     <body>
+      <div class="mobile-action-bar no-print">
+        <button class="back-btn" onclick="window.close()">
+          ← Volver
+        </button>
+        <span class="title">${options.title}</span>
+        <button onclick="window.print()">
+          🖨️ Imprimir
+        </button>
+      </div>
+      
       <div class="header">
         <h1>${options.title}</h1>
         ${options.subtitle ? `<p>${options.subtitle}</p>` : ''}
@@ -478,7 +537,7 @@ export const exportCajaMenorToExcel = async (project: Project, empleados: Emplea
   XLSX.writeFile(workbook, fileName);
 };
 
-// Open print window and trigger print
+// Open print window - on mobile, don't auto-trigger print (let user use buttons)
 const openPrintWindow = (html: string) => {
   const printWindow = window.open('', '_blank', 'width=800,height=600');
   if (printWindow) {
@@ -486,9 +545,13 @@ const openPrintWindow = (html: string) => {
     printWindow.document.close();
     printWindow.focus();
     
-    // Wait for content to load then print
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    // Only auto-trigger print on desktop (screen width > 768px)
+    // On mobile, user will use the action bar buttons
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) {
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
+    }
   }
 };

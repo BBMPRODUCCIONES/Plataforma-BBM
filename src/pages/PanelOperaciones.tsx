@@ -1990,9 +1990,9 @@ const PanelOperaciones = () => {
               }
             }
             
-            // Validate Caja Menor required fields before closing
-            if (selectedSection === "cajaMenor") {
-              const cajaMenorItems = currentProjectData.cajaMenor || [];
+            // Validate Caja Menor required fields before closing (always validate if there are cajaMenor items)
+            const cajaMenorItems = currentProjectData.cajaMenor || [];
+            if (cajaMenorItems.length > 0) {
               const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
                 const sinImagen = !item.imagenes || item.imagenes.length === 0;
                 const sinValor = !item.valor || item.valor === 0;

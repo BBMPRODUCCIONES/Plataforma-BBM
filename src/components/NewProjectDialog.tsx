@@ -312,7 +312,7 @@ export function NewProjectDialog({
         "max-sm:fixed max-sm:inset-0 max-sm:max-w-full max-sm:max-h-full max-sm:w-full max-sm:h-[100dvh]",
         "max-sm:rounded-none max-sm:border-0 max-sm:p-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:top-0 max-sm:left-0"
       )}>
-        <div className="sm:contents max-sm:flex max-sm:flex-col max-sm:h-full">
+        <div className="sm:contents max-sm:flex max-sm:flex-col max-sm:h-full max-sm:overflow-hidden">
           <DialogHeader className={cn(
             "max-sm:sticky max-sm:top-0 max-sm:z-10 max-sm:bg-background",
             "max-sm:pt-[calc(env(safe-area-inset-top)+12px)]",
@@ -326,7 +326,8 @@ export function NewProjectDialog({
 
           <div className={cn(
             "space-y-4 sm:space-y-6 py-2 sm:py-4 sm:overflow-y-auto sm:max-h-[calc(90vh-140px)]",
-            "max-sm:flex-1 max-sm:overflow-y-auto max-sm:px-4 max-sm:py-4"
+            "max-sm:flex-1 max-sm:overflow-y-auto max-sm:overscroll-contain max-sm:px-4 max-sm:py-4",
+            "max-sm:min-h-0"
           )}>
           {/* Información General */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">

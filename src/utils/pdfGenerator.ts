@@ -201,8 +201,8 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
           ← Volver
         </button>
         <span class="title">${options.title}</span>
-        <button onclick="sharePrint()">
-          📤 Guardar
+        <button onclick="window.print()">
+          📄 Guardar PDF
         </button>
       </div>
       <script>
@@ -215,21 +215,6 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
           } else {
             // Fallback: redirect to origin
             window.location.href = window.location.origin;
-          }
-        }
-        function sharePrint() {
-          // On mobile, use share API if available, otherwise print
-          if (navigator.share) {
-            // Try to share the page
-            navigator.share({
-              title: document.title,
-              url: window.location.href
-            }).catch(() => {
-              // If share fails, fallback to print
-              window.print();
-            });
-          } else {
-            window.print();
           }
         }
       </script>

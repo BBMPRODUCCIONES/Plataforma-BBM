@@ -326,7 +326,7 @@ export function NewProjectDialog({
 
           <div className={cn(
             "space-y-4 sm:space-y-6 py-2 sm:py-4 sm:overflow-y-auto sm:max-h-[calc(90vh-140px)]",
-            "max-sm:flex-1 max-sm:overflow-y-auto max-sm:overscroll-contain max-sm:px-4 max-sm:py-4",
+            "max-sm:flex-1 max-sm:overflow-y-auto max-sm:overscroll-contain max-sm:touch-pan-y max-sm:[-webkit-overflow-scrolling:touch] max-sm:px-4 max-sm:pt-4 max-sm:pb-[calc(env(safe-area-inset-bottom)+96px)]",
             "max-sm:min-h-0"
           )}>
           {/* Información General */}

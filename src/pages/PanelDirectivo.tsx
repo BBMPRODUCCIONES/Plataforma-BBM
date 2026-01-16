@@ -69,12 +69,13 @@ const PanelDirectivo = () => {
     { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 4, options: ["No se hizo", "Se hizo", "No es necesario"] },
     { key: "fechaMontaje", header: "Fecha de Montaje", type: "date" as CellType, width: "160px", visible: true, isCustom: false, order: 5 },
     { key: "fechaEjecucion", header: "Fecha de Ejecución", type: "date" as CellType, width: "160px", visible: true, isCustom: false, order: 6 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "140px", visible: true, isCustom: false, order: 7 },
-    { key: "ingresoBruto", header: "Ingreso Bruto", type: "number" as CellType, width: "120px", visible: true, isCustom: false, order: 8 },
-    { key: "ingresoTotal", header: "Ingreso Total", type: "number" as CellType, width: "120px", visible: true, isCustom: false, order: 9 },
-    { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "120px", visible: true, isCustom: false, order: 10 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 11 },
-    { key: "panelGeneral", header: "Ver en Panel", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 12 },
+    { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "140px", visible: true, isCustom: false, order: 7 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "140px", visible: true, isCustom: false, order: 8 },
+    { key: "ingresoBruto", header: "Ingreso Bruto", type: "number" as CellType, width: "120px", visible: true, isCustom: false, order: 9 },
+    { key: "ingresoTotal", header: "Ingreso Total", type: "number" as CellType, width: "120px", visible: true, isCustom: false, order: 10 },
+    { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "120px", visible: true, isCustom: false, order: 11 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 12 },
+    { key: "panelGeneral", header: "Ver en Panel", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 13 },
   ];
   const { columns: managedColumns, setColumns: setManagedColumns, loading: columnsLoading, isAdmin: canModifyStructure } = useGlobalColumns("panel-directivo", defaultColumns);
   

@@ -87,19 +87,20 @@ const PanelOperaciones = () => {
     { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 4, options: ["No se hizo", "Se hizo", "No es necesario"] },
     { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "110px", visible: true, isCustom: false, order: 5 },
     { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "110px", visible: true, isCustom: false, order: 6 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 7 },
-    { key: "jefeOperaciones", header: "Jefe Ops", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 8 },
-    { key: "aCargoDe", header: "A Cargo", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 9 },
-    { key: "productor", header: "Productor", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 10 },
-    { key: "ubicacion", header: "Ubicación", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 11 },
-    { key: "formatoPreproduccion", header: "Formato", type: "file" as CellType, width: "80px", visible: true, isCustom: false, order: 12 },
-    { key: "personal", header: "Personal", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 13 },
-    { key: "cotizacionProveedor", header: "Cot. Prov", type: "file" as CellType, width: "80px", visible: true, isCustom: false, order: 14 },
-    { key: "ordenCompraOCR", header: "OC + OCR", type: "file" as CellType, width: "120px", visible: true, isCustom: false, order: 15 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 16 },
-    { key: "inventario", header: "Inventario", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 17 },
-    { key: "cajaMenor", header: "Caja Menor", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 18 },
-    { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 19 },
+    { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "110px", visible: true, isCustom: false, order: 7 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 8 },
+    { key: "jefeOperaciones", header: "Jefe Ops", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 9 },
+    { key: "aCargoDe", header: "A Cargo", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 10 },
+    { key: "productor", header: "Productor", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 11 },
+    { key: "ubicacion", header: "Ubicación", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 12 },
+    { key: "formatoPreproduccion", header: "Formato", type: "file" as CellType, width: "80px", visible: true, isCustom: false, order: 13 },
+    { key: "personal", header: "Personal", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 14 },
+    { key: "cotizacionProveedor", header: "Cot. Prov", type: "file" as CellType, width: "80px", visible: true, isCustom: false, order: 15 },
+    { key: "ordenCompraOCR", header: "OC + OCR", type: "file" as CellType, width: "120px", visible: true, isCustom: false, order: 16 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 17 },
+    { key: "inventario", header: "Inventario", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 18 },
+    { key: "cajaMenor", header: "Caja Menor", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 19 },
+    { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 20 },
   ];
   const { columns: managedColumns, setColumns: setManagedColumns, loading: columnsLoading, isAdmin: canModifyStructure } = useGlobalColumns("panel-operaciones", defaultColumns);
   
@@ -472,6 +473,35 @@ const PanelOperaciones = () => {
                 <div className="text-xs flex items-center gap-1">
                   <div className="w-2 h-2 rounded-sm bg-gantt-ejecucion" />
                   {format(parseISO(p.fechaEjecucionInicio), "dd/MM")}
+                </div>
+              }
+            />
+          );
+        case "fechaDesmontaje":
+          if (!p.fechaDesmontajeInicio || !p.fechaDesmontajeFin) {
+            return <span className="text-muted-foreground text-xs">—</span>;
+          }
+          return (
+            <DateTimeRangeEditor
+              type="desmontaje"
+              value={{
+                fechaInicio: p.fechaDesmontajeInicio,
+                fechaFin: p.fechaDesmontajeFin,
+                horaInicio: p.horaDesmontajeInicio,
+                horaFin: p.horaDesmontajeFin,
+              }}
+              onChange={(value) => {
+                updateProjectMultiple(p.id, {
+                  fechaDesmontajeInicio: value.fechaInicio,
+                  fechaDesmontajeFin: value.fechaFin,
+                  horaDesmontajeInicio: value.horaInicio,
+                  horaDesmontajeFin: value.horaFin,
+                });
+              }}
+              displayValue={
+                <div className="text-xs flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-sm bg-gantt-desmontaje" />
+                  {format(parseISO(p.fechaDesmontajeInicio), "dd/MM")}
                 </div>
               }
             />

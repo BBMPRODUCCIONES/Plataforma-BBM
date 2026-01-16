@@ -74,14 +74,43 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
         const savedColumns = data.columns as unknown as ColumnConfig[];
         const savedKeys = new Set(savedColumns.map(c => c.key));
         
-        // Add any missing default columns (new features)
+        // Add any missing default columns (new features) in correct position
         const missingDefaults = defaultColumns.filter(
           dc => !dc.isCustom && !savedKeys.has(dc.key)
         );
         
-        const merged = missingDefaults.length > 0
-          ? [...savedColumns, ...missingDefaults.map((c, i) => ({ ...c, order: savedColumns.length + i }))]
-          : savedColumns;
+        let merged = savedColumns;
+        if (missingDefaults.length > 0) {
+          // Insert missing columns in their logical position based on defaultColumns order
+          merged = [...savedColumns];
+          
+          for (const missingCol of missingDefaults) {
+            // Find the default column that comes before this one
+            const defaultIndex = defaultColumns.findIndex(dc => dc.key === missingCol.key);
+            let insertAfterKey: string | null = null;
+            
+            for (let i = defaultIndex - 1; i >= 0; i--) {
+              if (merged.some(mc => mc.key === defaultColumns[i].key)) {
+                insertAfterKey = defaultColumns[i].key;
+                break;
+              }
+            }
+            
+            if (insertAfterKey) {
+              // Insert after the found column
+              const insertIndex = merged.findIndex(mc => mc.key === insertAfterKey) + 1;
+              merged.splice(insertIndex, 0, { ...missingCol, order: insertIndex });
+            } else {
+              // No previous column found, insert at beginning
+              merged.unshift({ ...missingCol, order: 0 });
+            }
+          }
+          
+          // Recalculate order for all columns
+          merged = merged.map((col, idx) => ({ ...col, order: idx }));
+          
+          logger.debug(`[useGlobalColumns] Added ${missingDefaults.length} missing columns to ${panelKey}`);
+        }
 
         logger.debug(`[useGlobalColumns] Loaded ${merged.length} columns for ${panelKey}`);
         setState({ columns: merged, loading: false, error: null });

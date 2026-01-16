@@ -309,12 +309,16 @@ export type Database = {
           deleted_by_email: string | null
           estado: string
           evento: string
+          fecha_desmontaje_fin: string
+          fecha_desmontaje_inicio: string
           fecha_ejecucion_fin: string
           fecha_ejecucion_inicio: string
           fecha_montaje_fin: string
           fecha_montaje_inicio: string
           feedback: string | null
           feedback_adjuntos: Json | null
+          hora_desmontaje_fin: string
+          hora_desmontaje_inicio: string
           hora_ejecucion_fin: string
           hora_ejecucion_inicio: string
           hora_montaje_fin: string
@@ -350,12 +354,16 @@ export type Database = {
           deleted_by_email?: string | null
           estado?: string
           evento?: string
+          fecha_desmontaje_fin?: string
+          fecha_desmontaje_inicio?: string
           fecha_ejecucion_fin?: string
           fecha_ejecucion_inicio?: string
           fecha_montaje_fin?: string
           fecha_montaje_inicio?: string
           feedback?: string | null
           feedback_adjuntos?: Json | null
+          hora_desmontaje_fin?: string
+          hora_desmontaje_inicio?: string
           hora_ejecucion_fin?: string
           hora_ejecucion_inicio?: string
           hora_montaje_fin?: string
@@ -391,12 +399,16 @@ export type Database = {
           deleted_by_email?: string | null
           estado?: string
           evento?: string
+          fecha_desmontaje_fin?: string
+          fecha_desmontaje_inicio?: string
           fecha_ejecucion_fin?: string
           fecha_ejecucion_inicio?: string
           fecha_montaje_fin?: string
           fecha_montaje_inicio?: string
           feedback?: string | null
           feedback_adjuntos?: Json | null
+          hora_desmontaje_fin?: string
+          hora_desmontaje_inicio?: string
           hora_ejecucion_fin?: string
           hora_ejecucion_inicio?: string
           hora_montaje_fin?: string

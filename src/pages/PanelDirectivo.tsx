@@ -167,11 +167,12 @@ const PanelDirectivo = () => {
     { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 4 },
     { key: "fechaMontaje", header: "Fecha Montaje", type: "date" as CellType, width: "140px", visible: true, isCustom: false, order: 5 },
     { key: "fechaEjecucion", header: "Fecha Ejecución", type: "date" as CellType, width: "140px", visible: true, isCustom: false, order: 6 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 7 },
-    { key: "ingresoBruto", header: "Ingreso Bruto", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 8 },
-    { key: "ingresoTotal", header: "Ingreso Total", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
-    { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "120px", visible: true, isCustom: false, order: 10 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 11 },
+    { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 7 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 8 },
+    { key: "ingresoBruto", header: "Ingreso Bruto", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
+    { key: "ingresoTotal", header: "Ingreso Total", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 10 },
+    { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "120px", visible: true, isCustom: false, order: 11 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 12 },
   ], []);
 
   // Get all columns (base + managed) - direct calculation for immediate updates
@@ -304,6 +305,42 @@ const PanelDirectivo = () => {
             }
           />
         );
+      case "fechaDesmontaje":
+        return (p: Project) => {
+          if (!p.fechaDesmontajeInicio || !p.fechaDesmontajeFin) {
+            return <span className="text-muted-foreground text-xs">—</span>;
+          }
+          return (
+            <DateTimeRangeEditor
+              type="desmontaje"
+              value={{
+                fechaInicio: p.fechaDesmontajeInicio,
+                fechaFin: p.fechaDesmontajeFin,
+                horaInicio: p.horaDesmontajeInicio,
+                horaFin: p.horaDesmontajeFin,
+              }}
+              onChange={(value) => {
+                updateProjectMultiple(p.id, {
+                  fechaDesmontajeInicio: value.fechaInicio,
+                  fechaDesmontajeFin: value.fechaFin,
+                  horaDesmontajeInicio: value.horaInicio,
+                  horaDesmontajeFin: value.horaFin,
+                });
+              }}
+              displayValue={
+                <div className="text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-sm bg-gantt-desmontaje" />
+                    {format(parseISO(p.fechaDesmontajeInicio), "dd MMM", { locale: es })}
+                  </div>
+                  <div className="text-muted-foreground">
+                    - {format(parseISO(p.fechaDesmontajeFin), "dd MMM", { locale: es })}
+                  </div>
+                </div>
+              }
+            />
+          );
+        };
       case "administrativoResponsable":
         return (p: Project) => (
           <EditableCell

@@ -36,6 +36,11 @@ function dbRowToProject(row: any): Project {
     fechaEjecucionFin: row.fecha_ejecucion_fin || "",
     horaEjecucionInicio: row.hora_ejecucion_inicio || "09:00",
     horaEjecucionFin: row.hora_ejecucion_fin || "22:00",
+    // Desmontaje fields
+    fechaDesmontajeInicio: row.fecha_desmontaje_inicio || "",
+    fechaDesmontajeFin: row.fecha_desmontaje_fin || "",
+    horaDesmontajeInicio: row.hora_desmontaje_inicio || "18:00",
+    horaDesmontajeFin: row.hora_desmontaje_fin || "22:00",
     estado: row.estado || "por_planear",
     administrativoResponsable: row.administrativo_responsable || "",
     ingresoTotal: Number(row.ingreso_total) || 0,
@@ -82,6 +87,11 @@ function projectToDbRow(project: Partial<Project>): Record<string, any> {
   if (project.fechaEjecucionFin !== undefined) row.fecha_ejecucion_fin = project.fechaEjecucionFin;
   if (project.horaEjecucionInicio !== undefined) row.hora_ejecucion_inicio = project.horaEjecucionInicio;
   if (project.horaEjecucionFin !== undefined) row.hora_ejecucion_fin = project.horaEjecucionFin;
+  // Desmontaje fields
+  if (project.fechaDesmontajeInicio !== undefined) row.fecha_desmontaje_inicio = project.fechaDesmontajeInicio;
+  if (project.fechaDesmontajeFin !== undefined) row.fecha_desmontaje_fin = project.fechaDesmontajeFin;
+  if (project.horaDesmontajeInicio !== undefined) row.hora_desmontaje_inicio = project.horaDesmontajeInicio;
+  if (project.horaDesmontajeFin !== undefined) row.hora_desmontaje_fin = project.horaDesmontajeFin;
   if (project.estado !== undefined) row.estado = project.estado;
   if (project.administrativoResponsable !== undefined) row.administrativo_responsable = project.administrativoResponsable;
   if (project.ingresoTotal !== undefined) row.ingreso_total = project.ingresoTotal;
@@ -118,6 +128,11 @@ function fieldToColumn(field: string): string {
     fechaEjecucionFin: "fecha_ejecucion_fin",
     horaEjecucionInicio: "hora_ejecucion_inicio",
     horaEjecucionFin: "hora_ejecucion_fin",
+    // Desmontaje fields
+    fechaDesmontajeInicio: "fecha_desmontaje_inicio",
+    fechaDesmontajeFin: "fecha_desmontaje_fin",
+    horaDesmontajeInicio: "hora_desmontaje_inicio",
+    horaDesmontajeFin: "hora_desmontaje_fin",
     administrativoResponsable: "administrativo_responsable",
     ingresoTotal: "ingreso_total",
     ingresoBruto: "ingreso_bruto",

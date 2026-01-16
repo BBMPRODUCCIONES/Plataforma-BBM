@@ -210,9 +210,12 @@ export function NewProjectDialog({
     horaMontajeFin: "18:00",
     horaEjecucionInicio: "08:00",
     horaEjecucionFin: "22:00",
+    horaDesmontajeInicio: "18:00",
+    horaDesmontajeFin: "22:00",
   });
   const [montajeRange, setMontajeRange] = useState<DateRange | undefined>();
   const [ejecucionRange, setEjecucionRange] = useState<DateRange | undefined>();
+  const [desmontajeRange, setDesmontajeRange] = useState<DateRange | undefined>();
   const [errors, setErrors] = useState<ValidationErrors>({});
 
   const validateForm = (): boolean => {
@@ -272,6 +275,9 @@ export function NewProjectDialog({
       fechaMontajeFin: montajeRange?.to ? format(montajeRange.to, "yyyy-MM-dd") : "",
       fechaEjecucionInicio: ejecucionRange?.from ? format(ejecucionRange.from, "yyyy-MM-dd") : "",
       fechaEjecucionFin: ejecucionRange?.to ? format(ejecucionRange.to, "yyyy-MM-dd") : "",
+      // Desmontaje is optional
+      fechaDesmontajeInicio: desmontajeRange?.from ? format(desmontajeRange.from, "yyyy-MM-dd") : "",
+      fechaDesmontajeFin: desmontajeRange?.to ? format(desmontajeRange.to, "yyyy-MM-dd") : "",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -285,9 +291,12 @@ export function NewProjectDialog({
       horaMontajeFin: "18:00",
       horaEjecucionInicio: "08:00",
       horaEjecucionFin: "22:00",
+      horaDesmontajeInicio: "18:00",
+      horaDesmontajeFin: "22:00",
     });
     setMontajeRange(undefined);
     setEjecucionRange(undefined);
+    setDesmontajeRange(undefined);
     setErrors({});
     
     onOpenChange(false);
@@ -503,6 +512,40 @@ export function NewProjectDialog({
                   label="Fin"
                   value={formData.horaEjecucionFin || "22:00"}
                   onChange={(value) => setFormData({ ...formData, horaEjecucionFin: value })}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Sección Desmontaje - Opcional */}
+          <div className="rounded-lg border bg-muted/30 p-3 sm:p-4 space-y-3 sm:space-y-4">
+            <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-gantt-desmontaje"></span>
+              DESMONTAJE
+              <span className="text-xs font-normal text-muted-foreground">(Opcional)</span>
+            </h3>
+            
+            <DateRangePickerField
+              label="Fecha Desmontaje (Inicio - Fin)"
+              range={desmontajeRange}
+              onRangeChange={(range) => {
+                setDesmontajeRange(range);
+              }}
+            />
+
+            <div>
+              <Label className="text-sm font-medium mb-2 sm:mb-3 block">Hora Desmontaje</Label>
+              <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+                <TimeInputManual
+                  label="Inicio"
+                  value={formData.horaDesmontajeInicio || "18:00"}
+                  onChange={(value) => setFormData({ ...formData, horaDesmontajeInicio: value })}
+                />
+                <span className="text-muted-foreground pb-2.5 hidden sm:inline">—</span>
+                <TimeInputManual
+                  label="Fin"
+                  value={formData.horaDesmontajeFin || "22:00"}
+                  onChange={(value) => setFormData({ ...formData, horaDesmontajeFin: value })}
                 />
               </div>
             </div>

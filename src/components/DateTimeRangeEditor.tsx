@@ -28,7 +28,7 @@ interface DateTimeRange {
 }
 
 interface DateTimeRangeEditorProps {
-  type: "montaje" | "ejecucion";
+  type: "montaje" | "ejecucion" | "desmontaje";
   value: DateTimeRange;
   onChange: (value: DateTimeRange) => void;
   displayValue: React.ReactNode;
@@ -53,8 +53,8 @@ export function DateTimeRangeEditor({
     setOpen(false);
   };
 
-  const title = type === "montaje" ? "Fecha de Montaje" : "Fecha de Ejecución";
-  const colorClass = type === "montaje" ? "bg-gantt-montaje" : "bg-gantt-ejecucion";
+  const title = type === "montaje" ? "Fecha de Montaje" : type === "ejecucion" ? "Fecha de Ejecución" : "Fecha de Desmontaje";
+  const colorClass = type === "montaje" ? "bg-gantt-montaje" : type === "ejecucion" ? "bg-gantt-ejecucion" : "bg-gantt-desmontaje";
 
   return (
     <>

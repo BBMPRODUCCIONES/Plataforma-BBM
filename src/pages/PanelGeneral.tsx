@@ -138,8 +138,9 @@ const PanelGeneral = () => {
     { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 3 },
     { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 4 },
     { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 5 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 6 },
-    { key: "ordenCompra", header: "OC + OCR", type: "file" as CellType, width: "130px", visible: true, isCustom: false, order: 7 },
+    { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 6 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 7 },
+    { key: "ordenCompra", header: "OC + OCR", type: "file" as CellType, width: "130px", visible: true, isCustom: false, order: 8 },
   ], []);
 
   // Get all columns - direct calculation for immediate updates
@@ -265,6 +266,42 @@ const PanelGeneral = () => {
             }
           />
         );
+      case "fechaDesmontaje":
+        return (p: Project) => {
+          if (!p.fechaDesmontajeInicio || !p.fechaDesmontajeFin) {
+            return <span className="text-muted-foreground text-xs">—</span>;
+          }
+          return (
+            <DateTimeRangeEditor
+              type="desmontaje"
+              value={{
+                fechaInicio: p.fechaDesmontajeInicio,
+                fechaFin: p.fechaDesmontajeFin,
+                horaInicio: p.horaDesmontajeInicio,
+                horaFin: p.horaDesmontajeFin,
+              }}
+              onChange={(value) => {
+                updateProjectMultiple(p.id, {
+                  fechaDesmontajeInicio: value.fechaInicio,
+                  fechaDesmontajeFin: value.fechaFin,
+                  horaDesmontajeInicio: value.horaInicio,
+                  horaDesmontajeFin: value.horaFin,
+                });
+              }}
+              displayValue={
+                <div className="text-xs space-y-0.5">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-sm bg-gantt-desmontaje" />
+                    {format(parseISO(p.fechaDesmontajeInicio), "dd/MM", { locale: es })}
+                  </div>
+                  <div className="text-muted-foreground pl-3">
+                    → {format(parseISO(p.fechaDesmontajeFin), "dd/MM", { locale: es })}
+                  </div>
+                </div>
+              }
+            />
+          );
+        };
       case "estado":
         return (p: Project) => (
           <StatusSelect

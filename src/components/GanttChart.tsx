@@ -284,6 +284,10 @@ export function GanttChart({
               <div className="w-4 h-3 rounded-sm bg-gantt-ejecucion" />
               <span className="text-muted-foreground hidden sm:inline">Ejecución</span>
             </div>
+            <div className="flex items-center gap-1 sm:gap-2" title="Desmontaje">
+              <div className="w-4 h-3 rounded-sm bg-gantt-desmontaje" />
+              <span className="text-muted-foreground hidden sm:inline">Desmontaje</span>
+            </div>
             <div className="flex items-center gap-1 sm:gap-2 hidden sm:flex" title="Eliminado">
               <div className="w-4 h-3 rounded-sm bg-destructive/40 border border-dashed border-destructive" />
               <span className="text-muted-foreground">Eliminado</span>
@@ -404,6 +408,9 @@ export function GanttChart({
             projects.map((project) => {
               const montajeBar = getBarPosition(project.fechaMontajeInicio, project.fechaMontajeFin);
               const ejecucionBar = getBarPosition(project.fechaEjecucionInicio, project.fechaEjecucionFin);
+              const desmontajeBar = project.fechaDesmontajeInicio && project.fechaDesmontajeFin 
+                ? getBarPosition(project.fechaDesmontajeInicio, project.fechaDesmontajeFin) 
+                : null;
               const isDeleted = project.isDeleted;
 
               return (
@@ -464,11 +471,11 @@ export function GanttChart({
                     )}
                     
                     {/* Bars - z-10 to stay above today line */}
-                    <div className="relative h-12 gantt-bar-container z-10">
+                    <div className="relative h-16 gantt-bar-container z-10">
                       {montajeBar && (
                         <div
                           className={cn(
-                            "absolute top-1 h-4 gantt-bar rounded-sm shadow-sm",
+                            "absolute top-0.5 h-4 gantt-bar rounded-sm shadow-sm",
                             isDeleted ? "gantt-bar-deleted" : "gantt-bar-montaje"
                           )}
                           style={{ left: montajeBar.left, width: Math.max(montajeBar.width - 2, 4) }}
@@ -487,7 +494,7 @@ export function GanttChart({
                       {ejecucionBar && (
                         <div
                           className={cn(
-                            "absolute bottom-1 h-4 gantt-bar rounded-sm shadow-sm",
+                            "absolute top-[22px] h-4 gantt-bar rounded-sm shadow-sm",
                             isDeleted ? "gantt-bar-deleted" : "gantt-bar-ejecucion"
                           )}
                           style={{ left: ejecucionBar.left, width: Math.max(ejecucionBar.width - 2, 4) }}
@@ -499,6 +506,25 @@ export function GanttChart({
                               isDeleted ? "text-destructive" : "text-white/90"
                             )}>
                               {isDeleted ? "Eliminado" : "Ejecución"}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {desmontajeBar && (
+                        <div
+                          className={cn(
+                            "absolute bottom-0.5 h-4 gantt-bar rounded-sm shadow-sm",
+                            isDeleted ? "gantt-bar-deleted" : "gantt-bar-desmontaje"
+                          )}
+                          style={{ left: desmontajeBar.left, width: Math.max(desmontajeBar.width - 2, 4) }}
+                          title={`${isDeleted ? "[ELIMINADO] " : ""}Desmontaje: ${format(parseISO(project.fechaDesmontajeInicio!), "d MMM", { locale: es })} - ${format(parseISO(project.fechaDesmontajeFin!), "d MMM", { locale: es })}`}
+                        >
+                          {desmontajeBar.width > 60 && (
+                            <span className={cn(
+                              "absolute inset-0 flex items-center justify-center text-[9px] font-medium truncate px-1",
+                              isDeleted ? "text-destructive" : "text-white/90"
+                            )}>
+                              {isDeleted ? "Eliminado" : "Desmontaje"}
                             </span>
                           )}
                         </div>

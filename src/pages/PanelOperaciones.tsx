@@ -2021,23 +2021,39 @@ const PanelOperaciones = () => {
               }
             }
             
-            // Warn about Caja Menor incomplete fields (non-blocking - just a warning)
+            // Validación de Caja Menor - IMAGEN es BLOQUEANTE
             if (selectedSection === "cajaMenor") {
               const cajaMenorItems = currentProjectData.cajaMenor || [];
               if (cajaMenorItems.length > 0) {
+                // BLOQUEANTE: Verificar imágenes obligatorias
+                const registrosSinImagen = cajaMenorItems.filter((item: CajaMenorItem) => 
+                  !item.imagenes || item.imagenes.length === 0
+                );
+                
+                if (registrosSinImagen.length > 0) {
+                  const gastos = registrosSinImagen.map((item: CajaMenorItem) => {
+                    const idx = cajaMenorItems.indexOf(item);
+                    return `Gasto #${idx + 1}`;
+                  }).join(", ");
+                  toast.error(`⚠️ Imagen obligatoria: ${gastos}. Adjunta una foto o archivo antes de cerrar.`, {
+                    duration: 6000
+                  });
+                  return; // BLOQUEAR cierre del modal
+                }
+                
+                // NO BLOQUEANTE: Advertir sobre otros campos faltantes
                 const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
-                  const sinImagen = !item.imagenes || item.imagenes.length === 0;
                   const sinValor = !item.valor || item.valor === 0;
                   const sinCategoria = !item.categoria?.trim();
                   const sinRecurso = !item.recursos?.trim();
-                  return sinImagen || sinValor || sinCategoria || sinRecurso;
+                  return sinValor || sinCategoria || sinRecurso;
                 });
                 
                 if (registrosIncompletos.length > 0) {
                   const errores: string[] = [];
-                  registrosIncompletos.forEach((item: CajaMenorItem, idx: number) => {
+                  registrosIncompletos.forEach((item: CajaMenorItem) => {
+                    const idx = cajaMenorItems.indexOf(item);
                     const faltantes: string[] = [];
-                    if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
                     if (!item.categoria?.trim()) faltantes.push("categoría");
                     if (!item.recursos?.trim()) faltantes.push("recurso");
@@ -2045,9 +2061,9 @@ const PanelOperaciones = () => {
                       errores.push(`Gasto #${idx + 1}: falta ${faltantes.join(", ")}`);
                     }
                   });
-                  // Show warning but DON'T block closing
-                  toast.error(`Caja Menor incompleta:\n${errores.slice(0, 3).join("\n")}${errores.length > 3 ? `\n...y ${errores.length - 3} más` : ""}`, { 
-                    duration: 6000
+                  // Advertencia pero permite cerrar
+                  toast.warning(`Recuerda completar:\n${errores.slice(0, 3).join("\n")}${errores.length > 3 ? `\n...y ${errores.length - 3} más` : ""}`, { 
+                    duration: 5000
                   });
                 }
               }
@@ -2375,7 +2391,7 @@ const PanelOperaciones = () => {
                               };
                               try {
                                 await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);
-                                toast.success("Registro creado. Completa: Imagen, Valor, Categoría y Recurso antes de cerrar.", { duration: 5000 });
+                                toast.warning("⚠️ Registro creado. IMAGEN OBLIGATORIA para poder cerrar. También completa: Valor, Categoría y Recurso.", { duration: 6000 });
                               } catch (err) {
                                 console.error('[PanelOperaciones] Error adding caja menor:', err);
                                 toast.error("Error al agregar registro");

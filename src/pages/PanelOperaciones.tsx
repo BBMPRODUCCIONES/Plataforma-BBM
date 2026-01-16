@@ -1591,68 +1591,100 @@ const PanelOperaciones = () => {
       },
       {
         key: "imagenes",
-        header: "Imágenes",
+        header: "Imágenes *",
         width: "120px",
         mobileWidth: "120px",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
+          const isEmpty = !c.imagenes || c.imagenes.length === 0;
           return (
-            <AttachmentButton
-              attachments={c.imagenes || []}
-              onAttachmentsChange={(attachments) => {
-                if (canEdit && projectId) {
-                  updateCajaMenorItem(projectId, c.id, "imagenes", attachments);
-                }
-              }}
-              multiple
-              projectId={projectId || ""}
-              fieldName={`caja-menor-${c.id}-imagenes`}
-              enableCamera={canEdit}
-              disabled={!canEdit}
-            />
+            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+              <AttachmentButton
+                attachments={c.imagenes || []}
+                onAttachmentsChange={(attachments) => {
+                  if (canEdit && projectId) {
+                    updateCajaMenorItem(projectId, c.id, "imagenes", attachments);
+                    // Limpiar errores de validación cuando se agrega imagen
+                    if (attachments.length > 0) {
+                      setCajaMenorValidationErrors([]);
+                    }
+                  }
+                }}
+                multiple
+                projectId={projectId || ""}
+                fieldName={`caja-menor-${c.id}-imagenes`}
+                enableCamera={canEdit}
+                disabled={!canEdit}
+              />
+              {isEmpty && <span className="text-[10px] text-destructive block text-center">Requerida</span>}
+            </div>
           );
         },
       },
       {
         key: "valor",
-        header: "VALOR (COP)",
+        header: "VALOR (COP) *",
         width: "130px",
         mobileWidth: "130px",
         className: "caja-menor-valor-cell",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
+          const isEmpty = !c.valor || c.valor === 0;
           const formattedValue = `$ ${(c.valor || 0).toLocaleString('es-CO')}`;
           if (!canEdit) {
-            return <span className="text-base font-semibold font-mono text-foreground">{formattedValue}</span>;
+            return (
+              <span className={`text-base font-semibold font-mono ${isEmpty ? "text-destructive" : "text-foreground"}`}>
+                {isEmpty ? "$ 0 (Requerido)" : formattedValue}
+              </span>
+            );
           }
           return (
-            <EditableCell
-              value={c.valor}
-              type="number"
-              placeholder="0"
-              onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "valor", value)}
-              className="text-base font-semibold"
-            />
+            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+              <EditableCell
+                value={c.valor}
+                type="number"
+                placeholder="0"
+                onChange={(value) => {
+                  if (projectId) {
+                    updateCajaMenorItem(projectId, c.id, "valor", value);
+                    setCajaMenorValidationErrors([]);
+                  }
+                }}
+                className={`text-base font-semibold ${isEmpty ? "text-destructive" : ""}`}
+              />
+            </div>
           );
         },
       },
       {
         key: "categoria",
-        header: "Categoría",
+        header: "Categoría *",
         width: "130px",
         mobileWidth: "130px",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
+          const isEmpty = !c.categoria?.trim();
           if (!canEdit) {
-            return <span className="text-sm text-muted-foreground">{c.categoria}</span>;
+            return (
+              <span className={`text-sm ${isEmpty ? "text-destructive italic" : "text-muted-foreground"}`}>
+                {isEmpty ? "Sin categoría" : c.categoria}
+              </span>
+            );
           }
           return (
-            <EditableCell
-              value={c.categoria}
-              type="select"
-              options={["Transporte", "Alimentación", "Compras"]}
-              onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "categoria", value)}
-            />
+            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+              <EditableCell
+                value={c.categoria}
+                type="select"
+                options={["Transporte", "Alimentación", "Compras"]}
+                onChange={(value) => {
+                  if (projectId) {
+                    updateCajaMenorItem(projectId, c.id, "categoria", value);
+                    setCajaMenorValidationErrors([]);
+                  }
+                }}
+              />
+            </div>
           );
         },
       },
@@ -1663,7 +1695,7 @@ const PanelOperaciones = () => {
         mobileWidth: "140px",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
-          const isEmpty = !c.recursos;
+          const isEmpty = !c.recursos?.trim();
           if (!canEdit) {
             return (
               <span className={`text-sm ${isEmpty ? "text-destructive italic" : "text-muted-foreground"}`}>
@@ -1672,13 +1704,18 @@ const PanelOperaciones = () => {
             );
           }
           return (
-            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded" : ""}>
+            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
               <EditableCell
                 value={c.recursos || ""}
                 type="select"
                 options={["Recursos propios", "BBM", "Anticipo BBM"]}
                 placeholder="Seleccionar..."
-                onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "recursos", value)}
+                onChange={(value) => {
+                  if (projectId) {
+                    updateCajaMenorItem(projectId, c.id, "recursos", value);
+                    setCajaMenorValidationErrors([]);
+                  }
+                }}
               />
             </div>
           );

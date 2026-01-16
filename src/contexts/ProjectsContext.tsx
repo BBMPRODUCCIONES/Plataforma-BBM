@@ -209,7 +209,18 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
           
           if (payload.eventType === "INSERT") {
             const newProject = dbRowToProject(payload.new);
-            setProjects(prev => [newProject, ...prev]);
+            // Skip if this insert was already handled optimistically
+            if (pendingInsertIdsRef.current.has(newProject.id)) {
+              logger.debug("[ProjectsContext] Skipping realtime INSERT for pending project:", newProject.id);
+              return;
+            }
+            setProjects(prev => {
+              // Also check if already exists to prevent duplicates
+              if (prev.some(p => p.id === newProject.id)) {
+                return prev;
+              }
+              return [newProject, ...prev];
+            });
           } else if (payload.eventType === "UPDATE") {
             const updatedProject = dbRowToProject(payload.new);
             setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
@@ -225,6 +236,9 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       supabase.removeChannel(channel);
     };
   }, [user, authLoading, fetchProjects]);
+
+  // Track pending insert IDs to prevent realtime duplicates
+  const pendingInsertIdsRef = useRef<Set<string>>(new Set());
 
   const addProject = useCallback(async (projectData: Partial<Project>): Promise<Project | null> => {
     // Create optimistic project with temporary ID
@@ -244,6 +258,11 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       fechaEjecucionFin: projectData.fechaEjecucionFin || new Date().toISOString().split("T")[0],
       horaEjecucionInicio: projectData.horaEjecucionInicio || "09:00",
       horaEjecucionFin: projectData.horaEjecucionFin || "22:00",
+      // Desmontaje fields
+      fechaDesmontajeInicio: projectData.fechaDesmontajeInicio || "",
+      fechaDesmontajeFin: projectData.fechaDesmontajeFin || "",
+      horaDesmontajeInicio: projectData.horaDesmontajeInicio || "18:00",
+      horaDesmontajeFin: projectData.horaDesmontajeFin || "22:00",
       estado: projectData.estado || "por_planear",
       administrativoResponsable: projectData.administrativoResponsable || "",
       ingresoTotal: projectData.ingresoTotal || 0,
@@ -278,6 +297,11 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       fecha_ejecucion_fin: optimisticProject.fechaEjecucionFin,
       hora_ejecucion_inicio: optimisticProject.horaEjecucionInicio,
       hora_ejecucion_fin: optimisticProject.horaEjecucionFin,
+      // Desmontaje fields
+      fecha_desmontaje_inicio: optimisticProject.fechaDesmontajeInicio,
+      fecha_desmontaje_fin: optimisticProject.fechaDesmontajeFin,
+      hora_desmontaje_inicio: optimisticProject.horaDesmontajeInicio,
+      hora_desmontaje_fin: optimisticProject.horaDesmontajeFin,
       estado: optimisticProject.estado,
       administrativo_responsable: optimisticProject.administrativoResponsable,
       ingreso_total: optimisticProject.ingresoTotal,
@@ -307,10 +331,19 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
+    // Mark this ID as pending to prevent realtime duplicate
+    pendingInsertIdsRef.current.add(data.id);
+
     // Replace temp project with real one
     const realProject = dbRowToProject(data);
     setProjects(prev => prev.map(p => p.id === tempId ? realProject : p));
     logger.debug("[ProjectsContext] Created new project:", data.id);
+
+    // Clear the pending ID after a short delay (to allow realtime event to be ignored)
+    setTimeout(() => {
+      pendingInsertIdsRef.current.delete(data.id);
+    }, 2000);
+
     return realProject;
   }, []);
 

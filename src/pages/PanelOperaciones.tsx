@@ -2021,32 +2021,17 @@ const PanelOperaciones = () => {
               }
             }
             
-            // Validación de Caja Menor - IMAGEN es BLOQUEANTE
+            // Validación de Caja Menor - TODOS los campos son BLOQUEANTES
             if (selectedSection === "cajaMenor") {
               const cajaMenorItems = currentProjectData.cajaMenor || [];
               if (cajaMenorItems.length > 0) {
-                // BLOQUEANTE: Verificar imágenes obligatorias
-                const registrosSinImagen = cajaMenorItems.filter((item: CajaMenorItem) => 
-                  !item.imagenes || item.imagenes.length === 0
-                );
-                
-                if (registrosSinImagen.length > 0) {
-                  const gastos = registrosSinImagen.map((item: CajaMenorItem) => {
-                    const idx = cajaMenorItems.indexOf(item);
-                    return `Gasto #${idx + 1}`;
-                  }).join(", ");
-                  toast.error(`⚠️ Imagen obligatoria: ${gastos}. Adjunta una foto o archivo antes de cerrar.`, {
-                    duration: 6000
-                  });
-                  return; // BLOQUEAR cierre del modal
-                }
-                
-                // NO BLOQUEANTE: Advertir sobre otros campos faltantes
+                // BLOQUEANTE: Verificar todos los campos obligatorios
                 const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
+                  const sinImagen = !item.imagenes || item.imagenes.length === 0;
                   const sinValor = !item.valor || item.valor === 0;
                   const sinCategoria = !item.categoria?.trim();
                   const sinRecurso = !item.recursos?.trim();
-                  return sinValor || sinCategoria || sinRecurso;
+                  return sinImagen || sinValor || sinCategoria || sinRecurso;
                 });
                 
                 if (registrosIncompletos.length > 0) {
@@ -2054,6 +2039,7 @@ const PanelOperaciones = () => {
                   registrosIncompletos.forEach((item: CajaMenorItem) => {
                     const idx = cajaMenorItems.indexOf(item);
                     const faltantes: string[] = [];
+                    if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
                     if (!item.categoria?.trim()) faltantes.push("categoría");
                     if (!item.recursos?.trim()) faltantes.push("recurso");
@@ -2061,10 +2047,10 @@ const PanelOperaciones = () => {
                       errores.push(`Gasto #${idx + 1}: falta ${faltantes.join(", ")}`);
                     }
                   });
-                  // Advertencia pero permite cerrar
-                  toast.warning(`Recuerda completar:\n${errores.slice(0, 3).join("\n")}${errores.length > 3 ? `\n...y ${errores.length - 3} más` : ""}`, { 
-                    duration: 5000
+                  toast.error(`⚠️ Campos obligatorios incompletos:\n${errores.slice(0, 3).join("\n")}${errores.length > 3 ? `\n...y ${errores.length - 3} más` : ""}`, {
+                    duration: 6000
                   });
+                  return; // BLOQUEAR cierre del modal
                 }
               }
             }

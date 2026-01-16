@@ -65,6 +65,7 @@ export default {
         gantt: {
           montaje: "hsl(var(--gantt-montaje))",
           ejecucion: "hsl(var(--gantt-ejecucion))",
+          desmontaje: "hsl(var(--gantt-desmontaje))",
           header: "hsl(var(--gantt-header))",
         },
         status: {

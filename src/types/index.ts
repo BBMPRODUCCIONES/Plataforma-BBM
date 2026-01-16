@@ -14,6 +14,11 @@ export interface Project {
   fechaEjecucionFin: string;
   horaEjecucionInicio?: string;
   horaEjecucionFin?: string;
+  // Desmontaje date range
+  fechaDesmontajeInicio?: string;
+  fechaDesmontajeFin?: string;
+  horaDesmontajeInicio?: string;
+  horaDesmontajeFin?: string;
   estado: ProjectStatus;
   // Panel Directivo fields
   administrativoResponsable?: string;

@@ -423,15 +423,30 @@ const generateAdjuntosSection = (project: Project): string => {
   `;
 };
 
+// Helper to format date range safely
+const formatDateRange = (startDate: string, endDate: string): string => {
+  if (!startDate || !endDate) return '-';
+  try {
+    return `${format(parseISO(startDate), "dd/MM/yyyy", { locale: es })} - ${format(parseISO(endDate), "dd/MM/yyyy", { locale: es })}`;
+  } catch {
+    return '-';
+  }
+};
+
 // Print unified PDF with Personal + Inventario
 export const printPersonalYInventario = (project: Project, includeNotes: boolean = true) => {
+  const desmontajeRow = project.fechaDesmontajeInicio && project.fechaDesmontajeFin
+    ? `<div class="info-row"><span class="info-label">Fecha Desmontaje:</span> ${formatDateRange(project.fechaDesmontajeInicio, project.fechaDesmontajeFin)}</div>`
+    : '';
+
   const content = `
     <div class="info-section">
       <div class="info-row"><span class="info-label">Proyecto:</span> ${project.evento}</div>
       <div class="info-row"><span class="info-label">Cliente:</span> ${project.cliente}</div>
       <div class="info-row"><span class="info-label">Centro de Costos:</span> ${project.centroCostos}</div>
-      <div class="info-row"><span class="info-label">Fecha Montaje:</span> ${format(parseISO(project.fechaMontajeInicio), "dd/MM/yyyy", { locale: es })} - ${format(parseISO(project.fechaMontajeFin), "dd/MM/yyyy", { locale: es })}</div>
-      <div class="info-row"><span class="info-label">Fecha Ejecución:</span> ${format(parseISO(project.fechaEjecucionInicio), "dd/MM/yyyy", { locale: es })} - ${format(parseISO(project.fechaEjecucionFin), "dd/MM/yyyy", { locale: es })}</div>
+      <div class="info-row"><span class="info-label">Fecha Montaje:</span> ${formatDateRange(project.fechaMontajeInicio, project.fechaMontajeFin)}</div>
+      <div class="info-row"><span class="info-label">Fecha Ejecución:</span> ${formatDateRange(project.fechaEjecucionInicio, project.fechaEjecucionFin)}</div>
+      ${desmontajeRow}
     </div>
     ${generatePersonalSection(project)}
     <div style="margin-top: 30px;"></div>

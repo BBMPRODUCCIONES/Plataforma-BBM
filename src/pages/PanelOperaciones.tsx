@@ -478,17 +478,14 @@ const PanelOperaciones = () => {
             />
           );
         case "fechaDesmontaje":
-          if (!p.fechaDesmontajeInicio || !p.fechaDesmontajeFin) {
-            return <span className="text-muted-foreground text-xs">—</span>;
-          }
           return (
             <DateTimeRangeEditor
               type="desmontaje"
               value={{
-                fechaInicio: p.fechaDesmontajeInicio,
-                fechaFin: p.fechaDesmontajeFin,
-                horaInicio: p.horaDesmontajeInicio,
-                horaFin: p.horaDesmontajeFin,
+                fechaInicio: p.fechaDesmontajeInicio || "",
+                fechaFin: p.fechaDesmontajeFin || "",
+                horaInicio: p.horaDesmontajeInicio || "",
+                horaFin: p.horaDesmontajeFin || "",
               }}
               onChange={(value) => {
                 updateProjectMultiple(p.id, {
@@ -499,10 +496,14 @@ const PanelOperaciones = () => {
                 });
               }}
               displayValue={
-                <div className="text-xs flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-sm bg-gantt-desmontaje" />
-                  {format(parseISO(p.fechaDesmontajeInicio), "dd/MM")}
-                </div>
+                p.fechaDesmontajeInicio && p.fechaDesmontajeFin ? (
+                  <div className="text-xs flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-sm bg-gantt-desmontaje" />
+                    {format(parseISO(p.fechaDesmontajeInicio), "dd/MM")}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground text-xs hover:text-primary cursor-pointer">+ Agregar</span>
+                )
               }
             />
           );

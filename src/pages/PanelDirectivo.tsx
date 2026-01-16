@@ -307,28 +307,25 @@ const PanelDirectivo = () => {
           />
         );
       case "fechaDesmontaje":
-        return (p: Project) => {
-          if (!p.fechaDesmontajeInicio || !p.fechaDesmontajeFin) {
-            return <span className="text-muted-foreground text-xs">—</span>;
-          }
-          return (
-            <DateTimeRangeEditor
-              type="desmontaje"
-              value={{
-                fechaInicio: p.fechaDesmontajeInicio,
-                fechaFin: p.fechaDesmontajeFin,
-                horaInicio: p.horaDesmontajeInicio,
-                horaFin: p.horaDesmontajeFin,
-              }}
-              onChange={(value) => {
-                updateProjectMultiple(p.id, {
-                  fechaDesmontajeInicio: value.fechaInicio,
-                  fechaDesmontajeFin: value.fechaFin,
-                  horaDesmontajeInicio: value.horaInicio,
-                  horaDesmontajeFin: value.horaFin,
-                });
-              }}
-              displayValue={
+        return (p: Project) => (
+          <DateTimeRangeEditor
+            type="desmontaje"
+            value={{
+              fechaInicio: p.fechaDesmontajeInicio || "",
+              fechaFin: p.fechaDesmontajeFin || "",
+              horaInicio: p.horaDesmontajeInicio || "",
+              horaFin: p.horaDesmontajeFin || "",
+            }}
+            onChange={(value) => {
+              updateProjectMultiple(p.id, {
+                fechaDesmontajeInicio: value.fechaInicio,
+                fechaDesmontajeFin: value.fechaFin,
+                horaDesmontajeInicio: value.horaInicio,
+                horaDesmontajeFin: value.horaFin,
+              });
+            }}
+            displayValue={
+              p.fechaDesmontajeInicio && p.fechaDesmontajeFin ? (
                 <div className="text-xs">
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-sm bg-gantt-desmontaje" />
@@ -338,10 +335,12 @@ const PanelDirectivo = () => {
                     - {format(parseISO(p.fechaDesmontajeFin), "dd MMM", { locale: es })}
                   </div>
                 </div>
-              }
-            />
-          );
-        };
+              ) : (
+                <span className="text-muted-foreground text-xs hover:text-primary cursor-pointer">+ Agregar</span>
+              )
+            }
+          />
+        );
       case "administrativoResponsable":
         return (p: Project) => (
           <EditableCell

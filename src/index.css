@@ -1,6 +1,31 @@
 @tailwind base;
 
 /* ========================================
+   TOAST NOTIFICATIONS - SIEMPRE VISIBLES
+   ======================================== */
+
+/* Asegurar que los toasts de Sonner estén siempre por encima de modales */
+[data-sonner-toaster] {
+  z-index: 99999 !important;
+}
+
+@media (max-width: 768px) {
+  [data-sonner-toaster] {
+    top: calc(env(safe-area-inset-top, 8px) + 8px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: calc(100% - 32px) !important;
+    max-width: 400px !important;
+  }
+  
+  [data-sonner-toast] {
+    font-size: 14px !important;
+    padding: 12px 16px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+  }
+}
+
+/* ========================================
    CAMERA CAPTURE MODAL - DESKTOP WEB
    ======================================== */
 

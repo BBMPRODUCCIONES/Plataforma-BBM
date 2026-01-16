@@ -120,6 +120,8 @@ const PanelOperaciones = () => {
   const [localNotasImagenes, setLocalNotasImagenes] = useState<Array<{id: string; url: string; name: string}>>([]);
   const [localFeedbackAdjuntos, setLocalFeedbackAdjuntos] = useState<Attachment[]>([]);
   const [horarioFormOpen, setHorarioFormOpen] = useState(false);
+  // Estado para errores inline de Caja Menor (visible en el modal)
+  const [cajaMenorValidationErrors, setCajaMenorValidationErrors] = useState<string[]>([]);
 
   // Sync local state when project changes (not on every keystroke)
   useEffect(() => {
@@ -2047,9 +2049,8 @@ const PanelOperaciones = () => {
                       errores.push(`Gasto #${idx + 1}: falta ${faltantes.join(", ")}`);
                     }
                   });
-                  toast.error(`⚠️ Campos obligatorios incompletos:\n${errores.slice(0, 3).join("\n")}${errores.length > 3 ? `\n...y ${errores.length - 3} más` : ""}`, {
-                    duration: 6000
-                  });
+                  // Guardar errores en estado para mostrar inline en el modal
+                  setCajaMenorValidationErrors(errores);
                   return; // BLOQUEAR cierre del modal
                 }
               }
@@ -2076,6 +2077,8 @@ const PanelOperaciones = () => {
               updateProject(currentProjectData.id, "notasImagenes", localNotasImagenes);
             }
           }
+          // Limpiar errores de validación al cerrar
+          setCajaMenorValidationErrors([]);
           setSelectedProject(null);
           setSelectedSection(null);
         }}>
@@ -2331,63 +2334,94 @@ const PanelOperaciones = () => {
                   {/* Caja Menor Section - Solo cuando selectedSection === "cajaMenor" */}
                   {selectedSection === "cajaMenor" && (
                     <Card className="overflow-hidden">
-                      <CardHeader className="py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <Wallet className="h-4 w-4" />
-                          Caja Menor ({(currentProjectData.cajaMenor || []).length})
-                        </CardTitle>
-                        <div className="flex gap-2 flex-wrap justify-end w-full sm:w-auto">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <FileDown className="h-3 w-3 mr-1" />
-                                Exportar
-                                <ChevronDown className="h-3 w-3 ml-1" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => printCajaMenor(currentProjectData, empleados)}>
-                                <FileDown className="h-4 w-4 mr-2" />
-                                Descargar PDF
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => exportCajaMenorToExcel(currentProjectData, empleados)}>
-                                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                                Descargar Excel
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              // Auto-fill with current user's employee
-                              const newCajaMenor: CajaMenorItem = {
-                                id: `cm${Date.now()}`,
-                                empleadoId: currentUserEmpleado?.id || "",
-                                empleadoNombre: currentUserEmpleado?.nombre || "",
-                                empleadoEmail: currentUserEmpleado?.correo || currentUserEmail || "",
-                                concepto: "",
-                                imagenes: [],
-                                valor: 0,
-                                categoria: "Compras",
-                                recursos: "",
-                                contingencia: "No",
-                                estado: "No aprobado",
-                                createdAt: new Date().toISOString(),
-                              };
-                              try {
-                                await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);
-                                toast.warning("⚠️ Registro creado. IMAGEN OBLIGATORIA para poder cerrar. También completa: Valor, Categoría y Recurso.", { duration: 6000 });
-                              } catch (err) {
-                                console.error('[PanelOperaciones] Error adding caja menor:', err);
-                                toast.error("Error al agregar registro");
-                              }
-                            }}
-                          >
-                            <Plus className="h-3 w-3 sm:mr-1" />
-                            <span className="hidden sm:inline">Agregar Registro</span>
-                            <span className="sm:hidden">Agregar</span>
-                          </Button>
+                      <CardHeader className="py-3 flex flex-col gap-2">
+                        {/* Mensaje de error inline - VISIBLE EN MÓVIL */}
+                        {cajaMenorValidationErrors.length > 0 && (
+                          <div className="w-full bg-destructive/15 border border-destructive/50 rounded-lg p-3 mb-2">
+                            <div className="flex items-start gap-2">
+                              <span className="text-destructive text-lg">⚠️</span>
+                              <div className="flex-1">
+                                <p className="text-destructive font-semibold text-sm mb-1">
+                                  Campos obligatorios incompletos:
+                                </p>
+                                <ul className="text-destructive text-xs space-y-0.5">
+                                  {cajaMenorValidationErrors.slice(0, 5).map((error, idx) => (
+                                    <li key={idx}>• {error}</li>
+                                  ))}
+                                  {cajaMenorValidationErrors.length > 5 && (
+                                    <li className="font-medium">...y {cajaMenorValidationErrors.length - 5} más</li>
+                                  )}
+                                </ul>
+                              </div>
+                              <button 
+                                onClick={() => setCajaMenorValidationErrors([])}
+                                className="text-destructive hover:text-destructive/80 text-lg leading-none"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Wallet className="h-4 w-4" />
+                            Caja Menor ({(currentProjectData.cajaMenor || []).length})
+                          </CardTitle>
+                          <div className="flex gap-2 flex-wrap justify-end w-full sm:w-auto">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <FileDown className="h-3 w-3 mr-1" />
+                                  Exportar
+                                  <ChevronDown className="h-3 w-3 ml-1" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => printCajaMenor(currentProjectData, empleados)}>
+                                  <FileDown className="h-4 w-4 mr-2" />
+                                  Descargar PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => exportCajaMenorToExcel(currentProjectData, empleados)}>
+                                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                  Descargar Excel
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                // Limpiar errores al agregar nuevo registro
+                                setCajaMenorValidationErrors([]);
+                                // Auto-fill with current user's employee
+                                const newCajaMenor: CajaMenorItem = {
+                                  id: `cm${Date.now()}`,
+                                  empleadoId: currentUserEmpleado?.id || "",
+                                  empleadoNombre: currentUserEmpleado?.nombre || "",
+                                  empleadoEmail: currentUserEmpleado?.correo || currentUserEmail || "",
+                                  concepto: "",
+                                  imagenes: [],
+                                  valor: 0,
+                                  categoria: "Compras",
+                                  recursos: "",
+                                  contingencia: "No",
+                                  estado: "No aprobado",
+                                  createdAt: new Date().toISOString(),
+                                };
+                                try {
+                                  await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);
+                                  toast.warning("⚠️ Completa: Imagen, Valor, Categoría y Recurso para poder cerrar.", { duration: 4000 });
+                                } catch (err) {
+                                  console.error('[PanelOperaciones] Error adding caja menor:', err);
+                                  toast.error("Error al agregar registro");
+                                }
+                              }}
+                            >
+                              <Plus className="h-3 w-3 sm:mr-1" />
+                              <span className="hidden sm:inline">Agregar Registro</span>
+                              <span className="sm:hidden">Agregar</span>
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0 caja-menor-mobile-scroll">

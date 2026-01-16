@@ -317,15 +317,16 @@ export function NewProjectDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className={cn(
-        "sm:max-w-2xl max-h-[90vh] overflow-hidden",
+        "sm:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden",
         "max-sm:fixed max-sm:inset-0 max-sm:max-w-full max-sm:max-h-full max-sm:w-full max-sm:h-[100dvh]",
         "max-sm:rounded-none max-sm:border-0 max-sm:p-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:top-0 max-sm:left-0"
       )}>
-        <div className="sm:contents max-sm:flex max-sm:flex-col max-sm:h-full max-sm:overflow-hidden">
+        <div className="flex flex-col h-full overflow-hidden">
           <DialogHeader className={cn(
+            "shrink-0",
             "max-sm:sticky max-sm:top-0 max-sm:z-10 max-sm:bg-background",
             "max-sm:pt-[calc(env(safe-area-inset-top)+12px)]",
-            "max-sm:px-4 max-sm:pb-3 max-sm:border-b max-sm:shrink-0"
+            "max-sm:px-4 max-sm:pb-3 max-sm:border-b"
           )}>
             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               <Plus className="h-5 w-5" />
@@ -334,9 +335,8 @@ export function NewProjectDialog({
           </DialogHeader>
 
           <div className={cn(
-            "space-y-4 sm:space-y-6 py-2 sm:py-4 sm:overflow-y-auto sm:max-h-[calc(90vh-140px)]",
-            "max-sm:flex-1 max-sm:overflow-y-auto max-sm:overscroll-contain max-sm:touch-pan-y max-sm:[-webkit-overflow-scrolling:touch] max-sm:px-4 max-sm:pt-4 max-sm:pb-[calc(env(safe-area-inset-bottom)+96px)]",
-            "max-sm:min-h-0"
+            "flex-1 overflow-y-auto space-y-4 sm:space-y-6 py-4 px-1",
+            "max-sm:overscroll-contain max-sm:touch-pan-y max-sm:[-webkit-overflow-scrolling:touch] max-sm:px-4 max-sm:pb-[calc(env(safe-area-inset-bottom)+16px)]"
           )}>
           {/* Información General */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -591,10 +591,10 @@ export function NewProjectDialog({
           </div>
 
           <DialogFooter className={cn(
-            "flex-col sm:flex-row gap-2 sm:gap-0",
-            "max-sm:sticky max-sm:bottom-0 max-sm:bg-background max-sm:shrink-0",
+            "shrink-0 flex-col sm:flex-row gap-2 sm:gap-0 pt-4 border-t mt-2",
+            "max-sm:sticky max-sm:bottom-0 max-sm:bg-background",
             "max-sm:pb-[calc(env(safe-area-inset-bottom)+12px)]",
-            "max-sm:px-4 max-sm:pt-3 max-sm:border-t"
+            "max-sm:px-4 max-sm:pt-3"
           )}>
             <Button variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
               Cancelar

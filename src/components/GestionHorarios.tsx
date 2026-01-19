@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Search, Plus, CalendarIcon, Pencil, Trash2, ChevronLeft, ChevronRight, User, AlertCircle, RefreshCw, X, Building2, Home, MapPin, Clock, MessageSquare } from 'lucide-react';
+import { Search, Plus, CalendarIcon, Pencil, Trash2, ChevronLeft, ChevronRight, User, AlertCircle, RefreshCw, X, Building2, Home, MapPin, Clock, MessageSquare, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { Project, PersonalItem } from '@/types';
 import { EmpleadoAutocomplete } from '@/components/EmpleadoAutocomplete';
@@ -174,6 +174,7 @@ export const GestionHorarios = () => {
       hora: string;
       ubicacion: string;
       maps_url?: string;
+      foto?: string;
     };
     // For expand functionality
     eventos: string[];
@@ -258,6 +259,7 @@ export const GestionHorarios = () => {
             hora: horario.contingencia_hora,
             ubicacion: horario.contingencia_ubicacion || '',
             maps_url: horario.contingencia_maps_url || '',
+            foto: horario.contingencia_foto || '',
           };
         }
         
@@ -271,6 +273,7 @@ export const GestionHorarios = () => {
           hora: horario.contingencia_hora,
           ubicacion: horario.contingencia_ubicacion || '',
           maps_url: horario.contingencia_maps_url || '',
+          foto: horario.contingencia_foto || '',
         } : undefined;
         
         grouped.set(key, {
@@ -1245,14 +1248,102 @@ export const GestionHorarios = () => {
                       </TableCell>
                       <TableCell className="font-mono">{format(parseISO(horario.dia), 'dd/MM/yyyy')}</TableCell>
                       <TableCell>{renderCategoria(horario.displayCategoria, horario.originalHorarios)}</TableCell>
-                      <TableCell className="text-center font-mono">{horario.llegada || '—'}</TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="font-mono">{horario.llegada || '—'}</span>
+                          {horario.originalHorarios.some(h => h.foto_llegada) && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="p-1 rounded hover:bg-muted transition-colors"
+                                  title="Ver foto de llegada"
+                                >
+                                  <Camera className="h-3.5 w-3.5 text-primary" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 p-2">
+                                <div className="space-y-2">
+                                  <h4 className="font-medium text-sm flex items-center gap-2">
+                                    <Camera className="h-4 w-4 text-primary" />
+                                    Foto de Llegada
+                                  </h4>
+                                  <img
+                                    src={horario.originalHorarios.find(h => h.foto_llegada)?.foto_llegada || ''}
+                                    alt="Foto de llegada"
+                                    className="w-full h-auto rounded-lg object-cover max-h-64"
+                                  />
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-center">{renderUbicacion(horario.ubicacion_llegada)}</TableCell>
-                      <TableCell className="text-center font-mono">{horario.salida || '—'}</TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="font-mono">{horario.salida || '—'}</span>
+                          {horario.originalHorarios.some(h => h.foto_salida) && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="p-1 rounded hover:bg-muted transition-colors"
+                                  title="Ver foto de salida"
+                                >
+                                  <Camera className="h-3.5 w-3.5 text-primary" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 p-2">
+                                <div className="space-y-2">
+                                  <h4 className="font-medium text-sm flex items-center gap-2">
+                                    <Camera className="h-4 w-4 text-primary" />
+                                    Foto de Salida
+                                  </h4>
+                                  <img
+                                    src={horario.originalHorarios.find(h => h.foto_salida)?.foto_salida || ''}
+                                    alt="Foto de salida"
+                                    className="w-full h-auto rounded-lg object-cover max-h-64"
+                                  />
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-center">{renderUbicacion(horario.ubicacion_salida)}</TableCell>
                       <TableCell className="text-center">
                         {horario.salidaEmergencia ? (
                           <div className="space-y-1">
-                            <span className="font-mono text-orange-400">{horario.salidaEmergencia.hora}</span>
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="font-mono text-orange-400">{horario.salidaEmergencia.hora}</span>
+                              {horario.salidaEmergencia.foto && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="p-1 rounded hover:bg-muted transition-colors"
+                                      title="Ver foto de contingencia"
+                                    >
+                                      <Camera className="h-3.5 w-3.5 text-orange-400" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-80 p-2">
+                                    <div className="space-y-2">
+                                      <h4 className="font-medium text-sm flex items-center gap-2">
+                                        <Camera className="h-4 w-4 text-orange-400" />
+                                        Foto de Contingencia
+                                      </h4>
+                                      <img
+                                        src={horario.salidaEmergencia.foto}
+                                        alt="Foto de contingencia"
+                                        className="w-full h-auto rounded-lg object-cover max-h-64"
+                                      />
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              )}
+                            </div>
                             <div>
                               {horario.salidaEmergencia.maps_url ? (
                                 <a 

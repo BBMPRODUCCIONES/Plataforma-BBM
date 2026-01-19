@@ -4,6 +4,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { logger } from "@/lib/logger";
+
+// Helper function to send push notifications
+async function sendPushNotification(headings: string, contents: string, url?: string) {
+  try {
+    const response = await supabase.functions.invoke("send-push-notification", {
+      body: { headings, contents, sendToAll: true, url },
+    });
+    
+    if (response.error) {
+      console.error("[ProjectsContext] Push notification error:", response.error);
+    } else {
+      logger.debug("[ProjectsContext] Push notification sent:", response.data);
+    }
+  } catch (error) {
+    console.error("[ProjectsContext] Failed to send push notification:", error);
+  }
+}
 interface ProjectsContextType {
   projects: Project[];
   loading: boolean;
@@ -339,6 +356,15 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     setProjects(prev => prev.map(p => p.id === tempId ? realProject : p));
     logger.debug("[ProjectsContext] Created new project:", data.id);
 
+    // Send push notification for new project
+    const eventName = realProject.evento || "Nuevo evento";
+    const clientName = realProject.cliente || "";
+    sendPushNotification(
+      "🎉 Nuevo Evento Creado",
+      clientName ? `${eventName} - ${clientName}` : eventName,
+      `/panel-directivo`
+    );
+
     // Clear the pending ID after a short delay (to allow realtime event to be ignored)
     setTimeout(() => {
       pendingInsertIdsRef.current.delete(data.id);
@@ -439,6 +465,17 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       toast.error("Error al eliminar el evento");
       await fetchProjects(); // Revert on error
       return;
+    }
+
+    // Send push notification for deleted project
+    const deletedProject = projects.find(p => p.id === projectId);
+    if (deletedProject) {
+      const eventName = deletedProject.evento || "Evento";
+      sendPushNotification(
+        "🗑️ Evento Eliminado",
+        eventName,
+        `/panel-directivo`
+      );
     }
 
     toast.success("Evento eliminado correctamente");

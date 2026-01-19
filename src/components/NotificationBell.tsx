@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -7,10 +7,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNotifications, Notification } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { PushStatusPanel } from "./PushStatusPanel";
 
 export function NotificationBell() {
   const {
@@ -54,88 +56,118 @@ export function NotificationBell() {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
-        <div className="flex items-center justify-between border-b p-3">
-          <h3 className="font-semibold">Notificaciones</h3>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={markAllAsRead}
-              className="h-8 text-xs"
-            >
-              <CheckCheck className="mr-1 h-3 w-3" />
-              Marcar todas como leídas
-            </Button>
-          )}
-        </div>
+        <Tabs defaultValue="notifications" className="w-full">
+          <div className="border-b px-3 pt-2">
+            <TabsList className="w-full h-8">
+              <TabsTrigger value="notifications" className="flex-1 text-xs">
+                <Bell className="h-3 w-3 mr-1" />
+                Notificaciones
+                {unreadCount > 0 && (
+                  <span className="ml-1 bg-destructive text-destructive-foreground text-[10px] px-1.5 rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex-1 text-xs">
+                <Settings2 className="h-3 w-3 mr-1" />
+                Estado Push
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        <ScrollArea className="h-[300px]">
-          {loading ? (
-            <div className="flex items-center justify-center p-8 text-muted-foreground">
-              Cargando...
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-muted-foreground">
-              <Bell className="mb-2 h-8 w-8 opacity-50" />
-              <p className="text-sm">No tienes notificaciones</p>
-            </div>
-          ) : (
-            <div className="divide-y">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={cn(
-                    "relative border-l-4 p-3 transition-colors hover:bg-muted/50",
-                    getTypeStyles(notification.type),
-                    !notification.read && "bg-muted/30"
-                  )}
+          <TabsContent value="notifications" className="m-0">
+            <div className="flex items-center justify-between border-b p-2">
+              <span className="text-xs text-muted-foreground">
+                {notifications.length} notificaciones
+              </span>
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={markAllAsRead}
+                  className="h-7 text-xs"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className={cn(
-                        "text-sm",
-                        !notification.read && "font-semibold"
-                      )}>
-                        {notification.title}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-                        {notification.message}
-                      </p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        {formatDistanceToNow(new Date(notification.created_at), {
-                          addSuffix: true,
-                          locale: es,
-                        })}
-                      </p>
-                    </div>
-                    <div className="flex gap-1">
-                      {!notification.read && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => markAsRead(notification.id)}
-                          title="Marcar como leída"
-                        >
-                          <Check className="h-3 w-3" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                        onClick={() => deleteNotification(notification.id)}
-                        title="Eliminar"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  <CheckCheck className="mr-1 h-3 w-3" />
+                  Marcar leídas
+                </Button>
+              )}
             </div>
-          )}
-        </ScrollArea>
+
+            <ScrollArea className="h-[280px]">
+              {loading ? (
+                <div className="flex items-center justify-center p-8 text-muted-foreground">
+                  Cargando...
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+                  <Bell className="mb-2 h-8 w-8 opacity-50" />
+                  <p className="text-sm">No tienes notificaciones</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className={cn(
+                        "relative border-l-4 p-3 transition-colors hover:bg-muted/50",
+                        getTypeStyles(notification.type),
+                        !notification.read && "bg-muted/30"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className={cn(
+                            "text-sm",
+                            !notification.read && "font-semibold"
+                          )}>
+                            {notification.title}
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+                            {notification.message}
+                          </p>
+                          <p className="mt-1 text-[10px] text-muted-foreground">
+                            {formatDistanceToNow(new Date(notification.created_at), {
+                              addSuffix: true,
+                              locale: es,
+                            })}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          {!notification.read && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => markAsRead(notification.id)}
+                              title="Marcar como leída"
+                            >
+                              <Check className="h-3 w-3" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                            onClick={() => deleteNotification(notification.id)}
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="settings" className="m-0">
+            <ScrollArea className="h-[320px]">
+              <PushStatusPanel />
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
       </PopoverContent>
     </Popover>
   );

@@ -222,6 +222,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     let isMounted = true;
 
+    // Initialize OneSignal early (before auth check)
+    initOneSignal().catch(e => console.error("[Auth] OneSignal init error:", e));
+
     const initializeAuth = async () => {
       // Set up auth state listener FIRST
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -237,6 +240,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(currentSession?.user ?? null);
           
           if (currentSession?.user) {
+            // Link user to OneSignal when session exists
+            setExternalUserId(currentSession.user.id).catch(e => 
+              console.error("[Auth] OneSignal link error:", e)
+            );
+            
             // Use setTimeout to prevent Supabase deadlock
             setTimeout(async () => {
               if (!isMounted) return;
@@ -288,6 +296,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(existingSession?.user ?? null);
       
       if (existingSession?.user) {
+        // Link existing user to OneSignal
+        setExternalUserId(existingSession.user.id).catch(e => 
+          console.error("[Auth] OneSignal link error:", e)
+        );
+        
         // Try cached role first for fast initial render
         const cachedRole = getCachedRole(existingSession.user.id);
         if (cachedRole) {

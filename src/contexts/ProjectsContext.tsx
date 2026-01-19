@@ -497,6 +497,9 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   }, [fetchProjects]);
 
   const restoreProject = useCallback(async (projectId: string) => {
+    // Get project before restore for notification
+    const projectToRestore = projects.find(p => p.id === projectId);
+    
     // Optimistic update - restore locally
     setProjects(prev => prev.map(p => 
       p.id === projectId 
@@ -521,9 +524,20 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Send push notification and create in-app notifications for restored project
+    if (projectToRestore) {
+      const eventName = projectToRestore.evento || "Evento";
+      sendPushNotification(
+        "♻️ Evento Restaurado",
+        eventName,
+        `/panel-directivo`,
+        "success"
+      );
+    }
+
     toast.success("Evento restaurado correctamente");
     logger.debug("[ProjectsContext] Restored project:", projectId);
-  }, [fetchProjects]);
+  }, [projects, fetchProjects]);
 
   const getProject = useCallback((projectId: string) => {
     return projects.find(p => p.id === projectId);

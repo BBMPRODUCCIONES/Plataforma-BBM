@@ -22,7 +22,10 @@ export function useNotifications() {
 
   // Fetch notifications from database
   const fetchNotifications = useCallback(async () => {
+    console.log("[useNotifications] fetchNotifications called, user:", user?.id);
+    
     if (!user) {
+      console.log("[useNotifications] No user, clearing notifications");
       setNotifications([]);
       setUnreadCount(0);
       setLoading(false);
@@ -30,6 +33,7 @@ export function useNotifications() {
     }
 
     try {
+      console.log("[useNotifications] Fetching from database for user:", user.id);
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
@@ -37,11 +41,16 @@ export function useNotifications() {
         .order("created_at", { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      if (error) {
+        console.error("[useNotifications] Database error:", error);
+        throw error;
+      }
 
+      console.log("[useNotifications] Fetched", data?.length || 0, "notifications");
       const typedData = (data || []) as Notification[];
       setNotifications(typedData);
       setUnreadCount(typedData.filter((n) => !n.read).length);
+      console.log("[useNotifications] Unread count:", typedData.filter((n) => !n.read).length);
     } catch (error) {
       console.error("[useNotifications] Error fetching:", error);
     } finally {
@@ -136,7 +145,12 @@ export function useNotifications() {
 
   // Subscribe to realtime notifications
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      console.log("[useNotifications] No user for realtime subscription");
+      return;
+    }
+
+    console.log("[useNotifications] Setting up realtime subscription for user:", user.id);
 
     const channel = supabase
       .channel(`notifications:${user.id}`)
@@ -149,6 +163,7 @@ export function useNotifications() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
+          console.log("[useNotifications] Realtime INSERT received:", payload);
           const newNotification = payload.new as Notification;
           
           // Add to state
@@ -164,15 +179,19 @@ export function useNotifications() {
             ? toast.success
             : toast.info;
 
+          console.log("[useNotifications] Showing toast:", newNotification.title);
           toastFn(newNotification.title, {
             description: newNotification.message,
             duration: 5000,
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[useNotifications] Realtime subscription status:", status);
+      });
 
     return () => {
+      console.log("[useNotifications] Cleaning up realtime subscription");
       supabase.removeChannel(channel);
     };
   }, [user]);

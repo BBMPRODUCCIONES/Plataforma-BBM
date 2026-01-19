@@ -70,11 +70,22 @@ serve(async (req) => {
 
     console.log("[send-push-notification] Sending to OneSignal:", JSON.stringify(notification));
 
-    const response = await fetch("https://onesignal.com/api/v1/notifications", {
+    const onesignalKey = ONESIGNAL_REST_API_KEY.trim();
+    const isRichKey = onesignalKey.startsWith("os_v2_");
+
+    const onesignalUrl = isRichKey
+      ? "https://api.onesignal.com/notifications"
+      : "https://onesignal.com/api/v1/notifications";
+
+    const authorizationHeader = isRichKey
+      ? `Key ${onesignalKey}`
+      : `Basic ${onesignalKey}`;
+
+    const response = await fetch(onesignalUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${ONESIGNAL_REST_API_KEY}`,
+        "Authorization": authorizationHeader,
       },
       body: JSON.stringify(notification),
     });

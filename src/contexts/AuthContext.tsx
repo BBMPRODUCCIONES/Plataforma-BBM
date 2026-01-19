@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef } fro
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { initOneSignal, setExternalUserId, removeExternalUserId, promptForPushPermission } from "@/lib/onesignal";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -335,16 +336,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     clearCachedRole();
     setRoleError(null);
     
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
+    // Initialize OneSignal and link user after successful login
+    if (!error && data.user) {
+      try {
+        await initOneSignal();
+        await setExternalUserId(data.user.id);
+        // Prompt for push notifications after a short delay
+        setTimeout(async () => {
+          await promptForPushPermission();
+        }, 2000);
+      } catch (e) {
+        console.error("[Auth] OneSignal setup error:", e);
+      }
+    }
+    
     return { error };
   };
 
   const signOut = async () => {
     clearCachedRole();
     setRoleError(null);
+    
+    // Unlink user from OneSignal
+    try {
+      await removeExternalUserId();
+    } catch (e) {
+      console.error("[Auth] OneSignal logout error:", e);
+    }
+    
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

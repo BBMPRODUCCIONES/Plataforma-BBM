@@ -5,11 +5,23 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { logger } from "@/lib/logger";
 
-// Helper function to send push notifications
-async function sendPushNotification(headings: string, contents: string, url?: string) {
+// Helper function to send push notifications and create in-app notifications
+async function sendPushNotification(
+  headings: string, 
+  contents: string, 
+  url?: string,
+  type: "info" | "success" | "warning" | "error" = "info"
+) {
   try {
     const response = await supabase.functions.invoke("send-push-notification", {
-      body: { headings, contents, sendToAll: true, url },
+      body: { 
+        headings, 
+        contents, 
+        sendToAll: true, 
+        url,
+        type,
+        createInAppNotifications: true,
+      },
     });
     
     if (response.error) {
@@ -356,13 +368,14 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     setProjects(prev => prev.map(p => p.id === tempId ? realProject : p));
     logger.debug("[ProjectsContext] Created new project:", data.id);
 
-    // Send push notification for new project
+    // Send push notification and create in-app notifications for new project
     const eventName = realProject.evento || "Nuevo evento";
     const clientName = realProject.cliente || "";
     sendPushNotification(
       "🎉 Nuevo Evento Creado",
       clientName ? `${eventName} - ${clientName}` : eventName,
-      `/panel-directivo`
+      `/panel-directivo`,
+      "success"
     );
 
     // Clear the pending ID after a short delay (to allow realtime event to be ignored)
@@ -467,14 +480,15 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Send push notification for deleted project
+    // Send push notification and create in-app notifications for deleted project
     const deletedProject = projects.find(p => p.id === projectId);
     if (deletedProject) {
       const eventName = deletedProject.evento || "Evento";
       sendPushNotification(
         "🗑️ Evento Eliminado",
         eventName,
-        `/panel-directivo`
+        `/panel-directivo`,
+        "warning"
       );
     }
 

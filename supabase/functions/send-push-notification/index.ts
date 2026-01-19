@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +17,10 @@ interface PushPayload {
   data?: Record<string, string>;
   // Optional: URL to open on click
   url?: string;
+  // Optional: notification type for in-app notifications
+  type?: "info" | "success" | "warning" | "error";
+  // Optional: create in-app notifications for all users
+  createInAppNotifications?: boolean;
 }
 
 serve(async (req) => {
@@ -26,20 +31,61 @@ serve(async (req) => {
   try {
     const ONESIGNAL_APP_ID = "5086e10d-5653-4368-b13a-cd1a46ba3fac";
     const ONESIGNAL_REST_API_KEY = Deno.env.get("ONESIGNAL_REST_API_KEY");
-
-    if (!ONESIGNAL_REST_API_KEY) {
-      console.error("[send-push-notification] ONESIGNAL_REST_API_KEY not configured");
-      return new Response(
-        JSON.stringify({ error: "Push notification service not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     const payload: PushPayload = await req.json();
     console.log("[send-push-notification] Payload:", JSON.stringify(payload));
 
+    // Create in-app notifications for all users if requested
+    if (payload.createInAppNotifications && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        
+        // Get all user IDs from user_roles table
+        const { data: users, error: usersError } = await supabase
+          .from("user_roles")
+          .select("user_id");
+
+        if (usersError) {
+          console.error("[send-push-notification] Error fetching users:", usersError);
+        } else if (users && users.length > 0) {
+          // Create notifications for all users
+          const notifications = users.map((user: { user_id: string }) => ({
+            user_id: user.user_id,
+            title: payload.headings,
+            message: payload.contents,
+            type: payload.type || "info",
+            read: false,
+            data: payload.data || {},
+          }));
+
+          const { error: insertError } = await supabase
+            .from("notifications")
+            .insert(notifications);
+
+          if (insertError) {
+            console.error("[send-push-notification] Error creating in-app notifications:", insertError);
+          } else {
+            console.log("[send-push-notification] Created in-app notifications for", users.length, "users");
+          }
+        }
+      } catch (dbError) {
+        console.error("[send-push-notification] Database error:", dbError);
+      }
+    }
+
+    // If no OneSignal key, skip push but still return success (in-app notifications may have been created)
+    if (!ONESIGNAL_REST_API_KEY) {
+      console.log("[send-push-notification] ONESIGNAL_REST_API_KEY not configured, skipping push");
+      return new Response(
+        JSON.stringify({ success: true, message: "In-app notifications created, push skipped (no API key)" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Build OneSignal notification object
-    const notification: Record<string, any> = {
+    const notification: Record<string, unknown> = {
       app_id: ONESIGNAL_APP_ID,
       headings: { en: payload.headings, es: payload.headings },
       contents: { en: payload.contents, es: payload.contents },

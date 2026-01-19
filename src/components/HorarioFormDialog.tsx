@@ -15,7 +15,8 @@ import { useProjects } from '@/contexts/ProjectsContext';
 import { Project } from '@/types';
 import { useEmpleados } from '@/contexts/EmpleadosContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, Camera, ExternalLink, Building2, Star, Save, AlertTriangle, Home, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { CalendarIcon, Search, Trash2, MapPin, Clock, Check, Camera, ExternalLink, Building2, Star, Save, AlertTriangle, Home, X, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { format, parseISO, isWithinInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -96,6 +97,8 @@ export const HorarioFormDialog = ({
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
   const [oficinaEnabled, setOficinaEnabled] = useState(false);
   const [casaEnabled, setCasaEnabled] = useState(false);
+  const [otroEnabled, setOtroEnabled] = useState(false);
+  const [otroComentario, setOtroComentario] = useState('');
   const [contextModified, setContextModified] = useState(false);
 
   // Single daily record from DB
@@ -289,6 +292,8 @@ export const HorarioFormDialog = ({
         // Parse context from record
         setOficinaEnabled(record.categoria === 'Oficina' || record.evento_nombre?.includes('Oficina') || false);
         setCasaEnabled(record.evento_nombre?.includes('Casa') || false);
+        setOtroEnabled(record.categoria === 'Otro' || record.evento_nombre?.includes('Otro') || false);
+        setOtroComentario(record.otro_comentario || '');
         if (record.evento_id) {
           setSelectedEventIds([record.evento_id]);
         } else {
@@ -318,6 +323,8 @@ export const HorarioFormDialog = ({
     setLocationSalida(null);
     setOficinaEnabled(false);
     setCasaEnabled(false);
+    setOtroEnabled(false);
+    setOtroComentario('');
     setSelectedEventIds([]);
     setSalidaContingencia(null);
     setContextModified(false);
@@ -344,6 +351,8 @@ export const HorarioFormDialog = ({
       setSelectedEventIds([]);
       setOficinaEnabled(false);
       setCasaEnabled(false);
+      setOtroEnabled(false);
+      setOtroComentario('');
     }
     setEventoSearch('');
   }, [fecha]);
@@ -375,6 +384,14 @@ export const HorarioFormDialog = ({
   const handleCasaToggle = (checked: boolean) => {
     setContextModified(true);
     setCasaEnabled(checked);
+  };
+
+  const handleOtroToggle = (checked: boolean) => {
+    setContextModified(true);
+    setOtroEnabled(checked);
+    if (!checked) {
+      setOtroComentario('');
+    }
   };
   const getCurrentLocation = (): Promise<LocationData | null> => {
     return new Promise((resolve) => {
@@ -460,8 +477,14 @@ export const HorarioFormDialog = ({
     }
 
     // Validate context is selected
-    if (!oficinaEnabled && !casaEnabled && selectedEventIds.length === 0) {
-      toast.error('Selecciona al menos oficina, casa o un evento como contexto');
+    if (!oficinaEnabled && !casaEnabled && !otroEnabled && selectedEventIds.length === 0) {
+      toast.error('Selecciona al menos oficina, casa, otro o un evento como contexto');
+      return false;
+    }
+
+    // Validate "Otro" comment is required
+    if (otroEnabled && !otroComentario.trim()) {
+      toast.error('El comentario es obligatorio cuando seleccionas "Otro"');
       return false;
     }
 
@@ -483,14 +506,17 @@ export const HorarioFormDialog = ({
     const contextParts: string[] = [];
     if (oficinaEnabled) contextParts.push('Oficina');
     if (casaEnabled) contextParts.push('Casa');
+    if (otroEnabled) contextParts.push('Otro');
     selectedEventIds.forEach(eventId => {
       const project = projects.find(p => p.id === eventId);
       if (project) contextParts.push(project.evento);
     });
     const eventoNombre = contextParts.join(' + ') || 'Sin contexto';
-    const categoria = (oficinaEnabled || casaEnabled) && selectedEventIds.length === 0 
-      ? (oficinaEnabled ? 'Oficina' : 'Casa') 
-      : 'Evento';
+    const categoria: 'Oficina' | 'Casa' | 'Evento' | 'Otro' = otroEnabled && !oficinaEnabled && !casaEnabled && selectedEventIds.length === 0
+      ? 'Otro'
+      : (oficinaEnabled || casaEnabled) && selectedEventIds.length === 0 
+        ? (oficinaEnabled ? 'Oficina' : 'Casa') 
+        : 'Evento';
 
     // Build Google Maps link
     const mapsUrl = data.location?.status === 'available' && data.location.lat !== 0
@@ -509,6 +535,7 @@ export const HorarioFormDialog = ({
           evento_nombre: eventoNombre,
           evento_id: selectedEventIds.length > 0 ? selectedEventIds[0] : null,
           categoria,
+          otro_comentario: otroEnabled ? otroComentario : null,
         };
 
         if (type === 'llegada') {
@@ -536,6 +563,7 @@ export const HorarioFormDialog = ({
           cargo,
           dia,
           categoria,
+          otro_comentario: otroEnabled ? otroComentario : null,
           llegada: type === 'llegada' ? data.horario : '',
           ubicacion_llegada: type === 'llegada' ? ubicacionFull : '',
           salida: type === 'salida' ? data.horario : '',
@@ -572,8 +600,15 @@ export const HorarioFormDialog = ({
     }
 
     // Validate context is selected
-    if (!oficinaEnabled && !casaEnabled && selectedEventIds.length === 0) {
-      toast.error('Selecciona oficina, casa o al menos un evento como contexto');
+    if (!oficinaEnabled && !casaEnabled && !otroEnabled && selectedEventIds.length === 0) {
+      toast.error('Selecciona oficina, casa, otro o al menos un evento como contexto');
+      setCameraLlegadaOpen(false);
+      return;
+    }
+
+    // Validate "Otro" comment is required
+    if (otroEnabled && !otroComentario.trim()) {
+      toast.error('El comentario es obligatorio cuando seleccionas "Otro"');
       setCameraLlegadaOpen(false);
       return;
     }
@@ -645,8 +680,15 @@ export const HorarioFormDialog = ({
     }
 
     // Validate context is selected
-    if (!oficinaEnabled && selectedEventIds.length === 0) {
-      toast.error('Selecciona oficina o al menos un evento como contexto');
+    if (!oficinaEnabled && !casaEnabled && !otroEnabled && selectedEventIds.length === 0) {
+      toast.error('Selecciona oficina, casa, otro o al menos un evento como contexto');
+      setCameraSalidaOpen(false);
+      return;
+    }
+
+    // Validate "Otro" comment is required
+    if (otroEnabled && !otroComentario.trim()) {
+      toast.error('El comentario es obligatorio cuando seleccionas "Otro"');
       setCameraSalidaOpen(false);
       return;
     }
@@ -721,8 +763,14 @@ export const HorarioFormDialog = ({
       return;
     }
 
-    if (!oficinaEnabled && !casaEnabled && selectedEventIds.length === 0) {
-      toast.error('Selecciona al menos oficina, casa o un evento como contexto');
+    if (!oficinaEnabled && !casaEnabled && !otroEnabled && selectedEventIds.length === 0) {
+      toast.error('Selecciona al menos oficina, casa, otro o un evento como contexto');
+      return;
+    }
+
+    // Validate "Otro" comment is required
+    if (otroEnabled && !otroComentario.trim()) {
+      toast.error('El comentario es obligatorio cuando seleccionas "Otro"');
       return;
     }
 
@@ -732,14 +780,17 @@ export const HorarioFormDialog = ({
     const contextParts: string[] = [];
     if (oficinaEnabled) contextParts.push('Oficina');
     if (casaEnabled) contextParts.push('Casa');
+    if (otroEnabled) contextParts.push('Otro');
     selectedEventIds.forEach(eventId => {
       const project = projects.find(p => p.id === eventId);
       if (project) contextParts.push(project.evento);
     });
     const eventoNombre = contextParts.join(' + ') || 'Sin contexto';
-    const categoria: 'Oficina' | 'Casa' | 'Evento' = (oficinaEnabled || casaEnabled) && selectedEventIds.length === 0 
-      ? (oficinaEnabled ? 'Oficina' : 'Casa') 
-      : 'Evento';
+    const categoria: 'Oficina' | 'Casa' | 'Evento' | 'Otro' = otroEnabled && !oficinaEnabled && !casaEnabled && selectedEventIds.length === 0
+      ? 'Otro'
+      : (oficinaEnabled || casaEnabled) && selectedEventIds.length === 0 
+        ? (oficinaEnabled ? 'Oficina' : 'Casa') 
+        : 'Evento';
 
     try {
       const { error } = await supabase
@@ -748,6 +799,7 @@ export const HorarioFormDialog = ({
           evento_nombre: eventoNombre,
           evento_id: selectedEventIds.length > 0 ? selectedEventIds[0] : null,
           categoria,
+          otro_comentario: otroEnabled ? otroComentario : null,
         })
         .eq('id', existingRecord.id);
 
@@ -1078,7 +1130,7 @@ export const HorarioFormDialog = ({
     }
   };
 
-  const showRegistrationForm = empleadoId && (oficinaEnabled || casaEnabled || selectedEventIds.length > 0);
+  const showRegistrationForm = empleadoId && (oficinaEnabled || casaEnabled || otroEnabled || selectedEventIds.length > 0);
 
   // Display values from existing record or local state
   const displayFotoLlegada = existingRecord?.foto_llegada || fotoLlegada;
@@ -1173,7 +1225,7 @@ export const HorarioFormDialog = ({
               </div>
 
               {/* Context Summary (visible cuando hay contexto) */}
-              {(oficinaEnabled || casaEnabled || selectedEventIds.length > 0) && (
+              {(oficinaEnabled || casaEnabled || otroEnabled || selectedEventIds.length > 0) && (
                 <div className="flex items-center gap-2 flex-wrap p-3 bg-muted/30 rounded-lg border border-border">
                   <span className="text-xs text-muted-foreground">Contexto:</span>
                   {oficinaEnabled && (
@@ -1186,6 +1238,12 @@ export const HorarioFormDialog = ({
                     <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-500 px-2 py-1 rounded text-xs">
                       <Home className="h-3 w-3" />
                       Casa
+                    </span>
+                  )}
+                  {otroEnabled && (
+                    <span className="inline-flex items-center gap-1 bg-purple-500/20 text-purple-500 px-2 py-1 rounded text-xs">
+                      <MessageSquare className="h-3 w-3" />
+                      Otro
                     </span>
                   )}
                   {selectedEventIds.map(eventId => {
@@ -1630,7 +1688,7 @@ export const HorarioFormDialog = ({
               {/* No context selected message */}
               {!showRegistrationForm && !loadingRecord && empleadoId && (
                 <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-lg">
-                  <p>Selecciona al menos oficina, casa o un evento para comenzar el registro</p>
+                  <p>Selecciona al menos oficina, casa, otro o un evento para comenzar el registro</p>
                 </div>
               )}
             </div>
@@ -1707,6 +1765,52 @@ export const HorarioFormDialog = ({
                   onCheckedChange={handleCasaToggle}
                   disabled={!empleadoId || salidaRegistered}
                 />
+              </div>
+
+              {/* Otro Toggle with Comment Field */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className="h-5 w-5 text-purple-500" />
+                    <div>
+                      <Label className="text-sm font-bold">OTRO</Label>
+                      <p className="text-xs text-muted-foreground">Ubicación diferente</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={otroEnabled}
+                    onCheckedChange={handleOtroToggle}
+                    disabled={!empleadoId || salidaRegistered}
+                  />
+                </div>
+                
+                {/* Comment field (visible only when Otro is enabled) */}
+                {otroEnabled && (
+                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                    <Label className="text-sm font-medium flex items-center gap-1">
+                      Comentario <span className="text-destructive">*</span>
+                    </Label>
+                    <Textarea
+                      value={otroComentario}
+                      onChange={(e) => {
+                        setOtroComentario(e.target.value);
+                        setContextModified(true);
+                      }}
+                      placeholder="Describe dónde estás trabajando (obligatorio)..."
+                      className={cn(
+                        "min-h-[80px] resize-none",
+                        !otroComentario.trim() && "ring-2 ring-destructive/50 border-destructive/50"
+                      )}
+                      disabled={salidaRegistered}
+                    />
+                    {!otroComentario.trim() && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Este campo es obligatorio para registrar
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Eventos */}

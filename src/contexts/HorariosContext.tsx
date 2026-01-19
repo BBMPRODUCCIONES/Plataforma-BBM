@@ -11,13 +11,15 @@ export interface Horario {
   evento_nombre: string;
   cargo: string;
   dia: string;
-  categoria: 'Oficina' | 'Casa' | 'Evento';
+  categoria: 'Oficina' | 'Casa' | 'Evento' | 'Otro';
   llegada: string;
   ubicacion_llegada: string;
   salida: string;
   ubicacion_salida: string;
   foto_llegada?: string;
   foto_salida?: string;
+  // "Otro" category comment
+  otro_comentario?: string | null;
   // Contingency exit fields
   contingencia_foto?: string | null;
   contingencia_hora?: string | null;

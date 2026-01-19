@@ -1131,8 +1131,10 @@ export const GestionHorarios = () => {
                       }
                     };
                     
-                    // Find otro_comentario from originalHorarios
-                    const otroComentario = originalHorarios.find(h => h.otro_comentario)?.otro_comentario || '';
+                    // Find otro_comentario from the horario that has "Otro" category
+                    const otroComentario = originalHorarios.find(h => 
+                      h.categoria?.toLowerCase() === 'otro' && h.otro_comentario
+                    )?.otro_comentario || '';
                     
                     return (
                       <div className="flex flex-wrap gap-1">

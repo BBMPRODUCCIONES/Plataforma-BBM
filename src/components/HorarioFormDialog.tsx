@@ -60,6 +60,7 @@ interface SalidaContingencia {
 interface ContingenciaContexto {
   oficina: boolean;
   casa: boolean;
+  otro: boolean;
   eventos: string[];
   eventoNombres: string[];
   // Persisted in backend inside contingencia_contexto
@@ -124,6 +125,7 @@ export const HorarioFormDialog = ({
   const [contingenciaContexto, setContingenciaContexto] = useState<ContingenciaContexto>({
     oficina: false,
     casa: false,
+    otro: false,
     eventos: [],
     eventoNombres: [],
   });
@@ -258,6 +260,7 @@ export const HorarioFormDialog = ({
           const parsedContexto: ContingenciaContexto = {
             oficina: !!rawContexto?.oficina,
             casa: !!rawContexto?.casa,
+            otro: !!rawContexto?.otro,
             eventos: Array.isArray(rawContexto?.eventos) ? rawContexto.eventos : [],
             eventoNombres: Array.isArray(rawContexto?.eventoNombres) ? rawContexto.eventoNombres : [],
             contingencia_timestamp: rawContexto?.contingencia_timestamp ?? rawContexto?.timestamp,
@@ -284,6 +287,7 @@ export const HorarioFormDialog = ({
           setContingenciaContexto({
             oficina: false,
             casa: false,
+            otro: false,
             eventos: [],
             eventoNombres: [],
           });
@@ -331,6 +335,7 @@ export const HorarioFormDialog = ({
     setContingenciaContexto({
       oficina: false,
       casa: false,
+      otro: false,
       eventos: [],
       eventoNombres: [],
     });
@@ -954,6 +959,7 @@ export const HorarioFormDialog = ({
       const initialContingenciaContexto: ContingenciaContexto = {
         oficina: false,
         casa: false,
+        otro: false,
         eventos: [],
         eventoNombres: [],
         contingencia_timestamp: contingenciaTimestampIso,
@@ -1037,6 +1043,7 @@ export const HorarioFormDialog = ({
     const eventoNombres: string[] = [];
     if (contingenciaContexto.oficina) eventoNombres.push('Oficina');
     if (contingenciaContexto.casa) eventoNombres.push('Casa');
+    if (contingenciaContexto.otro) eventoNombres.push('Otro');
     contingenciaContexto.eventos.forEach(eventId => {
       const project = projects.find(p => p.id === eventId);
       if (project) eventoNombres.push(project.evento);
@@ -1492,7 +1499,7 @@ export const HorarioFormDialog = ({
                             ✅ Foto guardada. Selecciona el contexto de esta salida de contingencia:
                           </p>
                           
-                          <div className="flex gap-4">
+                          <div className="flex flex-wrap gap-4">
                             <label className="flex items-center gap-2 cursor-pointer">
                               <Checkbox 
                                 checked={contingenciaContexto.oficina}
@@ -1508,6 +1515,14 @@ export const HorarioFormDialog = ({
                               />
                               <Home className="h-4 w-4" />
                               <span className="text-sm">Casa</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <Checkbox 
+                                checked={contingenciaContexto.otro}
+                                onCheckedChange={(checked) => setContingenciaContexto(prev => ({ ...prev, otro: !!checked }))}
+                              />
+                              <MessageSquare className="h-4 w-4" />
+                              <span className="text-sm">Otro</span>
                             </label>
                           </div>
 
@@ -1573,7 +1588,7 @@ export const HorarioFormDialog = ({
                           {!isContingenciaContextLocked && graceTimeRemaining !== null && graceTimeRemaining > 0 && (
                             <div className="space-y-3 border border-green-500/20 rounded-lg p-3">
                               <Label className="text-xs text-muted-foreground">Editar contexto de contingencia:</Label>
-                              <div className="flex gap-4">
+                              <div className="flex flex-wrap gap-4">
                                 <label className="flex items-center gap-2 cursor-pointer">
                                   <Checkbox 
                                     checked={contingenciaContexto.oficina}
@@ -1589,6 +1604,14 @@ export const HorarioFormDialog = ({
                                   />
                                   <Home className="h-4 w-4" />
                                   <span className="text-sm">Casa</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <Checkbox 
+                                    checked={contingenciaContexto.otro}
+                                    onCheckedChange={(checked) => setContingenciaContexto(prev => ({ ...prev, otro: !!checked }))}
+                                  />
+                                  <MessageSquare className="h-4 w-4" />
+                                  <span className="text-sm">Otro</span>
                                 </label>
                               </div>
 

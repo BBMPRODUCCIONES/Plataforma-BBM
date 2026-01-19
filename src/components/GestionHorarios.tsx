@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Search, Plus, CalendarIcon, Pencil, Trash2, ChevronLeft, ChevronRight, User, AlertCircle, RefreshCw, X, Building2, Home, MapPin, Clock } from 'lucide-react';
+import { Search, Plus, CalendarIcon, Pencil, Trash2, ChevronLeft, ChevronRight, User, AlertCircle, RefreshCw, X, Building2, Home, MapPin, Clock, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { Project, PersonalItem } from '@/types';
 import { EmpleadoAutocomplete } from '@/components/EmpleadoAutocomplete';
@@ -1131,17 +1131,49 @@ export const GestionHorarios = () => {
                       }
                     };
                     
+                    // Find otro_comentario from originalHorarios
+                    const otroComentario = originalHorarios.find(h => h.otro_comentario)?.otro_comentario || '';
+                    
                     return (
                       <div className="flex flex-wrap gap-1">
                         {parts.map((part, i) => {
                           const isOficina = part.toLowerCase() === 'oficina';
                           const isCasa = part.toLowerCase() === 'casa';
+                          const isOtro = part.toLowerCase() === 'otro';
                           const isStatic = isOficina || isCasa;
                           
                           // Check if this is a clickable event
                           const lowercasePart = part.toLowerCase();
                           const hasProjectId = eventToProjectId.has(lowercasePart) || 
                             projects.some(p => p.evento.toLowerCase() === lowercasePart);
+                          
+                          // Handle "Otro" with popover for comment
+                          if (isOtro) {
+                            return (
+                              <Popover key={i}>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap bg-purple-500/20 text-purple-400 cursor-pointer hover:ring-2 hover:ring-purple-500/50 hover:bg-purple-500/30 transition-all"
+                                    title="Clic para ver comentario"
+                                  >
+                                    {part}
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-72 p-3">
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium text-sm flex items-center gap-2">
+                                      <MessageSquare className="h-4 w-4 text-purple-400" />
+                                      Comentario
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      {otroComentario || 'Sin comentario'}
+                                    </p>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            );
+                          }
                           
                           if (isStatic) {
                             return (

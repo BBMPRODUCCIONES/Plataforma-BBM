@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { MobileHeader } from "@/components/MobileHeader";
 import { NotificationBell } from "@/components/NotificationBell";
+import { NotificationPrompt } from "@/components/NotificationPrompt";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface LayoutProps {
@@ -30,6 +31,7 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         </div>
         <MobileBottomNav />
+        <NotificationPrompt />
         <Toaster />
       </div>
     );
@@ -59,6 +61,7 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         </main>
       </div>
+      <NotificationPrompt />
       <Toaster />
     </SidebarProvider>
   );

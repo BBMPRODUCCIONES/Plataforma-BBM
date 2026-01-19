@@ -68,10 +68,12 @@ serve(async (req) => {
       notification.url = payload.url;
     }
 
-    console.log("[send-push-notification] Sending to OneSignal:", JSON.stringify(notification));
-
     const onesignalKey = ONESIGNAL_REST_API_KEY.trim();
     const isRichKey = onesignalKey.startsWith("os_v2_");
+    
+    console.log("[send-push-notification] Key prefix (first 10 chars):", onesignalKey.substring(0, 10));
+    console.log("[send-push-notification] Is Rich Key:", isRichKey);
+    console.log("[send-push-notification] Sending to OneSignal:", JSON.stringify(notification));
 
     const onesignalUrl = isRichKey
       ? "https://api.onesignal.com/notifications"

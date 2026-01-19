@@ -244,3 +244,101 @@ export async function getPushStatus(): Promise<{
   
   return { supported, permission, subscribed };
 }
+
+export async function getDetailedPushStatus(): Promise<{
+  supported: boolean;
+  permission: "granted" | "denied" | "default";
+  subscribed: boolean;
+  userId: string | null;
+  pushToken: string | null;
+}> {
+  const supported = await isPushSupported();
+  
+  let permission: "granted" | "denied" | "default" = "default";
+  let subscribed = false;
+  let userId: string | null = null;
+  let pushToken: string | null = null;
+  
+  try {
+    const result = await withOneSignal(async (OneSignal) => {
+      const perm = await OneSignal.Notifications.permission;
+      const optedIn = OneSignal.User?.PushSubscription?.optedIn === true;
+      const extId = OneSignal.User?.externalId || null;
+      const token = OneSignal.User?.PushSubscription?.id || null;
+      
+      return {
+        permission: perm === true ? "granted" : perm === false ? "denied" : "default",
+        subscribed: optedIn,
+        userId: extId,
+        pushToken: token,
+      };
+    });
+    
+    permission = result.permission as "granted" | "denied" | "default";
+    subscribed = result.subscribed;
+    userId = result.userId;
+    pushToken = result.pushToken;
+  } catch (error) {
+    console.error("[OneSignal] Error getting detailed status:", error);
+    // Fallback to native API for permission
+    if (typeof Notification !== "undefined") {
+      permission = Notification.permission;
+    }
+  }
+  
+  console.log("[OneSignal] Detailed push status:", { supported, permission, subscribed, userId, pushToken });
+  
+  return { supported, permission, subscribed, userId, pushToken };
+}
+
+export async function activatePushNotifications(): Promise<boolean> {
+  console.log("[OneSignal] Activating push notifications...");
+  
+  try {
+    // First ensure OneSignal is initialized
+    if (!isInitialized) {
+      await initOneSignal();
+      // Give it a moment to fully initialize
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    const result = await withOneSignal(async (OneSignal) => {
+      // Check current permission
+      const currentPermission = await OneSignal.Notifications.permission;
+      console.log("[OneSignal] Current permission:", currentPermission);
+      
+      // If already denied by browser, cannot proceed
+      if (currentPermission === false) {
+        console.log("[OneSignal] Permission denied by browser - user must enable in settings");
+        return false;
+      }
+      
+      // Request permission if not granted
+      if (currentPermission !== true) {
+        console.log("[OneSignal] Requesting permission...");
+        const granted = await OneSignal.Notifications.requestPermission();
+        console.log("[OneSignal] Permission granted:", granted);
+        
+        if (granted !== true) {
+          return false;
+        }
+      }
+      
+      // Opt in to push
+      console.log("[OneSignal] Opting in to push...");
+      await OneSignal.User.PushSubscription.optIn();
+      
+      // Verify subscription
+      const optedIn = OneSignal.User.PushSubscription.optedIn;
+      const pushId = OneSignal.User.PushSubscription.id;
+      console.log("[OneSignal] Subscription status - OptedIn:", optedIn, "PushId:", pushId);
+      
+      return optedIn === true;
+    });
+    
+    return result;
+  } catch (error) {
+    console.error("[OneSignal] Error activating push:", error);
+    return false;
+  }
+}

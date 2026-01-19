@@ -141,7 +141,26 @@ serve(async (req) => {
     const result = await response.json();
     console.log("[send-push-notification] OneSignal response:", JSON.stringify(result));
 
+    // Handle "no subscribers" case gracefully - not an error, just no one to notify via push
     if (!response.ok) {
+      const errorMessage = result?.errors?.[0] || "";
+      const isNoSubscribers = 
+        errorMessage.includes("All included players are not subscribed") ||
+        errorMessage.includes("No subscribers") ||
+        result?.recipients === 0;
+      
+      if (isNoSubscribers) {
+        console.log("[send-push-notification] No subscribed devices, in-app notifications still created");
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: "No push subscribers yet, in-app notifications created",
+            recipients: 0 
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ error: "Failed to send notification", details: result }),
         { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -149,7 +168,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, id: result.id, recipients: result.recipients }),
+      JSON.stringify({ success: true, id: result.id, recipients: result.recipients || 0 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

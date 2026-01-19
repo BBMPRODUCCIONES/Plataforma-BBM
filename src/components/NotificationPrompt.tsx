@@ -1,25 +1,33 @@
 import { useState, useEffect } from "react";
-import { Bell, X, AlertTriangle, CheckCircle, RefreshCw } from "lucide-react";
+import { Bell, X, AlertTriangle, CheckCircle, RefreshCw, Smartphone, Monitor, Apple } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
   promptForPushPermission, 
-  isPushSupported, 
   isSubscribed,
-  getPermissionStatus,
-  getPushStatus 
+  getPushStatus,
+  getPermissionStatus
 } from "@/lib/onesignal";
 import { useAuth } from "@/contexts/AuthContext";
 
 const PROMPT_DISMISSED_KEY = "bbm_notification_prompt_dismissed";
-const PROMPT_DELAY = 3000;
+const PROMPT_DELAY = 2000;
 
 type PromptState = "loading" | "show" | "denied" | "success" | "hidden";
+type DeviceType = "pc" | "android" | "ios";
+
+function detectDevice(): DeviceType {
+  const ua = navigator.userAgent.toLowerCase();
+  if (/iphone|ipad|ipod/.test(ua)) return "ios";
+  if (/android/.test(ua)) return "android";
+  return "pc";
+}
 
 export function NotificationPrompt() {
   const { user } = useAuth();
   const [state, setState] = useState<PromptState>("loading");
   const [loading, setLoading] = useState(false);
+  const [deviceType] = useState<DeviceType>(detectDevice);
 
   useEffect(() => {
     if (!user) {
@@ -30,8 +38,19 @@ export function NotificationPrompt() {
     const checkAndShow = async () => {
       console.log("[NotificationPrompt] Checking notification status...");
       
-      // Check if already dismissed (and was successful)
+      // Check if already subscribed successfully
       const dismissed = localStorage.getItem(PROMPT_DISMISSED_KEY);
+      if (dismissed === "subscribed") {
+        // Verify still subscribed
+        const subscribed = await isSubscribed();
+        if (subscribed) {
+          console.log("[NotificationPrompt] Already subscribed");
+          setState("hidden");
+          return;
+        }
+        // If not subscribed anymore, clear and re-prompt
+        localStorage.removeItem(PROMPT_DISMISSED_KEY);
+      }
       
       // Check full push status
       const status = await getPushStatus();
@@ -44,7 +63,7 @@ export function NotificationPrompt() {
         return;
       }
 
-      // If permission denied, show blocked message
+      // If permission denied, show blocked message with device-specific instructions
       if (status.permission === "denied") {
         console.log("[NotificationPrompt] Permission denied by browser");
         setState("denied");
@@ -59,13 +78,7 @@ export function NotificationPrompt() {
         return;
       }
 
-      // If dismissed previously but not subscribed, allow retry after some time
-      if (dismissed === "dismissed") {
-        console.log("[NotificationPrompt] Previously dismissed, allowing retry");
-        // Show prompt again after delay
-      }
-
-      // Show prompt after delay
+      // Show prompt after delay (like WhatsApp does)
       setTimeout(() => {
         console.log("[NotificationPrompt] Showing prompt");
         setState("show");
@@ -155,28 +168,72 @@ export function NotificationPrompt() {
     );
   }
 
-  // Denied state - show instructions
+  // Denied state - show device-specific instructions
   if (state === "denied") {
+    const getDeviceInstructions = () => {
+      switch (deviceType) {
+        case "ios":
+          return {
+            icon: <Apple className="h-5 w-5 text-amber-600 dark:text-amber-400" />,
+            title: "Notificaciones bloqueadas",
+            subtitle: "Para iPhone/iPad:",
+            steps: [
+              "Asegúrate de tener iOS 16.4 o superior",
+              "La app debe estar instalada en Inicio (Compartir → Agregar a pantalla de inicio)",
+              "Ve a Configuración → Notificaciones → [BBM]",
+              "Activa 'Permitir notificaciones'",
+              "Vuelve a abrir la app"
+            ]
+          };
+        case "android":
+          return {
+            icon: <Smartphone className="h-5 w-5 text-amber-600 dark:text-amber-400" />,
+            title: "Notificaciones bloqueadas",
+            subtitle: "Para Android:",
+            steps: [
+              "Mantén presionado el ícono de la app o ve a Configuración",
+              "Selecciona Aplicaciones → [BBM] o Chrome",
+              "Toca 'Notificaciones'",
+              "Activa 'Mostrar notificaciones'",
+              "Recarga la página"
+            ]
+          };
+        default:
+          return {
+            icon: <Monitor className="h-5 w-5 text-amber-600 dark:text-amber-400" />,
+            title: "Notificaciones bloqueadas",
+            subtitle: "Para PC:",
+            steps: [
+              "Haz clic en el ícono de candado 🔒 en la barra de direcciones",
+              "Busca 'Notificaciones'",
+              "Cambia a 'Permitir'",
+              "Recarga la página"
+            ]
+          };
+      }
+    };
+
+    const instructions = getDeviceInstructions();
+
     return (
       <div className="fixed bottom-20 left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:max-w-sm z-50 animate-in slide-in-from-bottom-5 duration-300">
         <Card className="bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800 shadow-lg">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900">
-                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                {instructions.icon}
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-sm text-amber-800 dark:text-amber-200 mb-1">
-                  Notificaciones bloqueadas
+                  {instructions.title}
                 </h4>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">
-                  El navegador bloqueó las notificaciones. Para activarlas:
+                <p className="text-xs text-amber-700 dark:text-amber-300 mb-2 font-medium">
+                  {instructions.subtitle}
                 </p>
                 <ol className="text-xs text-amber-600 dark:text-amber-400 list-decimal list-inside space-y-1 mb-3">
-                  <li>Haz clic en el ícono de candado en la barra de direcciones</li>
-                  <li>Busca "Notificaciones"</li>
-                  <li>Cambia a "Permitir"</li>
-                  <li>Recarga la página</li>
+                  {instructions.steps.map((step, idx) => (
+                    <li key={idx}>{step}</li>
+                  ))}
                 </ol>
                 <div className="flex gap-2">
                   <Button 
@@ -187,7 +244,7 @@ export function NotificationPrompt() {
                     className="flex-1 text-amber-700 border-amber-300 hover:bg-amber-100 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-900"
                   >
                     <RefreshCw className={`h-3 w-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
-                    Reintentar
+                    Ya lo hice
                   </Button>
                   <Button 
                     size="sm" 

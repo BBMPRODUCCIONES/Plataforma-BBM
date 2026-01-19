@@ -135,6 +135,7 @@ export type Database = {
           foto_salida: string | null
           id: string
           llegada: string
+          otro_comentario: string | null
           salida: string
           ubicacion_llegada: string
           ubicacion_salida: string
@@ -161,6 +162,7 @@ export type Database = {
           foto_salida?: string | null
           id?: string
           llegada?: string
+          otro_comentario?: string | null
           salida?: string
           ubicacion_llegada?: string
           ubicacion_salida?: string
@@ -187,6 +189,7 @@ export type Database = {
           foto_salida?: string | null
           id?: string
           llegada?: string
+          otro_comentario?: string | null
           salida?: string
           ubicacion_llegada?: string
           ubicacion_salida?: string

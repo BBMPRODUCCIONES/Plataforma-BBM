@@ -61,6 +61,7 @@ interface ContingenciaContexto {
   oficina: boolean;
   casa: boolean;
   otro: boolean;
+  otroComentario?: string;
   eventos: string[];
   eventoNombres: string[];
   // Persisted in backend inside contingencia_contexto
@@ -126,6 +127,7 @@ export const HorarioFormDialog = ({
     oficina: false,
     casa: false,
     otro: false,
+    otroComentario: '',
     eventos: [],
     eventoNombres: [],
   });
@@ -261,6 +263,7 @@ export const HorarioFormDialog = ({
             oficina: !!rawContexto?.oficina,
             casa: !!rawContexto?.casa,
             otro: !!rawContexto?.otro,
+            otroComentario: rawContexto?.otroComentario || '',
             eventos: Array.isArray(rawContexto?.eventos) ? rawContexto.eventos : [],
             eventoNombres: Array.isArray(rawContexto?.eventoNombres) ? rawContexto.eventoNombres : [],
             contingencia_timestamp: rawContexto?.contingencia_timestamp ?? rawContexto?.timestamp,
@@ -288,6 +291,7 @@ export const HorarioFormDialog = ({
             oficina: false,
             casa: false,
             otro: false,
+            otroComentario: '',
             eventos: [],
             eventoNombres: [],
           });
@@ -336,6 +340,7 @@ export const HorarioFormDialog = ({
       oficina: false,
       casa: false,
       otro: false,
+      otroComentario: '',
       eventos: [],
       eventoNombres: [],
     });
@@ -960,6 +965,7 @@ export const HorarioFormDialog = ({
         oficina: false,
         casa: false,
         otro: false,
+        otroComentario: '',
         eventos: [],
         eventoNombres: [],
         contingencia_timestamp: contingenciaTimestampIso,
@@ -1032,8 +1038,14 @@ export const HorarioFormDialog = ({
       return;
     }
 
-    if (!contingenciaContexto.oficina && !contingenciaContexto.casa && contingenciaContexto.eventos.length === 0) {
-      toast.error('Selecciona al menos oficina, casa o un evento como contexto');
+    if (!contingenciaContexto.oficina && !contingenciaContexto.casa && !contingenciaContexto.otro && contingenciaContexto.eventos.length === 0) {
+      toast.error('Selecciona al menos oficina, casa, otro o un evento como contexto');
+      return;
+    }
+
+    // Validate "otro" requires comment
+    if (contingenciaContexto.otro && !contingenciaContexto.otroComentario?.trim()) {
+      toast.error('El comentario es obligatorio cuando seleccionas "Otro"');
       return;
     }
 
@@ -1526,6 +1538,29 @@ export const HorarioFormDialog = ({
                             </label>
                           </div>
 
+                          {/* Campo de comentario obligatorio para "Otro" */}
+                          {contingenciaContexto.otro && (
+                            <div className="space-y-2 animate-in slide-in-from-top-2">
+                              <Label className="text-sm font-medium flex items-center gap-1">
+                                Comentario <span className="text-destructive">*</span>
+                              </Label>
+                              <Textarea
+                                value={contingenciaContexto.otroComentario || ''}
+                                onChange={(e) => setContingenciaContexto(prev => ({ ...prev, otroComentario: e.target.value }))}
+                                placeholder="Describe dónde estás trabajando (obligatorio)..."
+                                className={cn(
+                                  "min-h-[60px]",
+                                  !contingenciaContexto.otroComentario?.trim() && "ring-2 ring-destructive/50"
+                                )}
+                              />
+                              {!contingenciaContexto.otroComentario?.trim() && (
+                                <p className="text-xs text-destructive">
+                                  * Este campo es obligatorio para confirmar
+                                </p>
+                              )}
+                            </div>
+                          )}
+
                           {filteredEvents.length > 0 && (
                             <div className="space-y-2">
                               <Label className="text-xs">Eventos:</Label>
@@ -1615,6 +1650,29 @@ export const HorarioFormDialog = ({
                                 </label>
                               </div>
 
+                              {/* Campo de comentario obligatorio para "Otro" */}
+                              {contingenciaContexto.otro && (
+                                <div className="space-y-2 animate-in slide-in-from-top-2">
+                                  <Label className="text-sm font-medium flex items-center gap-1">
+                                    Comentario <span className="text-destructive">*</span>
+                                  </Label>
+                                  <Textarea
+                                    value={contingenciaContexto.otroComentario || ''}
+                                    onChange={(e) => setContingenciaContexto(prev => ({ ...prev, otroComentario: e.target.value }))}
+                                    placeholder="Describe dónde estás trabajando (obligatorio)..."
+                                    className={cn(
+                                      "min-h-[60px]",
+                                      !contingenciaContexto.otroComentario?.trim() && "ring-2 ring-destructive/50"
+                                    )}
+                                  />
+                                  {!contingenciaContexto.otroComentario?.trim() && (
+                                    <p className="text-xs text-destructive">
+                                      * Este campo es obligatorio para guardar
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+
                               {filteredEvents.length > 0 && (
                                 <div className="space-y-2">
                                   <Label className="text-xs">Eventos:</Label>
@@ -1661,7 +1719,12 @@ export const HorarioFormDialog = ({
                                   <Home className="h-3 w-3" />Casa
                                 </span>
                               )}
-                              {(salidaContingencia?.contexto?.eventoNombres || (existingRecord?.contingencia_contexto as ContingenciaContexto)?.eventoNombres)?.filter(n => n !== 'Oficina' && n !== 'Casa').map((nombre, i) => (
+                              {(salidaContingencia?.contexto?.otro || (existingRecord?.contingencia_contexto as ContingenciaContexto)?.otro) && (
+                                <span className="inline-flex items-center gap-1 bg-purple-500/20 text-purple-500 px-2 py-0.5 rounded text-xs">
+                                  <MessageSquare className="h-3 w-3" />Otro
+                                </span>
+                              )}
+                              {(salidaContingencia?.contexto?.eventoNombres || (existingRecord?.contingencia_contexto as ContingenciaContexto)?.eventoNombres)?.filter(n => n !== 'Oficina' && n !== 'Casa' && n !== 'Otro').map((nombre, i) => (
                                 <span key={i} className="inline-flex items-center gap-1 bg-primary/20 text-primary px-2 py-0.5 rounded text-xs">
                                   <Star className="h-3 w-3" />{nombre}
                                 </span>

@@ -32,6 +32,7 @@ import { useClientes } from "@/contexts/ClientesContext";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
+import { TimeInputManual } from "@/components/TimeInputManual";
 
 interface NewProjectDialogProps {
   open: boolean;
@@ -46,94 +47,6 @@ interface ValidationErrors {
   fechaEjecucion?: string;
   ubicacion?: string;
 }
-
-// Componente para input de hora manual con AM/PM
-const TimeInputManual = ({ 
-  value, 
-  onChange, 
-  label 
-}: { 
-  value: string; 
-  onChange: (value: string) => void;
-  label: string;
-}) => {
-  // Parse existing value (expected format: "HH:MM" in 24h)
-  const parseTime = (timeStr: string) => {
-    if (!timeStr) return { hours: "09", minutes: "00", period: "AM" };
-    const [h, m] = timeStr.split(":");
-    let hours = parseInt(h) || 0;
-    const minutes = m || "00";
-    const period = hours >= 12 ? "PM" : "AM";
-    if (hours > 12) hours -= 12;
-    if (hours === 0) hours = 12;
-    return { 
-      hours: hours.toString().padStart(2, "0"), 
-      minutes: minutes.padStart(2, "0"), 
-      period 
-    };
-  };
-
-  const { hours, minutes, period } = parseTime(value);
-
-  const handleChange = (newHours: string, newMinutes: string, newPeriod: string) => {
-    let h = parseInt(newHours) || 0;
-    if (newPeriod === "PM" && h !== 12) h += 12;
-    if (newPeriod === "AM" && h === 12) h = 0;
-    const formatted = `${h.toString().padStart(2, "0")}:${newMinutes.padStart(2, "0")}`;
-    onChange(formatted);
-  };
-
-  return (
-    <div className="space-y-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-1">
-        <Input
-          type="text"
-          value={hours}
-          onChange={(e) => {
-            const val = e.target.value.replace(/\D/g, "").slice(0, 2);
-            const num = parseInt(val) || 0;
-            if (num >= 1 && num <= 12) {
-              handleChange(val, minutes, period);
-            } else if (val === "" || val === "0") {
-              handleChange("12", minutes, period);
-            }
-          }}
-          className="w-11 text-center px-1 h-9"
-          placeholder="HH"
-          maxLength={2}
-        />
-        <span className="text-muted-foreground font-medium">:</span>
-        <Input
-          type="text"
-          value={minutes}
-          onChange={(e) => {
-            const val = e.target.value.replace(/\D/g, "").slice(0, 2);
-            const num = parseInt(val) || 0;
-            if (num >= 0 && num <= 59) {
-              handleChange(hours, val.padStart(2, "0"), period);
-            }
-          }}
-          className="w-11 text-center px-1 h-9"
-          placeholder="MM"
-          maxLength={2}
-        />
-        <Select
-          value={period}
-          onValueChange={(newPeriod) => handleChange(hours, minutes, newPeriod)}
-        >
-          <SelectTrigger className="w-[70px] h-9">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="AM">AM</SelectItem>
-            <SelectItem value="PM">PM</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-  );
-};
 
 // Componente para selector de rango de fechas
 const DateRangePickerField = ({

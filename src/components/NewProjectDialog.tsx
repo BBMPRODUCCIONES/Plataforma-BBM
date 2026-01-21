@@ -149,11 +149,13 @@ export function NewProjectDialog({
     if (!formData.evento?.trim()) {
       newErrors.evento = "Este campo es obligatorio";
     }
-    if (!montajeRange?.from || !montajeRange?.to) {
-      newErrors.fechaMontaje = "Seleccione el rango de fechas";
+    // Permitimos proyectos de 1 solo día (inicio = fin). Si el usuario necesita un rango,
+    // puede seleccionar una fecha de fin adicional.
+    if (!montajeRange?.from) {
+      newErrors.fechaMontaje = "Seleccione la fecha";
     }
-    if (!ejecucionRange?.from || !ejecucionRange?.to) {
-      newErrors.fechaEjecucion = "Seleccione el rango de fechas";
+    if (!ejecucionRange?.from) {
+      newErrors.fechaEjecucion = "Seleccione la fecha";
     }
     if (!formData.ubicacion?.trim()) {
       newErrors.ubicacion = "Este campo es obligatorio";
@@ -169,8 +171,8 @@ export function NewProjectDialog({
       const missingFields = [];
       if (!formData.cliente) missingFields.push("Cliente");
       if (!formData.evento?.trim()) missingFields.push("Evento");
-      if (!montajeRange?.from || !montajeRange?.to) missingFields.push("Fecha Montaje");
-      if (!ejecucionRange?.from || !ejecucionRange?.to) missingFields.push("Fecha Ejecución");
+      if (!montajeRange?.from) missingFields.push("Fecha Montaje");
+      if (!ejecucionRange?.from) missingFields.push("Fecha Ejecución");
       if (!formData.ubicacion?.trim()) missingFields.push("Ubicación");
       
       toast({
@@ -185,12 +187,18 @@ export function NewProjectDialog({
       ...formData,
       id: `proj-${Date.now()}`,
       fechaMontajeInicio: montajeRange?.from ? format(montajeRange.from, "yyyy-MM-dd") : "",
-      fechaMontajeFin: montajeRange?.to ? format(montajeRange.to, "yyyy-MM-dd") : "",
+      fechaMontajeFin: (montajeRange?.to || montajeRange?.from)
+        ? format(montajeRange?.to || montajeRange?.from!, "yyyy-MM-dd")
+        : "",
       fechaEjecucionInicio: ejecucionRange?.from ? format(ejecucionRange.from, "yyyy-MM-dd") : "",
-      fechaEjecucionFin: ejecucionRange?.to ? format(ejecucionRange.to, "yyyy-MM-dd") : "",
+      fechaEjecucionFin: (ejecucionRange?.to || ejecucionRange?.from)
+        ? format(ejecucionRange?.to || ejecucionRange?.from!, "yyyy-MM-dd")
+        : "",
       // Desmontaje is optional
       fechaDesmontajeInicio: desmontajeRange?.from ? format(desmontajeRange.from, "yyyy-MM-dd") : "",
-      fechaDesmontajeFin: desmontajeRange?.to ? format(desmontajeRange.to, "yyyy-MM-dd") : "",
+      fechaDesmontajeFin: (desmontajeRange?.to || desmontajeRange?.from)
+        ? format(desmontajeRange?.to || desmontajeRange?.from!, "yyyy-MM-dd")
+        : "",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

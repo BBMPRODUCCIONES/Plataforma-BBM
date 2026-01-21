@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, Clock } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -17,8 +17,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TimeInputManual } from "@/components/TimeInputManual";
 
 interface DateTimeRange {
   fechaInicio: string;
@@ -162,35 +162,20 @@ export function DateTimeRangeEditor({
             <div className="space-y-3">
               <Label className="text-sm font-medium">Rango de Horas</Label>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Desde</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="time"
-                      value={localValue.horaInicio || ""}
-                      onChange={(e) =>
-                        setLocalValue({ ...localValue, horaInicio: e.target.value })
-                      }
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Hasta</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="time"
-                      value={localValue.horaFin || ""}
-                      onChange={(e) =>
-                        setLocalValue({ ...localValue, horaFin: e.target.value })
-                      }
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
+                <TimeInputManual
+                  label="Desde"
+                  value={localValue.horaInicio || "09:00"}
+                  onChange={(value) =>
+                    setLocalValue({ ...localValue, horaInicio: value })
+                  }
+                />
+                <TimeInputManual
+                  label="Hasta"
+                  value={localValue.horaFin || "18:00"}
+                  onChange={(value) =>
+                    setLocalValue({ ...localValue, horaFin: value })
+                  }
+                />
               </div>
             </div>
           </div>

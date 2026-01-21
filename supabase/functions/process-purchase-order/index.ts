@@ -30,8 +30,7 @@ const purchaseOrderSchema = z.object({
     ),
   fileName: z.string()
     .min(1, "Nombre del archivo es requerido")
-    .max(255, "Nombre del archivo muy largo")
-    .regex(/^[a-zA-Z0-9._\- ]+$/, "Nombre de archivo contiene caracteres inválidos"),
+    .max(255, "Nombre del archivo muy largo"),
 });
 
 serve(async (req) => {

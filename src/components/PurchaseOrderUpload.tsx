@@ -282,16 +282,19 @@ export function PurchaseOrderUpload({
       });
 
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       console.error('Error processing file:', error);
+      console.error('Error details:', errorMessage);
+      
       if (pendingAttachment && onAttachmentsChange) {
         const newAttachments = [...attachments, pendingAttachment];
         onAttachmentsChange(newAttachments);
         setPendingAttachment(null);
       }
       toast({
-        title: "Archivo adjuntado",
-        description: "El archivo se guardó pero no se pudieron extraer los datos automáticamente",
-        variant: "default",
+        title: "Error al procesar documento",
+        description: `${errorMessage}. El archivo se guardó pero no se pudieron extraer los datos.`,
+        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -36,55 +37,69 @@ export function TimeInputManual({
   label,
   className 
 }: TimeInputManualProps) {
-  const { hours, minutes, period } = parseTime(value);
+  const parsed = parseTime(value);
+  
+  // Local state for free typing
+  const [localHours, setLocalHours] = useState(parsed.hours);
+  const [localMinutes, setLocalMinutes] = useState(parsed.minutes);
+  const [period, setPeriod] = useState(parsed.period);
 
-  const handleChange = (newHours: string, newMinutes: string, newPeriod: string) => {
-    let h = parseInt(newHours) || 0;
-    if (newPeriod === "PM" && h !== 12) h += 12;
-    if (newPeriod === "AM" && h === 12) h = 0;
-    const formatted = `${h.toString().padStart(2, "0")}:${newMinutes.padStart(2, "0")}`;
+  // Sync from parent when value changes externally
+  useEffect(() => {
+    const newParsed = parseTime(value);
+    setLocalHours(newParsed.hours);
+    setLocalMinutes(newParsed.minutes);
+    setPeriod(newParsed.period);
+  }, [value]);
+
+  const commitChange = (newHours: string, newMinutes: string, newPeriod: string) => {
+    // Parse and normalize hours (1-12)
+    let h = parseInt(newHours) || 12;
+    if (h === 0) h = 12;
+    else if (h > 12) h = h % 12 || 12;
+    
+    // Parse and normalize minutes (0-59)
+    let m = parseInt(newMinutes) || 0;
+    if (m > 59) m = 59;
+    
+    // Convert to 24h for storage
+    let h24 = h;
+    if (newPeriod === "PM" && h !== 12) h24 = h + 12;
+    if (newPeriod === "AM" && h === 12) h24 = 0;
+    
+    const formatted = `${h24.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
     onChange(formatted);
+    
+    // Update local display
+    setLocalHours(h.toString().padStart(2, "0"));
+    setLocalMinutes(m.toString().padStart(2, "0"));
   };
 
-  const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow any numeric input, then normalize
+  const handleHoursInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Allow free typing - only filter non-numeric
     const val = e.target.value.replace(/\D/g, "").slice(0, 2);
-    
-    if (val === "") {
-      // Empty input - keep showing current value, don't block
-      return;
-    }
-    
-    let num = parseInt(val) || 0;
-    
-    // Normalize to 1-12 range
-    if (num === 0) {
-      num = 12;
-    } else if (num > 12) {
-      // If user types 13+, auto-convert (e.g., 15 -> 3)
-      num = num % 12 || 12;
-    }
-    
-    handleChange(num.toString().padStart(2, "0"), minutes, period);
+    setLocalHours(val);
   };
 
-  const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMinutesInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Allow free typing - only filter non-numeric
     const val = e.target.value.replace(/\D/g, "").slice(0, 2);
-    
-    if (val === "") {
-      // Empty input - default to 00
-      handleChange(hours, "00", period);
-      return;
-    }
-    
-    let num = parseInt(val) || 0;
-    
-    // Cap at 59
-    if (num > 59) {
-      num = 59;
-    }
-    
-    handleChange(hours, num.toString().padStart(2, "0"), period);
+    setLocalMinutes(val);
+  };
+
+  const handleHoursBlur = () => {
+    // Normalize on blur
+    commitChange(localHours, localMinutes, period);
+  };
+
+  const handleMinutesBlur = () => {
+    // Normalize on blur
+    commitChange(localHours, localMinutes, period);
+  };
+
+  const handlePeriodChange = (newPeriod: string) => {
+    setPeriod(newPeriod);
+    commitChange(localHours, localMinutes, newPeriod);
   };
 
   return (
@@ -94,15 +109,9 @@ export function TimeInputManual({
         <Input
           type="text"
           inputMode="numeric"
-          value={hours}
-          onChange={handleHoursChange}
-          onBlur={(e) => {
-            // On blur, ensure we have a valid value
-            const val = e.target.value.replace(/\D/g, "");
-            if (val === "" || parseInt(val) === 0) {
-              handleChange("12", minutes, period);
-            }
-          }}
+          value={localHours}
+          onChange={handleHoursInput}
+          onBlur={handleHoursBlur}
           className="w-11 text-center px-1 h-9"
           placeholder="HH"
           maxLength={2}
@@ -111,22 +120,16 @@ export function TimeInputManual({
         <Input
           type="text"
           inputMode="numeric"
-          value={minutes}
-          onChange={handleMinutesChange}
-          onBlur={(e) => {
-            // On blur, ensure we have a valid value
-            const val = e.target.value.replace(/\D/g, "");
-            if (val === "") {
-              handleChange(hours, "00", period);
-            }
-          }}
+          value={localMinutes}
+          onChange={handleMinutesInput}
+          onBlur={handleMinutesBlur}
           className="w-11 text-center px-1 h-9"
           placeholder="MM"
           maxLength={2}
         />
         <Select
           value={period}
-          onValueChange={(newPeriod) => handleChange(hours, minutes, newPeriod)}
+          onValueChange={handlePeriodChange}
         >
           <SelectTrigger className="w-[70px] h-9">
             <SelectValue />
@@ -140,4 +143,3 @@ export function TimeInputManual({
     </div>
   );
 }
-

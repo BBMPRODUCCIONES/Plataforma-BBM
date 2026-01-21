@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -43,16 +43,31 @@ export function TimeInputManual({
   const [localHours, setLocalHours] = useState(parsed.hours);
   const [localMinutes, setLocalMinutes] = useState(parsed.minutes);
   const [period, setPeriod] = useState(parsed.period);
+  
+  // Track if user is actively editing (focused)
+  const [isFocused, setIsFocused] = useState(false);
+  
+  // Track if we made the change internally to avoid re-sync loops
+  const isInternalChange = useRef(false);
 
-  // Sync from parent when value changes externally
+  // Only sync from parent when NOT focused and change is external
   useEffect(() => {
-    const newParsed = parseTime(value);
-    setLocalHours(newParsed.hours);
-    setLocalMinutes(newParsed.minutes);
-    setPeriod(newParsed.period);
-  }, [value]);
+    if (isInternalChange.current) {
+      isInternalChange.current = false;
+      return;
+    }
+    if (!isFocused) {
+      const newParsed = parseTime(value);
+      setLocalHours(newParsed.hours);
+      setLocalMinutes(newParsed.minutes);
+      setPeriod(newParsed.period);
+    }
+  }, [value, isFocused]);
 
   const commitChange = (newHours: string, newMinutes: string, newPeriod: string) => {
+    // Mark as internal change to prevent useEffect re-sync
+    isInternalChange.current = true;
+    
     // Parse and normalize hours (1-12)
     let h = parseInt(newHours) || 12;
     if (h === 0) h = 12;
@@ -87,12 +102,17 @@ export function TimeInputManual({
     setLocalMinutes(val);
   };
 
+  const handleHoursFocus = () => setIsFocused(true);
+  const handleMinutesFocus = () => setIsFocused(true);
+
   const handleHoursBlur = () => {
+    setIsFocused(false);
     // Normalize on blur
     commitChange(localHours, localMinutes, period);
   };
 
   const handleMinutesBlur = () => {
+    setIsFocused(false);
     // Normalize on blur
     commitChange(localHours, localMinutes, period);
   };
@@ -111,6 +131,7 @@ export function TimeInputManual({
           inputMode="numeric"
           value={localHours}
           onChange={handleHoursInput}
+          onFocus={handleHoursFocus}
           onBlur={handleHoursBlur}
           className="w-11 text-center px-1 h-9"
           placeholder="HH"
@@ -122,6 +143,7 @@ export function TimeInputManual({
           inputMode="numeric"
           value={localMinutes}
           onChange={handleMinutesInput}
+          onFocus={handleMinutesFocus}
           onBlur={handleMinutesBlur}
           className="w-11 text-center px-1 h-9"
           placeholder="MM"

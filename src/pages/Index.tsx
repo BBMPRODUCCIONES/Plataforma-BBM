@@ -10,6 +10,13 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import bbmLogo from "@/assets/bbm-logo.png";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
+import { z } from "zod";
+
+const resetEmailSchema = z
+  .string()
+  .trim()
+  .email("Ingresa un correo válido")
+  .max(255, "El correo es demasiado largo");
 
 const Index = () => {
   const { user, loading, roleLoading, signIn } = useAuth();
@@ -69,19 +76,27 @@ const Index = () => {
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!resetEmail) {
+
+    // Users sometimes paste text around the email (e.g. from chat). Extract the first email-like value.
+    const raw = resetEmail.trim();
+    const extracted = raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? raw;
+    const parsed = resetEmailSchema.safeParse(extracted);
+
+    if (!parsed.success) {
       toast({
         title: "Error",
-        description: "Por favor ingresa tu correo electrónico",
+        description: parsed.error.issues[0]?.message ?? "Por favor ingresa tu correo electrónico",
         variant: "destructive",
       });
       return;
     }
 
+    // Normalize input shown to the user
+    if (parsed.data !== resetEmail) setResetEmail(parsed.data);
+
     setIsResettingPassword(true);
     
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
       redirectTo: `${window.location.origin}/auth?type=recovery`,
     });
     
@@ -94,7 +109,7 @@ const Index = () => {
     } else {
       toast({
         title: "Correo enviado",
-        description: "Revisa tu bandeja de entrada para restablecer tu contraseña",
+        description: `Si existe una cuenta para ${parsed.data}, recibirás un enlace de restablecimiento.`,
       });
       setResetSent(true);
       setResetCooldown(30);
@@ -160,7 +175,7 @@ const Index = () => {
               </Button>
               {resetSent && (
                 <p className="text-xs text-muted-foreground text-center">
-                  Si no llega en 2–3 minutos, revisa SPAM/No deseado y busca “recovery”.
+                  Si no llega en 2–3 minutos, revisa SPAM/No deseado. Por seguridad, siempre confirmamos el envío.
                 </p>
               )}
               <Button 

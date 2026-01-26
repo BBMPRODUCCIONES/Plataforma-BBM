@@ -44,29 +44,39 @@
     
     <!-- Demo environment detection - change icons for demo -->
     <script>
-      (function() {
-        var isDemo = window.location.hostname.includes('demo') || 
-                     window.location.hostname.includes('develop') ||
-                     window.location.hostname.includes('preview');
-        
-        if (isDemo) {
-          // Update theme color for demo (purple)
-          var themeMeta = document.getElementById('theme-color-meta');
-          if (themeMeta) themeMeta.content = '#7c3aed';
-          
-          // Update apple touch icons for demo
-          var appleIcon = document.getElementById('apple-touch-icon');
-          if (appleIcon) appleIcon.href = '/pwa-192x192-demo.png';
-          
-          var appleIcon192 = document.getElementById('apple-touch-icon-192');
-          if (appleIcon192) appleIcon192.href = '/pwa-192x192-demo.png';
-          
-          var appleIcon512 = document.getElementById('apple-touch-icon-512');
-          if (appleIcon512) appleIcon512.href = '/pwa-512x512-demo.png';
-          
-          // Update document title
-          document.title = 'BBM Producciones (Demo)';
+      (function () {
+        var hostname = window.location.hostname || '';
+        var isDemo = hostname.includes('demo') || hostname.includes('develop') || hostname.includes('preview');
+
+        if (!isDemo) return;
+
+        // Update theme color for demo (purple)
+        var themeMeta = document.getElementById('theme-color-meta');
+        if (themeMeta) themeMeta.content = '#7c3aed';
+
+        // Update apple touch icons for demo (iOS Add to Home Screen)
+        var appleIcon = document.getElementById('apple-touch-icon');
+        if (appleIcon) appleIcon.href = '/pwa-192x192-demo.png';
+
+        var appleIcon192 = document.getElementById('apple-touch-icon-192');
+        if (appleIcon192) appleIcon192.href = '/pwa-192x192-demo.png';
+
+        var appleIcon512 = document.getElementById('apple-touch-icon-512');
+        if (appleIcon512) appleIcon512.href = '/pwa-512x512-demo.png';
+
+        // Update manifest for demo (Android/Chrome install icon)
+        var manifestLink = document.querySelector('link[rel="manifest"]');
+        if (manifestLink) {
+          manifestLink.setAttribute('href', '/manifest-demo.json');
+        } else {
+          var link = document.createElement('link');
+          link.rel = 'manifest';
+          link.href = '/manifest-demo.json';
+          document.head.appendChild(link);
         }
+
+        // Update document title
+        document.title = 'BBM Producciones (Demo)';
       })();
     </script>
   </head>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,17 @@ const Index = () => {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [showResetForm, setShowResetForm] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [resetSent, setResetSent] = useState(false);
+  const [resetCooldown, setResetCooldown] = useState(0);
+
+  // Cooldown timer for resending reset email (avoids accidental spam clicks)
+  useEffect(() => {
+    if (resetCooldown <= 0) return;
+    const t = window.setInterval(() => {
+      setResetCooldown((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => window.clearInterval(t);
+  }, [resetCooldown]);
 
   // Redirect authenticated users to /usuarios ONLY after BOTH loading states are complete
   if (!loading && !roleLoading && user) {
@@ -85,8 +96,8 @@ const Index = () => {
         title: "Correo enviado",
         description: "Revisa tu bandeja de entrada para restablecer tu contraseña",
       });
-      setShowResetForm(false);
-      setResetEmail("");
+      setResetSent(true);
+      setResetCooldown(30);
     }
     
     setIsResettingPassword(false);
@@ -133,21 +144,34 @@ const Index = () => {
                   disabled={isResettingPassword}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isResettingPassword}>
+              <Button type="submit" className="w-full" disabled={isResettingPassword || resetCooldown > 0}>
                 {isResettingPassword ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Enviando...
                   </>
                 ) : (
-                  "Enviar enlace de recuperación"
+                  resetSent
+                    ? resetCooldown > 0
+                      ? `Reenviar en ${resetCooldown}s`
+                      : "Reenviar enlace"
+                    : "Enviar enlace de recuperación"
                 )}
               </Button>
+              {resetSent && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Si no llega en 2–3 minutos, revisa SPAM/No deseado y busca “recovery”.
+                </p>
+              )}
               <Button 
                 type="button" 
                 variant="ghost" 
                 className="w-full text-muted-foreground"
-                onClick={() => setShowResetForm(false)}
+                onClick={() => {
+                  setShowResetForm(false);
+                  setResetSent(false);
+                  setResetCooldown(0);
+                }}
               >
                 Volver al inicio de sesión
               </Button>
@@ -172,7 +196,11 @@ const Index = () => {
                     <button
                       type="button"
                       className="text-xs text-primary hover:underline"
-                      onClick={() => setShowResetForm(true)}
+                      onClick={() => {
+                        setShowResetForm(true);
+                        setResetSent(false);
+                        setResetCooldown(0);
+                      }}
                     >
                       ¿Olvidaste tu contraseña?
                     </button>

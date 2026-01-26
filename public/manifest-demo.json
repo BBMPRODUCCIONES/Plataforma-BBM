@@ -1,0 +1,25 @@
+{
+  "name": "BBM Producciones (Demo)",
+  "short_name": "BBM Demo",
+  "description": "Plataforma de gestión integral de eventos - Ambiente Demo",
+  "theme_color": "#7c3aed",
+  "background_color": "#7c3aed",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/pwa-192x192-demo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-512x512-demo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -21,20 +21,27 @@
 
 ## Ambientes
 
-### Producción
+### Producción vs Demo
+
+| Característica | Producción | Demo |
+|----------------|------------|------|
+| **Branch** | `main` | `develop` |
+| **Dominio** | `bbmproducciones.com.co` | `demo.bbmproducciones.com.co` |
+| **URL Lovable** | projectmatrix-hub.lovable.app | preview URLs |
+| **Icono PWA** | Negro (original) | Morado |
+| **Theme Color** | `#0f172a` | `#7c3aed` |
+| **Título** | BBM Producciones | BBM Producciones (Demo) |
+
+La detección del ambiente demo es **automática** basada en el hostname:
+- Si contiene "demo", "develop" o "preview" → usa iconos morados
+- De lo contrario → usa iconos negros (producción)
+
+### Backend
 
 | Campo | Valor |
 |-------|-------|
-| **URL** | https://projectmatrix-hub.lovable.app |
 | **Backend** | Lovable Cloud (Supabase) |
 | **ID Proyecto Supabase** | qbcwvrtiedzvsurndizd |
-
-### Preview/Desarrollo
-
-| Campo | Valor |
-|-------|-------|
-| **URL** | https://id-preview--82dfe78f-654a-44d8-8777-d98857e7d341.lovable.app |
-| **Propósito** | Pruebas y desarrollo |
 
 ## Variables de Entorno
 

@@ -9,7 +9,7 @@
     <meta name="keywords" content="eventos, producción, gestión, logística, Gantt, proyectos" />
 
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#0f172a" id="theme-color-meta" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="BBM Producciones" />
@@ -20,13 +20,13 @@
     <meta name="format-detection" content="telephone=no" />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" id="favicon-link" />
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png" />
     
-    <!-- PWA Icons -->
-    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" />
-    <link rel="apple-touch-icon" sizes="512x512" href="/pwa-512x512.png" />
+    <!-- PWA Icons - Dynamic based on environment -->
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" id="apple-touch-icon" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" id="apple-touch-icon-192" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/pwa-512x512.png" id="apple-touch-icon-512" />
 
     <!-- Open Graph -->
     <meta property="og:title" content="BBM Producciones - Gestión de Eventos" />
@@ -41,6 +41,34 @@
 
     <!-- OneSignal SDK -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    
+    <!-- Demo environment detection - change icons for demo -->
+    <script>
+      (function() {
+        var isDemo = window.location.hostname.includes('demo') || 
+                     window.location.hostname.includes('develop') ||
+                     window.location.hostname.includes('preview');
+        
+        if (isDemo) {
+          // Update theme color for demo (purple)
+          var themeMeta = document.getElementById('theme-color-meta');
+          if (themeMeta) themeMeta.content = '#7c3aed';
+          
+          // Update apple touch icons for demo
+          var appleIcon = document.getElementById('apple-touch-icon');
+          if (appleIcon) appleIcon.href = '/pwa-192x192-demo.png';
+          
+          var appleIcon192 = document.getElementById('apple-touch-icon-192');
+          if (appleIcon192) appleIcon192.href = '/pwa-192x192-demo.png';
+          
+          var appleIcon512 = document.getElementById('apple-touch-icon-512');
+          if (appleIcon512) appleIcon512.href = '/pwa-512x512-demo.png';
+          
+          // Update document title
+          document.title = 'BBM Producciones (Demo)';
+        }
+      })();
+    </script>
   </head>
 
   <body>

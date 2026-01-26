@@ -36,6 +36,9 @@ La detección del ambiente demo es **automática** basada en el hostname:
 - Si contiene "demo", "develop" o "preview" → usa iconos morados
 - De lo contrario → usa iconos negros (producción)
 
+> Nota: El **icono del sistema** (en pantalla de inicio) se asigna **al momento de instalar** la PWA.
+> Si ya tenías instalada la app demo con el icono anterior, debes **eliminarla y volverla a instalar** para ver el nuevo color.
+
 ### Backend
 
 | Campo | Valor |

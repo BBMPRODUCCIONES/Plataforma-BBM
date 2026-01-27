@@ -270,10 +270,19 @@ const PanelOperaciones = () => {
     // If approved, no one can edit (except changing estado by approval users)
     if (isRecordApproved(record)) return false;
     
+    // Admins can always edit
     if (isAdmin) return true;
+    
     // Operativo can only edit their own records
     if (!currentUserEmail) return false;
-    return record.empleadoEmail?.toLowerCase() === currentUserEmail;
+    
+    // Match by email (primary)
+    if (record.empleadoEmail?.toLowerCase() === currentUserEmail) return true;
+    
+    // Fallback: match by empleadoId if the current user has a linked employee
+    if (currentUserEmpleado?.id && record.empleadoId === currentUserEmpleado.id) return true;
+    
+    return false;
   };
   
   // Get row class name for approved records

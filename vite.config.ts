@@ -43,6 +43,8 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Increase file size limit for precaching (4 MiB)
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // Force immediate activation of new service worker
         skipWaiting: true,
         clientsClaim: true,

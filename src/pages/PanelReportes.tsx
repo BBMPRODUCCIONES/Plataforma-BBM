@@ -88,7 +88,7 @@ const PanelReportes = () => {
             <div className="w-14 h-14 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3 group-hover:bg-amber-500/20 transition-colors">
               <Wallet className="w-7 h-7 text-amber-500" />
             </div>
-            <CardTitle className="text-lg">Reporte de Caja Menor</CardTitle>
+            <CardTitle className="text-lg">Gastos de Eventos</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">Consolidado de gastos de caja menor de todos los eventos.</p>
@@ -111,7 +111,7 @@ const PanelReportes = () => {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-foreground">Reporte de Caja Menor</h1>
+          <h1 className="text-2xl font-bold text-foreground">Gastos de Eventos</h1>
           <p className="text-muted-foreground">Consolidado de todos los eventos</p>
         </div>
       </div>

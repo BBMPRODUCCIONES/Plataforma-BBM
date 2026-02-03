@@ -122,6 +122,8 @@ const PanelOperaciones = () => {
   const [horarioFormOpen, setHorarioFormOpen] = useState(false);
   // Estado para errores inline de Caja Menor (visible en el modal)
   const [cajaMenorValidationErrors, setCajaMenorValidationErrors] = useState<string[]>([]);
+  // Estado para mostrar/ocultar sección de legalización
+  const [showLegalizacion, setShowLegalizacion] = useState(false);
 
   // Sync local state when project changes (not on every keystroke)
   useEffect(() => {
@@ -1600,23 +1602,18 @@ const PanelOperaciones = () => {
       },
       {
         key: "imagenes",
-        header: "Imágenes *",
+        header: "Imágenes",
         width: "120px",
         mobileWidth: "120px",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
-          const isEmpty = !c.imagenes || c.imagenes.length === 0;
           return (
-            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+            <div>
               <AttachmentButton
                 attachments={c.imagenes || []}
                 onAttachmentsChange={(attachments) => {
                   if (canEdit && projectId) {
                     updateCajaMenorItem(projectId, c.id, "imagenes", attachments);
-                    // Limpiar errores de validación cuando se agrega imagen
-                    if (attachments.length > 0) {
-                      setCajaMenorValidationErrors([]);
-                    }
                   }
                 }}
                 multiple
@@ -1625,7 +1622,6 @@ const PanelOperaciones = () => {
                 enableCamera={canEdit}
                 disabled={!canEdit}
               />
-              {isEmpty && <span className="text-[10px] text-destructive block text-center">Requerida</span>}
             </div>
           );
         },
@@ -1881,6 +1877,265 @@ const PanelOperaciones = () => {
       },
     ];
   }, [currentProjectData?.id, currentProjectData?.cajaMenor, empleados, isAdmin, currentUserEmail, canEditCajaMenorRecord, projects, canApproveCajaMenor, isRecordApproved]);
+
+  // Columnas para legalización (imagen OBLIGATORIA)
+  const legalizacionColumns = useMemo(() => {
+    const projectId = currentProjectData?.id;
+    
+    const getEmpleadoName = (c: CajaMenorItem) => {
+      if (c.empleadoId) {
+        const emp = empleados.find(e => e.id === c.empleadoId);
+        if (emp?.nombre) return emp.nombre;
+      }
+      if (c.empleadoNombre) return c.empleadoNombre;
+      return "Sin empleado";
+    };
+    
+    return [
+      {
+        key: "empleado",
+        header: "Empleado",
+        width: "200px",
+        mobileWidth: "180px",
+        render: (c: CajaMenorItem) => {
+          const empleadoName = getEmpleadoName(c);
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-2 text-sm truncate max-w-full cursor-default">
+                    <span className="truncate text-muted-foreground">
+                      {empleadoName}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[300px]">
+                  <p>{empleadoName}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        },
+      },
+      {
+        key: "concepto",
+        header: "Concepto",
+        width: "200px",
+        mobileWidth: "180px",
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          if (!canEdit) {
+            return (
+              <span className="text-sm text-muted-foreground block truncate max-w-full">
+                {c.concepto || "-"}
+              </span>
+            );
+          }
+          return (
+            <EditableCell
+              value={c.concepto}
+              type="text"
+              placeholder="Descripción del concepto..."
+              onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "concepto", value)}
+            />
+          );
+        },
+      },
+      {
+        key: "imagenes",
+        header: "Imágenes *",
+        width: "120px",
+        mobileWidth: "120px",
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          const isEmpty = !c.imagenes || c.imagenes.length === 0;
+          return (
+            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+              <AttachmentButton
+                attachments={c.imagenes || []}
+                onAttachmentsChange={(attachments) => {
+                  if (canEdit && projectId) {
+                    updateCajaMenorItem(projectId, c.id, "imagenes", attachments);
+                    if (attachments.length > 0) {
+                      setCajaMenorValidationErrors([]);
+                    }
+                  }
+                }}
+                multiple
+                projectId={projectId || ""}
+                fieldName={`legalizacion-${c.id}-imagenes`}
+                enableCamera={canEdit}
+                disabled={!canEdit}
+              />
+              {isEmpty && <span className="text-[10px] text-destructive block text-center">Requerida</span>}
+            </div>
+          );
+        },
+      },
+      {
+        key: "valor",
+        header: "VALOR (COP) *",
+        width: "130px",
+        mobileWidth: "130px",
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          const isEmpty = !c.valor || c.valor === 0;
+          const formattedValue = `$ ${(c.valor || 0).toLocaleString('es-CO')}`;
+          if (!canEdit) {
+            return (
+              <span className={`text-base font-semibold font-mono ${isEmpty ? "text-destructive" : "text-foreground"}`}>
+                {isEmpty ? "$ 0 (Requerido)" : formattedValue}
+              </span>
+            );
+          }
+          return (
+            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+              <EditableCell
+                value={c.valor}
+                type="number"
+                placeholder="0"
+                onChange={(value) => {
+                  if (projectId) {
+                    updateCajaMenorItem(projectId, c.id, "valor", value);
+                    setCajaMenorValidationErrors([]);
+                  }
+                }}
+                className={`text-base font-semibold ${isEmpty ? "text-destructive" : ""}`}
+              />
+            </div>
+          );
+        },
+      },
+      {
+        key: "categoria",
+        header: "Categoría *",
+        width: "130px",
+        mobileWidth: "130px",
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          const isEmpty = !c.categoria?.trim();
+          if (!canEdit) {
+            return (
+              <span className={`text-sm ${isEmpty ? "text-destructive italic" : "text-muted-foreground"}`}>
+                {isEmpty ? "Sin categoría" : c.categoria}
+              </span>
+            );
+          }
+          return (
+            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+              <EditableCell
+                value={c.categoria}
+                type="select"
+                options={["Transporte", "Alimentación", "Compras"]}
+                onChange={(value) => {
+                  if (projectId) {
+                    updateCajaMenorItem(projectId, c.id, "categoria", value);
+                    setCajaMenorValidationErrors([]);
+                  }
+                }}
+              />
+            </div>
+          );
+        },
+      },
+      {
+        key: "recursos",
+        header: "Recursos *",
+        width: "140px",
+        mobileWidth: "140px",
+        render: (c: CajaMenorItem) => {
+          const canEdit = canEditCajaMenorRecord(c);
+          const isEmpty = !c.recursos?.trim();
+          if (!canEdit) {
+            return (
+              <span className={`text-sm ${isEmpty ? "text-destructive italic" : "text-muted-foreground"}`}>
+                {c.recursos || "Sin seleccionar"}
+              </span>
+            );
+          }
+          return (
+            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+              <EditableCell
+                value={c.recursos || ""}
+                type="select"
+                options={["Recursos propios", "BBM", "Anticipo BBM"]}
+                placeholder="Seleccionar..."
+                onChange={(value) => {
+                  if (projectId) {
+                    updateCajaMenorItem(projectId, c.id, "recursos", value);
+                    setCajaMenorValidationErrors([]);
+                  }
+                }}
+              />
+            </div>
+          );
+        },
+      },
+      {
+        key: "estado",
+        header: "Estado",
+        width: "130px",
+        mobileWidth: "130px",
+        render: (c: CajaMenorItem) => {
+          const canChangeEstado = canApproveCajaMenor();
+          const isApproved = c.estado === "Aprobado";
+          
+          if (!canChangeEstado) {
+            return (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 cursor-default">
+                      <Lock className="h-3 w-3 text-muted-foreground" />
+                      <span className={`text-sm px-2 py-0.5 rounded ${
+                        isApproved ? "bg-green-500/20 text-green-500 font-medium" : "bg-yellow-500/10 text-yellow-500"
+                      }`}>
+                        {c.estado}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>{isApproved ? "Registro aprobado: edición bloqueada" : "Solo usuarios autorizados pueden cambiar el estado"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          }
+          return (
+            <div className="flex items-center gap-1">
+              {isApproved && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center">
+                        <Lock className="h-3 w-3 text-green-500 mr-1" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>Registro aprobado: edición bloqueada. Cambie a "No aprobado" para habilitar edición.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <CajaMenorEstadoSelect
+                value={c.estado}
+                onChange={(value) => {
+                  if (projectId) {
+                    updateCajaMenorItem(projectId, c.id, "estado", value);
+                    if (value === "No aprobado" && isApproved) {
+                      toast.info("Registro reabierto: edición habilitada");
+                    } else if (value === "Aprobado") {
+                      toast.success("Registro aprobado: edición bloqueada");
+                    }
+                  }
+                }}
+              />
+            </div>
+          );
+        },
+      },
+    ];
+  }, [currentProjectData?.id, currentProjectData?.cajaMenor, empleados, canEditCajaMenorRecord, canApproveCajaMenor]);
 
   if (loading) {
     return (
@@ -2379,6 +2634,7 @@ const PanelOperaciones = () => {
 
                   {/* Caja Menor Section - Solo cuando selectedSection === "cajaMenor" */}
                   {selectedSection === "cajaMenor" && (
+                    <>
                     <Card className="overflow-hidden">
                       <CardHeader className="py-3 flex flex-col gap-2">
                         {/* Mensaje de error inline - VISIBLE EN MÓVIL */}
@@ -2470,9 +2726,8 @@ const PanelOperaciones = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                toast.info("Funcionalidad de legalización próximamente");
-                              }}
+                              onClick={() => setShowLegalizacion(!showLegalizacion)}
+                              className={showLegalizacion ? "bg-primary/10 border-primary" : ""}
                             >
                               LEGALIZAR
                             </Button>
@@ -2491,6 +2746,85 @@ const PanelOperaciones = () => {
                         )}
                       </CardContent>
                     </Card>
+
+                    {/* Sección de LEGALIZACIÓN - visible cuando se presiona el botón */}
+                    {showLegalizacion && (
+                      <Card className="overflow-hidden mt-4 border-primary/30">
+                        <CardHeader className="py-3 flex flex-col gap-2 bg-primary/5">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              LEGALIZACIÓN ({(currentProjectData.cajaMenor || []).filter(item => item.imagenes && item.imagenes.length > 0).length})
+                            </CardTitle>
+                            <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" size="sm">
+                                    <FileDown className="h-3 w-3 mr-1" />
+                                    Exportar
+                                    <ChevronDown className="h-3 w-3 ml-1" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                  <DropdownMenuItem onClick={() => printCajaMenor(currentProjectData, empleados)}>
+                                    <FileDown className="h-4 w-4 mr-2" />
+                                    Descargar PDF
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => exportCajaMenorToExcel(currentProjectData, empleados)}>
+                                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                    Descargar Excel
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  setCajaMenorValidationErrors([]);
+                                  const newCajaMenor: CajaMenorItem = {
+                                    id: `cm${Date.now()}`,
+                                    empleadoId: currentUserEmpleado?.id || "",
+                                    empleadoNombre: currentUserEmpleado?.nombre || "",
+                                    empleadoEmail: currentUserEmpleado?.correo || currentUserEmail || "",
+                                    concepto: "",
+                                    imagenes: [],
+                                    valor: 0,
+                                    categoria: "Compras",
+                                    recursos: "",
+                                    contingencia: "No",
+                                    estado: "No aprobado",
+                                    createdAt: new Date().toISOString(),
+                                  };
+                                  try {
+                                    await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);
+                                    toast.warning("⚠️ Completa: Imagen obligatoria, Valor, Categoría y Recurso para legalizar.", { duration: 4000 });
+                                  } catch (err) {
+                                    console.error('[PanelOperaciones] Error adding legalizacion record:', err);
+                                    toast.error("Error al agregar registro");
+                                  }
+                                }}
+                              >
+                                <Plus className="h-3 w-3 sm:mr-1" />
+                                <span className="hidden sm:inline">Agregar Registro</span>
+                                <span className="sm:hidden">Agregar</span>
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-4 caja-menor-mobile-scroll">
+                          {(currentProjectData.cajaMenor || []).length > 0 ? (
+                            <MatrixTable
+                              data={currentProjectData.cajaMenor || []}
+                              columns={legalizacionColumns}
+                              getRowClassName={getCajaMenorRowClassName}
+                            />
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No hay registros para legalizar. Haga clic en "Agregar Registro" para comenzar.</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+                    </>
                   )}
                 </div>
               )}

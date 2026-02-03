@@ -82,8 +82,11 @@ const PanelReportes = () => {
 
       {/* Financial Reports */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Reporte de Caja Menor */}
-        <Card className="cursor-pointer hover:border-primary/50 transition-colors group" onClick={() => setCurrentView("caja-menor")}>
+        {/* Reporte Gastos Eventos */}
+        <Card
+          className="cursor-pointer hover:border-primary/50 transition-colors group"
+          onClick={() => setCurrentView("caja-menor")}
+        >
           <CardHeader className="pb-2">
             <div className="w-14 h-14 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3 group-hover:bg-amber-500/20 transition-colors">
               <Wallet className="w-7 h-7 text-amber-500" />
@@ -102,12 +105,7 @@ const PanelReportes = () => {
     <div className="flex flex-col h-[calc(100vh-120px)] gap-4">
       {/* Header with back button - fixed */}
       <div className="flex items-center gap-4 flex-shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCurrentView("financieros")}
-          className="shrink-0"
-        >
+        <Button variant="ghost" size="icon" onClick={() => setCurrentView("financieros")} className="shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="space-y-1">

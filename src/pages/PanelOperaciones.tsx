@@ -2413,7 +2413,7 @@ const PanelOperaciones = () => {
                             <Wallet className="h-4 w-4" />
                             SOLICITUD DE PRESUPUESTO ({(currentProjectData.cajaMenor || []).length})
                           </CardTitle>
-                          <div className="flex gap-2 flex-wrap justify-end w-full sm:w-auto">
+                          <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm">
@@ -2422,7 +2422,7 @@ const PanelOperaciones = () => {
                                   <ChevronDown className="h-3 w-3 ml-1" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
+                              <DropdownMenuContent align="start">
                                 <DropdownMenuItem onClick={() => printCajaMenor(currentProjectData, empleados)}>
                                   <FileDown className="h-4 w-4 mr-2" />
                                   Descargar PDF
@@ -2466,6 +2466,15 @@ const PanelOperaciones = () => {
                               <Plus className="h-3 w-3 sm:mr-1" />
                               <span className="hidden sm:inline">Agregar Registro</span>
                               <span className="sm:hidden">Agregar</span>
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => {
+                                toast.info("Funcionalidad de legalización próximamente");
+                              }}
+                            >
+                              LEGALIZAR
                             </Button>
                           </div>
                         </div>

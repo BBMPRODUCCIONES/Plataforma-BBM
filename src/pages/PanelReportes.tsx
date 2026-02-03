@@ -91,7 +91,7 @@ const PanelReportes = () => {
             <div className="w-14 h-14 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3 group-hover:bg-amber-500/20 transition-colors">
               <Wallet className="w-7 h-7 text-amber-500" />
             </div>
-            <CardTitle className="text-lg">Gastos de Eventos</CardTitle>
+            <CardTitle className="text-lg">Reporte de Gasto de Eventos</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">Consolidado de gastos de caja menor de todos los eventos.</p>
@@ -117,7 +117,7 @@ const PanelReportes = () => {
       {/* Caja Menor Report Component - takes remaining height */}
       <div className="flex-1 min-h-0">
         <ErrorBoundary
-          title="No se pudo cargar el reporte de Caja Menor"
+          title="No se pudo cargar el Reporte de Gasto de Eventos"
           description="Esto suele pasar por un registro con datos incompletos (fecha/categoría/estado). Presiona Reintentar o revisa los registros."
           showDetails
         >

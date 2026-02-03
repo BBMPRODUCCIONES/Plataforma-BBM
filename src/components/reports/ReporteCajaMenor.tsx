@@ -670,7 +670,7 @@ const ReporteCajaMenor = () => {
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Reporte Caja Menor");
+    XLSX.utils.book_append_sheet(wb, ws, "Gastos de Eventos");
 
     // Auto-size columns
     const colWidths = [
@@ -917,7 +917,7 @@ const ReporteCajaMenor = () => {
                 {filteredItems.length === 0 ? (
                   <tr className="border-b transition-colors hover:bg-muted/50">
                     <td colSpan={12} className="p-4 align-middle text-center py-8 text-muted-foreground">
-                      No hay registros de caja menor
+                      No hay registros de gastos de eventos
                     </td>
                   </tr>
                 ) : (

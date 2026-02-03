@@ -2411,7 +2411,7 @@ const PanelOperaciones = () => {
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <Wallet className="h-4 w-4" />
-                            Caja Menor ({(currentProjectData.cajaMenor || []).length})
+                            Solicitud de presupuesto ({(currentProjectData.cajaMenor || []).length})
                           </CardTitle>
                           <div className="flex gap-2 flex-wrap justify-end w-full sm:w-auto">
                             <DropdownMenu>

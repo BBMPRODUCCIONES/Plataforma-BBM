@@ -2468,7 +2468,7 @@ const PanelOperaciones = () => {
                               <span className="sm:hidden">Agregar</span>
                             </Button>
                             <Button
-                              variant="default"
+                              variant="outline"
                               size="sm"
                               onClick={() => {
                                 toast.info("Funcionalidad de legalización próximamente");

@@ -35,7 +35,7 @@ const PanelReportes = () => {
             <CardTitle className="text-lg">Reportes Financieros</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">Reportes de gastos, caja menor y análisis financiero.</p>
+            <p className="text-sm text-muted-foreground">Reporte de gastos, caja menor y análisis financiero.</p>
           </CardContent>
         </Card>
 
@@ -109,7 +109,7 @@ const PanelReportes = () => {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-foreground">Gastos de Eventos</h1>
+          <h1 className="text-2xl font-bold text-foreground">Reporte Gastos De Eventos</h1>
           <p className="text-muted-foreground">Consolidado de todos los eventos</p>
         </div>
       </div>

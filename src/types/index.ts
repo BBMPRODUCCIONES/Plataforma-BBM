@@ -43,6 +43,8 @@ export interface Project {
   feedbackAdjuntos?: Attachment[];
   // Caja Menor section (Panel Operaciones only)
   cajaMenor?: CajaMenorItem[];
+  // Legalización section (datos independientes de cajaMenor)
+  legalizacion?: LegalizacionItem[];
   // Soft delete fields
   isDeleted?: boolean;
   deletedAt?: string;
@@ -115,6 +117,22 @@ export interface CajaMenorItem {
   estado: 'Aprobado' | 'No aprobado';
   procesoPago?: 'Pagado' | 'No pagado' | ''; // Campo para reportes (solo Admin puede editar)
   createdAt?: string; // Fecha de creación del registro
+}
+
+// Legalización item - estructura independiente para justificar gastos
+export interface LegalizacionItem {
+  id: string;
+  empleadoId?: string;
+  empleadoNombre?: string;
+  empleadoEmail?: string;
+  concepto: string;
+  imagenes?: Attachment[]; // Obligatorio para legalización
+  valor: number;
+  categoria: 'Transporte' | 'Alimentación' | 'Compras';
+  recursos: 'Recursos propios' | 'BBM' | 'Anticipo BBM' | '';
+  contingencia: 'Sí' | 'No';
+  estado: 'Aprobado' | 'No aprobado';
+  createdAt?: string;
 }
 
 export interface Proveedor {

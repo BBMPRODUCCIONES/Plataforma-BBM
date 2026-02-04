@@ -2001,14 +2001,14 @@ const PanelOperaciones = () => {
       {
         key: "concepto",
         header: "Concepto",
-        width: "200px",
-        mobileWidth: "180px",
-        render: (l: LegalizacionItem & { isManual?: boolean }) => {
+        width: "250px",
+        mobileWidth: "220px",
+        render: (l: LegalizacionItem & { isManual?: boolean; notaAdicional?: string }) => {
+          const canEdit = canEditLegalizacionRecord(l);
           const isManualRecord = l.isManual || l.id.startsWith('manual-');
-          const canEdit = isManualRecord && canEditLegalizacionRecord(l);
           
-          // Si es registro manual y editable, permitir editar concepto
-          if (canEdit) {
+          // Si es registro manual y editable, permitir editar concepto completo
+          if (isManualRecord && canEdit) {
             return (
               <EditableCell
                 value={l.concepto}
@@ -2023,23 +2023,48 @@ const PanelOperaciones = () => {
             );
           }
           
-          // CONCEPTO copiado de Solicitud de Presupuesto - NO EDITABLE
+          // CONCEPTO sincronizado: mostrar original + campo para nota adicional
           return (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center gap-2 text-sm truncate max-w-full cursor-default">
-                    <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <span className="truncate text-muted-foreground">
-                      {l.concepto || "-"}
-                    </span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[300px]">
-                  <p>Dato copiado de Solicitud de Presupuesto (no editable)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div className="flex flex-col gap-1">
+              {/* Concepto original - NO EDITABLE */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2 text-sm truncate max-w-full cursor-default">
+                      <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className="truncate text-muted-foreground">
+                        {l.concepto || "-"}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[300px]">
+                    <p>Concepto original (no editable)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              {/* Campo para nota adicional - EDITABLE si tiene permiso */}
+              {canEdit ? (
+                <div className="flex items-center gap-1">
+                  <MessageSquare className="h-3 w-3 text-primary shrink-0" />
+                  <Input
+                    value={(l as any).notaAdicional || ""}
+                    placeholder="+ Agregar nota..."
+                    className="h-6 text-xs border-dashed border-primary/30 bg-transparent focus:border-primary"
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      if (projectId) {
+                        updateLegalizacionItem(projectId, l.id, "notaAdicional", e.target.value);
+                      }
+                    }}
+                  />
+                </div>
+              ) : (l as any).notaAdicional ? (
+                <div className="flex items-center gap-1 text-xs text-primary/80">
+                  <MessageSquare className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{(l as any).notaAdicional}</span>
+                </div>
+              ) : null}
+            </div>
           );
         },
       },
@@ -2114,29 +2139,24 @@ const PanelOperaciones = () => {
         width: "130px",
         mobileWidth: "130px",
         render: (l: LegalizacionItem) => {
-          const canEdit = canEditLegalizacionRecord(l);
           const isEmpty = !l.categoria?.trim();
-          if (!canEdit) {
-            return (
-              <span className={`text-sm ${isEmpty ? "text-destructive italic" : "text-muted-foreground"}`}>
-                {isEmpty ? "Sin categoría" : l.categoria}
-              </span>
-            );
-          }
+          // CATEGORÍA siempre es solo lectura en Legalización (sincronizada desde Solicitud)
           return (
-            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
-              <EditableCell
-                value={l.categoria}
-                type="select"
-                options={["Transporte", "Alimentación", "Compras"]}
-                onChange={(value) => {
-                  if (projectId) {
-                    updateLegalizacionItem(projectId, l.id, "categoria", value);
-                    setCajaMenorValidationErrors([]);
-                  }
-                }}
-              />
-            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 cursor-default">
+                    <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className={`text-sm ${isEmpty ? "text-destructive italic" : "text-muted-foreground"}`}>
+                      {isEmpty ? "Sin categoría" : l.categoria}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[300px]">
+                  <p>Campo protegido (sincronizado desde Solicitud de Presupuesto)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           );
         },
       },
@@ -2146,30 +2166,24 @@ const PanelOperaciones = () => {
         width: "140px",
         mobileWidth: "140px",
         render: (l: LegalizacionItem) => {
-          const canEdit = canEditLegalizacionRecord(l);
           const isEmpty = !l.recursos?.trim();
-          if (!canEdit) {
-            return (
-              <span className={`text-sm ${isEmpty ? "text-destructive italic" : "text-muted-foreground"}`}>
-                {l.recursos || "Sin seleccionar"}
-              </span>
-            );
-          }
+          // RECURSOS siempre es solo lectura en Legalización (sincronizado desde Solicitud)
           return (
-            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
-              <EditableCell
-                value={l.recursos || ""}
-                type="select"
-                options={["Recursos propios", "Caja Menor", "Anticipo BBM"]}
-                placeholder="Seleccionar..."
-                onChange={(value) => {
-                  if (projectId) {
-                    updateLegalizacionItem(projectId, l.id, "recursos", value);
-                    setCajaMenorValidationErrors([]);
-                  }
-                }}
-              />
-            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 cursor-default">
+                    <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className={`text-sm ${isEmpty ? "text-destructive italic" : "text-muted-foreground"}`}>
+                      {l.recursos || "Sin seleccionar"}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[300px]">
+                  <p>Campo protegido (sincronizado desde Solicitud de Presupuesto)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           );
         },
       },

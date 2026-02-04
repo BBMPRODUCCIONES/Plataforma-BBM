@@ -114,7 +114,7 @@ export interface CajaMenorItem {
   categoria: 'Transporte' | 'Alimentación' | 'Compras';
   recursos: 'Recursos propios' | 'BBM' | 'Anticipo BBM' | ''; // Obligatorio
   contingencia: 'Sí' | 'No'; // Default: 'No'
-  estado: 'Aprobado' | 'No aprobado';
+  estado: 'Pendiente' | 'Aprobado' | 'No aprobado';
   procesoPago?: 'Pagado' | 'No pagado' | ''; // Campo para reportes (solo Admin puede editar)
   createdAt?: string; // Fecha de creación del registro
 }
@@ -131,7 +131,7 @@ export interface LegalizacionItem {
   categoria: 'Transporte' | 'Alimentación' | 'Compras';
   recursos: 'Recursos propios' | 'BBM' | 'Anticipo BBM' | '';
   contingencia: 'Sí' | 'No';
-  estado: 'Aprobado' | 'No aprobado';
+  estado: 'Pendiente' | 'Aprobado' | 'No aprobado';
   createdAt?: string;
 }
 

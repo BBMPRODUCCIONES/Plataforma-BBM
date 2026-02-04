@@ -2843,17 +2843,8 @@ const PanelOperaciones = () => {
                               }}
                             >
                               <Plus className="h-3 w-3 sm:mr-1" />
-                              <span className="hidden sm:inline">Agregar Registro</span>
+                              <span className="hidden sm:inline uppercase">AGREGAR REGISTRO</span>
                               <span className="sm:hidden">Agregar</span>
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                toast.info("Funcionalidad de cargar información próximamente");
-                              }}
-                            >
-                              LEGALIZAR
                             </Button>
                           </div>
                         </div>
@@ -2928,8 +2919,17 @@ const PanelOperaciones = () => {
                               }}
                             >
                               <Plus className="h-3 w-3 sm:mr-1" />
-                              <span className="hidden sm:inline">Agregar Registro</span>
+                              <span className="hidden sm:inline uppercase">AGREGAR REGISTRO</span>
                               <span className="sm:hidden">Agregar</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                toast.info("Funcionalidad de cargar información próximamente");
+                              }}
+                            >
+                              LEGALIZAR
                             </Button>
                           </div>
                         </div>

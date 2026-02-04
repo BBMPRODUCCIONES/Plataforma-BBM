@@ -2983,7 +2983,7 @@ const PanelOperaciones = () => {
                                   categoria: "Compras",
                                   recursos: "",
                                   contingencia: "No",
-                                  estado: "No aprobado",
+                                  estado: "Pendiente",
                                   createdAt: new Date().toISOString(),
                                 };
                                 try {
@@ -3034,6 +3034,7 @@ const PanelOperaciones = () => {
                           </CardTitle>
                           <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
                             <Button 
+                              variant="outline"
                               size="sm" 
                               onClick={() => {
                                 if (!currentProjectData?.id) return;
@@ -3049,7 +3050,7 @@ const PanelOperaciones = () => {
                                   categoria: "Compras",
                                   recursos: "",
                                   contingencia: "No",
-                                  estado: "No aprobado",
+                                  estado: "Pendiente",
                                   createdAt: new Date().toISOString(),
                                 };
                                 const updatedLeg = [...(currentProjectData.legalizacion || []), newManualLeg];
@@ -3102,7 +3103,7 @@ const PanelOperaciones = () => {
                               categoria: existingLeg?.categoria || cm.categoria,
                               recursos: existingLeg?.recursos || cm.recursos,
                               contingencia: existingLeg?.contingencia || "No",
-                              estado: existingLeg?.estado || "No aprobado",
+                              estado: existingLeg?.estado || "Pendiente",
                               createdAt: existingLeg?.createdAt || cm.createdAt || new Date().toISOString(),
                             } as LegalizacionItem & { sourceId?: string; isManual: boolean };
                           });

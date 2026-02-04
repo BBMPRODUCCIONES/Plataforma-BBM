@@ -89,6 +89,7 @@ function dbRowToProject(row: any): Project {
     feedback: row.feedback || "",
     feedbackAdjuntos: row.feedback_adjuntos || [],
     cajaMenor: row.caja_menor || [],
+    legalizacion: row.legalizacion || [],
     // Soft delete fields
     isDeleted: row.is_deleted || false,
     deletedAt: row.deleted_at || null,
@@ -140,6 +141,7 @@ function projectToDbRow(project: Partial<Project>): Record<string, any> {
   if (project.feedback !== undefined) row.feedback = project.feedback;
   if (project.feedbackAdjuntos !== undefined) row.feedback_adjuntos = project.feedbackAdjuntos;
   if (project.cajaMenor !== undefined) row.caja_menor = project.cajaMenor;
+  if (project.legalizacion !== undefined) row.legalizacion = project.legalizacion;
   
   return row;
 }

@@ -365,6 +365,7 @@ export type Database = {
           inventario: Json
           is_deleted: boolean
           jefe_operaciones: string
+          legalizacion: Json | null
           notas: string
           notas_cotizacion_proveedor: string
           notas_imagenes: Json | null
@@ -410,6 +411,7 @@ export type Database = {
           inventario?: Json
           is_deleted?: boolean
           jefe_operaciones?: string
+          legalizacion?: Json | null
           notas?: string
           notas_cotizacion_proveedor?: string
           notas_imagenes?: Json | null
@@ -455,6 +457,7 @@ export type Database = {
           inventario?: Json
           is_deleted?: boolean
           jefe_operaciones?: string
+          legalizacion?: Json | null
           notas?: string
           notas_cotizacion_proveedor?: string
           notas_imagenes?: Json | null

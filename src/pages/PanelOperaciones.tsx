@@ -1975,8 +1975,37 @@ const PanelOperaciones = () => {
         header: "Empleado",
         width: "200px",
         mobileWidth: "180px",
-        render: (l: LegalizacionItem) => {
+        render: (l: LegalizacionItem & { isManual?: boolean }) => {
           const empleadoName = getEmpleadoName(l);
+          const isManualRecord = l.isManual || l.id.startsWith('manual-');
+          const canEdit = isManualRecord && canEditLegalizacionRecord(l);
+          
+          // Si es registro manual y editable, permitir seleccionar empleado
+          if (canEdit) {
+            return (
+              <EmpleadoAutocomplete
+                value={l.empleadoId || ""}
+                onChange={(empId) => {
+                  if (projectId) {
+                    const emp = empleados.find(e => e.id === empId);
+                    // Actualizar empleadoId y empleadoNombre juntos
+                    const project = projects.find(p => p.id === projectId);
+                    if (project) {
+                      const updatedLeg = (project.legalizacion || []).map((leg: LegalizacionItem) =>
+                        leg.id === l.id 
+                          ? { ...leg, empleadoId: empId, empleadoNombre: emp?.nombre || "", empleadoEmail: emp?.correo?.toLowerCase() || "" }
+                          : leg
+                      );
+                      contextUpdateProject(projectId, 'legalizacion', updatedLeg);
+                    }
+                  }
+                }}
+                placeholder="Seleccionar empleado..."
+                className="w-full"
+              />
+            );
+          }
+          
           // EMPLEADO copiado de Solicitud de Presupuesto - NO EDITABLE
           return (
             <TooltipProvider>
@@ -2002,7 +2031,26 @@ const PanelOperaciones = () => {
         header: "Concepto",
         width: "200px",
         mobileWidth: "180px",
-        render: (l: LegalizacionItem) => {
+        render: (l: LegalizacionItem & { isManual?: boolean }) => {
+          const isManualRecord = l.isManual || l.id.startsWith('manual-');
+          const canEdit = isManualRecord && canEditLegalizacionRecord(l);
+          
+          // Si es registro manual y editable, permitir editar concepto
+          if (canEdit) {
+            return (
+              <EditableCell
+                value={l.concepto}
+                type="text"
+                placeholder="Escribir concepto..."
+                onChange={(value) => {
+                  if (projectId) {
+                    updateLegalizacionItem(projectId, l.id, "concepto", value);
+                  }
+                }}
+              />
+            );
+          }
+          
           // CONCEPTO copiado de Solicitud de Presupuesto - NO EDITABLE
           return (
             <TooltipProvider>
@@ -2258,11 +2306,34 @@ const PanelOperaciones = () => {
         header: "",
         width: "50px",
         mobileWidth: "50px",
-        render: (l: LegalizacionItem) => {
+        render: (l: LegalizacionItem & { isManual?: boolean }) => {
           const isApproved = l.estado === "Aprobado";
+          const isManualRecord = l.isManual || l.id.startsWith('manual-');
           
-          // Los registros de legalización están sincronizados automáticamente
-          // No se pueden eliminar independientemente (se eliminan al eliminar el registro de cajaMenor)
+          // Si es un registro manual, mostrar botón de eliminar
+          if (isManualRecord && !isApproved && canEditLegalizacionRecord(l)) {
+            return (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => projectId && deleteLegalizacionItem(projectId, l.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>Eliminar registro manual</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          }
+          
+          // Para registros sincronizados, mostrar candado
           return (
             <TooltipProvider>
               <Tooltip>
@@ -2274,7 +2345,9 @@ const PanelOperaciones = () => {
                 <TooltipContent side="left">
                   <p>{isApproved 
                     ? "Registro aprobado: edición bloqueada" 
-                    : "Sincronizado con Solicitud de Presupuesto"}</p>
+                    : isManualRecord 
+                      ? "Registro manual" 
+                      : "Sincronizado con Solicitud de Presupuesto"}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -2948,10 +3021,45 @@ const PanelOperaciones = () => {
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <FileText className="h-4 w-4" />
-                            LEGALIZACIÓN ({(currentProjectData.cajaMenor || []).length})
+                            LEGALIZACIÓN ({(() => {
+                              // Registros sincronizados de cajaMenor
+                              const syncedCount = (currentProjectData.cajaMenor || []).length;
+                              // Registros manuales (los que tienen ID que NO empieza con "leg-")
+                              const manualCount = (currentProjectData.legalizacion || []).filter(
+                                (l: LegalizacionItem) => !l.id.startsWith('leg-')
+                              ).length;
+                              return syncedCount + manualCount;
+                            })()})
                             <span className="text-xs text-muted-foreground font-normal ml-1">(sincronizado automáticamente)</span>
                           </CardTitle>
                           <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
+                            <Button 
+                              size="sm" 
+                              onClick={() => {
+                                if (!currentProjectData?.id) return;
+                                // Crear un registro manual nuevo
+                                const newManualLeg: LegalizacionItem = {
+                                  id: `manual-${Date.now()}`, // ID con prefijo "manual-" para diferenciar
+                                  empleadoId: currentUserEmpleado?.id || "",
+                                  empleadoNombre: currentUserEmpleado?.nombre || user?.email || "",
+                                  empleadoEmail: user?.email || "",
+                                  concepto: "",
+                                  imagenes: [],
+                                  valor: 0,
+                                  categoria: "Compras",
+                                  recursos: "",
+                                  contingencia: "No",
+                                  estado: "No aprobado",
+                                  createdAt: new Date().toISOString(),
+                                };
+                                const updatedLeg = [...(currentProjectData.legalizacion || []), newManualLeg];
+                                contextUpdateProject(currentProjectData.id, 'legalizacion', updatedLeg);
+                                toast.success("Registro de legalización agregado");
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              AGREGAR REGISTRO
+                            </Button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm">
@@ -2975,38 +3083,56 @@ const PanelOperaciones = () => {
                         </div>
                       </CardHeader>
                       <CardContent className="pt-4 caja-menor-mobile-scroll">
-                        {(currentProjectData.cajaMenor || []).length > 0 ? (
-                          <MatrixTable
-                            data={(currentProjectData.cajaMenor || []).map((cm) => {
-                              // Buscar si existe un registro de legalización para este cajaMenor
-                              const existingLeg = (currentProjectData.legalizacion || []).find(
-                                (l: LegalizacionItem) => l.id === `leg-${cm.id}` || l.empleadoId === cm.empleadoId && l.concepto === cm.concepto
-                              );
-                              // Crear objeto de legalización combinando datos de cajaMenor con datos editables de legalizacion
-                              return {
-                                id: `leg-${cm.id}`,
-                                sourceId: cm.id, // ID original del cajaMenor para referencias
-                                // Datos copiados (no editables) - siempre de cajaMenor
-                                empleadoId: cm.empleadoId,
-                                empleadoNombre: cm.empleadoNombre || empleados.find(e => e.id === cm.empleadoId)?.nombre || "",
-                                empleadoEmail: cm.empleadoEmail,
-                                concepto: cm.concepto,
-                                // Datos editables - usar de legalizacion si existe, sino de cajaMenor
-                                imagenes: existingLeg?.imagenes || [],
-                                valor: existingLeg?.valor ?? cm.valor,
-                                categoria: existingLeg?.categoria || cm.categoria,
-                                recursos: existingLeg?.recursos || cm.recursos,
-                                contingencia: existingLeg?.contingencia || "No",
-                                estado: existingLeg?.estado || "No aprobado",
-                                createdAt: existingLeg?.createdAt || cm.createdAt || new Date().toISOString(),
-                              } as LegalizacionItem & { sourceId: string };
-                            })}
-                            columns={legalizacionColumns}
-                            getRowClassName={(record: LegalizacionItem) => record.estado === "Aprobado" ? "caja-menor-row-approved" : ""}
-                          />
-                        ) : (
-                          <p className="text-sm text-muted-foreground">No hay registros en Solicitud de Presupuesto. Los registros aparecerán aquí automáticamente cuando se agreguen arriba.</p>
-                        )}
+                        {(() => {
+                          // Registros sincronizados desde cajaMenor
+                          const syncedRecords = (currentProjectData.cajaMenor || []).map((cm) => {
+                            const existingLeg = (currentProjectData.legalizacion || []).find(
+                              (l: LegalizacionItem) => l.id === `leg-${cm.id}`
+                            );
+                            return {
+                              id: `leg-${cm.id}`,
+                              sourceId: cm.id,
+                              isManual: false, // Marcador para saber si es manual o sincronizado
+                              empleadoId: cm.empleadoId,
+                              empleadoNombre: cm.empleadoNombre || empleados.find(e => e.id === cm.empleadoId)?.nombre || "",
+                              empleadoEmail: cm.empleadoEmail,
+                              concepto: cm.concepto,
+                              imagenes: existingLeg?.imagenes || [],
+                              valor: existingLeg?.valor ?? cm.valor,
+                              categoria: existingLeg?.categoria || cm.categoria,
+                              recursos: existingLeg?.recursos || cm.recursos,
+                              contingencia: existingLeg?.contingencia || "No",
+                              estado: existingLeg?.estado || "No aprobado",
+                              createdAt: existingLeg?.createdAt || cm.createdAt || new Date().toISOString(),
+                            } as LegalizacionItem & { sourceId?: string; isManual: boolean };
+                          });
+                          
+                          // Registros manuales (los que NO empiezan con "leg-")
+                          const manualRecords = (currentProjectData.legalizacion || [])
+                            .filter((l: LegalizacionItem) => !l.id.startsWith('leg-'))
+                            .map((l: LegalizacionItem) => ({
+                              ...l,
+                              isManual: true, // Marcador para saber que es manual
+                            } as LegalizacionItem & { isManual: boolean }));
+                          
+                          const allRecords = [...syncedRecords, ...manualRecords];
+                          
+                          if (allRecords.length === 0) {
+                            return (
+                              <p className="text-sm text-muted-foreground">
+                                No hay registros. Los registros de Solicitud de Presupuesto aparecerán aquí automáticamente, o puede agregar registros manuales con el botón "AGREGAR REGISTRO".
+                              </p>
+                            );
+                          }
+                          
+                          return (
+                            <MatrixTable
+                              data={allRecords}
+                              columns={legalizacionColumns}
+                              getRowClassName={(record: LegalizacionItem) => record.estado === "Aprobado" ? "caja-menor-row-approved" : ""}
+                            />
+                          );
+                        })()}
                       </CardContent>
                     </Card>
                     </>

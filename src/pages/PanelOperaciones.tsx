@@ -2797,7 +2797,7 @@ const PanelOperaciones = () => {
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm">
                                   <FileDown className="h-3 w-3 mr-1" />
-                                  Exportar
+                                  EXPORTAR
                                   <ChevronDown className="h-3 w-3 ml-1" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -2875,7 +2875,7 @@ const PanelOperaciones = () => {
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm">
                                   <FileDown className="h-3 w-3 mr-1" />
-                                  Exportar
+                                  EXPORTAR
                                   <ChevronDown className="h-3 w-3 ml-1" />
                                 </Button>
                               </DropdownMenuTrigger>

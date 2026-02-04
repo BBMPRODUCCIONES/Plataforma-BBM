@@ -2449,15 +2449,15 @@ const PanelOperaciones = () => {
             
             // Validación de Caja Menor - TODOS los campos son BLOQUEANTES
             if (selectedSection === "cajaMenor") {
+              // Validación de SOLICITUD DE PRESUPUESTO - Imágenes OPCIONAL
               const cajaMenorItems = currentProjectData.cajaMenor || [];
               if (cajaMenorItems.length > 0) {
-                // BLOQUEANTE: Verificar todos los campos obligatorios
+                // BLOQUEANTE: Verificar campos obligatorios (SIN imagen - es opcional)
                 const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
-                  const sinImagen = !item.imagenes || item.imagenes.length === 0;
                   const sinValor = !item.valor || item.valor === 0;
                   const sinCategoria = !item.categoria?.trim();
                   const sinRecurso = !item.recursos?.trim();
-                  return sinImagen || sinValor || sinCategoria || sinRecurso;
+                  return sinValor || sinCategoria || sinRecurso;
                 });
                 
                 if (registrosIncompletos.length > 0) {
@@ -2465,7 +2465,7 @@ const PanelOperaciones = () => {
                   registrosIncompletos.forEach((item: CajaMenorItem) => {
                     const idx = cajaMenorItems.indexOf(item);
                     const faltantes: string[] = [];
-                    if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
+                    // Imagen es OPCIONAL en SOLICITUD DE PRESUPUESTO
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
                     if (!item.categoria?.trim()) faltantes.push("categoría");
                     if (!item.recursos?.trim()) faltantes.push("recurso");
@@ -2473,7 +2473,35 @@ const PanelOperaciones = () => {
                       errores.push(`Gasto #${idx + 1}: falta ${faltantes.join(", ")}`);
                     }
                   });
-                  // Guardar errores en estado para mostrar inline en el modal
+                  setCajaMenorValidationErrors(errores);
+                  return; // BLOQUEAR cierre del modal
+                }
+              }
+              
+              // Validación de LEGALIZACIÓN - Imágenes OBLIGATORIAS
+              const legalizacionItems = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
+              if (legalizacionItems.length > 0) {
+                const legIncompletos = legalizacionItems.filter((item: LegalizacionItem) => {
+                  const sinImagen = !item.imagenes || item.imagenes.length === 0;
+                  const sinValor = !item.valor || item.valor === 0;
+                  const sinCategoria = !item.categoria?.trim();
+                  const sinRecurso = !item.recursos?.trim();
+                  return sinImagen || sinValor || sinCategoria || sinRecurso;
+                });
+                
+                if (legIncompletos.length > 0) {
+                  const errores: string[] = [];
+                  legIncompletos.forEach((item: LegalizacionItem) => {
+                    const idx = legalizacionItems.indexOf(item);
+                    const faltantes: string[] = [];
+                    if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
+                    if (!item.valor || item.valor === 0) faltantes.push("valor");
+                    if (!item.categoria?.trim()) faltantes.push("categoría");
+                    if (!item.recursos?.trim()) faltantes.push("recurso");
+                    if (faltantes.length > 0) {
+                      errores.push(`Legalización #${idx + 1}: falta ${faltantes.join(", ")}`);
+                    }
+                  });
                   setCajaMenorValidationErrors(errores);
                   return; // BLOQUEAR cierre del modal
                 }

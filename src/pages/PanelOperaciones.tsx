@@ -1937,18 +1937,20 @@ const PanelOperaciones = () => {
         mobileWidth: "180px",
         render: (l: LegalizacionItem) => {
           const empleadoName = getEmpleadoName(l);
+          // EMPLEADO copiado de Solicitud de Presupuesto - NO EDITABLE
           return (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-2 text-sm truncate max-w-full cursor-default">
+                    <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
                     <span className="truncate text-muted-foreground">
                       {empleadoName}
                     </span>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-[300px]">
-                  <p>{empleadoName}</p>
+                  <p>Dato copiado de Solicitud de Presupuesto (no editable)</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -1961,21 +1963,23 @@ const PanelOperaciones = () => {
         width: "200px",
         mobileWidth: "180px",
         render: (l: LegalizacionItem) => {
-          const canEdit = canEditLegalizacionRecord(l);
-          if (!canEdit) {
-            return (
-              <span className="text-sm text-muted-foreground block truncate max-w-full">
-                {l.concepto || "-"}
-              </span>
-            );
-          }
+          // CONCEPTO copiado de Solicitud de Presupuesto - NO EDITABLE
           return (
-            <EditableCell
-              value={l.concepto}
-              type="text"
-              placeholder="Descripción del concepto..."
-              onChange={(value) => projectId && updateLegalizacionItem(projectId, l.id, "concepto", value)}
-            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-2 text-sm truncate max-w-full cursor-default">
+                    <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className="truncate text-muted-foreground">
+                      {l.concepto || "-"}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[300px]">
+                  <p>Dato copiado de Solicitud de Presupuesto (no editable)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           );
         },
       },
@@ -2918,43 +2922,76 @@ const PanelOperaciones = () => {
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={async () => {
-                                setCajaMenorValidationErrors([]);
-                                const newLegalizacion: LegalizacionItem = {
-                                  id: `lg${Date.now()}`,
-                                  empleadoId: currentUserEmpleado?.id || "",
-                                  empleadoNombre: currentUserEmpleado?.nombre || "",
-                                  empleadoEmail: currentUserEmpleado?.correo || currentUserEmail || "",
-                                  concepto: "",
-                                  imagenes: [],
-                                  valor: 0,
-                                  categoria: "Compras",
-                                  recursos: "",
-                                  contingencia: "No",
-                                  estado: "No aprobado",
-                                  createdAt: new Date().toISOString(),
-                                };
-                                try {
-                                  await contextUpdateProject(currentProjectData.id, 'legalizacion', [...(currentProjectData.legalizacion || []), newLegalizacion]);
-                                  toast.warning("⚠️ Completa: Imagen obligatoria, Valor, Categoría y Recurso para legalizar.", { duration: 4000 });
-                                } catch (err) {
-                                  console.error('[PanelOperaciones] Error adding legalizacion record:', err);
-                                  toast.error("Error al agregar registro");
-                                }
-                              }}
-                            >
-                              <Plus className="h-3 w-3 sm:mr-1" />
-                              <span className="hidden sm:inline uppercase">AGREGAR REGISTRO</span>
-                              <span className="sm:hidden">Agregar</span>
-                            </Button>
+                            {/* Dropdown para agregar registro de legalización desde cajaMenor existente */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Plus className="h-3 w-3 sm:mr-1" />
+                                  <span className="hidden sm:inline uppercase">AGREGAR REGISTRO</span>
+                                  <span className="sm:hidden">Agregar</span>
+                                  <ChevronDown className="h-3 w-3 ml-1" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto min-w-[280px]">
+                                {(currentProjectData.cajaMenor || []).length === 0 ? (
+                                  <DropdownMenuItem disabled>
+                                    <span className="text-muted-foreground text-xs">No hay registros en Solicitud de Presupuesto</span>
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <>
+                                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-b">
+                                      Selecciona registro para legalizar:
+                                    </div>
+                                    {(currentProjectData.cajaMenor || []).map((cm) => {
+                                      const empName = cm.empleadoNombre || empleados.find(e => e.id === cm.empleadoId)?.nombre || "Sin empleado";
+                                      return (
+                                        <DropdownMenuItem
+                                          key={cm.id}
+                                          onClick={async () => {
+                                            setCajaMenorValidationErrors([]);
+                                            // Copiar datos de cajaMenor a legalización
+                                            const newLegalizacion: LegalizacionItem = {
+                                              id: `lg${Date.now()}`,
+                                              // Datos copiados (no editables en legalización)
+                                              empleadoId: cm.empleadoId || "",
+                                              empleadoNombre: cm.empleadoNombre || empName,
+                                              empleadoEmail: cm.empleadoEmail || "",
+                                              concepto: cm.concepto || "",
+                                              // Datos editables - se copian pero pueden modificarse
+                                              imagenes: [], // Las imágenes son obligatorias y nuevas
+                                              valor: cm.valor || 0,
+                                              categoria: cm.categoria || "Compras",
+                                              recursos: cm.recursos || "",
+                                              contingencia: "No",
+                                              estado: "No aprobado",
+                                              createdAt: new Date().toISOString(),
+                                            };
+                                            try {
+                                              await contextUpdateProject(currentProjectData.id, 'legalizacion', [...(currentProjectData.legalizacion || []), newLegalizacion]);
+                                              toast.success("Registro copiado. Completa la imagen obligatoria y verifica los datos.", { duration: 4000 });
+                                            } catch (err) {
+                                              console.error('[PanelOperaciones] Error adding legalizacion from cajaMenor:', err);
+                                              toast.error("Error al agregar registro");
+                                            }
+                                          }}
+                                          className="flex flex-col items-start gap-0.5 py-2"
+                                        >
+                                          <span className="font-medium text-sm">{empName}</span>
+                                          <span className="text-xs text-muted-foreground truncate max-w-[250px]">
+                                            {cm.concepto || "Sin concepto"} • ${(cm.valor || 0).toLocaleString('es-CO')}
+                                          </span>
+                                        </DropdownMenuItem>
+                                      );
+                                    })}
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                toast.info("Funcionalidad de cargar información próximamente");
+                                toast.info("Funcionalidad de legalizar próximamente");
                               }}
                             >
                               LEGALIZAR

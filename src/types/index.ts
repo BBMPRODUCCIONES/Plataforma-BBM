@@ -126,6 +126,7 @@ export interface LegalizacionItem {
   empleadoNombre?: string;
   empleadoEmail?: string;
   concepto: string;
+  notaAdicional?: string; // Nota adicional editable sin modificar concepto original
   imagenes?: Attachment[]; // Obligatorio para legalización
   valor: number;
   categoria: 'Transporte' | 'Alimentación' | 'Compras';

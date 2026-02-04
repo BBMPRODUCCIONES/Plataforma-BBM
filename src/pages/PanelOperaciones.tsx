@@ -1977,36 +1977,8 @@ const PanelOperaciones = () => {
         mobileWidth: "180px",
         render: (l: LegalizacionItem & { isManual?: boolean }) => {
           const empleadoName = getEmpleadoName(l);
-          const isManualRecord = l.isManual || l.id.startsWith('manual-');
-          const canEdit = isManualRecord && canEditLegalizacionRecord(l);
           
-          // Si es registro manual y editable, permitir seleccionar empleado
-          if (canEdit) {
-            return (
-              <EmpleadoAutocomplete
-                value={l.empleadoId || ""}
-                onChange={(empId) => {
-                  if (projectId) {
-                    const emp = empleados.find(e => e.id === empId);
-                    // Actualizar empleadoId y empleadoNombre juntos
-                    const project = projects.find(p => p.id === projectId);
-                    if (project) {
-                      const updatedLeg = (project.legalizacion || []).map((leg: LegalizacionItem) =>
-                        leg.id === l.id 
-                          ? { ...leg, empleadoId: empId, empleadoNombre: emp?.nombre || "", empleadoEmail: emp?.correo?.toLowerCase() || "" }
-                          : leg
-                      );
-                      contextUpdateProject(projectId, 'legalizacion', updatedLeg);
-                    }
-                  }
-                }}
-                placeholder="Seleccionar empleado..."
-                className="w-full"
-              />
-            );
-          }
-          
-          // EMPLEADO copiado de Solicitud de Presupuesto - NO EDITABLE
+          // EMPLEADO siempre es de solo lectura por seguridad
           return (
             <TooltipProvider>
               <Tooltip>
@@ -2019,7 +1991,7 @@ const PanelOperaciones = () => {
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-[300px]">
-                  <p>Dato copiado de Solicitud de Presupuesto (no editable)</p>
+                  <p>Campo protegido (no editable por seguridad)</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -3033,6 +3005,25 @@ const PanelOperaciones = () => {
                             <span className="text-xs text-muted-foreground font-normal ml-1">(sincronizado automáticamente)</span>
                           </CardTitle>
                           <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <FileDown className="h-3 w-3 mr-1" />
+                                  EXPORTAR
+                                  <ChevronDown className="h-3 w-3 ml-1" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start">
+                                <DropdownMenuItem onClick={() => toast.info("Exportar legalización próximamente")}>
+                                  <FileDown className="h-4 w-4 mr-2" />
+                                  Descargar PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => toast.info("Exportar legalización próximamente")}>
+                                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                  Descargar Excel
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                             <Button 
                               variant="outline"
                               size="sm" 
@@ -3061,25 +3052,6 @@ const PanelOperaciones = () => {
                               <Plus className="h-3 w-3 mr-1" />
                               AGREGAR REGISTRO
                             </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  <FileDown className="h-3 w-3 mr-1" />
-                                  EXPORTAR
-                                  <ChevronDown className="h-3 w-3 ml-1" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start">
-                                <DropdownMenuItem onClick={() => toast.info("Exportar legalización próximamente")}>
-                                  <FileDown className="h-4 w-4 mr-2" />
-                                  Descargar PDF
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => toast.info("Exportar legalización próximamente")}>
-                                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                                  Descargar Excel
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
                           </div>
                         </div>
                       </CardHeader>

@@ -1582,38 +1582,7 @@ const PanelOperaciones = () => {
         mobileWidth: "180px",
         className: "caja-menor-sticky-col-1",
         render: (c: CajaMenorItem) => {
-          const canEdit = canEditCajaMenorRecord(c);
-          
-          // Admin: can change employee; Operativo: read-only display
-          if (isAdmin) {
-            return (
-              <EmpleadoAutocomplete
-                value={c.empleadoId || ""}
-                onChange={(nombreValue, empleadoId) => {
-                  if (projectId && empleadoId) {
-                    const emp = empleados.find(e => e.id === empleadoId);
-                    // Update all three fields atomically
-                    const project = projects.find(p => p.id === projectId);
-                    if (project) {
-                      const updatedCajaMenor = (project.cajaMenor || []).map(item =>
-                        item.id === c.id ? { 
-                          ...item, 
-                          empleadoId,
-                          empleadoNombre: emp?.nombre || nombreValue,
-                          empleadoEmail: emp?.correo || ""
-                        } : item
-                      );
-                      contextUpdateProject(projectId, 'cajaMenor', updatedCajaMenor);
-                    }
-                  }
-                }}
-                useEmpleadoId
-                placeholder="Seleccionar empleado..."
-              />
-            );
-          }
-          
-          // Operativo: read-only display with lock icon and tooltip for desktop ellipsis
+          // Always read-only display with lock icon (same as Legalización section)
           const empleadoName = getEmpleadoName(c);
           return (
             <TooltipProvider>
@@ -1621,7 +1590,7 @@ const PanelOperaciones = () => {
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-2 text-sm truncate max-w-full cursor-default">
                     <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                    <span className={`truncate ${canEdit ? "text-foreground" : "text-muted-foreground"}`}>
+                    <span className="truncate text-foreground">
                       {empleadoName}
                     </span>
                   </div>

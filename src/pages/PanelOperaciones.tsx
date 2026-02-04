@@ -981,11 +981,40 @@ const PanelOperaciones = () => {
   };
 
   // Legalización CRUD functions with permission checks
+  // NOTA: La legalización ahora se sincroniza automáticamente con cajaMenor
+  // Los IDs de legalización tienen formato "leg-{cajaMenorId}"
   const updateLegalizacionItem = (projectId: string, legalizacionId: string, field: string, value: any) => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
     
-    const record = (project.legalizacion || []).find(l => l.id === legalizacionId);
+    // Extraer el ID del cajaMenor si tiene formato "leg-{id}"
+    const sourceId = legalizacionId.startsWith("leg-") ? legalizacionId.replace("leg-", "") : null;
+    
+    // Buscar registro existente en legalización
+    let record = (project.legalizacion || []).find(l => l.id === legalizacionId);
+    
+    // Si no existe pero tenemos sourceId, buscar en cajaMenor para obtener datos base
+    if (!record && sourceId) {
+      const cajaMenorRecord = (project.cajaMenor || []).find(c => c.id === sourceId);
+      if (cajaMenorRecord) {
+        // Crear nuevo registro de legalización basado en cajaMenor
+        record = {
+          id: legalizacionId,
+          empleadoId: cajaMenorRecord.empleadoId,
+          empleadoNombre: cajaMenorRecord.empleadoNombre || empleados.find(e => e.id === cajaMenorRecord.empleadoId)?.nombre || "",
+          empleadoEmail: cajaMenorRecord.empleadoEmail,
+          concepto: cajaMenorRecord.concepto,
+          imagenes: [],
+          valor: cajaMenorRecord.valor,
+          categoria: cajaMenorRecord.categoria,
+          recursos: cajaMenorRecord.recursos,
+          contingencia: "No",
+          estado: "No aprobado",
+          createdAt: new Date().toISOString(),
+        } as LegalizacionItem;
+      }
+    }
+    
     if (!record) return;
     
     // Contingencia field: ONLY Administrador can edit
@@ -1010,9 +1039,20 @@ const PanelOperaciones = () => {
       }
     }
     
-    const updatedLegalizacion = (project.legalizacion || []).map(l =>
-      l.id === legalizacionId ? { ...l, [field]: value } : l
-    );
+    // Buscar si ya existe en el array de legalización
+    const existingIndex = (project.legalizacion || []).findIndex(l => l.id === legalizacionId);
+    let updatedLegalizacion: LegalizacionItem[];
+    
+    if (existingIndex >= 0) {
+      // Actualizar registro existente
+      updatedLegalizacion = (project.legalizacion || []).map(l =>
+        l.id === legalizacionId ? { ...l, [field]: value } : l
+      );
+    } else {
+      // Agregar nuevo registro con el campo actualizado
+      updatedLegalizacion = [...(project.legalizacion || []), { ...record, [field]: value }];
+    }
+    
     contextUpdateProject(projectId, 'legalizacion', updatedLegalizacion);
   };
 
@@ -2220,49 +2260,29 @@ const PanelOperaciones = () => {
         mobileWidth: "50px",
         render: (l: LegalizacionItem) => {
           const isApproved = l.estado === "Aprobado";
-          const canEdit = canEditLegalizacionRecord(l);
           
-          // If approved, show lock icon with tooltip
-          if (isApproved) {
-            return (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center justify-center h-7 w-7">
-                      <Lock className="h-4 w-4 text-green-500" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="left">
-                    <p>Registro aprobado: edición bloqueada</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            );
-          }
-          
-          if (!canEdit) {
-            return null;
-          }
+          // Los registros de legalización están sincronizados automáticamente
+          // No se pueden eliminar independientemente (se eliminan al eliminar el registro de cajaMenor)
           return (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (projectId) {
-                  deleteLegalizacionItem(projectId, l.id);
-                }
-              }}
-              title="Eliminar"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center justify-center h-7 w-7">
+                    <Lock className={`h-4 w-4 ${isApproved ? "text-green-500" : "text-muted-foreground"}`} />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p>{isApproved 
+                    ? "Registro aprobado: edición bloqueada" 
+                    : "Sincronizado con Solicitud de Presupuesto"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           );
         },
       },
     ];
-  }, [currentProjectData?.id, currentProjectData?.legalizacion, empleados, canEditLegalizacionRecord, canApproveCajaMenor, role]);
+  }, [currentProjectData?.id, currentProjectData?.cajaMenor, currentProjectData?.legalizacion, empleados, canEditLegalizacionRecord, canApproveCajaMenor, role]);
 
   if (loading) {
     return (
@@ -2483,20 +2503,48 @@ const PanelOperaciones = () => {
               }
               
               // Validación de LEGALIZACIÓN - Imágenes OBLIGATORIAS
-              const legalizacionItems = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
-              if (legalizacionItems.length > 0) {
-                const legIncompletos = legalizacionItems.filter((item: LegalizacionItem) => {
-                  const sinImagen = !item.imagenes || item.imagenes.length === 0;
-                  const sinValor = !item.valor || item.valor === 0;
-                  const sinCategoria = !item.categoria?.trim();
-                  const sinRecurso = !item.recursos?.trim();
-                  return sinImagen || sinValor || sinCategoria || sinRecurso;
+              // Ahora validamos basándonos en cajaMenor (ya que están sincronizados automáticamente)
+              const cajaMenorItemsForLeg = currentProjectData.cajaMenor || [];
+              const legalizacionData = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
+              
+              if (cajaMenorItemsForLeg.length > 0) {
+                const legIncompletos: { item: LegalizacionItem; idx: number }[] = [];
+                
+                cajaMenorItemsForLeg.forEach((cm, idx) => {
+                  // Buscar si existe registro de legalización para este cajaMenor
+                  const legRecord = legalizacionData.find(
+                    (l: LegalizacionItem) => l.id === `leg-${cm.id}` || (l.empleadoId === cm.empleadoId && l.concepto === cm.concepto)
+                  );
+                  
+                  // Crear objeto combinado para validación
+                  const combinedRecord: LegalizacionItem = {
+                    id: `leg-${cm.id}`,
+                    empleadoId: cm.empleadoId,
+                    empleadoNombre: cm.empleadoNombre,
+                    empleadoEmail: cm.empleadoEmail,
+                    concepto: cm.concepto,
+                    imagenes: legRecord?.imagenes || [],
+                    valor: legRecord?.valor ?? cm.valor,
+                    categoria: legRecord?.categoria || cm.categoria,
+                    recursos: legRecord?.recursos || cm.recursos,
+                    contingencia: legRecord?.contingencia || "No",
+                    estado: legRecord?.estado || "No aprobado",
+                    createdAt: legRecord?.createdAt || cm.createdAt,
+                  };
+                  
+                  const sinImagen = !combinedRecord.imagenes || combinedRecord.imagenes.length === 0;
+                  const sinValor = !combinedRecord.valor || combinedRecord.valor === 0;
+                  const sinCategoria = !combinedRecord.categoria?.trim();
+                  const sinRecurso = !combinedRecord.recursos?.trim();
+                  
+                  if (sinImagen || sinValor || sinCategoria || sinRecurso) {
+                    legIncompletos.push({ item: combinedRecord, idx });
+                  }
                 });
                 
                 if (legIncompletos.length > 0) {
                   const errores: string[] = [];
-                  legIncompletos.forEach((item: LegalizacionItem) => {
-                    const idx = legalizacionItems.indexOf(item);
+                  legIncompletos.forEach(({ item, idx }) => {
                     const faltantes: string[] = [];
                     if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
@@ -2894,13 +2942,14 @@ const PanelOperaciones = () => {
                       </CardContent>
                     </Card>
 
-                    {/* Sección de LEGALIZACIÓN - siempre visible con datos independientes */}
+                    {/* Sección de LEGALIZACIÓN - sincronizado automáticamente desde SOLICITUD DE PRESUPUESTO */}
                     <Card className="overflow-hidden mt-4 border-primary/30">
                       <CardHeader className="py-3 flex flex-col gap-2 bg-primary/5">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <FileText className="h-4 w-4" />
-                            LEGALIZACIÓN ({(currentProjectData.legalizacion || []).length})
+                            LEGALIZACIÓN ({(currentProjectData.cajaMenor || []).length})
+                            <span className="text-xs text-muted-foreground font-normal ml-1">(sincronizado automáticamente)</span>
                           </CardTitle>
                           <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
                             <DropdownMenu>
@@ -2922,92 +2971,41 @@ const PanelOperaciones = () => {
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                            {/* Dropdown para agregar registro de legalización desde cajaMenor existente */}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  <Plus className="h-3 w-3 sm:mr-1" />
-                                  <span className="hidden sm:inline uppercase">AGREGAR REGISTRO</span>
-                                  <span className="sm:hidden">Agregar</span>
-                                  <ChevronDown className="h-3 w-3 ml-1" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto min-w-[280px]">
-                                {(currentProjectData.cajaMenor || []).length === 0 ? (
-                                  <DropdownMenuItem disabled>
-                                    <span className="text-muted-foreground text-xs">No hay registros en Solicitud de Presupuesto</span>
-                                  </DropdownMenuItem>
-                                ) : (
-                                  <>
-                                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-b">
-                                      Selecciona registro para legalizar:
-                                    </div>
-                                    {(currentProjectData.cajaMenor || []).map((cm) => {
-                                      const empName = cm.empleadoNombre || empleados.find(e => e.id === cm.empleadoId)?.nombre || "Sin empleado";
-                                      return (
-                                        <DropdownMenuItem
-                                          key={cm.id}
-                                          onClick={async () => {
-                                            setCajaMenorValidationErrors([]);
-                                            // Copiar datos de cajaMenor a legalización
-                                            const newLegalizacion: LegalizacionItem = {
-                                              id: `lg${Date.now()}`,
-                                              // Datos copiados (no editables en legalización)
-                                              empleadoId: cm.empleadoId || "",
-                                              empleadoNombre: cm.empleadoNombre || empName,
-                                              empleadoEmail: cm.empleadoEmail || "",
-                                              concepto: cm.concepto || "",
-                                              // Datos editables - se copian pero pueden modificarse
-                                              imagenes: [], // Las imágenes son obligatorias y nuevas
-                                              valor: cm.valor || 0,
-                                              categoria: cm.categoria || "Compras",
-                                              recursos: cm.recursos || "",
-                                              contingencia: "No",
-                                              estado: "No aprobado",
-                                              createdAt: new Date().toISOString(),
-                                            };
-                                            try {
-                                              await contextUpdateProject(currentProjectData.id, 'legalizacion', [...(currentProjectData.legalizacion || []), newLegalizacion]);
-                                              toast.success("Registro copiado. Completa la imagen obligatoria y verifica los datos.", { duration: 4000 });
-                                            } catch (err) {
-                                              console.error('[PanelOperaciones] Error adding legalizacion from cajaMenor:', err);
-                                              toast.error("Error al agregar registro");
-                                            }
-                                          }}
-                                          className="flex flex-col items-start gap-0.5 py-2"
-                                        >
-                                          <span className="font-medium text-sm">{empName}</span>
-                                          <span className="text-xs text-muted-foreground truncate max-w-[250px]">
-                                            {cm.concepto || "Sin concepto"} • ${(cm.valor || 0).toLocaleString('es-CO')}
-                                          </span>
-                                        </DropdownMenuItem>
-                                      );
-                                    })}
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                toast.info("Funcionalidad de legalizar próximamente");
-                              }}
-                            >
-                              LEGALIZAR
-                            </Button>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-4 caja-menor-mobile-scroll">
-                        {(currentProjectData.legalizacion || []).length > 0 ? (
+                        {(currentProjectData.cajaMenor || []).length > 0 ? (
                           <MatrixTable
-                            data={currentProjectData.legalizacion || []}
+                            data={(currentProjectData.cajaMenor || []).map((cm) => {
+                              // Buscar si existe un registro de legalización para este cajaMenor
+                              const existingLeg = (currentProjectData.legalizacion || []).find(
+                                (l: LegalizacionItem) => l.id === `leg-${cm.id}` || l.empleadoId === cm.empleadoId && l.concepto === cm.concepto
+                              );
+                              // Crear objeto de legalización combinando datos de cajaMenor con datos editables de legalizacion
+                              return {
+                                id: `leg-${cm.id}`,
+                                sourceId: cm.id, // ID original del cajaMenor para referencias
+                                // Datos copiados (no editables) - siempre de cajaMenor
+                                empleadoId: cm.empleadoId,
+                                empleadoNombre: cm.empleadoNombre || empleados.find(e => e.id === cm.empleadoId)?.nombre || "",
+                                empleadoEmail: cm.empleadoEmail,
+                                concepto: cm.concepto,
+                                // Datos editables - usar de legalizacion si existe, sino de cajaMenor
+                                imagenes: existingLeg?.imagenes || [],
+                                valor: existingLeg?.valor ?? cm.valor,
+                                categoria: existingLeg?.categoria || cm.categoria,
+                                recursos: existingLeg?.recursos || cm.recursos,
+                                contingencia: existingLeg?.contingencia || "No",
+                                estado: existingLeg?.estado || "No aprobado",
+                                createdAt: existingLeg?.createdAt || cm.createdAt || new Date().toISOString(),
+                              } as LegalizacionItem & { sourceId: string };
+                            })}
                             columns={legalizacionColumns}
                             getRowClassName={(record: LegalizacionItem) => record.estado === "Aprobado" ? "caja-menor-row-approved" : ""}
                           />
                         ) : (
-                          <p className="text-sm text-muted-foreground">No hay registros para legalizar. Haga clic en "Agregar Registro" para comenzar.</p>
+                          <p className="text-sm text-muted-foreground">No hay registros en Solicitud de Presupuesto. Los registros aparecerán aquí automáticamente cuando se agreguen arriba.</p>
                         )}
                       </CardContent>
                     </Card>

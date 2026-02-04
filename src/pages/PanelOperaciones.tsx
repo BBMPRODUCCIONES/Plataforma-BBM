@@ -1751,7 +1751,7 @@ const PanelOperaciones = () => {
               <EditableCell
                 value={c.recursos || ""}
                 type="select"
-                options={["Recursos propios", "BBM", "Anticipo BBM"]}
+                options={["Recursos propios", "Caja Menor", "Anticipo BBM"]}
                 placeholder="Seleccionar..."
                 onChange={(value) => {
                   if (projectId) {
@@ -2096,7 +2096,7 @@ const PanelOperaciones = () => {
               <EditableCell
                 value={l.recursos || ""}
                 type="select"
-                options={["Recursos propios", "BBM", "Anticipo BBM"]}
+                options={["Recursos propios", "Caja Menor", "Anticipo BBM"]}
                 placeholder="Seleccionar..."
                 onChange={(value) => {
                   if (projectId) {

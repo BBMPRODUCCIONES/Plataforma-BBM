@@ -106,6 +106,7 @@ const generatePrintableHTML = (content: string, options: PrintOptions): string =
         .badge-transporte { background: #dcfce7; color: #16a34a; }
         .badge-aprobado { background: #dcfce7; color: #16a34a; }
         .badge-no-aprobado { background: #fee2e2; color: #dc2626; }
+        .badge-pendiente { background: #ffedd5; color: #ea580c; }
         .checkbox {
           display: inline-block;
           width: 14px;
@@ -523,8 +524,17 @@ const getEmpleadoNombre = (empleadoId: string | undefined, empleados: EmpleadoBa
   return empleado?.nombre || empleadoId;
 };
 
-// Generate Caja Menor section (internal use)
-const generateCajaMenorSection = (project: Project, empleados: EmpleadoBasic[]): string => {
+// Helper to get status badge class
+const getEstadoBadgeClass = (estado: string | undefined): string => {
+  if (!estado) return '';
+  if (estado === 'Aprobado') return 'badge-aprobado';
+  if (estado === 'No aprobado') return 'badge-no-aprobado';
+  if (estado === 'Pendiente') return 'badge-pendiente';
+  return '';
+};
+
+// Generate Solicitud de Presupuesto section (internal use)
+const generateSolicitudPresupuestoSection = (project: Project, empleados: EmpleadoBasic[]): string => {
   const cajaMenor = project.cajaMenor || [];
   
   const tableRows = cajaMenor.map(c => `
@@ -536,12 +546,12 @@ const generateCajaMenorSection = (project: Project, empleados: EmpleadoBasic[]):
       <td>${c.categoria || '-'}</td>
       <td>${c.recursos || '-'}</td>
       <td>${c.contingencia || 'No'}</td>
-      <td><span class="badge ${c.estado === 'Aprobado' ? 'badge-aprobado' : 'badge-no-aprobado'}">${c.estado || '-'}</span></td>
+      <td><span class="badge ${getEstadoBadgeClass(c.estado)}">${c.estado || '-'}</span></td>
     </tr>
   `).join('');
 
   return `
-    <h2 style="margin: 15px 0 10px; font-size: 14px;">Caja Menor (${cajaMenor.length} registros)</h2>
+    <h2 style="margin: 15px 0 10px; font-size: 14px;">SOLICITUD DE PRESUPUESTO (${cajaMenor.length} registros)</h2>
     <table>
       <thead>
         <tr>
@@ -556,13 +566,75 @@ const generateCajaMenorSection = (project: Project, empleados: EmpleadoBasic[]):
         </tr>
       </thead>
       <tbody>
-        ${tableRows || '<tr><td colspan="8" style="text-align: center;">No hay registros de caja menor</td></tr>'}
+        ${tableRows || '<tr><td colspan="8" style="text-align: center;">No hay registros</td></tr>'}
       </tbody>
     </table>
   `;
 };
 
-// Print Caja Menor PDF
+// Generate Legalizacion section (internal use)
+const generateLegalizacionSection = (project: Project, empleados: EmpleadoBasic[]): string => {
+  const legalizacion = (project.legalizacion as any[]) || [];
+  
+  if (legalizacion.length === 0) {
+    return `
+      <h2 style="margin: 25px 0 10px; font-size: 14px;">LEGALIZACIÓN (0 registros)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Empleado</th>
+            <th>Concepto</th>
+            <th>Imágenes</th>
+            <th>Valor</th>
+            <th>Categoría</th>
+            <th>Recursos</th>
+            <th>Contingencia</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="8" style="text-align: center;">No hay registros de legalización</td></tr>
+        </tbody>
+      </table>
+    `;
+  }
+  
+  const tableRows = legalizacion.map(l => `
+    <tr>
+      <td>${getEmpleadoNombre(l.empleadoId, empleados)}</td>
+      <td>${l.concepto || '-'}</td>
+      <td>${(l.imagenes || []).length} imagen(es)</td>
+      <td>$${(l.valor || 0).toLocaleString('es-CO')}</td>
+      <td>${l.categoria || '-'}</td>
+      <td>${l.recursos || '-'}</td>
+      <td>${l.contingencia || 'No'}</td>
+      <td><span class="badge ${getEstadoBadgeClass(l.estado)}">${l.estado || '-'}</span></td>
+    </tr>
+  `).join('');
+
+  return `
+    <h2 style="margin: 25px 0 10px; font-size: 14px;">LEGALIZACIÓN (${legalizacion.length} registros)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Empleado</th>
+          <th>Concepto</th>
+          <th>Imágenes</th>
+          <th>Valor</th>
+          <th>Categoría</th>
+          <th>Recursos</th>
+          <th>Contingencia</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows}
+      </tbody>
+    </table>
+  `;
+};
+
+// Print Gastos PDF (Solicitud de Presupuesto + Legalización)
 export const printCajaMenor = (project: Project, empleados: EmpleadoBasic[] = []) => {
   const content = `
     <div class="info-section">
@@ -576,11 +648,12 @@ export const printCajaMenor = (project: Project, empleados: EmpleadoBasic[] = []
       <div class="info-row"><span class="info-label">Ubicación:</span> ${project.ubicacion || '-'}</div>
       <div class="info-row"><span class="info-label">Estado del evento:</span> ${project.estado}</div>
     </div>
-    ${generateCajaMenorSection(project, empleados)}
+    ${generateSolicitudPresupuestoSection(project, empleados)}
+    ${generateLegalizacionSection(project, empleados)}
   `;
 
   const html = generatePrintableHTML(content, {
-    title: 'CAJA MENOR',
+    title: 'GASTOS',
     subtitle: project.evento,
   });
 

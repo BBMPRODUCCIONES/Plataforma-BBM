@@ -2138,9 +2138,32 @@ const PanelOperaciones = () => {
         header: "Categoría *",
         width: "130px",
         mobileWidth: "130px",
-        render: (l: LegalizacionItem) => {
+        render: (l: LegalizacionItem & { isManual?: boolean }) => {
           const isEmpty = !l.categoria?.trim();
-          // CATEGORÍA siempre es solo lectura en Legalización (sincronizada desde Solicitud)
+          const isManualRecord = l.isManual || l.id.startsWith('manual-');
+          const canEdit = isManualRecord && canEditLegalizacionRecord(l);
+          
+          // Si es registro manual y editable, mostrar select
+          if (canEdit) {
+            return (
+              <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+                <EditableCell
+                  value={l.categoria}
+                  type="select"
+                  options={["Transporte", "Alimentación", "Compras"]}
+                  placeholder="Seleccionar..."
+                  onChange={(value) => {
+                    if (projectId) {
+                      updateLegalizacionItem(projectId, l.id, "categoria", value);
+                      setCajaMenorValidationErrors([]);
+                    }
+                  }}
+                />
+              </div>
+            );
+          }
+          
+          // CATEGORÍA es solo lectura para registros sincronizados
           return (
             <TooltipProvider>
               <Tooltip>
@@ -2165,9 +2188,32 @@ const PanelOperaciones = () => {
         header: "Recursos *",
         width: "140px",
         mobileWidth: "140px",
-        render: (l: LegalizacionItem) => {
+        render: (l: LegalizacionItem & { isManual?: boolean }) => {
           const isEmpty = !l.recursos?.trim();
-          // RECURSOS siempre es solo lectura en Legalización (sincronizado desde Solicitud)
+          const isManualRecord = l.isManual || l.id.startsWith('manual-');
+          const canEdit = isManualRecord && canEditLegalizacionRecord(l);
+          
+          // Si es registro manual y editable, mostrar select
+          if (canEdit) {
+            return (
+              <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+                <EditableCell
+                  value={l.recursos}
+                  type="select"
+                  options={["Recursos propios", "Caja Menor", "Anticipo BBM"]}
+                  placeholder="Seleccionar..."
+                  onChange={(value) => {
+                    if (projectId) {
+                      updateLegalizacionItem(projectId, l.id, "recursos", value);
+                      setCajaMenorValidationErrors([]);
+                    }
+                  }}
+                />
+              </div>
+            );
+          }
+          
+          // RECURSOS es solo lectura para registros sincronizados
           return (
             <TooltipProvider>
               <Tooltip>

@@ -598,10 +598,13 @@ export const printCotizaciones = (project: Project, includeNotes: boolean = true
   openPrintWindow(html);
 };
 
-// Employee type for resolving IDs to names
+// Employee type for resolving IDs to names with banking info
 interface EmpleadoBasic {
   id: string;
   nombre: string;
+  banco?: string;
+  tipoCuenta?: string;
+  numeroCuenta?: string;
 }
 
 // Helper to resolve employee ID to name
@@ -609,6 +612,17 @@ const getEmpleadoNombre = (empleadoId: string | undefined, empleados: EmpleadoBa
   if (!empleadoId) return '-';
   const empleado = empleados.find(e => e.id === empleadoId);
   return empleado?.nombre || empleadoId;
+};
+
+// Helper to get employee banking info
+const getEmpleadoBankingInfo = (empleadoId: string | undefined, empleados: EmpleadoBasic[]): { banco: string; tipoCuenta: string; numeroCuenta: string } => {
+  if (!empleadoId) return { banco: '-', tipoCuenta: '-', numeroCuenta: '-' };
+  const empleado = empleados.find(e => e.id === empleadoId);
+  return {
+    banco: empleado?.banco || '-',
+    tipoCuenta: empleado?.tipoCuenta || '-',
+    numeroCuenta: empleado?.numeroCuenta || '-'
+  };
 };
 
 // Helper to get status badge class
@@ -620,50 +634,109 @@ const getEstadoBadgeClass = (estado: string | undefined): string => {
   return '';
 };
 
-// Generate Solicitud de Presupuesto section (internal use)
-const generateSolicitudPresupuestoSection = (project: Project, empleados: EmpleadoBasic[]): string => {
+// Generate Solicitud de Presupuesto section with optional banking info
+const generateSolicitudPresupuestoSection = (project: Project, empleados: EmpleadoBasic[], includeBankingInfo: boolean = false): string => {
   const cajaMenor = project.cajaMenor || [];
   
-  const tableRows = cajaMenor.map(c => `
-    <tr>
-      <td>${getEmpleadoNombre(c.empleadoId, empleados)}</td>
-      <td>${c.concepto || '-'}</td>
-      <td>${(c.imagenes || []).length} imagen(es)</td>
-      <td>$${(c.valor || 0).toLocaleString('es-CO')}</td>
-      <td>${c.categoria || '-'}</td>
-      <td>${c.recursos || '-'}</td>
-      <td>${c.contingencia || 'No'}</td>
-      <td><span class="badge ${getEstadoBadgeClass(c.estado)}">${c.estado || '-'}</span></td>
-    </tr>
-  `).join('');
+  const headers = includeBankingInfo 
+    ? `<tr>
+        <th>Empleado</th>
+        <th>Banco</th>
+        <th>Cuenta</th>
+        <th># Cuenta</th>
+        <th>Concepto</th>
+        <th>Imágenes</th>
+        <th>Valor</th>
+        <th>Categoría</th>
+        <th>Recursos</th>
+        <th>Contingencia</th>
+        <th>Estado</th>
+      </tr>`
+    : `<tr>
+        <th>Empleado</th>
+        <th>Concepto</th>
+        <th>Imágenes</th>
+        <th>Valor</th>
+        <th>Categoría</th>
+        <th>Recursos</th>
+        <th>Contingencia</th>
+        <th>Estado</th>
+      </tr>`;
+  
+  const tableRows = cajaMenor.map(c => {
+    const bankInfo = getEmpleadoBankingInfo(c.empleadoId, empleados);
+    if (includeBankingInfo) {
+      return `
+        <tr>
+          <td>${getEmpleadoNombre(c.empleadoId, empleados)}</td>
+          <td>${bankInfo.banco}</td>
+          <td>${bankInfo.tipoCuenta}</td>
+          <td>${bankInfo.numeroCuenta}</td>
+          <td>${c.concepto || '-'}</td>
+          <td>${(c.imagenes || []).length} imagen(es)</td>
+          <td>$${(c.valor || 0).toLocaleString('es-CO')}</td>
+          <td>${c.categoria || '-'}</td>
+          <td>${c.recursos || '-'}</td>
+          <td>${c.contingencia || 'No'}</td>
+          <td><span class="badge ${getEstadoBadgeClass(c.estado)}">${c.estado || '-'}</span></td>
+        </tr>
+      `;
+    }
+    return `
+      <tr>
+        <td>${getEmpleadoNombre(c.empleadoId, empleados)}</td>
+        <td>${c.concepto || '-'}</td>
+        <td>${(c.imagenes || []).length} imagen(es)</td>
+        <td>$${(c.valor || 0).toLocaleString('es-CO')}</td>
+        <td>${c.categoria || '-'}</td>
+        <td>${c.recursos || '-'}</td>
+        <td>${c.contingencia || 'No'}</td>
+        <td><span class="badge ${getEstadoBadgeClass(c.estado)}">${c.estado || '-'}</span></td>
+      </tr>
+    `;
+  }).join('');
 
+  const colspan = includeBankingInfo ? 11 : 8;
+  
   return `
     <h2 style="margin: 15px 0 10px; font-size: 14px;">SOLICITUD DE PRESUPUESTO (${cajaMenor.length} registros)</h2>
     <table>
       <thead>
-        <tr>
-          <th>Empleado</th>
-          <th>Concepto</th>
-          <th>Imágenes</th>
-          <th>Valor</th>
-          <th>Categoría</th>
-          <th>Recursos</th>
-          <th>Contingencia</th>
-          <th>Estado</th>
-        </tr>
+        ${headers}
       </thead>
       <tbody>
-        ${tableRows || '<tr><td colspan="8" style="text-align: center;">No hay registros</td></tr>'}
+        ${tableRows || `<tr><td colspan="${colspan}" style="text-align: center;">No hay registros</td></tr>`}
       </tbody>
     </table>
   `;
 };
 
-// Generate Legalizacion section (internal use)
-const generateLegalizacionSection = (project: Project, empleados: EmpleadoBasic[]): string => {
-  const legalizacion = (project.legalizacion as any[]) || [];
+// Generate Legalizacion section using actual data from project
+const generateLegalizacionSection = (project: Project, empleados: EmpleadoBasic[], includeBankingInfo: boolean = false): string => {
+  // Combine synced legalization (from cajaMenor approved) and manual entries
+  const cajaMenor = project.cajaMenor || [];
+  const manualLegalizacion = ((project.legalizacion as any[]) || []).filter(l => !l.id.startsWith('leg-'));
   
-  if (legalizacion.length === 0) {
+  // Build synced legalization from cajaMenor (with leg- prefix conceptually)
+  const syncedLegalizacion = cajaMenor.map(cm => {
+    // Find corresponding legalization entry if exists
+    const legEntry = ((project.legalizacion as any[]) || []).find(l => l.id === `leg-${cm.id}`);
+    return {
+      empleadoId: cm.empleadoId,
+      concepto: cm.concepto,
+      notaAdicional: legEntry?.notaAdicional || '',
+      imagenes: legEntry?.imagenes || [],
+      valor: legEntry?.valor || 0,
+      categoria: cm.categoria,
+      recursos: cm.recursos,
+      contingencia: legEntry?.contingencia || cm.contingencia,
+      estado: legEntry?.estado || 'Pendiente'
+    };
+  });
+  
+  const allLegalizacion = [...syncedLegalizacion, ...manualLegalizacion];
+  
+  if (allLegalizacion.length === 0) {
     return `
       <h2 style="margin: 25px 0 10px; font-size: 14px;">LEGALIZACIÓN (0 registros)</h2>
       <table>
@@ -686,44 +759,86 @@ const generateLegalizacionSection = (project: Project, empleados: EmpleadoBasic[
     `;
   }
   
-  const tableRows = legalizacion.map(l => `
-    <tr>
-      <td>${getEmpleadoNombre(l.empleadoId, empleados)}</td>
-      <td>${l.concepto || '-'}</td>
-      <td>${(l.imagenes || []).length} imagen(es)</td>
-      <td>$${(l.valor || 0).toLocaleString('es-CO')}</td>
-      <td>${l.categoria || '-'}</td>
-      <td>${l.recursos || '-'}</td>
-      <td>${l.contingencia || 'No'}</td>
-      <td><span class="badge ${getEstadoBadgeClass(l.estado)}">${l.estado || '-'}</span></td>
-    </tr>
-  `).join('');
+  const headers = includeBankingInfo 
+    ? `<tr>
+        <th>Empleado</th>
+        <th>Banco</th>
+        <th>Cuenta</th>
+        <th># Cuenta</th>
+        <th>Concepto</th>
+        <th>Imágenes</th>
+        <th>Valor</th>
+        <th>Categoría</th>
+        <th>Recursos</th>
+        <th>Contingencia</th>
+        <th>Estado</th>
+      </tr>`
+    : `<tr>
+        <th>Empleado</th>
+        <th>Concepto</th>
+        <th>Imágenes</th>
+        <th>Valor</th>
+        <th>Categoría</th>
+        <th>Recursos</th>
+        <th>Contingencia</th>
+        <th>Estado</th>
+      </tr>`;
+  
+  const tableRows = allLegalizacion.map(l => {
+    const bankInfo = getEmpleadoBankingInfo(l.empleadoId, empleados);
+    const conceptoDisplay = l.notaAdicional 
+      ? `${l.concepto || '-'}<br><small style="color:#666;">+ ${l.notaAdicional}</small>`
+      : (l.concepto || '-');
+      
+    if (includeBankingInfo) {
+      return `
+        <tr>
+          <td>${getEmpleadoNombre(l.empleadoId, empleados)}</td>
+          <td>${bankInfo.banco}</td>
+          <td>${bankInfo.tipoCuenta}</td>
+          <td>${bankInfo.numeroCuenta}</td>
+          <td>${conceptoDisplay}</td>
+          <td>${(l.imagenes || []).length} imagen(es)</td>
+          <td>$${(l.valor || 0).toLocaleString('es-CO')}</td>
+          <td>${l.categoria || '-'}</td>
+          <td>${l.recursos || '-'}</td>
+          <td>${l.contingencia || 'No'}</td>
+          <td><span class="badge ${getEstadoBadgeClass(l.estado)}">${l.estado || '-'}</span></td>
+        </tr>
+      `;
+    }
+    return `
+      <tr>
+        <td>${getEmpleadoNombre(l.empleadoId, empleados)}</td>
+        <td>${conceptoDisplay}</td>
+        <td>${(l.imagenes || []).length} imagen(es)</td>
+        <td>$${(l.valor || 0).toLocaleString('es-CO')}</td>
+        <td>${l.categoria || '-'}</td>
+        <td>${l.recursos || '-'}</td>
+        <td>${l.contingencia || 'No'}</td>
+        <td><span class="badge ${getEstadoBadgeClass(l.estado)}">${l.estado || '-'}</span></td>
+      </tr>
+    `;
+  }).join('');
+
+  const colspan = includeBankingInfo ? 11 : 8;
 
   return `
-    <h2 style="margin: 25px 0 10px; font-size: 14px;">LEGALIZACIÓN (${legalizacion.length} registros)</h2>
+    <h2 style="margin: 25px 0 10px; font-size: 14px;">LEGALIZACIÓN (${allLegalizacion.length} registros)</h2>
     <table>
       <thead>
-        <tr>
-          <th>Empleado</th>
-          <th>Concepto</th>
-          <th>Imágenes</th>
-          <th>Valor</th>
-          <th>Categoría</th>
-          <th>Recursos</th>
-          <th>Contingencia</th>
-          <th>Estado</th>
-        </tr>
+        ${headers}
       </thead>
       <tbody>
-        ${tableRows}
+        ${tableRows || `<tr><td colspan="${colspan}" style="text-align: center;">No hay registros</td></tr>`}
       </tbody>
     </table>
   `;
 };
 
-// Print Gastos PDF (Solicitud de Presupuesto + Legalización)
-export const printCajaMenor = (project: Project, empleados: EmpleadoBasic[] = []) => {
-  const content = `
+// Generate info section for exports
+const generateProjectInfoSection = (project: Project): string => {
+  return `
     <div class="info-section">
       <div class="info-row"><span class="info-label">Evento:</span> ${project.evento}</div>
       <div class="info-row"><span class="info-label">Cliente:</span> ${project.cliente}</div>
@@ -735,8 +850,50 @@ export const printCajaMenor = (project: Project, empleados: EmpleadoBasic[] = []
       <div class="info-row"><span class="info-label">Ubicación:</span> ${project.ubicacion || '-'}</div>
       <div class="info-row"><span class="info-label">Estado del evento:</span> ${project.estado}</div>
     </div>
-    ${generateSolicitudPresupuestoSection(project, empleados)}
-    ${generateLegalizacionSection(project, empleados)}
+  `;
+};
+
+// Print ONLY Solicitud de Presupuesto
+export const printSolicitudPresupuesto = (project: Project, empleados: EmpleadoBasic[] = [], includeLegalizacion: boolean = false) => {
+  let content = generateProjectInfoSection(project);
+  content += generateSolicitudPresupuestoSection(project, empleados, true); // Include banking info
+  
+  if (includeLegalizacion) {
+    content += generateLegalizacionSection(project, empleados, true);
+  }
+
+  const html = generatePrintableHTML(content, {
+    title: includeLegalizacion ? 'SOLICITUD DE PRESUPUESTO + LEGALIZACIÓN' : 'SOLICITUD DE PRESUPUESTO',
+    subtitle: project.evento,
+  });
+
+  openPrintWindow(html);
+};
+
+// Print ONLY Legalizacion
+export const printLegalizacion = (project: Project, empleados: EmpleadoBasic[] = [], includeSolicitud: boolean = false) => {
+  let content = generateProjectInfoSection(project);
+  
+  if (includeSolicitud) {
+    content += generateSolicitudPresupuestoSection(project, empleados, true);
+  }
+  
+  content += generateLegalizacionSection(project, empleados, true); // Include banking info
+
+  const html = generatePrintableHTML(content, {
+    title: includeSolicitud ? 'LEGALIZACIÓN + SOLICITUD DE PRESUPUESTO' : 'LEGALIZACIÓN',
+    subtitle: project.evento,
+  });
+
+  openPrintWindow(html);
+};
+
+// Legacy: Print Gastos PDF (Solicitud de Presupuesto + Legalización) - kept for backward compatibility
+export const printCajaMenor = (project: Project, empleados: EmpleadoBasic[] = []) => {
+  const content = `
+    ${generateProjectInfoSection(project)}
+    ${generateSolicitudPresupuestoSection(project, empleados, true)}
+    ${generateLegalizacionSection(project, empleados, true)}
   `;
 
   const html = generatePrintableHTML(content, {
@@ -747,39 +904,194 @@ export const printCajaMenor = (project: Project, empleados: EmpleadoBasic[] = []
   openPrintWindow(html);
 };
 
-// Export Caja Menor to Excel (real .xlsx file)
+// Export ONLY Solicitud de Presupuesto to Excel
+export const exportSolicitudToExcel = async (project: Project, empleados: EmpleadoBasic[] = [], includeLegalizacion: boolean = false) => {
+  const XLSX = await import('xlsx');
+  const cajaMenor = project.cajaMenor || [];
+  
+  // Data rows with resolved employee names and banking info
+  const solicitudData = cajaMenor.map(c => {
+    const bankInfo = getEmpleadoBankingInfo(c.empleadoId, empleados);
+    return {
+      'Empleado': getEmpleadoNombre(c.empleadoId, empleados),
+      'Banco': bankInfo.banco,
+      'Tipo Cuenta': bankInfo.tipoCuenta,
+      '# Cuenta': bankInfo.numeroCuenta,
+      'Concepto': c.concepto || '',
+      'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
+      'Valor': c.valor || 0,
+      'Categoría': c.categoria || '',
+      'Recursos': c.recursos || '',
+      'Contingencia': c.contingencia || 'No',
+      'Estado': c.estado || ''
+    };
+  });
+  
+  // Create workbook
+  const workbook = XLSX.utils.book_new();
+  
+  // Solicitud sheet
+  const solicitudHeaders = ['Empleado', 'Banco', 'Tipo Cuenta', '# Cuenta', 'Concepto', 'Imágenes', 'Valor', 'Categoría', 'Recursos', 'Contingencia', 'Estado'];
+  const solicitudSheet = XLSX.utils.json_to_sheet(solicitudData, { header: solicitudHeaders });
+  solicitudSheet['!cols'] = [
+    { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 15 }
+  ];
+  XLSX.utils.book_append_sheet(workbook, solicitudSheet, 'Solicitud Presupuesto');
+  
+  if (includeLegalizacion) {
+    // Build legalization data
+    const manualLeg = ((project.legalizacion as any[]) || []).filter(l => !l.id.startsWith('leg-'));
+    const syncedLeg = cajaMenor.map(cm => {
+      const legEntry = ((project.legalizacion as any[]) || []).find(l => l.id === `leg-${cm.id}`);
+      return {
+        empleadoId: cm.empleadoId,
+        concepto: cm.concepto + (legEntry?.notaAdicional ? ` + ${legEntry.notaAdicional}` : ''),
+        imagenes: legEntry?.imagenes || [],
+        valor: legEntry?.valor || 0,
+        categoria: cm.categoria,
+        recursos: cm.recursos,
+        contingencia: legEntry?.contingencia || cm.contingencia,
+        estado: legEntry?.estado || 'Pendiente'
+      };
+    });
+    
+    const allLeg = [...syncedLeg, ...manualLeg];
+    const legData = allLeg.map(l => {
+      const bankInfo = getEmpleadoBankingInfo(l.empleadoId, empleados);
+      return {
+        'Empleado': getEmpleadoNombre(l.empleadoId, empleados),
+        'Banco': bankInfo.banco,
+        'Tipo Cuenta': bankInfo.tipoCuenta,
+        '# Cuenta': bankInfo.numeroCuenta,
+        'Concepto': l.concepto || '',
+        'Imágenes': `${(l.imagenes || []).length} imagen(es)`,
+        'Valor': l.valor || 0,
+        'Categoría': l.categoria || '',
+        'Recursos': l.recursos || '',
+        'Contingencia': l.contingencia || 'No',
+        'Estado': l.estado || ''
+      };
+    });
+    
+    const legSheet = XLSX.utils.json_to_sheet(legData, { header: solicitudHeaders });
+    legSheet['!cols'] = solicitudSheet['!cols'];
+    XLSX.utils.book_append_sheet(workbook, legSheet, 'Legalización');
+  }
+  
+  // Generate and download file
+  const fileName = `solicitud_presupuesto_${project.evento.replace(/[^a-zA-Z0-9]/g, '_')}_${format(new Date(), 'yyyyMMdd')}.xlsx`;
+  XLSX.writeFile(workbook, fileName);
+};
+
+// Export ONLY Legalizacion to Excel
+export const exportLegalizacionToExcel = async (project: Project, empleados: EmpleadoBasic[] = [], includeSolicitud: boolean = false) => {
+  const XLSX = await import('xlsx');
+  const cajaMenor = project.cajaMenor || [];
+  
+  // Create workbook
+  const workbook = XLSX.utils.book_new();
+  const headers = ['Empleado', 'Banco', 'Tipo Cuenta', '# Cuenta', 'Concepto', 'Imágenes', 'Valor', 'Categoría', 'Recursos', 'Contingencia', 'Estado'];
+  const colWidths = [
+    { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 15 }
+  ];
+  
+  if (includeSolicitud) {
+    const solicitudData = cajaMenor.map(c => {
+      const bankInfo = getEmpleadoBankingInfo(c.empleadoId, empleados);
+      return {
+        'Empleado': getEmpleadoNombre(c.empleadoId, empleados),
+        'Banco': bankInfo.banco,
+        'Tipo Cuenta': bankInfo.tipoCuenta,
+        '# Cuenta': bankInfo.numeroCuenta,
+        'Concepto': c.concepto || '',
+        'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
+        'Valor': c.valor || 0,
+        'Categoría': c.categoria || '',
+        'Recursos': c.recursos || '',
+        'Contingencia': c.contingencia || 'No',
+        'Estado': c.estado || ''
+      };
+    });
+    const solicitudSheet = XLSX.utils.json_to_sheet(solicitudData, { header: headers });
+    solicitudSheet['!cols'] = colWidths;
+    XLSX.utils.book_append_sheet(workbook, solicitudSheet, 'Solicitud Presupuesto');
+  }
+  
+  // Build legalization data
+  const manualLeg = ((project.legalizacion as any[]) || []).filter(l => !l.id.startsWith('leg-'));
+  const syncedLeg = cajaMenor.map(cm => {
+    const legEntry = ((project.legalizacion as any[]) || []).find(l => l.id === `leg-${cm.id}`);
+    return {
+      empleadoId: cm.empleadoId,
+      concepto: cm.concepto + (legEntry?.notaAdicional ? ` + ${legEntry.notaAdicional}` : ''),
+      imagenes: legEntry?.imagenes || [],
+      valor: legEntry?.valor || 0,
+      categoria: cm.categoria,
+      recursos: cm.recursos,
+      contingencia: legEntry?.contingencia || cm.contingencia,
+      estado: legEntry?.estado || 'Pendiente'
+    };
+  });
+  
+  const allLeg = [...syncedLeg, ...manualLeg];
+  const legData = allLeg.map(l => {
+    const bankInfo = getEmpleadoBankingInfo(l.empleadoId, empleados);
+    return {
+      'Empleado': getEmpleadoNombre(l.empleadoId, empleados),
+      'Banco': bankInfo.banco,
+      'Tipo Cuenta': bankInfo.tipoCuenta,
+      '# Cuenta': bankInfo.numeroCuenta,
+      'Concepto': l.concepto || '',
+      'Imágenes': `${(l.imagenes || []).length} imagen(es)`,
+      'Valor': l.valor || 0,
+      'Categoría': l.categoria || '',
+      'Recursos': l.recursos || '',
+      'Contingencia': l.contingencia || 'No',
+      'Estado': l.estado || ''
+    };
+  });
+  
+  const legSheet = XLSX.utils.json_to_sheet(legData, { header: headers });
+  legSheet['!cols'] = colWidths;
+  XLSX.utils.book_append_sheet(workbook, legSheet, 'Legalización');
+  
+  // Generate and download file
+  const fileName = `legalizacion_${project.evento.replace(/[^a-zA-Z0-9]/g, '_')}_${format(new Date(), 'yyyyMMdd')}.xlsx`;
+  XLSX.writeFile(workbook, fileName);
+};
+
+// Legacy: Export Caja Menor to Excel (real .xlsx file) - kept for backward compatibility
 export const exportCajaMenorToExcel = async (project: Project, empleados: EmpleadoBasic[] = []) => {
   const XLSX = await import('xlsx');
   const cajaMenor = project.cajaMenor || [];
   
   // Header row
-  const headers = ['Empleado', 'Concepto', 'Imágenes', 'Valor', 'Categoría', 'Recursos', 'Contingencia', 'Estado'];
+  const headers = ['Empleado', 'Banco', 'Tipo Cuenta', '# Cuenta', 'Concepto', 'Imágenes', 'Valor', 'Categoría', 'Recursos', 'Contingencia', 'Estado'];
   
-  // Data rows with resolved employee names
-  const data = cajaMenor.map(c => ({
-    'Empleado': getEmpleadoNombre(c.empleadoId, empleados),
-    'Concepto': c.concepto || '',
-    'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
-    'Valor': c.valor || 0,
-    'Categoría': c.categoria || '',
-    'Recursos': c.recursos || '',
-    'Contingencia': c.contingencia || 'No',
-    'Estado': c.estado || ''
-  }));
+  // Data rows with resolved employee names and banking info
+  const data = cajaMenor.map(c => {
+    const bankInfo = getEmpleadoBankingInfo(c.empleadoId, empleados);
+    return {
+      'Empleado': getEmpleadoNombre(c.empleadoId, empleados),
+      'Banco': bankInfo.banco,
+      'Tipo Cuenta': bankInfo.tipoCuenta,
+      '# Cuenta': bankInfo.numeroCuenta,
+      'Concepto': c.concepto || '',
+      'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
+      'Valor': c.valor || 0,
+      'Categoría': c.categoria || '',
+      'Recursos': c.recursos || '',
+      'Contingencia': c.contingencia || 'No',
+      'Estado': c.estado || ''
+    };
+  });
   
   // Create worksheet from data
   const worksheet = XLSX.utils.json_to_sheet(data, { header: headers });
   
   // Set column widths
   worksheet['!cols'] = [
-    { wch: 25 }, // Empleado
-    { wch: 40 }, // Concepto
-    { wch: 15 }, // Imágenes
-    { wch: 12 }, // Valor
-    { wch: 15 }, // Categoría
-    { wch: 18 }, // Recursos
-    { wch: 15 }, // Contingencia
-    { wch: 15 }, // Estado
+    { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 15 }
   ];
   
   // Create workbook

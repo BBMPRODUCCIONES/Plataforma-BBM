@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,10 +67,7 @@ function ResponsableRow({
   return (
     <div className="flex items-start gap-2">
       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <Select
-          value={responsable.tipo || ""}
-          onValueChange={handleTipoChange}
-        >
+        <Select value={responsable.tipo} onValueChange={handleTipoChange}>
           <SelectTrigger className="h-9">
             <SelectValue placeholder="Tipo de responsable" />
           </SelectTrigger>
@@ -81,7 +79,8 @@ function ResponsableRow({
 
         {responsable.tipo === 'empleado' && (
           <EmpleadoAutocomplete
-            value={responsable.nombre || ""}
+            value={responsable.responsableId || ""}
+            fallbackName={responsable.nombre}
             onChange={handleEmpleadoChange}
             tipoPersonal="BBM"
             useEmpleadoId
@@ -91,7 +90,7 @@ function ResponsableRow({
 
         {responsable.tipo === 'proveedor' && (
           <ProveedorAutocomplete
-            value={responsable.nombre || ""}
+            value={responsable.responsableId || responsable.nombre || ""}
             onChange={handleProveedorChange}
             placeholder="Seleccionar proveedor..."
           />
@@ -103,7 +102,7 @@ function ResponsableRow({
           </div>
         )}
       </div>
-      
+
       {canRemove && (
         <Button
           type="button"
@@ -123,58 +122,109 @@ function ResponsableRow({
   );
 }
 
+const completeKey = (list: ResponsableData[]) =>
+  JSON.stringify(
+    list
+      .filter((r) => r.tipo && r.nombre)
+      .map((r) => ({
+        tipo: r.tipo,
+        responsableId: r.responsableId,
+        nombre: r.nombre,
+      }))
+  );
+
 export function InventarioResponsablesSelector({
   responsablesEntradasSalidas,
   responsablesMaterialEvento,
   onResponsablesEntradasSalidasChange,
   onResponsablesMaterialEventoChange,
 }: InventarioResponsablesSelectorProps) {
-  // Ensure at least one empty entry exists
-  const entradasSalidas = responsablesEntradasSalidas.length > 0 
-    ? responsablesEntradasSalidas 
-    : [createEmptyResponsable()];
-  
-  const materialEvento = responsablesMaterialEvento.length > 0 
-    ? responsablesMaterialEvento 
-    : [createEmptyResponsable()];
+  // Local draft state: allows adding multiple empty rows without being wiped by persistence
+  const [entradasSalidas, setEntradasSalidas] = useState<ResponsableData[]>(() =>
+    responsablesEntradasSalidas.length > 0 ? responsablesEntradasSalidas : [createEmptyResponsable()]
+  );
+
+  const [materialEvento, setMaterialEvento] = useState<ResponsableData[]>(() =>
+    responsablesMaterialEvento.length > 0 ? responsablesMaterialEvento : [createEmptyResponsable()]
+  );
+
+  // Sync ONLY the completed (persisted) selections from props, while keeping draft rows.
+  const entradasPropsKey = useMemo(
+    () => completeKey(responsablesEntradasSalidas),
+    [responsablesEntradasSalidas]
+  );
+
+  useEffect(() => {
+    setEntradasSalidas((prev) => {
+      if (completeKey(prev) === entradasPropsKey) return prev;
+
+      const drafts = prev.filter((r) => !(r.tipo && r.nombre));
+      const saved = responsablesEntradasSalidas.length > 0 ? responsablesEntradasSalidas : [];
+      const merged = saved.length > 0 ? [...saved, ...drafts] : drafts;
+      return merged.length > 0 ? merged : [createEmptyResponsable()];
+    });
+  }, [entradasPropsKey, responsablesEntradasSalidas]);
+
+  const materialPropsKey = useMemo(
+    () => completeKey(responsablesMaterialEvento),
+    [responsablesMaterialEvento]
+  );
+
+  useEffect(() => {
+    setMaterialEvento((prev) => {
+      if (completeKey(prev) === materialPropsKey) return prev;
+
+      const drafts = prev.filter((r) => !(r.tipo && r.nombre));
+      const saved = responsablesMaterialEvento.length > 0 ? responsablesMaterialEvento : [];
+      const merged = saved.length > 0 ? [...saved, ...drafts] : drafts;
+      return merged.length > 0 ? merged : [createEmptyResponsable()];
+    });
+  }, [materialPropsKey, responsablesMaterialEvento]);
+
 
   const handleAddEntradasSalidas = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onResponsablesEntradasSalidasChange([...entradasSalidas, createEmptyResponsable()]);
+    setEntradasSalidas((prev) => [...prev, createEmptyResponsable()]);
   };
 
   const handleUpdateEntradasSalidas = (index: number, data: ResponsableData) => {
     const updated = [...entradasSalidas];
     updated[index] = data;
-    onResponsablesEntradasSalidasChange(updated);
+    setEntradasSalidas(updated);
+    void onResponsablesEntradasSalidasChange(updated);
   };
 
   const handleRemoveEntradasSalidas = (index: number) => {
     const updated = entradasSalidas.filter((_, i) => i !== index);
-    onResponsablesEntradasSalidasChange(updated.length > 0 ? updated : [createEmptyResponsable()]);
+    const next = updated.length > 0 ? updated : [createEmptyResponsable()];
+    setEntradasSalidas(next);
+    void onResponsablesEntradasSalidasChange(next);
   };
 
   const handleAddMaterialEvento = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onResponsablesMaterialEventoChange([...materialEvento, createEmptyResponsable()]);
+    setMaterialEvento((prev) => [...prev, createEmptyResponsable()]);
   };
 
   const handleUpdateMaterialEvento = (index: number, data: ResponsableData) => {
     const updated = [...materialEvento];
     updated[index] = data;
-    onResponsablesMaterialEventoChange(updated);
+    setMaterialEvento(updated);
+    void onResponsablesMaterialEventoChange(updated);
   };
 
   const handleRemoveMaterialEvento = (index: number) => {
     const updated = materialEvento.filter((_, i) => i !== index);
-    onResponsablesMaterialEventoChange(updated.length > 0 ? updated : [createEmptyResponsable()]);
+    const next = updated.length > 0 ? updated : [createEmptyResponsable()];
+    setMaterialEvento(next);
+    void onResponsablesMaterialEventoChange(next);
   };
 
   // Count valid selections
-  const validEntradasSalidas = entradasSalidas.filter(r => r.nombre).length;
-  const validMaterialEvento = materialEvento.filter(r => r.nombre).length;
+  const validEntradasSalidas = entradasSalidas.filter((r) => r.nombre).length;
+  const validMaterialEvento = materialEvento.filter((r) => r.nombre).length;
 
   return (
     <Card className="mt-4 border-dashed">

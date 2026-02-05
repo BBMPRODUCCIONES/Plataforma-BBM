@@ -2584,10 +2584,11 @@ const PanelOperaciones = () => {
                     concepto: cm.concepto,
                     imagenes: legRecord?.imagenes || [],
                     valor: legRecord?.valor ?? cm.valor,
-                    categoria: legRecord?.categoria || cm.categoria,
-                    recursos: legRecord?.recursos || cm.recursos,
+                    // CATEGORÍA y RECURSOS siempre desde cajaMenor (fuente de verdad)
+                    categoria: cm.categoria,
+                    recursos: cm.recursos,
                     contingencia: legRecord?.contingencia || "No",
-                    estado: legRecord?.estado || "No aprobado",
+                    estado: legRecord?.estado || "Pendiente",
                     createdAt: legRecord?.createdAt || cm.createdAt,
                   };
                   
@@ -3072,6 +3073,7 @@ const PanelOperaciones = () => {
                       <CardContent className="pt-4 caja-menor-mobile-scroll">
                         {(() => {
                           // Registros sincronizados desde cajaMenor
+                          // IMPORTANTE: categoria y recursos SIEMPRE se toman de cajaMenor (fuente de verdad)
                           const syncedRecords = (currentProjectData.cajaMenor || []).map((cm) => {
                             const existingLeg = (currentProjectData.legalizacion || []).find(
                               (l: LegalizacionItem) => l.id === `leg-${cm.id}`
@@ -3084,14 +3086,16 @@ const PanelOperaciones = () => {
                               empleadoNombre: cm.empleadoNombre || empleados.find(e => e.id === cm.empleadoId)?.nombre || "",
                               empleadoEmail: cm.empleadoEmail,
                               concepto: cm.concepto,
+                              notaAdicional: (existingLeg as any)?.notaAdicional || "", // Preservar nota adicional
                               imagenes: existingLeg?.imagenes || [],
                               valor: existingLeg?.valor ?? cm.valor,
-                              categoria: existingLeg?.categoria || cm.categoria,
-                              recursos: existingLeg?.recursos || cm.recursos,
+                              // CATEGORÍA y RECURSOS siempre desde cajaMenor (fuente de verdad)
+                              categoria: cm.categoria,
+                              recursos: cm.recursos,
                               contingencia: existingLeg?.contingencia || "No",
                               estado: existingLeg?.estado || "Pendiente",
                               createdAt: existingLeg?.createdAt || cm.createdAt || new Date().toISOString(),
-                            } as LegalizacionItem & { sourceId?: string; isManual: boolean };
+                            } as LegalizacionItem & { sourceId?: string; isManual: boolean; notaAdicional?: string };
                           });
                           
                           // Registros manuales (los que NO empiezan con "leg-")

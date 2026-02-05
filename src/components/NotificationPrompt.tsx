@@ -38,8 +38,16 @@ export function NotificationPrompt() {
     const checkAndShow = async () => {
       console.log("[NotificationPrompt] Checking notification status...");
       
-      // Check if already subscribed successfully
+      // Check if already dismissed or subscribed
       const dismissed = localStorage.getItem(PROMPT_DISMISSED_KEY);
+      
+      // If dismissed (user clicked X or "Ya lo hice"), don't show again
+      if (dismissed === "dismissed" || dismissed === "denied_dismissed") {
+        console.log("[NotificationPrompt] Previously dismissed, not showing");
+        setState("hidden");
+        return;
+      }
+      
       if (dismissed === "subscribed") {
         // Verify still subscribed
         const subscribed = await isSubscribed();
@@ -63,7 +71,7 @@ export function NotificationPrompt() {
         return;
       }
 
-      // If permission denied, show blocked message with device-specific instructions
+      // If permission denied, show blocked message ONLY ONCE
       if (status.permission === "denied") {
         console.log("[NotificationPrompt] Permission denied by browser");
         setState("denied");
@@ -125,7 +133,12 @@ export function NotificationPrompt() {
   };
 
   const handleDismiss = () => {
-    localStorage.setItem(PROMPT_DISMISSED_KEY, "dismissed");
+    // Mark as dismissed based on current state to prevent showing again
+    if (state === "denied") {
+      localStorage.setItem(PROMPT_DISMISSED_KEY, "denied_dismissed");
+    } else {
+      localStorage.setItem(PROMPT_DISMISSED_KEY, "dismissed");
+    }
     setState("hidden");
   };
 

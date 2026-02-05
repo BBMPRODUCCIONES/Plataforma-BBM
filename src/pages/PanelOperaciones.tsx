@@ -2607,44 +2607,52 @@ const PanelOperaciones = () => {
                 }
               }
               
-              // Validación de LEGALIZACIÓN - Imágenes OBLIGATORIAS
-              // Ahora validamos basándonos en cajaMenor (ya que están sincronizados automáticamente)
+              // Validación de LEGALIZACIÓN - TODOS los campos obligatorios
+              // Validamos TODOS los registros: sincronizados (desde cajaMenor) + manuales
               const cajaMenorItemsForLeg = currentProjectData.cajaMenor || [];
               const legalizacionData = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
               
-              if (cajaMenorItemsForLeg.length > 0) {
-                const legIncompletos: { item: LegalizacionItem; idx: number }[] = [];
+              // 1. Construir lista de registros sincronizados
+              const syncedRecordsForValidation = cajaMenorItemsForLeg.map((cm) => {
+                const legRecord = legalizacionData.find(
+                  (l: LegalizacionItem) => l.id === `leg-${cm.id}`
+                );
+                return {
+                  id: `leg-${cm.id}`,
+                  isManual: false,
+                  imagenes: legRecord?.imagenes || [],
+                  valor: legRecord?.valor ?? cm.valor,
+                  categoria: cm.categoria,
+                  recursos: cm.recursos,
+                };
+              });
+              
+              // 2. Construir lista de registros manuales (los que NO empiezan con "leg-")
+              const manualRecordsForValidation = legalizacionData
+                .filter((l: LegalizacionItem) => !l.id.startsWith('leg-'))
+                .map((l: LegalizacionItem) => ({
+                  id: l.id,
+                  isManual: true,
+                  imagenes: l.imagenes || [],
+                  valor: l.valor,
+                  categoria: l.categoria,
+                  recursos: l.recursos,
+                }));
+              
+              // 3. Combinar todos los registros para validación
+              const allLegRecordsForValidation = [...syncedRecordsForValidation, ...manualRecordsForValidation];
+              
+              if (allLegRecordsForValidation.length > 0) {
+                const legIncompletos: { item: typeof allLegRecordsForValidation[0]; idx: number }[] = [];
                 
-                cajaMenorItemsForLeg.forEach((cm, idx) => {
-                  // Buscar si existe registro de legalización para este cajaMenor
-                  const legRecord = legalizacionData.find(
-                    (l: LegalizacionItem) => l.id === `leg-${cm.id}` || (l.empleadoId === cm.empleadoId && l.concepto === cm.concepto)
-                  );
-                  
-                  // Crear objeto combinado para validación
-                  const combinedRecord: LegalizacionItem = {
-                    id: `leg-${cm.id}`,
-                    empleadoId: cm.empleadoId,
-                    empleadoNombre: cm.empleadoNombre,
-                    empleadoEmail: cm.empleadoEmail,
-                    concepto: cm.concepto,
-                    imagenes: legRecord?.imagenes || [],
-                    valor: legRecord?.valor ?? cm.valor,
-                    // CATEGORÍA y RECURSOS siempre desde cajaMenor (fuente de verdad)
-                    categoria: cm.categoria,
-                    recursos: cm.recursos,
-                    contingencia: legRecord?.contingencia || "No",
-                    estado: legRecord?.estado || "Pendiente",
-                    createdAt: legRecord?.createdAt || cm.createdAt,
-                  };
-                  
-                  const sinImagen = !combinedRecord.imagenes || combinedRecord.imagenes.length === 0;
-                  const sinValor = !combinedRecord.valor || combinedRecord.valor === 0;
-                  const sinCategoria = !combinedRecord.categoria?.trim();
-                  const sinRecurso = !combinedRecord.recursos?.trim();
+                allLegRecordsForValidation.forEach((record, idx) => {
+                  const sinImagen = !record.imagenes || record.imagenes.length === 0;
+                  const sinValor = !record.valor || record.valor === 0;
+                  const sinCategoria = !record.categoria?.trim();
+                  const sinRecurso = !record.recursos?.trim();
                   
                   if (sinImagen || sinValor || sinCategoria || sinRecurso) {
-                    legIncompletos.push({ item: combinedRecord, idx });
+                    legIncompletos.push({ item: record, idx });
                   }
                 });
                 
@@ -2657,7 +2665,8 @@ const PanelOperaciones = () => {
                     if (!item.categoria?.trim()) faltantes.push("categoría");
                     if (!item.recursos?.trim()) faltantes.push("recurso");
                     if (faltantes.length > 0) {
-                      errores.push(`Legalización #${idx + 1}: falta ${faltantes.join(", ")}`);
+                      const tipoRegistro = item.isManual ? "Legalización manual" : "Legalización";
+                      errores.push(`${tipoRegistro} #${idx + 1}: falta ${faltantes.join(", ")}`);
                     }
                   });
                   setCajaMenorValidationErrors(errores);

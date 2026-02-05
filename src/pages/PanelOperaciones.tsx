@@ -53,11 +53,13 @@ import {
 import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
-import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printCajaMenor, exportCajaMenorToExcel } from "@/utils/pdfGenerator";
+import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printSolicitudPresupuesto, printLegalizacion, exportSolicitudToExcel, exportLegalizacionToExcel } from "@/utils/pdfGenerator";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
@@ -186,6 +188,9 @@ const PanelOperaciones = () => {
   const [horarioFormOpen, setHorarioFormOpen] = useState(false);
   // Estado para errores inline de Caja Menor (visible en el modal)
   const [cajaMenorValidationErrors, setCajaMenorValidationErrors] = useState<string[]>([]);
+  // Estados para opciones de exportación - checkboxes
+  const [includeLegalizacionInExport, setIncludeLegalizacionInExport] = useState(false);
+  const [includeSolicitudInExport, setIncludeSolicitudInExport] = useState(false);
 
   // Sync local state when project changes (not on every keystroke)
   useEffect(() => {
@@ -3140,15 +3145,38 @@ const PanelOperaciones = () => {
                                   <ChevronDown className="h-3 w-3 ml-1" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start">
-                                <DropdownMenuItem onClick={() => printCajaMenor(currentProjectData, empleados)}>
-                                  <FileDown className="h-4 w-4 mr-2" />
-                                  Descargar PDF
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => exportCajaMenorToExcel(currentProjectData, empleados)}>
-                                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                                  Descargar Excel
-                                </DropdownMenuItem>
+                              <DropdownMenuContent align="start" className="min-w-[260px]">
+                                {(() => {
+                                  // Check if there are approved legalization records
+                                  const cajaMenor = currentProjectData.cajaMenor || [];
+                                  const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
+                                  const hasApprovedLegalizacion = legalizacion.some(l => l.estado === 'Aprobado') ||
+                                    cajaMenor.some(cm => {
+                                      const legEntry = legalizacion.find(l => l.id === `leg-${cm.id}`);
+                                      return legEntry?.estado === 'Aprobado';
+                                    });
+                                  return (
+                                    <>
+                                      <DropdownMenuCheckboxItem
+                                        checked={includeLegalizacionInExport}
+                                        onCheckedChange={setIncludeLegalizacionInExport}
+                                        disabled={!hasApprovedLegalizacion}
+                                        className={!hasApprovedLegalizacion ? "opacity-50" : ""}
+                                      >
+                                        Agregar información de Legalización
+                                      </DropdownMenuCheckboxItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => printSolicitudPresupuesto(currentProjectData, empleados, includeLegalizacionInExport)}>
+                                        <FileDown className="h-4 w-4 mr-2" />
+                                        Descargar PDF
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => exportSolicitudToExcel(currentProjectData, empleados, includeLegalizacionInExport)}>
+                                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                        Descargar Excel
+                                      </DropdownMenuItem>
+                                    </>
+                                  );
+                                })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
                             <Button
@@ -3227,15 +3255,32 @@ const PanelOperaciones = () => {
                                   <ChevronDown className="h-3 w-3 ml-1" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start">
-                                <DropdownMenuItem onClick={() => toast.info("Exportar legalización próximamente")}>
-                                  <FileDown className="h-4 w-4 mr-2" />
-                                  Descargar PDF
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => toast.info("Exportar legalización próximamente")}>
-                                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                                  Descargar Excel
-                                </DropdownMenuItem>
+                              <DropdownMenuContent align="start" className="min-w-[300px]">
+                                {(() => {
+                                  // Check if there are approved solicitud records
+                                  const hasApprovedSolicitud = (currentProjectData.cajaMenor || []).some(cm => cm.estado === 'Aprobado');
+                                  return (
+                                    <>
+                                      <DropdownMenuCheckboxItem
+                                        checked={includeSolicitudInExport}
+                                        onCheckedChange={setIncludeSolicitudInExport}
+                                        disabled={!hasApprovedSolicitud}
+                                        className={!hasApprovedSolicitud ? "opacity-50" : ""}
+                                      >
+                                        Agregar información de Solicitud de Presupuestos
+                                      </DropdownMenuCheckboxItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => printLegalizacion(currentProjectData, empleados, includeSolicitudInExport)}>
+                                        <FileDown className="h-4 w-4 mr-2" />
+                                        Descargar PDF
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => exportLegalizacionToExcel(currentProjectData, empleados, includeSolicitudInExport)}>
+                                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                        Descargar Excel
+                                      </DropdownMenuItem>
+                                    </>
+                                  );
+                                })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
                             <Button 

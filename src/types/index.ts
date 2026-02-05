@@ -101,6 +101,23 @@ export interface InventarioItem {
   observaciones?: string;
   recibido: boolean;
   notasAdicionales?: string;
+  // Responsables fields
+  responsableEntradasSalidasTipo?: 'empleado' | 'proveedor';
+  responsableEntradasSalidasId?: string;
+  responsableEntradasSalidasNombre?: string;
+  responsableMaterialEventoTipo?: 'empleado' | 'proveedor';
+  responsableMaterialEventoId?: string;
+  responsableMaterialEventoNombre?: string;
+}
+
+// Inventory Responsables (Project-level for all inventory items)
+export interface InventarioResponsables {
+  responsableEntradasSalidasTipo?: 'empleado' | 'proveedor';
+  responsableEntradasSalidasId?: string;
+  responsableEntradasSalidasNombre?: string;
+  responsableMaterialEventoTipo?: 'empleado' | 'proveedor';
+  responsableMaterialEventoId?: string;
+  responsableMaterialEventoNombre?: string;
 }
 
 export interface CajaMenorItem {

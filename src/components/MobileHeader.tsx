@@ -10,18 +10,11 @@ import {
   Building2, 
   UserPlus,
   ChevronLeft,
-  MoreVertical,
   Plus,
   FileBarChart
 } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 // Route config type
 interface RouteConfigItem {
@@ -99,24 +92,9 @@ export function MobileHeader() {
         </span>
       </div>
 
-      {/* Right side: Notification bell + More menu */}
-      <div className="flex items-center gap-1 shrink-0">
+      {/* Right side: Notification bell */}
+      <div className="flex items-center shrink-0">
         <NotificationBell />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 touch-manipulation">
-              <MoreVertical className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem className="touch-manipulation min-h-[44px]">
-              Refrescar datos
-            </DropdownMenuItem>
-            <DropdownMenuItem className="touch-manipulation min-h-[44px]">
-              Ajustes
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </header>
   );

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,7 +7,7 @@ import { ProveedorAutocomplete } from "@/components/ProveedorAutocomplete";
 import { Users, Package, ArrowRightLeft, Plus, Trash2 } from "lucide-react";
 
 export interface ResponsableData {
-  id: string; // Unique ID for the entry
+  id: string;
   tipo: 'empleado' | 'proveedor' | undefined;
   responsableId: string | undefined;
   nombre: string | undefined;
@@ -39,19 +38,37 @@ function ResponsableRow({
   onRemove: () => void;
   canRemove: boolean;
 }) {
+  const handleTipoChange = (value: string) => {
+    onUpdate({
+      ...responsable,
+      tipo: value as 'empleado' | 'proveedor',
+      responsableId: undefined,
+      nombre: undefined,
+    });
+  };
+
+  const handleEmpleadoChange = (nombre: string, empleadoId?: string) => {
+    onUpdate({
+      ...responsable,
+      responsableId: empleadoId,
+      nombre: nombre,
+    });
+  };
+
+  const handleProveedorChange = (nombre: string, proveedorId?: string) => {
+    onUpdate({
+      ...responsable,
+      responsableId: proveedorId,
+      nombre: nombre,
+    });
+  };
+
   return (
     <div className="flex items-start gap-2">
       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
         <Select
           value={responsable.tipo || ""}
-          onValueChange={(value) => {
-            onUpdate({
-              ...responsable,
-              tipo: value as 'empleado' | 'proveedor',
-              responsableId: undefined,
-              nombre: undefined,
-            });
-          }}
+          onValueChange={handleTipoChange}
         >
           <SelectTrigger className="h-9">
             <SelectValue placeholder="Tipo de responsable" />
@@ -65,13 +82,7 @@ function ResponsableRow({
         {responsable.tipo === 'empleado' && (
           <EmpleadoAutocomplete
             value={responsable.nombre || ""}
-            onChange={(nombre, empleadoId) => {
-              onUpdate({
-                ...responsable,
-                responsableId: empleadoId,
-                nombre: nombre,
-              });
-            }}
+            onChange={handleEmpleadoChange}
             tipoPersonal="BBM"
             useEmpleadoId
             placeholder="Seleccionar empleado..."
@@ -81,13 +92,7 @@ function ResponsableRow({
         {responsable.tipo === 'proveedor' && (
           <ProveedorAutocomplete
             value={responsable.nombre || ""}
-            onChange={(nombre, proveedorId) => {
-              onUpdate({
-                ...responsable,
-                responsableId: proveedorId,
-                nombre: nombre,
-              });
-            }}
+            onChange={handleProveedorChange}
             placeholder="Seleccionar proveedor..."
           />
         )}
@@ -101,10 +106,15 @@ function ResponsableRow({
       
       {canRemove && (
         <Button
+          type="button"
           variant="ghost"
           size="icon"
           className="h-9 w-9 text-destructive hover:text-destructive shrink-0"
-          onClick={onRemove}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onRemove();
+          }}
         >
           <Trash2 className="h-4 w-4" />
         </Button>
@@ -128,7 +138,9 @@ export function InventarioResponsablesSelector({
     ? responsablesMaterialEvento 
     : [createEmptyResponsable()];
 
-  const handleAddEntradasSalidas = () => {
+  const handleAddEntradasSalidas = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     onResponsablesEntradasSalidasChange([...entradasSalidas, createEmptyResponsable()]);
   };
 
@@ -143,7 +155,9 @@ export function InventarioResponsablesSelector({
     onResponsablesEntradasSalidasChange(updated.length > 0 ? updated : [createEmptyResponsable()]);
   };
 
-  const handleAddMaterialEvento = () => {
+  const handleAddMaterialEvento = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     onResponsablesMaterialEventoChange([...materialEvento, createEmptyResponsable()]);
   };
 
@@ -173,13 +187,25 @@ export function InventarioResponsablesSelector({
       <CardContent className="space-y-4">
         {/* Responsable de Entradas y Salidas */}
         <div className="space-y-3">
-          <Label className="text-xs font-medium flex items-center gap-1.5">
-            <ArrowRightLeft className="h-3.5 w-3.5" />
-            Responsable de Entradas y Salidas
-            {validEntradasSalidas > 0 && (
-              <span className="text-muted-foreground">({validEntradasSalidas})</span>
-            )}
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-medium flex items-center gap-1.5">
+              <ArrowRightLeft className="h-3.5 w-3.5" />
+              Responsable de Entradas y Salidas
+              {validEntradasSalidas > 0 && (
+                <span className="text-muted-foreground">({validEntradasSalidas})</span>
+              )}
+            </Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs px-2"
+              onClick={handleAddEntradasSalidas}
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Agregar
+            </Button>
+          </div>
           
           <div className="space-y-2">
             {entradasSalidas.map((responsable, index) => (
@@ -192,29 +218,31 @@ export function InventarioResponsablesSelector({
               />
             ))}
           </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full mt-2"
-            onClick={handleAddEntradasSalidas}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            AGREGAR RESPONSABLE
-          </Button>
         </div>
 
         <div className="border-t border-dashed my-4" />
 
         {/* Responsable del Material durante el Evento */}
         <div className="space-y-3">
-          <Label className="text-xs font-medium flex items-center gap-1.5">
-            <Package className="h-3.5 w-3.5" />
-            Responsable del Material durante el Evento
-            {validMaterialEvento > 0 && (
-              <span className="text-muted-foreground">({validMaterialEvento})</span>
-            )}
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-medium flex items-center gap-1.5">
+              <Package className="h-3.5 w-3.5" />
+              Responsable del Material durante el Evento
+              {validMaterialEvento > 0 && (
+                <span className="text-muted-foreground">({validMaterialEvento})</span>
+              )}
+            </Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs px-2"
+              onClick={handleAddMaterialEvento}
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Agregar
+            </Button>
+          </div>
           
           <div className="space-y-2">
             {materialEvento.map((responsable, index) => (
@@ -227,16 +255,6 @@ export function InventarioResponsablesSelector({
               />
             ))}
           </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full mt-2"
-            onClick={handleAddMaterialEvento}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            AGREGAR RESPONSABLE
-          </Button>
         </div>
       </CardContent>
     </Card>

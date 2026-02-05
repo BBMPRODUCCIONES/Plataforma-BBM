@@ -335,6 +335,92 @@ export const printPersonal = (project: Project, includeNotes: boolean = true) =>
   openPrintWindow(html);
 };
 
+// Generate Responsables del Inventario section
+const generateResponsablesSection = (project: Project): string => {
+  // Parse responsables from JSON fields (stored as arrays)
+  let responsablesEntradasSalidas: Array<{tipo?: string; nombre?: string}> = [];
+  let responsablesMaterialEvento: Array<{tipo?: string; nombre?: string}> = [];
+  
+  // Try to parse the stored data - it might be single object (legacy) or JSON array (new format)
+  try {
+    if (project.inventarioResponsableEntradasSalidasNombre) {
+      const parsed = JSON.parse(project.inventarioResponsableEntradasSalidasNombre);
+      if (Array.isArray(parsed)) {
+        responsablesEntradasSalidas = parsed.map((item: { tipo?: string; nombre?: string }) => ({
+          tipo: item.tipo,
+          nombre: item.nombre
+        }));
+      }
+    }
+  } catch {
+    // Legacy single value format
+    if (project.inventarioResponsableEntradasSalidasNombre) {
+      responsablesEntradasSalidas = [{
+        tipo: project.inventarioResponsableEntradasSalidasTipo,
+        nombre: project.inventarioResponsableEntradasSalidasNombre
+      }];
+    }
+  }
+  
+  try {
+    if (project.inventarioResponsableMaterialEventoNombre) {
+      const parsed = JSON.parse(project.inventarioResponsableMaterialEventoNombre);
+      if (Array.isArray(parsed)) {
+        responsablesMaterialEvento = parsed.map((item: { tipo?: string; nombre?: string }) => ({
+          tipo: item.tipo,
+          nombre: item.nombre
+        }));
+      }
+    }
+  } catch {
+    // Legacy single value format
+    if (project.inventarioResponsableMaterialEventoNombre) {
+      responsablesMaterialEvento = [{
+        tipo: project.inventarioResponsableMaterialEventoTipo,
+        nombre: project.inventarioResponsableMaterialEventoNombre
+      }];
+    }
+  }
+
+  const hasEntradasSalidas = responsablesEntradasSalidas.length > 0;
+  const hasMaterialEvento = responsablesMaterialEvento.length > 0;
+
+  if (!hasEntradasSalidas && !hasMaterialEvento) return '';
+
+  const entradasRows = responsablesEntradasSalidas.map(r => `
+    <tr>
+      <td>Entradas y Salidas</td>
+      <td><span class="badge badge-${r.tipo === 'empleado' ? 'bbm' : 'proveedor'}">${r.tipo === 'empleado' ? 'Empleado' : 'Proveedor'}</span></td>
+      <td>${r.nombre || '-'}</td>
+    </tr>
+  `).join('');
+
+  const materialRows = responsablesMaterialEvento.map(r => `
+    <tr>
+      <td>Material durante el Evento</td>
+      <td><span class="badge badge-${r.tipo === 'empleado' ? 'bbm' : 'proveedor'}">${r.tipo === 'empleado' ? 'Empleado' : 'Proveedor'}</span></td>
+      <td>${r.nombre || '-'}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <h2 style="margin: 25px 0 10px; font-size: 14px;">Responsables del Inventario</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Responsabilidad</th>
+          <th>Tipo</th>
+          <th>Nombre</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${entradasRows}
+        ${materialRows}
+      </tbody>
+    </table>
+  `;
+};
+
 // Generate Inventario section (internal use)
 const generateInventarioSection = (project: Project): string => {
   const inventario = project.inventario || [];
@@ -365,6 +451,7 @@ const generateInventarioSection = (project: Project): string => {
         ${tableRows || '<tr><td colspan="5" style="text-align: center;">No hay inventario registrado</td></tr>'}
       </tbody>
     </table>
+    ${generateResponsablesSection(project)}
   `;
 };
 

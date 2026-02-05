@@ -19,7 +19,7 @@ import { ProveedorAutocomplete } from "@/components/ProveedorAutocomplete";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
-import { InventarioResponsablesSelector } from "@/components/InventarioResponsablesSelector";
+import { InventarioResponsablesSelector, ResponsableData } from "@/components/InventarioResponsablesSelector";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -63,6 +63,69 @@ import {
 import { toast } from "sonner";
 import { HorarioFormDialog } from "@/components/HorarioFormDialog";
 import { CajaMenorStatusIcon } from "@/components/CajaMenorStatusIcon";
+
+// Helper functions to serialize/deserialize multiple responsables to/from DB storage
+// We store as JSON strings to support multiple responsables while using existing DB columns
+const parseResponsablesFromStorage = (
+  tipo?: string | null,
+  id?: string | null,
+  nombre?: string | null
+): ResponsableData[] => {
+  // Try to parse as JSON array (new format)
+  try {
+    if (nombre) {
+      const parsed = JSON.parse(nombre);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item: { tipo?: string; responsableId?: string; nombre?: string }, idx: number) => ({
+          id: `stored-${idx}`,
+          tipo: item.tipo as 'empleado' | 'proveedor' | undefined,
+          responsableId: item.responsableId,
+          nombre: item.nombre,
+        }));
+      }
+    }
+  } catch {
+    // Fall through to legacy format
+  }
+  
+  // Legacy single value format
+  if (nombre && tipo) {
+    return [{
+      id: 'legacy-0',
+      tipo: tipo as 'empleado' | 'proveedor',
+      responsableId: id || undefined,
+      nombre: nombre,
+    }];
+  }
+  
+  return [];
+};
+
+const serializeResponsablesToStorage = (responsables: ResponsableData[]): {
+  tipo: string | null;
+  id: string | null;
+  nombre: string | null;
+} => {
+  // Filter out empty entries
+  const validResponsables = responsables.filter(r => r.nombre && r.tipo);
+  
+  if (validResponsables.length === 0) {
+    return { tipo: null, id: null, nombre: null };
+  }
+  
+  // Store as JSON array to support multiple responsables
+  const serialized = validResponsables.map(r => ({
+    tipo: r.tipo,
+    responsableId: r.responsableId,
+    nombre: r.nombre,
+  }));
+  
+  return {
+    tipo: JSON.stringify(serialized.map(r => r.tipo)),
+    id: JSON.stringify(serialized.map(r => r.responsableId)),
+    nombre: JSON.stringify(serialized),
+  };
+};
 
 const PanelOperaciones = () => {
   const navigate = useNavigate();
@@ -2879,34 +2942,36 @@ const PanelOperaciones = () => {
 
                           {/* Responsables del Inventario */}
                           <InventarioResponsablesSelector
-                            responsableEntradasSalidas={{
-                              tipo: currentProjectData.inventarioResponsableEntradasSalidasTipo,
-                              id: currentProjectData.inventarioResponsableEntradasSalidasId,
-                              nombre: currentProjectData.inventarioResponsableEntradasSalidasNombre,
-                            }}
-                            responsableMaterialEvento={{
-                              tipo: currentProjectData.inventarioResponsableMaterialEventoTipo,
-                              id: currentProjectData.inventarioResponsableMaterialEventoId,
-                              nombre: currentProjectData.inventarioResponsableMaterialEventoNombre,
-                            }}
-                            onResponsableEntradasSalidasChange={async (data) => {
+                            responsablesEntradasSalidas={parseResponsablesFromStorage(
+                              currentProjectData.inventarioResponsableEntradasSalidasTipo,
+                              currentProjectData.inventarioResponsableEntradasSalidasId,
+                              currentProjectData.inventarioResponsableEntradasSalidasNombre
+                            )}
+                            responsablesMaterialEvento={parseResponsablesFromStorage(
+                              currentProjectData.inventarioResponsableMaterialEventoTipo,
+                              currentProjectData.inventarioResponsableMaterialEventoId,
+                              currentProjectData.inventarioResponsableMaterialEventoNombre
+                            )}
+                            onResponsablesEntradasSalidasChange={async (data) => {
                               try {
-                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradasSalidasTipo', data.tipo || null);
-                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradasSalidasId', data.id || null);
-                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradasSalidasNombre', data.nombre || null);
+                                const serialized = serializeResponsablesToStorage(data);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradasSalidasTipo', serialized.tipo);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradasSalidasId', serialized.id);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradasSalidasNombre', serialized.nombre);
                               } catch (err) {
-                                console.error('[Inventario] Error updating responsable entradas/salidas:', err);
-                                toast.error("Error al actualizar responsable");
+                                console.error('[Inventario] Error updating responsables entradas/salidas:', err);
+                                toast.error("Error al actualizar responsables");
                               }
                             }}
-                            onResponsableMaterialEventoChange={async (data) => {
+                            onResponsablesMaterialEventoChange={async (data) => {
                               try {
-                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableMaterialEventoTipo', data.tipo || null);
-                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableMaterialEventoId', data.id || null);
-                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableMaterialEventoNombre', data.nombre || null);
+                                const serialized = serializeResponsablesToStorage(data);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableMaterialEventoTipo', serialized.tipo);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableMaterialEventoId', serialized.id);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableMaterialEventoNombre', serialized.nombre);
                               } catch (err) {
-                                console.error('[Inventario] Error updating responsable material evento:', err);
-                                toast.error("Error al actualizar responsable");
+                                console.error('[Inventario] Error updating responsables material evento:', err);
+                                toast.error("Error al actualizar responsables");
                               }
                             }}
                           />

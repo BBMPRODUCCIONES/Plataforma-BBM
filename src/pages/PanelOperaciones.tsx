@@ -19,6 +19,7 @@ import { ProveedorAutocomplete } from "@/components/ProveedorAutocomplete";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
+import { InventarioResponsablesSelector } from "@/components/InventarioResponsablesSelector";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -2875,6 +2876,40 @@ const PanelOperaciones = () => {
                           ) : (
                             <p className="text-sm text-muted-foreground">No hay materiales en inventario. Haga clic en "Agregar Material" para comenzar.</p>
                           )}
+
+                          {/* Responsables del Inventario */}
+                          <InventarioResponsablesSelector
+                            responsableEntradasSalidas={{
+                              tipo: currentProjectData.inventarioResponsableEntradasSalidasTipo,
+                              id: currentProjectData.inventarioResponsableEntradasSalidasId,
+                              nombre: currentProjectData.inventarioResponsableEntradasSalidasNombre,
+                            }}
+                            responsableMaterialEvento={{
+                              tipo: currentProjectData.inventarioResponsableMaterialEventoTipo,
+                              id: currentProjectData.inventarioResponsableMaterialEventoId,
+                              nombre: currentProjectData.inventarioResponsableMaterialEventoNombre,
+                            }}
+                            onResponsableEntradasSalidasChange={async (data) => {
+                              try {
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradasSalidasTipo', data.tipo || null);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradasSalidasId', data.id || null);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradasSalidasNombre', data.nombre || null);
+                              } catch (err) {
+                                console.error('[Inventario] Error updating responsable entradas/salidas:', err);
+                                toast.error("Error al actualizar responsable");
+                              }
+                            }}
+                            onResponsableMaterialEventoChange={async (data) => {
+                              try {
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableMaterialEventoTipo', data.tipo || null);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableMaterialEventoId', data.id || null);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableMaterialEventoNombre', data.nombre || null);
+                              } catch (err) {
+                                console.error('[Inventario] Error updating responsable material evento:', err);
+                                toast.error("Error al actualizar responsable");
+                              }
+                            }}
+                          />
                         </CardContent>
                       </Card>
 

@@ -836,8 +836,34 @@ const generateLegalizacionSection = (project: Project, empleados: EmpleadoBasic[
   `;
 };
 
+// Generate employee banking info section for the first solicitor
+const generateSolicitanteBankingSection = (project: Project, empleados: EmpleadoBasic[]): string => {
+  const cajaMenor = project.cajaMenor || [];
+  if (cajaMenor.length === 0) return '';
+  
+  // Get the first employee who made a solicitud de presupuesto
+  const firstSolicitud = cajaMenor[0];
+  if (!firstSolicitud?.empleadoId) return '';
+  
+  const bankInfo = getEmpleadoBankingInfo(firstSolicitud.empleadoId, empleados);
+  const empleadoNombre = getEmpleadoNombre(firstSolicitud.empleadoId, empleados);
+  
+  // Only show if there's actual banking info
+  if (bankInfo.banco === '-' && bankInfo.tipoCuenta === '-' && bankInfo.numeroCuenta === '-') return '';
+  
+  return `
+    <div class="info-section" style="margin-top: 15px; background: #e8f4e8;">
+      <h3 style="margin-bottom: 8px; font-size: 13px; color: #16a34a;">DATOS BANCARIOS DEL SOLICITANTE</h3>
+      <div class="info-row"><span class="info-label">Solicitante:</span> ${empleadoNombre}</div>
+      <div class="info-row"><span class="info-label">Banco:</span> ${bankInfo.banco}</div>
+      <div class="info-row"><span class="info-label">Tipo de Cuenta:</span> ${bankInfo.tipoCuenta}</div>
+      <div class="info-row"><span class="info-label"># Cuenta:</span> ${bankInfo.numeroCuenta}</div>
+    </div>
+  `;
+};
+
 // Generate info section for exports
-const generateProjectInfoSection = (project: Project): string => {
+const generateProjectInfoSection = (project: Project, empleados: EmpleadoBasic[] = []): string => {
   return `
     <div class="info-section">
       <div class="info-row"><span class="info-label">Evento:</span> ${project.evento}</div>
@@ -850,12 +876,13 @@ const generateProjectInfoSection = (project: Project): string => {
       <div class="info-row"><span class="info-label">Ubicación:</span> ${project.ubicacion || '-'}</div>
       <div class="info-row"><span class="info-label">Estado del evento:</span> ${project.estado}</div>
     </div>
+    ${generateSolicitanteBankingSection(project, empleados)}
   `;
 };
 
 // Print ONLY Solicitud de Presupuesto
 export const printSolicitudPresupuesto = (project: Project, empleados: EmpleadoBasic[] = [], includeLegalizacion: boolean = false) => {
-  let content = generateProjectInfoSection(project);
+  let content = generateProjectInfoSection(project, empleados);
   content += generateSolicitudPresupuestoSection(project, empleados, true); // Include banking info
   
   if (includeLegalizacion) {
@@ -872,7 +899,7 @@ export const printSolicitudPresupuesto = (project: Project, empleados: EmpleadoB
 
 // Print ONLY Legalizacion
 export const printLegalizacion = (project: Project, empleados: EmpleadoBasic[] = [], includeSolicitud: boolean = false) => {
-  let content = generateProjectInfoSection(project);
+  let content = generateProjectInfoSection(project, empleados);
   
   if (includeSolicitud) {
     content += generateSolicitudPresupuestoSection(project, empleados, true);
@@ -891,7 +918,7 @@ export const printLegalizacion = (project: Project, empleados: EmpleadoBasic[] =
 // Legacy: Print Gastos PDF (Solicitud de Presupuesto + Legalización) - kept for backward compatibility
 export const printCajaMenor = (project: Project, empleados: EmpleadoBasic[] = []) => {
   const content = `
-    ${generateProjectInfoSection(project)}
+    ${generateProjectInfoSection(project, empleados)}
     ${generateSolicitudPresupuestoSection(project, empleados, true)}
     ${generateLegalizacionSection(project, empleados, true)}
   `;

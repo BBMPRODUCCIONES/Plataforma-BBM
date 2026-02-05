@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: ["favicon.png", "robots.txt", "pwa-192x192.png", "pwa-512x512.png", "pwa-192x192-demo.png", "pwa-512x512-demo.png", "manifest-demo.json"],
       manifest: {
         name: "BBM Producciones",
@@ -45,9 +45,9 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         // Increase file size limit for precaching (4 MiB)
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-        // Force immediate activation of new service worker
-        skipWaiting: true,
-        clientsClaim: true,
+        // User controls when to update - no forced activation
+        skipWaiting: false,
+        clientsClaim: false,
         // Clean old caches
         cleanupOutdatedCaches: true,
         // Disable precaching for faster updates

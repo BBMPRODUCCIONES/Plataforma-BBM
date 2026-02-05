@@ -1750,7 +1750,7 @@ const PanelOperaciones = () => {
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           return (
-            <div>
+            <div className="overflow-hidden max-w-full">
               <AttachmentButton
                 attachments={c.imagenes || []}
                 onAttachmentsChange={(attachments) => {
@@ -1956,6 +1956,20 @@ const PanelOperaciones = () => {
                 value={c.estado}
                 onChange={(value) => {
                   if (projectId) {
+                    // Validar antes de aprobar
+                    if (value === "Aprobado") {
+                      const missingFields: string[] = [];
+                      if (!c.valor || c.valor === 0) missingFields.push("Valor");
+                      if (!c.categoria?.trim()) missingFields.push("Categoría");
+                      if (!c.recursos?.trim()) missingFields.push("Recursos");
+                      if (!c.imagenes || c.imagenes.length === 0) missingFields.push("Imágenes");
+                      
+                      if (missingFields.length > 0) {
+                        toast.error(`No se puede aprobar: faltan campos obligatorios (${missingFields.join(", ")})`);
+                        return;
+                      }
+                    }
+                    
                     updateCajaMenorItem(projectId, c.id, "estado", value);
                     if (value === "No aprobado" && isApproved) {
                       toast.info("Registro reabierto: edición habilitada");
@@ -2141,7 +2155,7 @@ const PanelOperaciones = () => {
           const canEdit = canEditLegalizacionRecord(l);
           const isEmpty = !l.imagenes || l.imagenes.length === 0;
           return (
-            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+            <div className={`overflow-hidden max-w-full ${isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}`}>
               <AttachmentButton
                 attachments={l.imagenes || []}
                 onAttachmentsChange={(attachments) => {
@@ -2384,6 +2398,36 @@ const PanelOperaciones = () => {
                 value={l.estado}
                 onChange={(value) => {
                   if (projectId) {
+                    // Validar antes de aprobar
+                    if (value === "Aprobado") {
+                      const missingFields: string[] = [];
+                      
+                      // Obtener datos de categoría/recursos según si es sincronizado o manual
+                      const isSynced = l.id.startsWith('leg-');
+                      let categoria = l.categoria;
+                      let recursos = l.recursos;
+                      
+                      if (isSynced) {
+                        // Buscar el registro original en cajaMenor
+                        const originalId = l.id.replace('leg-', '');
+                        const originalRecord = (currentProjectData?.cajaMenor || []).find(
+                          (cm: CajaMenorItem) => cm.id === originalId
+                        );
+                        categoria = originalRecord?.categoria;
+                        recursos = originalRecord?.recursos;
+                      }
+                      
+                      if (!l.imagenes || l.imagenes.length === 0) missingFields.push("Imágenes");
+                      if (!l.valor || l.valor === 0) missingFields.push("Valor");
+                      if (!categoria?.trim()) missingFields.push("Categoría");
+                      if (!recursos?.trim()) missingFields.push("Recursos");
+                      
+                      if (missingFields.length > 0) {
+                        toast.error(`No se puede aprobar: faltan campos obligatorios (${missingFields.join(", ")})`);
+                        return;
+                      }
+                    }
+                    
                     updateLegalizacionItem(projectId, l.id, "estado", value);
                     if (value === "No aprobado" && isApproved) {
                       toast.info("Registro reabierto: edición habilitada");

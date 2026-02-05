@@ -363,6 +363,12 @@ export type Database = {
           ingreso_bruto: number
           ingreso_total: number
           inventario: Json
+          inventario_responsable_entradas_salidas_id: string | null
+          inventario_responsable_entradas_salidas_nombre: string | null
+          inventario_responsable_entradas_salidas_tipo: string | null
+          inventario_responsable_material_evento_id: string | null
+          inventario_responsable_material_evento_nombre: string | null
+          inventario_responsable_material_evento_tipo: string | null
           is_deleted: boolean
           jefe_operaciones: string
           legalizacion: Json | null
@@ -409,6 +415,12 @@ export type Database = {
           ingreso_bruto?: number
           ingreso_total?: number
           inventario?: Json
+          inventario_responsable_entradas_salidas_id?: string | null
+          inventario_responsable_entradas_salidas_nombre?: string | null
+          inventario_responsable_entradas_salidas_tipo?: string | null
+          inventario_responsable_material_evento_id?: string | null
+          inventario_responsable_material_evento_nombre?: string | null
+          inventario_responsable_material_evento_tipo?: string | null
           is_deleted?: boolean
           jefe_operaciones?: string
           legalizacion?: Json | null
@@ -455,6 +467,12 @@ export type Database = {
           ingreso_bruto?: number
           ingreso_total?: number
           inventario?: Json
+          inventario_responsable_entradas_salidas_id?: string | null
+          inventario_responsable_entradas_salidas_nombre?: string | null
+          inventario_responsable_entradas_salidas_tipo?: string | null
+          inventario_responsable_material_evento_id?: string | null
+          inventario_responsable_material_evento_nombre?: string | null
+          inventario_responsable_material_evento_tipo?: string | null
           is_deleted?: boolean
           jefe_operaciones?: string
           legalizacion?: Json | null

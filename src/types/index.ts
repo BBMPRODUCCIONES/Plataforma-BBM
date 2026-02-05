@@ -45,6 +45,13 @@ export interface Project {
   cajaMenor?: CajaMenorItem[];
   // Legalización section (datos independientes de cajaMenor)
   legalizacion?: LegalizacionItem[];
+  // Inventory responsables (project-level)
+  inventarioResponsableEntradasSalidasTipo?: 'empleado' | 'proveedor';
+  inventarioResponsableEntradasSalidasId?: string;
+  inventarioResponsableEntradasSalidasNombre?: string;
+  inventarioResponsableMaterialEventoTipo?: 'empleado' | 'proveedor';
+  inventarioResponsableMaterialEventoId?: string;
+  inventarioResponsableMaterialEventoNombre?: string;
   // Soft delete fields
   isDeleted?: boolean;
   deletedAt?: string;

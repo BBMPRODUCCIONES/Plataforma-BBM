@@ -99,7 +99,10 @@ export function CertificadoBancarioUpload({
 
   return (
     <>
-      <div className="flex items-center gap-1">
+      <div 
+        className="flex items-center gap-1"
+        onClick={(e) => e.stopPropagation()}
+      >
         <input
           ref={fileInputRef}
           type="file"

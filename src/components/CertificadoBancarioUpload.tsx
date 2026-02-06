@@ -115,7 +115,10 @@ export function CertificadoBancarioUpload({
               variant="ghost"
               size="sm"
               className="h-7 px-2 text-xs text-primary"
-              onClick={() => setPreviewOpen(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewOpen(true);
+              }}
               disabled={uploading || deleting}
             >
               <Eye className="h-3 w-3 mr-1" />
@@ -127,7 +130,10 @@ export function CertificadoBancarioUpload({
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 text-xs"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
                   disabled={uploading || deleting}
                 >
                   {uploading ? (
@@ -140,7 +146,10 @@ export function CertificadoBancarioUpload({
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                  onClick={handleDelete}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete();
+                  }}
                   disabled={uploading || deleting}
                 >
                   {deleting ? (
@@ -160,7 +169,10 @@ export function CertificadoBancarioUpload({
               "h-7 px-2 text-xs",
               disabled && "opacity-50 cursor-not-allowed"
             )}
-            onClick={() => !disabled && fileInputRef.current?.click()}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!disabled) fileInputRef.current?.click();
+            }}
             disabled={disabled || uploading}
           >
             {uploading ? (

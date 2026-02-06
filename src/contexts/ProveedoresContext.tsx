@@ -28,6 +28,7 @@ const dbRowToProveedor = (row: any): Proveedor => ({
   banco: row.banco || '',
   tipoCuenta: row.tipo_cuenta || '',
   numeroCuenta: row.numero_cuenta || '',
+  certificadoBancario: row.certificado_bancario || '',
 });
 
 // Map Proveedor to DB row
@@ -43,6 +44,7 @@ const proveedorToDbRow = (proveedor: Partial<Proveedor>): Record<string, any> =>
   if (proveedor.banco !== undefined) row.banco = proveedor.banco;
   if (proveedor.tipoCuenta !== undefined) row.tipo_cuenta = proveedor.tipoCuenta;
   if (proveedor.numeroCuenta !== undefined) row.numero_cuenta = proveedor.numeroCuenta;
+  if (proveedor.certificadoBancario !== undefined) row.certificado_bancario = proveedor.certificadoBancario;
   return row;
 };
 
@@ -53,6 +55,7 @@ const fieldToColumn = (field: string): string => {
     cotizacionesAnteriores: 'cotizaciones',
     tipoCuenta: 'tipo_cuenta',
     numeroCuenta: 'numero_cuenta',
+    certificadoBancario: 'certificado_bancario',
   };
   return mapping[field] || field;
 };

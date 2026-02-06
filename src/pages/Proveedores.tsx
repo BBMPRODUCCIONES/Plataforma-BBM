@@ -23,7 +23,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Phone, Mail, FileText, Tag, Columns, Loader2, History } from "lucide-react";
+import { Search, Plus, Phone, Mail, FileText, Tag, Columns, Loader2, History, FileImage } from "lucide-react";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { EditableCell } from "@/components/EditableCell";
@@ -32,6 +32,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CotizacionesDialog } from "@/components/CotizacionesDialog";
 import { BancoAutocomplete } from "@/components/BancoAutocomplete";
+import { CertificadoBancarioUpload } from "@/components/CertificadoBancarioUpload";
 
 const baseColumnDefs = [
   { key: "categoria", header: "CATEGORÍA", width: "120px", type: "text" as const },
@@ -40,6 +41,7 @@ const baseColumnDefs = [
   { key: "correo", header: "CORREO", width: "200px", type: "text" as const },
   { key: "tipoProductoServicio", header: "TIPO DE PRODUCTO O SERVICIO", width: "250px", type: "text" as const },
   { key: "datosBancarios", header: "DATOS BANCARIOS", width: "320px", type: "text" as const },
+  { key: "certificadoBancario", header: "CERT. BANCARIO", width: "130px", type: "file" as const },
   { key: "cotizaciones", header: "COTIZACIONES", width: "120px", type: "file" as const },
   { key: "notas", header: "NOTAS", width: "200px", type: "text" as const },
 ];
@@ -298,6 +300,23 @@ const Proveedores = () => {
               className="h-7 w-28 text-xs"
             />
           </div>
+        ),
+      };
+    }
+
+    if (colConfig.key === "certificadoBancario" && !colConfig.isCustom) {
+      return {
+        key: colConfig.key,
+        header: colConfig.header,
+        width: colConfig.width,
+        render: (p: Proveedor) => (
+          <CertificadoBancarioUpload
+            proveedorId={p.id}
+            proveedorNombre={p.nombre}
+            certificadoUrl={p.certificadoBancario || null}
+            onCertificadoChange={(url) => handleUpdateProveedor(p.id, "certificadoBancario", url || "")}
+            disabled={!isAdmin && role?.toLowerCase() !== "operativo"}
+          />
         ),
       };
     }

@@ -588,6 +588,7 @@ export type Database = {
         Row: {
           banco: string
           categoria: string
+          certificado_bancario: string | null
           correo: string
           cotizaciones: Json
           created_at: string
@@ -603,6 +604,7 @@ export type Database = {
         Insert: {
           banco?: string
           categoria?: string
+          certificado_bancario?: string | null
           correo?: string
           cotizaciones?: Json
           created_at?: string
@@ -618,6 +620,7 @@ export type Database = {
         Update: {
           banco?: string
           categoria?: string
+          certificado_bancario?: string | null
           correo?: string
           cotizaciones?: Json
           created_at?: string

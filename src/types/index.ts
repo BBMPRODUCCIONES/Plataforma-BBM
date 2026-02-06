@@ -172,6 +172,7 @@ export interface Proveedor {
   banco?: string;
   tipoCuenta?: string;
   numeroCuenta?: string;
+  certificadoBancario?: string; // URL del certificado bancario
 }
 
 export interface Cliente {

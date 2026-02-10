@@ -1,13 +1,13 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
-import { FileBarChart, DollarSign, ArrowLeft, Wallet } from "lucide-react";
+import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import ReporteCajaMenor from "@/components/reports/ReporteCajaMenor";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
-type ReportView = "main" | "financieros" | "caja-menor";
+type ReportView = "main" | "financieros" | "caja-menor" | "reporte-caja-menor";
 
 const PanelReportes = () => {
   const [currentView, setCurrentView] = useState<ReportView>("main");
@@ -64,6 +64,25 @@ const PanelReportes = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Bandeja de Aprobación */}
+      <div className="space-y-2 mt-2">
+        <h2 className="text-lg font-semibold text-foreground">Bandeja de Aprobación</h2>
+        <p className="text-sm text-muted-foreground">Revisión y aprobación de solicitudes</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card className="opacity-50 cursor-not-allowed">
+          <CardHeader className="pb-2">
+            <div className="w-14 h-14 rounded-xl bg-muted/30 flex items-center justify-center mb-3">
+              <ClipboardCheck className="w-7 h-7 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-lg text-muted-foreground">Aprobaciones Pendientes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground/70">Próximamente disponible</p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 
@@ -97,6 +116,22 @@ const PanelReportes = () => {
             <p className="text-sm text-muted-foreground">Consolidado de gastos de caja menor de todos los eventos.</p>
           </CardContent>
         </Card>
+
+        {/* Reporte de Caja Menor */}
+        <Card
+          className="cursor-pointer hover:border-primary/50 transition-colors group"
+          onClick={() => setCurrentView("reporte-caja-menor")}
+        >
+          <CardHeader className="pb-2">
+            <div className="w-14 h-14 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-3 group-hover:bg-cyan-500/20 transition-colors">
+              <Receipt className="w-7 h-7 text-cyan-500" />
+            </div>
+            <CardTitle className="text-lg">Reporte de Caja Menor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Control y seguimiento de los movimientos de caja menor.</p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -127,12 +162,30 @@ const PanelReportes = () => {
     </div>
   );
 
+  const renderReporteCajaMenorView = () => (
+    <div className="flex flex-col h-[calc(100vh-120px)] gap-4">
+      <div className="flex items-center gap-4 flex-shrink-0">
+        <Button variant="ghost" size="icon" onClick={() => setCurrentView("financieros")} className="shrink-0">
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-foreground">Reporte de Caja Menor</h1>
+          <p className="text-muted-foreground">Control y seguimiento de movimientos</p>
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 flex items-center justify-center">
+        <p className="text-muted-foreground">Próximamente disponible</p>
+      </div>
+    </div>
+  );
+
   return (
     <Layout>
       <div className={`min-h-[50vh] ${isMobile ? "px-3 pt-2 pb-20" : ""}`}>
         {currentView === "main" && renderMainView()}
         {currentView === "financieros" && renderFinancierosView()}
         {currentView === "caja-menor" && renderCajaMenorView()}
+        {currentView === "reporte-caja-menor" && renderReporteCajaMenorView()}
       </div>
     </Layout>
   );

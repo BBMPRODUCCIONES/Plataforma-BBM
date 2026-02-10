@@ -1848,6 +1848,17 @@ const PanelOperaciones = () => {
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           const isEmpty = !c.recursos?.trim();
+          const isOperativo = role?.toLowerCase() === "operativo";
+          // Operativo users always get "Anticipo BBM" auto-set, read-only
+          if (isOperativo) {
+            // Auto-set if empty
+            if (isEmpty && projectId) {
+              updateCajaMenorItem(projectId, c.id, "recursos", "Anticipo BBM");
+            }
+            return (
+              <span className="text-sm text-muted-foreground">Anticipo BBM</span>
+            );
+          }
           if (!canEdit) {
             return (
               <span className={`text-sm ${isEmpty ? "text-destructive italic" : "text-muted-foreground"}`}>
@@ -1860,7 +1871,7 @@ const PanelOperaciones = () => {
               <EditableCell
                 value={c.recursos || ""}
                 type="select"
-                options={["Recursos propios", "Caja Menor", "Anticipo BBM"]}
+                options={["Caja Menor", "Anticipo BBM"]}
                 placeholder="Seleccionar..."
                 onChange={(value) => {
                   if (projectId) {
@@ -3195,7 +3206,7 @@ const PanelOperaciones = () => {
                                   imagenes: [],
                                   valor: 0,
                                   categoria: "Compras",
-                                  recursos: "",
+                                  recursos: role?.toLowerCase() === "operativo" ? "Anticipo BBM" : "",
                                   contingencia: "No",
                                   estado: "Pendiente",
                                   createdAt: new Date().toISOString(),

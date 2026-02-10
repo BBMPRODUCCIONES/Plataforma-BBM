@@ -65,24 +65,6 @@ const PanelReportes = () => {
         </Card>
       </div>
 
-      {/* Bandeja de Aprobación */}
-      <div className="space-y-2 mt-2">
-        <h2 className="text-lg font-semibold text-foreground">Bandeja de Aprobación</h2>
-        <p className="text-sm text-muted-foreground">Revisión y aprobación de solicitudes</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="opacity-50 cursor-not-allowed">
-          <CardHeader className="pb-2">
-            <div className="w-14 h-14 rounded-xl bg-muted/30 flex items-center justify-center mb-3">
-              <ClipboardCheck className="w-7 h-7 text-muted-foreground" />
-            </div>
-            <CardTitle className="text-lg text-muted-foreground">Aprobaciones Pendientes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground/70">Próximamente disponible</p>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 
@@ -99,7 +81,30 @@ const PanelReportes = () => {
         </div>
       </div>
 
+      {/* Bandeja de Aprobación */}
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold text-foreground">Bandeja de Aprobación</h2>
+        <p className="text-sm text-muted-foreground">Revisión y aprobación de solicitudes</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card className="opacity-50 cursor-not-allowed">
+          <CardHeader className="pb-2">
+            <div className="w-14 h-14 rounded-xl bg-muted/30 flex items-center justify-center mb-3">
+              <ClipboardCheck className="w-7 h-7 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-lg text-muted-foreground">Aprobaciones Pendientes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground/70">Próximamente disponible</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Financial Reports */}
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold text-foreground">Reportes</h2>
+        <p className="text-sm text-muted-foreground">Seleccione el tipo de reporte</p>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Reporte Gastos Eventos */}
         <Card

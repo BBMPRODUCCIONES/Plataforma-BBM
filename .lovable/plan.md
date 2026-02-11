@@ -1,46 +1,74 @@
 
 
-# Agregar numeracion secuencial "Solicitud de Anticipo No." por proyecto
+# Plan: Implementar "Aprobaciones Pendientes"
 
 ## Resumen
 
-Cada proyecto que tenga solicitud de presupuesto recibira un numero unico y secuencial de "Solicitud de Anticipo" (ej: 1, 2, 3...). Este numero se asigna una sola vez al proyecto (no cada vez que se exporta) y se guarda en la base de datos para que sea consistente sin importar quien exporte o cuantas veces lo haga.
+Crear la secccion "Aprobaciones Pendientes" dentro de Reportes Financieros, reemplazando la tarjeta placeholder actual. Esta vista consolida todas las solicitudes de presupuesto (cajaMenor) de todos los proyectos en una tabla interactiva con filtros, estados editables y vinculacion a legalizacion.
 
-## Como funcionara
+---
 
-- Cuando un usuario exporta el PDF o Excel de "Solicitud de Presupuesto" por primera vez para un proyecto, el sistema le asignara automaticamente el siguiente numero disponible.
-- Si ese proyecto ya tiene un numero asignado (porque ya se exporto antes), se reutiliza el mismo numero.
-- El numero es global: si hay 30 proyectos con solicitud de presupuesto, los numeros van del 1 al 30 en orden de primera exportacion.
+## Estructura de la Vista (segun el informe)
 
-## Seccion tecnica
+### Barra de Filtros Superior
+- **Filtro por**: Dia, Mes, Ano (selectores de fecha)
+- **Estatus Presupuestos**: Dropdown con opciones (Pendiente, Aprobado, No aprobado, Todos)
+- **Busqueda**: Campo de texto libre para buscar por empleado, CC, descripcion
 
-### 1. Nueva columna en la tabla `projects`
+### Tabla Principal - Columnas
 
-Agregar `solicitud_anticipo_num` (tipo integer, nullable, sin default) a la tabla `projects`. Solo se llena cuando se genera la primera exportacion de presupuesto para ese proyecto.
+| Columna | Origen de datos | Notas |
+|---------|----------------|-------|
+| Fecha | `createdAt` del registro cajaMenor | Formato DD/MM/YYYY |
+| CC | `centroCostos` del proyecto padre | Centro de costos del evento |
+| Empleado | `empleadoNombre` del registro cajaMenor | Nombre del colaborador |
+| Requerido para | `evento` del proyecto padre | Nombre del evento asociado |
+| Categoria | `recursos` del registro (Caja menor, Anticipos BBM, Recursos propios) | Opciones del formato de solicitud |
+| Descripcion | `concepto` del registro cajaMenor | Lo que escribio el usuario |
+| Valor | `valor` del registro cajaMenor | Formato moneda COP |
+| Estado | `estado` del registro (Pendiente/Aprobado/No aprobado) | Seleccionable por admin |
+| Legalizacion | Suma de valores de `legalizacion[]` del mismo empleado en el proyecto | Valor monetario |
+| (link) | "Ver Legalizacion" | Boton para navegar al detalle |
+| Estado Legaliz. | Estado de legalizacion (Pendiente/Legalizado/Rechazado) | Seleccionable |
+| Saldo a favor | `valor` de solicitud - suma legalizacion | Calculo automatico |
+| Ver mas | Boton para expandir detalle | Abre modal o navega al proyecto |
 
-### 2. Nueva funcion de base de datos
+---
 
-Crear una funcion SQL `assign_solicitud_anticipo_num(project_id uuid)` que:
-- Si el proyecto ya tiene numero, lo retorna sin cambios
-- Si no, calcula `MAX(solicitud_anticipo_num) + 1` de todos los proyectos y lo asigna
-- Usa bloqueo (`FOR UPDATE`) para evitar numeros duplicados en concurrencia
+## Implementacion Tecnica
 
-### 3. Cambios en `src/utils/pdfGenerator.ts`
+### 1. Nuevo componente: `src/components/reports/AprobacionesPendientes.tsx`
+- Consumir `ProjectsContext` para obtener todos los proyectos
+- Aplanar todos los registros `cajaMenor[]` de cada proyecto en filas individuales
+- Cada fila enriquecida con datos del proyecto padre (CC, evento)
+- Calcular legalizacion y saldo a favor cruzando con `legalizacion[]` del proyecto
 
-- Modificar `printSolicitudPresupuesto` y `exportSolicitudToExcel` para recibir el numero de solicitud como parametro
-- Incluir el numero en el formato corporativo: "SOLICITUD DE ANTICIPO No. **XX**"
+### 2. Logica de datos
+- Recorrer `projects` y extraer cada `cajaMenorItem` junto con metadata del proyecto
+- Para cada item, buscar legalizaciones del mismo empleado en el mismo proyecto
+- Saldo a favor = valor solicitud - suma legalizaciones del empleado
 
-### 4. Cambios en `src/pages/PanelOperaciones.tsx`
+### 3. Filtros
+- Filtro por fecha: dia/mes/ano usando date-fns
+- Filtro por estatus: Pendiente, Aprobado, No aprobado
+- Busqueda libre: filtra por empleado, CC, descripcion, evento
 
-- Antes de llamar a las funciones de exportacion, verificar si el proyecto ya tiene `solicitud_anticipo_num`
-- Si no lo tiene, llamar a la funcion RPC `assign_solicitud_anticipo_num` para obtener y guardar el numero
-- Pasar el numero obtenido a las funciones de exportacion
+### 4. Acciones en la tabla
+- **Estado**: Dropdown inline para cambiar entre Pendiente/Aprobado/No aprobado (solo admin)
+- **Ver Legalizacion**: Navegar o abrir modal con detalle de legalizaciones del empleado en ese proyecto
+- **Ver mas**: Abrir detalle completo del registro
 
-### Archivos a modificar
+### 5. Actualizar `PanelReportes.tsx`
+- Agregar nueva vista `"aprobaciones"` al tipo `ReportView`
+- Hacer clickeable la tarjeta "Aprobaciones Pendientes" (quitar `opacity-50` y `cursor-not-allowed`)
+- Renderizar `AprobacionesPendientes` cuando `currentView === "aprobaciones"`
 
-| Archivo | Cambio |
-|---------|--------|
-| Migracion SQL | Agregar columna `solicitud_anticipo_num` a `projects` y crear funcion RPC `assign_solicitud_anticipo_num` |
-| `src/utils/pdfGenerator.ts` | Recibir y mostrar el numero de solicitud en PDF y Excel |
-| `src/pages/PanelOperaciones.tsx` | Logica para asignar/obtener el numero antes de exportar |
+### 6. Permisos
+- Solo usuarios con rol `administrador` pueden cambiar estados
+- Usuarios `operativo` y `visual` pueden ver pero no modificar
 
+---
+
+## Archivos a crear/modificar
+- **Crear**: `src/components/reports/AprobacionesPendientes.tsx`
+- **Modificar**: `src/pages/PanelReportes.tsx` (nueva vista y activar tarjeta)

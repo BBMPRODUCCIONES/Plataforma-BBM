@@ -11,6 +11,7 @@ interface CajaMenorEstadoSelectProps {
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  readOnly?: boolean;
 }
 
 const ESTADO_OPTIONS = [
@@ -19,8 +20,20 @@ const ESTADO_OPTIONS = [
   { value: 'No aprobado', label: 'No aprobado', className: 'bg-red-500/20 text-red-400 border-red-500/30' },
 ] as const;
 
-export function CajaMenorEstadoSelect({ value, onChange, className }: CajaMenorEstadoSelectProps) {
+export function CajaMenorEstadoSelect({ value, onChange, className, readOnly }: CajaMenorEstadoSelectProps) {
   const currentOption = ESTADO_OPTIONS.find(o => o.value === value);
+
+  if (readOnly) {
+    return (
+      <span className={cn(
+        "text-xs font-medium px-2 py-0.5 rounded inline-block",
+        currentOption?.className || "",
+        className
+      )}>
+        {currentOption?.label || value}
+      </span>
+    );
+  }
 
   return (
     <Select

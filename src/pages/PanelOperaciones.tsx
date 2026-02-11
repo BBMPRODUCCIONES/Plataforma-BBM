@@ -2020,75 +2020,12 @@ const PanelOperaciones = () => {
         width: "130px",
         mobileWidth: "130px",
         render: (c: CajaMenorItem) => {
-          // Only users with canApproveCajaMenor permission can change Estado
-          const canChangeEstado = canApproveCajaMenor();
-          const isApproved = c.estado === "Aprobado";
-          
-          if (!canChangeEstado) {
-            return (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1 cursor-default">
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                      <span className={`text-sm px-2 py-0.5 rounded ${
-                        isApproved ? "bg-green-500/20 text-green-500 font-medium" : "bg-yellow-500/10 text-yellow-500"
-                      }`}>
-                        {c.estado}
-                      </span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p>{isApproved ? "Registro aprobado: edición bloqueada" : "Solo usuarios autorizados pueden cambiar el estado"}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            );
-          }
           return (
-            <div className="flex items-center gap-1">
-              {isApproved && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center">
-                        <Lock className="h-3 w-3 text-green-500 mr-1" />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p>Registro aprobado: edición bloqueada. Cambie a "No aprobado" para habilitar edición.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              <CajaMenorEstadoSelect
-                value={c.estado}
-                onChange={(value) => {
-                  if (projectId) {
-                    // Validar antes de aprobar
-                    if (value === "Aprobado") {
-                      const missingFields: string[] = [];
-                      if (!c.valor || c.valor === 0) missingFields.push("Valor");
-                      if (!c.categoria?.trim()) missingFields.push("Categoría");
-                      if (!c.recursos?.trim()) missingFields.push("Recursos");
-                      if (!c.imagenes || c.imagenes.length === 0) missingFields.push("Imágenes");
-                      
-                      if (missingFields.length > 0) {
-                        toast.error(`No se puede aprobar: faltan campos obligatorios (${missingFields.join(", ")})`);
-                        return;
-                      }
-                    }
-                    
-                    updateCajaMenorItem(projectId, c.id, "estado", value);
-                    if (value === "No aprobado" && isApproved) {
-                      toast.info("Registro reabierto: edición habilitada");
-                    } else if (value === "Aprobado") {
-                      toast.success("Registro aprobado: edición bloqueada");
-                    }
-                  }
-                }}
-              />
-            </div>
+            <CajaMenorEstadoSelect
+              value={c.estado}
+              onChange={() => {}}
+              readOnly
+            />
           );
         },
       },
@@ -2463,90 +2400,12 @@ const PanelOperaciones = () => {
         width: "130px",
         mobileWidth: "130px",
         render: (l: LegalizacionItem) => {
-          const canChangeEstado = canApproveCajaMenor();
-          const isApproved = l.estado === "Aprobado";
-          
-          if (!canChangeEstado) {
-            return (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1 cursor-default">
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                      <span className={`text-sm px-2 py-0.5 rounded ${
-                        isApproved ? "bg-green-500/20 text-green-500 font-medium" : "bg-yellow-500/10 text-yellow-500"
-                      }`}>
-                        {l.estado}
-                      </span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p>{isApproved ? "Registro aprobado: edición bloqueada" : "Solo usuarios autorizados pueden cambiar el estado"}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            );
-          }
           return (
-            <div className="flex items-center gap-1">
-              {isApproved && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center">
-                        <Lock className="h-3 w-3 text-green-500 mr-1" />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p>Registro aprobado: edición bloqueada. Cambie a "No aprobado" para habilitar edición.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              <CajaMenorEstadoSelect
-                value={l.estado}
-                onChange={(value) => {
-                  if (projectId) {
-                    // Validar antes de aprobar
-                    if (value === "Aprobado") {
-                      const missingFields: string[] = [];
-                      
-                      // Obtener datos de categoría/recursos según si es sincronizado o manual
-                      const isSynced = l.id.startsWith('leg-');
-                      let categoria = l.categoria;
-                      let recursos = l.recursos;
-                      
-                      if (isSynced) {
-                        // Buscar el registro original en cajaMenor
-                        const originalId = l.id.replace('leg-', '');
-                        const originalRecord = (currentProjectData?.cajaMenor || []).find(
-                          (cm: CajaMenorItem) => cm.id === originalId
-                        );
-                        categoria = originalRecord?.categoria;
-                        recursos = originalRecord?.recursos;
-                      }
-                      
-                      if (!l.imagenes || l.imagenes.length === 0) missingFields.push("Imágenes");
-                      if (!l.valor || l.valor === 0) missingFields.push("Valor");
-                      if (!categoria?.trim()) missingFields.push("Categoría");
-                      if (!recursos?.trim()) missingFields.push("Recursos");
-                      
-                      if (missingFields.length > 0) {
-                        toast.error(`No se puede aprobar: faltan campos obligatorios (${missingFields.join(", ")})`);
-                        return;
-                      }
-                    }
-                    
-                    updateLegalizacionItem(projectId, l.id, "estado", value);
-                    if (value === "No aprobado" && isApproved) {
-                      toast.info("Registro reabierto: edición habilitada");
-                    } else if (value === "Aprobado") {
-                      toast.success("Registro aprobado: edición bloqueada");
-                    }
-                  }
-                }}
-              />
-            </div>
+            <CajaMenorEstadoSelect
+              value={l.estado}
+              onChange={() => {}}
+              readOnly
+            />
           );
         },
       },

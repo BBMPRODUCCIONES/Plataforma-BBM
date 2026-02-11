@@ -367,6 +367,23 @@ const PanelOperaciones = () => {
     contextUpdateProject(projectId, field, value);
   };
 
+  // Helper to get or assign solicitud de anticipo number via RPC
+  const getOrAssignSolicitudNum = async (projectId: string): Promise<number | null> => {
+    try {
+      const { data, error } = await supabase.rpc('assign_solicitud_anticipo_num', { p_project_id: projectId });
+      if (error) {
+        console.error('[PanelOperaciones] Error assigning solicitud num:', error);
+        toast.error('Error al asignar número de solicitud');
+        return null;
+      }
+      return data as number;
+    } catch (err) {
+      console.error('[PanelOperaciones] Exception assigning solicitud num:', err);
+      toast.error('Error al asignar número de solicitud');
+      return null;
+    }
+  };
+
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
     // Create new array to ensure React detects the change
     logger.debug('[PanelOperaciones] handleColumnsChange called with:', newColumns.length, 'columns');
@@ -3253,11 +3270,17 @@ const PanelOperaciones = () => {
                                         Agregar información de Legalización
                                       </DropdownMenuCheckboxItem>
                                       <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={() => printSolicitudPresupuesto(currentProjectData, empleados, includeLegalizacionInExport)}>
+                                      <DropdownMenuItem onClick={async () => {
+                                        const num = await getOrAssignSolicitudNum(currentProjectData.id);
+                                        printSolicitudPresupuesto(currentProjectData, empleados, includeLegalizacionInExport, num ?? undefined);
+                                      }}>
                                         <FileDown className="h-4 w-4 mr-2" />
                                         Descargar PDF
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => exportSolicitudToExcel(currentProjectData, empleados, includeLegalizacionInExport)}>
+                                      <DropdownMenuItem onClick={async () => {
+                                        const num = await getOrAssignSolicitudNum(currentProjectData.id);
+                                        await exportSolicitudToExcel(currentProjectData, empleados, includeLegalizacionInExport, num ?? undefined);
+                                      }}>
                                         <FileSpreadsheet className="h-4 w-4 mr-2" />
                                         Descargar Excel
                                       </DropdownMenuItem>

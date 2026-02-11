@@ -1173,7 +1173,7 @@ const generateCorporateFormatoHTML = (
           <td style="border:1px solid #000;padding:5px 8px;font-size:10px;font-weight:bold;">OBSERVACIONES:</td>
         </tr>
         <tr>
-          <td style="border:1px solid #000;padding:8px;font-size:10px;min-height:40px;">${project.notas || '&nbsp;'}</td>
+          <td style="border:1px solid #000;padding:8px;font-size:10px;min-height:40px;">&nbsp;</td>
         </tr>
       </table>
 
@@ -1181,11 +1181,13 @@ const generateCorporateFormatoHTML = (
       <table style="width:100%;border-collapse:collapse;border-left:2px solid #000;border-right:2px solid #000;">
         <tr>
           <td style="border:1px solid #000;padding:5px 8px;font-size:10px;font-weight:bold;width:50%;">TESORERÍA</td>
-          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;width:50%;"></td>
+          <td rowspan="2" style="border:1px solid #000;padding:8px;font-size:10px;width:50%;text-align:center;vertical-align:middle;">
+            <div style="font-weight:bold;font-size:10px;">ANTICIPOS VENCIDOS</div>
+            <div style="font-size:10px;margin-top:4px;">SI &nbsp;&nbsp;☐ &nbsp;&nbsp;&nbsp; NO &nbsp;&nbsp;☐</div>
+          </td>
         </tr>
         <tr>
           <td style="border:1px solid #000;padding:5px 8px;font-size:10px;font-weight:bold;">FECHA DE PAGO</td>
-          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;"></td>
         </tr>
       </table>
 
@@ -1199,22 +1201,7 @@ const generateCorporateFormatoHTML = (
             COMO SOLICITANTE DEL PRESENTE ANTICIPO, MANIFIESTO QUE CONOZCO EL REGLAMENTO QUE RIGE PARA LOS ANTICIPOS Y POR CONSIGUIENTE AUTORIZO A LA COMPAÑÍA PARA QUE EN CASO DE NO HACER LAS LEGALIZACIONES DENTRO DEL PLAZO ESTIPULADO (5 DÍAS HÁBILES) LAS DIFERENCIAS SEAN DESCONTADAS DE LOS PAGOS QUE ME CORRESPONDAN
           </td>
         </tr>
-        <tr>
-          <td style="border:1px solid #000;padding:5px 8px;">
-            <table style="width:100%;border:none;">
-              <tr>
-                <td style="border:none;width:50%;"></td>
-                <td style="border:none;font-size:10px;font-weight:bold;width:20%;">ANTICIPOS VENCIDOS</td>
-                <td style="border:none;width:30%;"></td>
-              </tr>
-              <tr>
-                <td style="border:none;"></td>
-                <td style="border:none;font-size:10px;">SI &nbsp;&nbsp;☐ &nbsp;&nbsp;&nbsp; NO &nbsp;&nbsp;☐</td>
-                <td style="border:none;"></td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+        
       </table>
 
       <!-- FIRMAS -->

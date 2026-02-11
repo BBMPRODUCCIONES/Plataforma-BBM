@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
-import { Search, Eye } from "lucide-react";
+import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -55,7 +55,7 @@ function getLegalizacionForEmployee(
   );
   const total = matched.reduce((sum, l) => sum + (l.valor || 0), 0);
   const allApproved = matched.length > 0 && matched.every((l) => l.estado === "Aprobado");
-  const estado = matched.length === 0 ? "Pendiente" : allApproved ? "Legalizado" : "Pendiente";
+  const estado = matched.length === 0 ? "En proceso" : allApproved ? "Legalizado" : "En proceso";
   return { total, estado };
 }
 
@@ -65,7 +65,7 @@ const MONTHS = [
 ];
 
 const LEGALIZACION_ESTADO_OPTIONS = [
-  { value: "Pendiente", label: "Pendiente", className: "bg-yellow-500/20 text-yellow-400" },
+  { value: "En proceso", label: "En proceso", className: "bg-yellow-500/20 text-yellow-400" },
   { value: "Legalizado", label: "Legalizado", className: "bg-green-500/20 text-green-400" },
   { value: "Rechazado", label: "Rechazado", className: "bg-red-500/20 text-red-400" },
 ];
@@ -265,7 +265,7 @@ export default function AprobacionesPendientes() {
               <TableHead className="text-xs text-right">Legalización</TableHead>
               <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>
               <TableHead className="text-xs text-right">Saldo</TableHead>
-              <TableHead className="text-xs w-[60px]"></TableHead>
+              <TableHead className="text-xs w-[80px]">Acción</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -311,9 +311,9 @@ export default function AprobacionesPendientes() {
                     <TableCell className="text-xs text-right">
                       {formatCurrency(row.legalizacionTotal)}
                     </TableCell>
-                    {/* Estado Legalización - editable for admin */}
+                    {/* Estado Legalización - editable only after solicitud is Aprobado */}
                     <TableCell className="text-xs">
-                      {canApproveCajaMenor() ? (
+                      {canApproveCajaMenor() && row.item.estado === "Aprobado" ? (
                         <Select
                           value={row.legalizacionEstado}
                           onValueChange={(v) => handleLegalizacionEstadoChange(row, v)}
@@ -354,15 +354,14 @@ export default function AprobacionesPendientes() {
                     </TableCell>
                     <TableCell>
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        title="Ver proyecto"
+                        variant="link"
+                        size="sm"
+                        className="h-7 px-1 text-xs text-primary underline"
                         onClick={() => {
-                          window.open(`/?proyecto=${row.projectId}`, "_blank");
+                          window.open(`/?proyecto=${row.projectId}&seccion=gastos`, "_blank");
                         }}
                       >
-                        <Eye className="h-3.5 w-3.5" />
+                        Ver más
                       </Button>
                     </TableCell>
                   </TableRow>

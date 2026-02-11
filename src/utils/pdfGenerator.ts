@@ -605,6 +605,8 @@ interface EmpleadoBasic {
   banco?: string;
   tipoCuenta?: string;
   numeroCuenta?: string;
+  cedula?: string;
+  cargo?: string;
 }
 
 // Helper to resolve employee ID to name
@@ -880,21 +882,372 @@ const generateProjectInfoSection = (project: Project, empleados: EmpleadoBasic[]
   `;
 };
 
-// Print ONLY Solicitud de Presupuesto
-export const printSolicitudPresupuesto = (project: Project, empleados: EmpleadoBasic[] = [], includeLegalizacion: boolean = false, solicitudAnticipoNum?: number) => {
-  const numLabel = solicitudAnticipoNum ? ` No. ${solicitudAnticipoNum}` : '';
-  let content = generateProjectInfoSection(project, empleados);
-  content += generateSolicitudPresupuestoSection(project, empleados, true); // Include banking info
+// Helper to get employee full info for solicitud
+const getEmpleadoFullInfo = (empleadoId: string | undefined, empleados: EmpleadoBasic[]) => {
+  if (!empleadoId) return { nombre: '-', cedula: '-', cargo: '-', banco: '-', tipoCuenta: '-', numeroCuenta: '-' };
+  const e = empleados.find(emp => emp.id === empleadoId);
+  return {
+    nombre: e?.nombre || '-',
+    cedula: e?.cedula || '-',
+    cargo: e?.cargo || '-',
+    banco: e?.banco || '-',
+    tipoCuenta: e?.tipoCuenta || '-',
+    numeroCuenta: e?.numeroCuenta || '-',
+  };
+};
+
+// Generate corporate FIN-F-002 format HTML
+const generateCorporateFormatoHTML = (
+  project: Project,
+  empleados: EmpleadoBasic[],
+  solicitudAnticipoNum?: number,
+  includeLegalizacion: boolean = false
+): string => {
+  const cajaMenor = project.cajaMenor || [];
+  const firstItem = cajaMenor[0];
+  const solicitante = getEmpleadoFullInfo(firstItem?.empleadoId, empleados);
+  const totalValor = cajaMenor.reduce((sum, c) => sum + (c.valor || 0), 0);
+  const fechaHoy = format(new Date(), "dd/MM/yyyy", { locale: es });
   
+  // Build expense rows (RELACION DE GASTOS)
+  const expenseRows = cajaMenor.map(c => {
+    const emp = getEmpleadoFullInfo(c.empleadoId, empleados);
+    return `
+      <tr>
+        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${emp.nombre}</td>
+        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${emp.cedula}</td>
+        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${c.concepto || '-'}</td>
+        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;text-align:right;">$ ${(c.valor || 0).toLocaleString('es-CO')}</td>
+      </tr>`;
+  }).join('');
+
+  // Empty rows to fill table (minimum 12 rows like the original format)
+  const emptyRowsCount = Math.max(0, 12 - cajaMenor.length);
+  const emptyRows = Array(emptyRowsCount).fill(0).map(() => `
+    <tr>
+      <td style="border:1px solid #000;padding:4px 6px;height:20px;">&nbsp;</td>
+      <td style="border:1px solid #000;padding:4px 6px;">&nbsp;</td>
+      <td style="border:1px solid #000;padding:4px 6px;">&nbsp;</td>
+      <td style="border:1px solid #000;padding:4px 6px;">&nbsp;</td>
+    </tr>`).join('');
+
+  // Legalization section if included
+  let legalizacionHTML = '';
   if (includeLegalizacion) {
-    content += generateLegalizacionSection(project, empleados, true);
+    const manualLeg = ((project.legalizacion as any[]) || []).filter(l => !l.id.startsWith('leg-'));
+    const syncedLeg = cajaMenor.map(cm => {
+      const legEntry = ((project.legalizacion as any[]) || []).find(l => l.id === `leg-${cm.id}`);
+      return {
+        empleadoId: cm.empleadoId,
+        concepto: cm.concepto + (legEntry?.notaAdicional ? ` + ${legEntry.notaAdicional}` : ''),
+        imagenes: legEntry?.imagenes || [],
+        valor: legEntry?.valor || 0,
+        categoria: cm.categoria,
+        recursos: cm.recursos,
+        contingencia: legEntry?.contingencia || cm.contingencia,
+        estado: legEntry?.estado || 'Pendiente'
+      };
+    });
+    const allLeg = [...syncedLeg, ...manualLeg];
+    const legTotal = allLeg.reduce((sum, l) => sum + (l.valor || 0), 0);
+    const diferencia = totalValor - legTotal;
+
+    const legRows = allLeg.map(l => {
+      const emp = getEmpleadoFullInfo(l.empleadoId, empleados);
+      return `
+        <tr>
+          <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${emp.nombre}</td>
+          <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${emp.cedula}</td>
+          <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${l.concepto || '-'}</td>
+          <td style="border:1px solid #000;padding:4px 6px;font-size:10px;text-align:right;">$ ${(l.valor || 0).toLocaleString('es-CO')}</td>
+        </tr>`;
+    }).join('');
+
+    legalizacionHTML = `
+      <div style="page-break-before:always;margin-top:30px;">
+        <h3 style="font-size:12px;font-weight:bold;margin:15px 0 8px;border-bottom:2px solid #000;padding-bottom:4px;">LEGALIZACIÓN</h3>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:#e5e7eb;">
+              <th style="border:1px solid #000;padding:5px 6px;font-size:10px;text-align:left;width:25%;">NOMBRE DE TERCEROS</th>
+              <th style="border:1px solid #000;padding:5px 6px;font-size:10px;text-align:left;width:15%;">NIT/CEDULA</th>
+              <th style="border:1px solid #000;padding:5px 6px;font-size:10px;text-align:left;width:40%;">CONCEPTO</th>
+              <th style="border:1px solid #000;padding:5px 6px;font-size:10px;text-align:right;width:20%;">VALOR</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${legRows}
+          </tbody>
+          <tfoot>
+            <tr style="font-weight:bold;background:#f3f4f6;">
+              <td colspan="3" style="border:1px solid #000;padding:5px 6px;font-size:10px;text-align:right;">TOTAL LEGALIZADO</td>
+              <td style="border:1px solid #000;padding:5px 6px;font-size:10px;text-align:right;">$ ${legTotal.toLocaleString('es-CO')}</td>
+            </tr>
+            <tr style="font-weight:bold;">
+              <td colspan="3" style="border:1px solid #000;padding:5px 6px;font-size:10px;text-align:right;">DIFERENCIA</td>
+              <td style="border:1px solid #000;padding:5px 6px;font-size:10px;text-align:right;color:${diferencia > 0 ? '#dc2626' : '#16a34a'};">$ ${diferencia < 0 ? `(${Math.abs(diferencia).toLocaleString('es-CO')})` : diferencia.toLocaleString('es-CO')}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>`;
   }
 
-  const html = generatePrintableHTML(content, {
-    title: includeLegalizacion ? `SOLICITUD DE ANTICIPO${numLabel} + LEGALIZACIÓN` : `SOLICITUD DE ANTICIPO${numLabel}`,
-    subtitle: project.evento,
-  });
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>SOLICITUD DE ANTICIPO${solicitudAnticipoNum ? ` No. ${solicitudAnticipoNum}` : ''} - ${project.evento}</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; font-size: 11px; color: #000; padding: 20px; padding-top: 80px; }
+        .mobile-action-bar {
+          position: fixed; top: 0; left: 0; right: 0;
+          background: #1a1a2e; color: white;
+          padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top, 0px));
+          display: flex; justify-content: space-between; align-items: center;
+          z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.3); gap: 8px;
+        }
+        .mobile-action-bar button {
+          background: #f97316; color: white; border: none;
+          padding: 12px 16px; border-radius: 8px; font-size: 14px;
+          font-weight: 600; cursor: pointer; display: flex;
+          align-items: center; gap: 6px; min-height: 44px;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .mobile-action-bar button:active { background: #ea580c; transform: scale(0.98); }
+        .mobile-action-bar .back-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); }
+        .mobile-action-bar .back-btn:active { background: rgba(255,255,255,0.25); }
+        .mobile-action-bar .title { font-size: 13px; font-weight: 600; flex: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px; }
+        @media print {
+          body { padding: 15px; padding-top: 15px; }
+          .mobile-action-bar { display: none !important; }
+          @page { margin: 10mm; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="mobile-action-bar"> 
+        <button class="back-btn" onclick="goBack()">← Volver</button>
+        <span class="title">Solicitud de Anticipo${solicitudAnticipoNum ? ` No. ${solicitudAnticipoNum}` : ''}</span>
+        <button onclick="window.print()">📄 PDF</button>
+        <button onclick="saveAsImage()">📷 Foto</button>
+      </div>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+      <script>
+        function goBack() { if (window.opener) { window.close(); } else if (history.length > 1) { history.back(); } else { window.location.href = window.location.origin; } }
+        function saveAsImage() {
+          var ab = document.querySelector('.mobile-action-bar'); ab.style.display = 'none';
+          html2canvas(document.body, { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollY: -window.scrollY, windowHeight: document.body.scrollHeight }).then(function(c) {
+            ab.style.display = 'flex';
+            c.toBlob(function(b) { var u = URL.createObjectURL(b); var a = document.createElement('a'); a.download = 'solicitud_anticipo_${(project.evento || '').replace(/[^a-zA-Z0-9]/g, '_')}_' + new Date().toISOString().split('T')[0] + '.png'; a.href = u; a.click(); URL.revokeObjectURL(u); }, 'image/png');
+          }).catch(function(e) { ab.style.display = 'flex'; alert('Error: ' + e.message); });
+        }
+      </script>
 
+      <!-- HEADER CORPORATIVO -->
+      <table style="width:100%;border-collapse:collapse;border:2px solid #000;margin-bottom:0;">
+        <tr>
+          <td rowspan="3" style="border:1px solid #000;padding:10px;width:30%;vertical-align:middle;">
+            <div style="font-weight:bold;font-size:14px;">BBM Producciones S.A.S.</div>
+            <div style="font-size:9px;color:#444;margin-top:4px;">Carrera 74 # 48 19</div>
+            <div style="font-size:9px;color:#444;">Celular: 3142777773</div>
+            <div style="font-size:9px;color:#444;">Bogotá, D.C. Colombia</div>
+            <div style="font-size:9px;color:#444;">NIT 901.577.285-7</div>
+          </td>
+          <td rowspan="3" style="border:1px solid #000;padding:10px;text-align:center;vertical-align:middle;width:40%;">
+            <div style="font-size:16px;font-weight:bold;">SOLICITUD DE ANTICIPO</div>
+          </td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:9px;font-weight:bold;width:15%;">CÓDIGO</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:9px;width:15%;">FIN-F-002</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:9px;font-weight:bold;">VERSIÓN</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:9px;">1</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:9px;font-weight:bold;">FECHA ELABORACIÓN</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:9px;">${fechaHoy}</td>
+        </tr>
+      </table>
+
+      <!-- TIPO: ADMON / OPERATIVO -->
+      <table style="width:100%;border-collapse:collapse;border-left:2px solid #000;border-right:2px solid #000;">
+        <tr>
+          <td style="border:1px solid #000;padding:5px 10px;width:50%;"></td>
+          <td style="border:1px solid #000;padding:5px 10px;font-size:10px;font-weight:bold;width:15%;">ADMON</td>
+          <td style="border:1px solid #000;padding:5px 10px;width:10%;text-align:center;"></td>
+          <td style="border:1px solid #000;padding:5px 10px;font-size:10px;font-weight:bold;width:15%;">OPERATIVO</td>
+          <td style="border:1px solid #000;padding:5px 10px;width:10%;text-align:center;font-weight:bold;">X</td>
+        </tr>
+      </table>
+
+      <!-- SOLICITUD DE ANTICIPO No. -->
+      <table style="width:100%;border-collapse:collapse;border-left:2px solid #000;border-right:2px solid #000;">
+        <tr>
+          <td style="border:1px solid #000;padding:6px 10px;font-size:11px;font-weight:bold;width:70%;">SOLICITUD DE ANTICIPO No.</td>
+          <td style="border:1px solid #000;padding:6px 10px;font-size:14px;font-weight:bold;text-align:center;width:30%;color:#1d4ed8;">${solicitudAnticipoNum || ''}</td>
+        </tr>
+      </table>
+
+      <!-- TITULO SOLICITUD DE ANTICIPO -->
+      <table style="width:100%;border-collapse:collapse;border-left:2px solid #000;border-right:2px solid #000;">
+        <tr>
+          <td style="border:1px solid #000;padding:6px 10px;font-size:11px;font-weight:bold;background:#f3f4f6;text-align:center;">SOLICITUD DE ANTICIPO</td>
+        </tr>
+      </table>
+
+      <!-- DATOS DEL SOLICITANTE -->
+      <table style="width:100%;border-collapse:collapse;border-left:2px solid #000;border-right:2px solid #000;">
+        <tr>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;width:18%;">SOLICITADO POR</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;width:32%;">${solicitante.nombre}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;width:18%;">CIUDAD</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;width:32%;">BOGOTÁ</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">CÉDULA</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${solicitante.cedula}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">EVENTO</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${project.evento || '-'}</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">CARGO</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${solicitante.cargo}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">CENTRO DE COSTO</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${project.centroCostos || '-'}</td>
+        </tr>
+      </table>
+
+      <!-- VALOR Y DATOS BANCARIOS -->
+      <table style="width:100%;border-collapse:collapse;border-left:2px solid #000;border-right:2px solid #000;">
+        <tr>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;width:18%;">VALOR SOLICITADO</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;width:18%;">$ ${totalValor.toLocaleString('es-CO')}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;width:10%;">BANCO:</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;width:22%;">${solicitante.banco}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;width:12%;">No CUENTA</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;width:20%;">${solicitante.numeroCuenta}</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">FECHA SOLICITUD</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${fechaHoy}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">TIPO</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${solicitante.tipoCuenta === 'Ahorros' ? 'AH' : solicitante.tipoCuenta === 'Corriente' ? 'CTE' : solicitante.tipoCuenta}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;" colspan="2"></td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">FECHA A LEGALIZAR</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;"></td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;" colspan="4"></td>
+        </tr>
+      </table>
+
+      <!-- RELACION DE GASTOS -->
+      <table style="width:100%;border-collapse:collapse;border-left:2px solid #000;border-right:2px solid #000;margin-top:0;">
+        <tr>
+          <td colspan="4" style="border:1px solid #000;padding:6px 8px;font-size:11px;font-weight:bold;background:#f3f4f6;">RELACIÓN DE GASTOS</td>
+        </tr>
+        <tr style="background:#e5e7eb;">
+          <th style="border:1px solid #000;padding:5px 6px;font-size:10px;text-align:left;width:25%;">NOMBRE DE TERCEROS</th>
+          <th style="border:1px solid #000;padding:5px 6px;font-size:10px;text-align:left;width:15%;">NIT/CÉDULA</th>
+          <th style="border:1px solid #000;padding:5px 6px;font-size:10px;text-align:left;width:40%;">CONCEPTO</th>
+          <th style="border:1px solid #000;padding:5px 6px;font-size:10px;text-align:right;width:20%;">VALOR</th>
+        </tr>
+        ${expenseRows}
+        ${emptyRows}
+        <tr style="font-weight:bold;background:#f3f4f6;">
+          <td colspan="3" style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">TOTAL</td>
+          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">$ ${totalValor.toLocaleString('es-CO')}</td>
+        </tr>
+        <tr style="font-weight:bold;">
+          <td colspan="3" style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">DIFERENCIA</td>
+          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">$ (${totalValor.toLocaleString('es-CO')})</td>
+        </tr>
+      </table>
+
+      <!-- OBSERVACIONES -->
+      <table style="width:100%;border-collapse:collapse;border-left:2px solid #000;border-right:2px solid #000;">
+        <tr>
+          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;font-weight:bold;">OBSERVACIONES:</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:8px;font-size:10px;min-height:40px;">${project.notas || '&nbsp;'}</td>
+        </tr>
+      </table>
+
+      <!-- TESORERIA -->
+      <table style="width:100%;border-collapse:collapse;border-left:2px solid #000;border-right:2px solid #000;">
+        <tr>
+          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;font-weight:bold;width:50%;">TESORERÍA</td>
+          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;width:50%;"></td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;font-weight:bold;">FECHA DE PAGO</td>
+          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;"></td>
+        </tr>
+      </table>
+
+      <!-- NOTA ACLARATORIA -->
+      <table style="width:100%;border-collapse:collapse;border:2px solid #000;">
+        <tr>
+          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;font-weight:bold;">NOTA ACLARATORIA</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:6px 8px;font-size:9px;line-height:1.4;">
+            COMO SOLICITANTE DEL PRESENTE ANTICIPO, MANIFIESTO QUE CONOZCO EL REGLAMENTO QUE RIGE PARA LOS ANTICIPOS Y POR CONSIGUIENTE AUTORIZO A LA COMPAÑÍA PARA QUE EN CASO DE NO HACER LAS LEGALIZACIONES DENTRO DEL PLAZO ESTIPULADO (5 DÍAS HÁBILES) LAS DIFERENCIAS SEAN DESCONTADAS DE LOS PAGOS QUE ME CORRESPONDAN
+          </td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:5px 8px;">
+            <table style="width:100%;border:none;">
+              <tr>
+                <td style="border:none;width:50%;"></td>
+                <td style="border:none;font-size:10px;font-weight:bold;width:20%;">ANTICIPOS VENCIDOS</td>
+                <td style="border:none;width:30%;"></td>
+              </tr>
+              <tr>
+                <td style="border:none;"></td>
+                <td style="border:none;font-size:10px;">SI &nbsp;&nbsp;☐ &nbsp;&nbsp;&nbsp; NO &nbsp;&nbsp;☐</td>
+                <td style="border:none;"></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- FIRMAS -->
+      <table style="width:100%;border-collapse:collapse;border:2px solid #000;margin-top:0;">
+        <tr>
+          <td style="border:1px solid #000;padding:30px 8px 8px;font-size:10px;text-align:center;width:33%;">
+            <div style="border-top:1px solid #000;display:inline-block;padding-top:4px;min-width:150px;">${solicitante.nombre}</div>
+            <div style="font-weight:bold;font-size:9px;margin-top:2px;">SOLICITANTE</div>
+          </td>
+          <td style="border:1px solid #000;padding:30px 8px 8px;font-size:10px;text-align:center;width:34%;">
+            <div style="border-top:1px solid #000;display:inline-block;padding-top:4px;min-width:150px;">&nbsp;</div>
+            <div style="font-weight:bold;font-size:9px;margin-top:2px;">APROBADO</div>
+          </td>
+          <td style="border:1px solid #000;padding:30px 8px 8px;font-size:10px;text-align:center;width:33%;">
+            <div style="border-top:1px solid #000;display:inline-block;padding-top:4px;min-width:150px;">&nbsp;</div>
+            <div style="font-weight:bold;font-size:9px;margin-top:2px;">TESORERÍA</div>
+          </td>
+        </tr>
+      </table>
+
+      ${legalizacionHTML}
+
+      <div style="margin-top:20px;text-align:center;font-size:8px;color:#999;">
+        PRODUCCIÓN DE EVENTOS - Sistema de Gestión | Generado: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: es })}
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+// Print ONLY Solicitud de Presupuesto (Corporate Format FIN-F-002)
+export const printSolicitudPresupuesto = (project: Project, empleados: EmpleadoBasic[] = [], includeLegalizacion: boolean = false, solicitudAnticipoNum?: number) => {
+  const html = generateCorporateFormatoHTML(project, empleados, solicitudAnticipoNum, includeLegalizacion);
   openPrintWindow(html);
 };
 

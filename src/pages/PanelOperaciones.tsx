@@ -50,7 +50,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, GripHorizontal, ArrowUp, ArrowDown } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printSolicitudPresupuesto, printLegalizacion, exportSolicitudToExcel, exportLegalizacionToExcel } from "@/utils/pdfGenerator";
@@ -983,6 +983,23 @@ const PanelOperaciones = () => {
     }
   };
 
+  const moveInventarioItem = async (projectId: string, inventarioId: string, direction: 'up' | 'down') => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const items = [...(project.inventario || [])];
+    const index = items.findIndex(i => i.id === inventarioId);
+    if (index < 0) return;
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+    [items[index], items[targetIndex]] = [items[targetIndex], items[index]];
+    try {
+      await contextUpdateProject(projectId, 'inventario', items);
+    } catch (err) {
+      console.error('[PanelOperaciones] Error reordering inventario:', err);
+      toast.error("Error al reordenar material");
+    }
+  };
+
   const deleteInventarioItem = async (projectId: string, inventarioId: string) => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
@@ -1560,6 +1577,43 @@ const PanelOperaciones = () => {
     const projectId = currentProjectData?.id;
     
     return [
+      {
+        key: "reorder",
+        header: "",
+        width: "40px",
+        mobileWidth: "40px",
+        render: (i: InventarioItem, index: number) => (
+          <div className="flex flex-col items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 text-muted-foreground hover:text-foreground"
+              disabled={index === 0}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (projectId) moveInventarioItem(projectId, i.id, 'up');
+              }}
+              title="Subir"
+            >
+              <ArrowUp className="h-3 w-3" />
+            </Button>
+            <GripHorizontal className="h-3.5 w-3.5 text-muted-foreground/50" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 text-muted-foreground hover:text-foreground"
+              disabled={index === (currentProjectData?.inventario?.length ?? 1) - 1}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (projectId) moveInventarioItem(projectId, i.id, 'down');
+              }}
+              title="Bajar"
+            >
+              <ArrowDown className="h-3 w-3" />
+            </Button>
+          </div>
+        ),
+      },
       { 
         key: "nombreMaterial", 
         header: "Material", 

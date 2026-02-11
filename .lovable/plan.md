@@ -1,135 +1,46 @@
 
-# Plan: Eliminar Refrescos Automáticos Manteniendo Tiempo Real
 
-## Diagnóstico del Problema
+# Agregar numeracion secuencial "Solicitud de Anticipo No." por proyecto
 
-He identificado la causa exacta de los refrescos automáticos cada ~5 minutos:
+## Resumen
 
-### Causa Raíz
-La configuración actual del **Service Worker (PWA)** está configurada para:
-1. **Auto-actualizar agresivamente** (`registerType: "autoUpdate"` + `skipWaiting: true`)
-2. **Forzar refresh inmediato** cuando detecta una nueva versión del Service Worker
-3. **Verificar actualizaciones continuamente** en el archivo `main.tsx`
+Cada proyecto que tenga solicitud de presupuesto recibira un numero unico y secuencial de "Solicitud de Anticipo" (ej: 1, 2, 3...). Este numero se asigna una sola vez al proyecto (no cada vez que se exporta) y se guarda en la base de datos para que sea consistente sin importar quien exporte o cuantas veces lo haga.
 
-El flujo problemático es:
-```text
-+---------------------------+     +----------------------+     +------------------+
-| Lovable publica cambios   | --> | SW detecta nueva     | --> | controllerchange |
-| o rebuild automático      |     | versión (updatefound)|     | dispara reload() |
-+---------------------------+     +----------------------+     +------------------+
-```
+## Como funcionara
 
-Esto sucede aproximadamente cada 5 minutos porque el entorno de desarrollo/preview de Lovable puede estar haciendo rebuilds o el Service Worker está verificando actualizaciones periódicamente.
+- Cuando un usuario exporta el PDF o Excel de "Solicitud de Presupuesto" por primera vez para un proyecto, el sistema le asignara automaticamente el siguiente numero disponible.
+- Si ese proyecto ya tiene un numero asignado (porque ya se exporto antes), se reutiliza el mismo numero.
+- El numero es global: si hay 30 proyectos con solicitud de presupuesto, los numeros van del 1 al 30 en orden de primera exportacion.
 
-## Solución Propuesta
+## Seccion tecnica
 
-Cambiar la estrategia de actualización del PWA de "refresh automático" a "notificación al usuario", permitiendo que el usuario decida cuándo actualizar.
+### 1. Nueva columna en la tabla `projects`
 
-### Cambios Técnicos
+Agregar `solicitud_anticipo_num` (tipo integer, nullable, sin default) a la tabla `projects`. Solo se llena cuando se genera la primera exportacion de presupuesto para ese proyecto.
 
-#### 1. Modificar `vite.config.ts`
+### 2. Nueva funcion de base de datos
 
-Cambiar de `autoUpdate` a `prompt` para que el usuario tenga control:
+Crear una funcion SQL `assign_solicitud_anticipo_num(project_id uuid)` que:
+- Si el proyecto ya tiene numero, lo retorna sin cambios
+- Si no, calcula `MAX(solicitud_anticipo_num) + 1` de todos los proyectos y lo asigna
+- Usa bloqueo (`FOR UPDATE`) para evitar numeros duplicados en concurrencia
 
-```typescript
-VitePWA({
-  registerType: "prompt",  // <-- Cambiar de "autoUpdate" a "prompt"
-  // ... resto igual
-  workbox: {
-    // Remover skipWaiting y clientsClaim para dar control al usuario
-    skipWaiting: false,      // <-- Cambiar de true a false
-    clientsClaim: false,     // <-- Cambiar de true a false
-    // ... resto igual
-  }
-})
-```
+### 3. Cambios en `src/utils/pdfGenerator.ts`
 
-#### 2. Modificar `src/main.tsx`
+- Modificar `printSolicitudPresupuesto` y `exportSolicitudToExcel` para recibir el numero de solicitud como parametro
+- Incluir el numero en el formato corporativo: "SOLICITUD DE ANTICIPO No. **XX**"
 
-Eliminar el refresh automático y agregar notificación opcional:
+### 4. Cambios en `src/pages/PanelOperaciones.tsx`
 
-```typescript
-// En lugar de forzar refresh automático:
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((registration) => {
-      // Verificar actualizaciones cada 30 minutos (menos agresivo)
-      setInterval(() => registration.update(), 30 * 60 * 1000);
-      
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // Solo notificar, NO forzar refresh
-              console.log('[PWA] Nueva versión disponible');
-              // Opcionalmente mostrar un toast al usuario
-            }
-          });
-        }
-      });
-    }).catch(() => {});
-    
-    // ELIMINAR el listener de controllerchange que hace reload()
-  });
-}
-```
+- Antes de llamar a las funciones de exportacion, verificar si el proyecto ya tiene `solicitud_anticipo_num`
+- Si no lo tiene, llamar a la funcion RPC `assign_solicitud_anticipo_num` para obtener y guardar el numero
+- Pasar el numero obtenido a las funciones de exportacion
 
-#### 3. Agregar componente de actualización opcional (Mejora)
+### Archivos a modificar
 
-Crear un componente que muestre un banner discreto cuando hay actualización disponible:
+| Archivo | Cambio |
+|---------|--------|
+| Migracion SQL | Agregar columna `solicitud_anticipo_num` a `projects` y crear funcion RPC `assign_solicitud_anticipo_num` |
+| `src/utils/pdfGenerator.ts` | Recibir y mostrar el numero de solicitud en PDF y Excel |
+| `src/pages/PanelOperaciones.tsx` | Logica para asignar/obtener el numero antes de exportar |
 
-```tsx
-// src/components/PWAUpdateBanner.tsx
-export function PWAUpdateBanner() {
-  const [showUpdate, setShowUpdate] = useState(false);
-  
-  useEffect(() => {
-    // Escuchar cuando hay nueva versión
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(registration => {
-        registration.addEventListener('updatefound', () => {
-          // Mostrar banner solo si el usuario quiere actualizar
-          setShowUpdate(true);
-        });
-      });
-    }
-  }, []);
-  
-  if (!showUpdate) return null;
-  
-  return (
-    <div className="fixed bottom-4 right-4 p-3 bg-primary text-white rounded-lg">
-      <span>Nueva versión disponible</span>
-      <Button onClick={() => window.location.reload()}>
-        Actualizar
-      </Button>
-    </div>
-  );
-}
-```
-
-## Impacto
-
-| Aspecto | Antes | Después |
-|---------|-------|---------|
-| Refresh automático | Cada ~5 min | Nunca (control del usuario) |
-| Datos en tiempo real | Funciona | Sin cambios (Supabase Realtime) |
-| Actualizaciones de código | Inmediatas (pérdida de datos) | Cuando el usuario lo decida |
-| PWA instalable | Sí | Sí (sin cambios) |
-
-## Notas Importantes
-
-- Los datos en **tiempo real de Supabase** (proyectos, empleados, etc.) no se verán afectados, ya que usan canales de Realtime que son independientes del Service Worker
-- El usuario podrá seguir viendo cambios de otros usuarios instantáneamente
-- Las actualizaciones de código nuevas se aplicarán cuando el usuario:
-  - Haga click en "Actualizar" (si implementamos el banner)
-  - Refresque manualmente la página
-  - Cierre y vuelva a abrir la aplicación
-
-## Archivos a Modificar
-
-1. `vite.config.ts` - Configuración de VitePWA
-2. `src/main.tsx` - Lógica de registro del Service Worker
-3. (Opcional) `src/components/PWAUpdateBanner.tsx` - Nuevo componente para notificar actualizaciones
-4. (Opcional) `src/App.tsx` - Incluir el banner de actualización

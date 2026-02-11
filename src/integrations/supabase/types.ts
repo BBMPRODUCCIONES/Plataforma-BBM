@@ -379,6 +379,7 @@ export type Database = {
           ordenes_compra: Json
           personal: Json
           productor: string
+          solicitud_anticipo_num: number | null
           ubicacion: string
           updated_at: string
         }
@@ -431,6 +432,7 @@ export type Database = {
           ordenes_compra?: Json
           personal?: Json
           productor?: string
+          solicitud_anticipo_num?: number | null
           ubicacion?: string
           updated_at?: string
         }
@@ -483,6 +485,7 @@ export type Database = {
           ordenes_compra?: Json
           personal?: Json
           productor?: string
+          solicitud_anticipo_num?: number | null
           ubicacion?: string
           updated_at?: string
         }
@@ -712,6 +715,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_solicitud_anticipo_num: {
+        Args: { p_project_id: string }
+        Returns: number
+      }
       get_employee_name_by_id: {
         Args: { _employee_id: string }
         Returns: string

@@ -881,7 +881,8 @@ const generateProjectInfoSection = (project: Project, empleados: EmpleadoBasic[]
 };
 
 // Print ONLY Solicitud de Presupuesto
-export const printSolicitudPresupuesto = (project: Project, empleados: EmpleadoBasic[] = [], includeLegalizacion: boolean = false) => {
+export const printSolicitudPresupuesto = (project: Project, empleados: EmpleadoBasic[] = [], includeLegalizacion: boolean = false, solicitudAnticipoNum?: number) => {
+  const numLabel = solicitudAnticipoNum ? ` No. ${solicitudAnticipoNum}` : '';
   let content = generateProjectInfoSection(project, empleados);
   content += generateSolicitudPresupuestoSection(project, empleados, true); // Include banking info
   
@@ -890,7 +891,7 @@ export const printSolicitudPresupuesto = (project: Project, empleados: EmpleadoB
   }
 
   const html = generatePrintableHTML(content, {
-    title: includeLegalizacion ? 'SOLICITUD DE PRESUPUESTO + LEGALIZACIÓN' : 'SOLICITUD DE PRESUPUESTO',
+    title: includeLegalizacion ? `SOLICITUD DE ANTICIPO${numLabel} + LEGALIZACIÓN` : `SOLICITUD DE ANTICIPO${numLabel}`,
     subtitle: project.evento,
   });
 
@@ -932,7 +933,7 @@ export const printCajaMenor = (project: Project, empleados: EmpleadoBasic[] = []
 };
 
 // Export ONLY Solicitud de Presupuesto to Excel
-export const exportSolicitudToExcel = async (project: Project, empleados: EmpleadoBasic[] = [], includeLegalizacion: boolean = false) => {
+export const exportSolicitudToExcel = async (project: Project, empleados: EmpleadoBasic[] = [], includeLegalizacion: boolean = false, solicitudAnticipoNum?: number) => {
   const XLSX = await import('xlsx');
   const cajaMenor = project.cajaMenor || [];
   
@@ -963,7 +964,8 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
   solicitudSheet['!cols'] = [
     { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 15 }
   ];
-  XLSX.utils.book_append_sheet(workbook, solicitudSheet, 'Solicitud Presupuesto');
+  const sheetName = solicitudAnticipoNum ? `Solicitud Anticipo No.${solicitudAnticipoNum}` : 'Solicitud Presupuesto';
+  XLSX.utils.book_append_sheet(workbook, solicitudSheet, sheetName);
   
   if (includeLegalizacion) {
     // Build legalization data
@@ -1006,7 +1008,8 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
   }
   
   // Generate and download file
-  const fileName = `solicitud_presupuesto_${project.evento.replace(/[^a-zA-Z0-9]/g, '_')}_${format(new Date(), 'yyyyMMdd')}.xlsx`;
+  const numSuffix = solicitudAnticipoNum ? `_No${solicitudAnticipoNum}` : '';
+  const fileName = `solicitud_anticipo${numSuffix}_${project.evento.replace(/[^a-zA-Z0-9]/g, '_')}_${format(new Date(), 'yyyyMMdd')}.xlsx`;
   XLSX.writeFile(workbook, fileName);
 };
 

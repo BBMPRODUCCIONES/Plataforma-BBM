@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
+import { DragReorderHandle } from "@/components/DragReorderHandle";
 import { StatusSelect } from "@/components/StatusSelect";
 import { GanttChart } from "@/components/GanttChart";
 import { CalendarFilter } from "@/components/CalendarFilter";
@@ -50,7 +51,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, GripHorizontal, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printSolicitudPresupuesto, printLegalizacion, exportSolicitudToExcel, exportLegalizacionToExcel } from "@/utils/pdfGenerator";
@@ -1000,6 +1001,23 @@ const PanelOperaciones = () => {
     }
   };
 
+  const moveInventarioByIndex = async (fromIndex: number, toIndex: number) => {
+    const projectId = currentProjectData?.id;
+    if (!projectId) return;
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const items = [...(project.inventario || [])];
+    if (fromIndex < 0 || fromIndex >= items.length || toIndex < 0 || toIndex >= items.length) return;
+    const [moved] = items.splice(fromIndex, 1);
+    items.splice(toIndex, 0, moved);
+    try {
+      await contextUpdateProject(projectId, 'inventario', items);
+    } catch (err) {
+      console.error('[PanelOperaciones] Error reordering inventario:', err);
+      toast.error("Error al reordenar material");
+    }
+  };
+
   const deleteInventarioItem = async (projectId: string, inventarioId: string) => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
@@ -1597,7 +1615,11 @@ const PanelOperaciones = () => {
             >
               <ArrowUp className="h-3 w-3" />
             </Button>
-            <GripHorizontal className="h-3.5 w-3.5 text-muted-foreground/50" />
+            <DragReorderHandle
+              index={index}
+              totalItems={currentProjectData?.inventario?.length ?? 0}
+              onReorder={moveInventarioByIndex}
+            />
             <Button
               variant="ghost"
               size="icon"

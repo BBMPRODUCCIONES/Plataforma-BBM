@@ -55,7 +55,7 @@ function getLegalizacionForEmployee(
   );
   const total = matched.reduce((sum, l) => sum + (l.valor || 0), 0);
   const allApproved = matched.length > 0 && matched.every((l) => l.estado === "Aprobado");
-  const estado = matched.length === 0 ? "En proceso" : allApproved ? "Legalizado" : "En proceso";
+  const estado = matched.length === 0 ? "Revisando" : allApproved ? "Legalizado" : "Revisando";
   return { total, estado };
 }
 
@@ -65,10 +65,12 @@ const MONTHS = [
 ];
 
 const LEGALIZACION_ESTADO_OPTIONS = [
-  { value: "En proceso", label: "En proceso", className: "bg-yellow-500/20 text-yellow-400" },
+  { value: "Revisando", label: "Revisando", className: "bg-yellow-500/20 text-yellow-400" },
   { value: "Legalizado", label: "Legalizado", className: "bg-green-500/20 text-green-400" },
   { value: "Rechazado", label: "Rechazado", className: "bg-red-500/20 text-red-400" },
 ];
+
+const LEGALIZACION_NO_APROBADO = { value: "No legalizable", label: "No legalizable", className: "bg-red-500/20 text-red-400" };
 
 export default function AprobacionesPendientes() {
   const { projects, updateProject } = useProjects();
@@ -152,6 +154,18 @@ export default function AprobacionesPendientes() {
       item.id === row.item.id ? { ...item, estado: newEstado } : item
     );
     await updateProject(row.projectId, "cajaMenor", updatedCajaMenor);
+
+    // If "No aprobado", auto-set legalizacion to "No legalizable"
+    if (newEstado === "No aprobado") {
+      const updatedLegalizacion = (project.legalizacion || []).map((l) => {
+        if (l.empleadoNombre?.toLowerCase() === row.item.empleadoNombre?.toLowerCase()) {
+          return { ...l, estado: "No legalizable" };
+        }
+        return l;
+      });
+      await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
+    }
+
     toast.success(`Estado de solicitud actualizado a "${newEstado}"`);
   };
 
@@ -313,7 +327,11 @@ export default function AprobacionesPendientes() {
                     </TableCell>
                     {/* Estado Legalización - editable only after solicitud is Aprobado */}
                     <TableCell className="text-xs">
-                      {canApproveCajaMenor() && row.item.estado === "Aprobado" ? (
+                      {row.item.estado === "No aprobado" ? (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>
+                          {LEGALIZACION_NO_APROBADO.label}
+                        </span>
+                      ) : canApproveCajaMenor() && row.item.estado === "Aprobado" ? (
                         <Select
                           value={row.legalizacionEstado}
                           onValueChange={(v) => handleLegalizacionEstadoChange(row, v)}
@@ -340,9 +358,9 @@ export default function AprobacionesPendientes() {
                         </Select>
                       ) : (
                         <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                          LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === row.legalizacionEstado)?.className || ""
+                          LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === row.legalizacionEstado)?.className || "bg-yellow-500/20 text-yellow-400"
                         }`}>
-                          {row.legalizacionEstado}
+                          {row.legalizacionEstado || "Revisando"}
                         </span>
                       )}
                     </TableCell>
@@ -350,7 +368,7 @@ export default function AprobacionesPendientes() {
                     <TableCell className={`text-xs text-right font-medium ${
                       row.saldoAFavor > 0 ? "text-green-400" : row.saldoAFavor < 0 ? "text-red-400" : ""
                     }`}>
-                      {formatCurrency(row.saldoAFavor)}
+                      {formatCurrency(Math.abs(row.saldoAFavor))}
                     </TableCell>
                     <TableCell>
                       <Button
@@ -358,7 +376,7 @@ export default function AprobacionesPendientes() {
                         size="sm"
                         className="h-7 px-1 text-xs text-primary underline"
                         onClick={() => {
-                          window.open(`/?proyecto=${row.projectId}&seccion=gastos`, "_blank");
+                          window.open(`/?proyecto=${row.projectId}&seccion=gastos&evento=${encodeURIComponent(row.evento)}`, "_blank");
                         }}
                       >
                         Ver más

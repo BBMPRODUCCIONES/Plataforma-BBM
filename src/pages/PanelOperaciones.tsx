@@ -1195,7 +1195,7 @@ const PanelOperaciones = () => {
     const updatedLegalizacion = (project.legalizacion || []).filter(l => l.id !== legalizacionId);
     try {
       await contextUpdateProject(projectId, 'legalizacion', updatedLegalizacion);
-      toast.success("Registro de legalización eliminado");
+      toast.success("Registro de caja menor eliminado");
     } catch (err) {
       console.error('[PanelOperaciones] Error deleting legalizacion:', err);
       toast.error("Error al eliminar registro");
@@ -3153,13 +3153,13 @@ const PanelOperaciones = () => {
                       </CardContent>
                     </Card>
 
-                    {/* Sección de LEGALIZACIÓN - independiente */}
+                    {/* Sección de CAJA MENOR - independiente */}
                     <Card className="overflow-hidden mt-4 border-primary/30">
                       <CardHeader className="py-3 flex flex-col gap-2 bg-primary/5">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <FileText className="h-4 w-4" />
-                            LEGALIZACIÓN ({(currentProjectData.legalizacion || []).length})
+                            CAJA MENOR ({(currentProjectData.legalizacion || []).length})
                           </CardTitle>
                           <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
                             <DropdownMenu>
@@ -3218,7 +3218,7 @@ const PanelOperaciones = () => {
                                 };
                                 const updatedLeg = [...(currentProjectData.legalizacion || []), newLeg];
                                 contextUpdateProject(currentProjectData.id, 'legalizacion', updatedLeg);
-                                toast.success("Registro de legalización agregado");
+                                toast.success("Registro de caja menor agregado");
                               }}
                             >
                               <Plus className="h-3 w-3 mr-1" />
@@ -3230,7 +3230,7 @@ const PanelOperaciones = () => {
                       <CardContent className="pt-4 caja-menor-mobile-scroll">
                         {(currentProjectData.legalizacion || []).length === 0 ? (
                           <p className="text-sm text-muted-foreground">
-                            No hay registros de legalización. Haga clic en "AGREGAR REGISTRO" para comenzar.
+                            No hay registros de caja menor. Haga clic en "AGREGAR REGISTRO" para comenzar.
                           </p>
                         ) : (
                           <MatrixTable

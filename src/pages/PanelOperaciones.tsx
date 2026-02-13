@@ -1808,35 +1808,59 @@ const PanelOperaciones = () => {
       {
         key: "concepto",
         header: "Concepto",
-        width: "200px",
-        mobileWidth: "180px",
+        width: "250px",
+        mobileWidth: "220px",
         className: "caja-menor-sticky-col-2 caja-menor-concepto-cell",
         render: (c: CajaMenorItem) => {
           const canEdit = canEditCajaMenorRecord(c);
           if (!canEdit) {
             const conceptoText = c.concepto || "-";
             return (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-sm text-muted-foreground block truncate max-w-full cursor-default">
-                      {conceptoText}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-[400px]">
-                    <p className="whitespace-pre-wrap">{conceptoText}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <div className="flex flex-col gap-1">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm text-muted-foreground block truncate max-w-full cursor-default">
+                        {conceptoText}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[400px]">
+                      <p className="whitespace-pre-wrap">{conceptoText}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                {(c as any).notaAdicional && (
+                  <div className="flex items-center gap-1 text-xs text-primary/80">
+                    <MessageSquare className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{(c as any).notaAdicional}</span>
+                  </div>
+                )}
+              </div>
             );
           }
           return (
-            <EditableCell
-              value={c.concepto}
-              type="text"
-              placeholder="Descripción del concepto..."
-              onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "concepto", value)}
-            />
+            <div className="flex flex-col gap-1">
+              <EditableCell
+                value={c.concepto}
+                type="text"
+                placeholder="Descripción del concepto..."
+                onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "concepto", value)}
+              />
+              <div className="flex items-center gap-1">
+                <MessageSquare className="h-3 w-3 text-primary shrink-0" />
+                <Input
+                  value={(c as any).notaAdicional || ""}
+                  placeholder="+ Agregar nota..."
+                  className="h-6 text-xs border-dashed border-primary/30 bg-transparent focus:border-primary"
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    if (projectId) {
+                      updateCajaMenorItem(projectId, c.id, "notaAdicional", e.target.value);
+                    }
+                  }}
+                />
+              </div>
+            </div>
           );
         },
       },
@@ -1930,102 +1954,6 @@ const PanelOperaciones = () => {
                 }}
               />
             </div>
-          );
-        },
-      },
-      {
-        key: "recursos",
-        header: "Recursos *",
-        width: "140px",
-        mobileWidth: "140px",
-        render: (c: CajaMenorItem) => {
-          const canEdit = canEditCajaMenorRecord(c);
-          const isEmpty = !c.recursos?.trim();
-          const isOperativo = role?.toLowerCase() === "operativo";
-          // Operativo users always get "Anticipo BBM" auto-set, read-only
-          if (isOperativo) {
-            // Auto-set if empty
-            if (isEmpty && projectId) {
-              updateCajaMenorItem(projectId, c.id, "recursos", "Anticipo BBM");
-            }
-            return (
-              <span className="text-sm text-muted-foreground">Anticipo BBM</span>
-            );
-          }
-          if (!canEdit) {
-            return (
-              <span className={`text-sm ${isEmpty ? "text-destructive italic" : "text-muted-foreground"}`}>
-                {c.recursos || "Sin seleccionar"}
-              </span>
-            );
-          }
-          return (
-            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
-              <EditableCell
-                value={c.recursos || ""}
-                type="select"
-                options={["Caja Menor", "Anticipo BBM"]}
-                placeholder="Seleccionar..."
-                onChange={(value) => {
-                  if (projectId) {
-                    updateCajaMenorItem(projectId, c.id, "recursos", value);
-                    setCajaMenorValidationErrors([]);
-                  }
-                }}
-              />
-            </div>
-          );
-        },
-      },
-      {
-        key: "contingencia",
-        header: "Contingencia",
-        width: "120px",
-        mobileWidth: "120px",
-        render: (c: CajaMenorItem) => {
-          const value = c.contingencia || "No";
-          // Only Administrador can edit Contingencia column, and only if not approved
-          const isAdminUser = role?.toLowerCase() === "administrador";
-          const isApproved = isRecordApproved(c);
-          const canEditContingencia = isAdminUser && !isApproved;
-          
-          if (!canEditContingencia) {
-            const tooltipText = !isAdminUser 
-              ? "Solo el rol administrativo puede modificar este campo"
-              : "Registro aprobado: edición bloqueada";
-            return (
-              <div className="flex items-center gap-1" title={tooltipText}>
-                <span className={`text-sm px-2 py-0.5 rounded ${
-                  value === "Sí" ? "bg-amber-500/10 text-amber-500" : "text-muted-foreground"
-                }`}>
-                  {value}
-                </span>
-                <Lock className="h-3 w-3 text-muted-foreground" />
-              </div>
-            );
-          }
-          return (
-            <EditableCell
-              value={value}
-              type="select"
-              options={["Sí", "No"]}
-              onChange={(value) => projectId && updateCajaMenorItem(projectId, c.id, "contingencia", value)}
-            />
-          );
-        },
-      },
-      {
-        key: "estado",
-        header: "Estado",
-        width: "130px",
-        mobileWidth: "130px",
-        render: (c: CajaMenorItem) => {
-          return (
-            <CajaMenorEstadoSelect
-              value={c.estado}
-              onChange={() => {}}
-              readOnly
-            />
           );
         },
       },
@@ -3094,6 +3022,26 @@ const PanelOperaciones = () => {
                             </div>
                           </div>
                         )}
+                        {/* Estado general de la solicitud */}
+                        {(() => {
+                          const items = currentProjectData.cajaMenor || [];
+                          const allApproved = items.length > 0 && items.every((c: CajaMenorItem) => c.estado === "Aprobado");
+                          const anyRejected = items.some((c: CajaMenorItem) => c.estado === "No aprobado");
+                          const estadoGeneral = allApproved ? "Aprobado" : anyRejected ? "Rechazado" : "En revisión";
+                          const estadoClass = estadoGeneral === "Aprobado" 
+                            ? "bg-green-500/20 text-green-400 border-green-500/30" 
+                            : estadoGeneral === "Rechazado" 
+                              ? "bg-red-500/20 text-red-400 border-red-500/30" 
+                              : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+                          return items.length > 0 ? (
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs text-muted-foreground">Estado:</span>
+                              <span className={`text-xs font-medium px-3 py-1 rounded-full border ${estadoClass}`}>
+                                {estadoGeneral}
+                              </span>
+                            </div>
+                          ) : null;
+                        })()}
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <Wallet className="h-4 w-4" />

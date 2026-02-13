@@ -2275,6 +2275,56 @@ const PanelOperaciones = () => {
         },
       },
       {
+        key: "plazo",
+        header: "Plazo",
+        width: "140px",
+        mobileWidth: "130px",
+        render: (l: LegalizacionItem) => {
+          // If already legalized/approved, show completed
+          if (l.estado === "Aprobado") {
+            return (
+              <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                Legalizado
+              </span>
+            );
+          }
+          
+          // Calculate time elapsed since creation
+          const createdDate = l.createdAt ? new Date(l.createdAt) : new Date();
+          const now = new Date();
+          const diffMs = now.getTime() - createdDate.getTime();
+          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+          const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          
+          // Color coding: green < 3 days, yellow 3-5 days, red > 5 days
+          const urgencyClass = diffDays >= 5 
+            ? "bg-red-500/20 text-red-400 border-red-500/30" 
+            : diffDays >= 3 
+              ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+              : "bg-blue-500/20 text-blue-400 border-blue-500/30";
+          
+          const timeText = diffDays > 0 
+            ? `${diffDays}d ${diffHours}h` 
+            : `${diffHours}h`;
+          
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full border ${urgencyClass} cursor-default`}>
+                    ⏱ {timeText}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Tiempo transcurrido desde la solicitud: {diffDays} días, {diffHours} horas</p>
+                  <p className="text-xs text-muted-foreground">Debe legalizar antes de solicitar un nuevo anticipo</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        },
+      },
+      {
         key: "estado",
         header: "Estado",
         width: "130px",
@@ -3007,58 +3057,86 @@ const PanelOperaciones = () => {
                                 })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={async () => {
-                                // Limpiar errores al agregar nuevo registro
-                                setCajaMenorValidationErrors([]);
-                                // Auto-fill with current user's employee
-                                const newCajaMenor: CajaMenorItem = {
-                                  id: `cm${Date.now()}`,
-                                  empleadoId: currentUserEmpleado?.id || "",
-                                  empleadoNombre: currentUserEmpleado?.nombre || "",
-                                  empleadoEmail: currentUserEmpleado?.correo || currentUserEmail || "",
-                                  concepto: "",
-                                  imagenes: [],
-                                  valor: 0,
-                                  categoria: "Compras",
-                                  recursos: role?.toLowerCase() === "operativo" ? "Anticipo BBM" : "",
-                                  contingencia: "No",
-                                  estado: "Pendiente",
-                                  createdAt: new Date().toISOString(),
-                                };
-                                try {
-                                  // Create corresponding legalization item
-                                  const newLeg: LegalizacionItem = {
-                                    id: `leg-${newCajaMenor.id}`,
-                                    empleadoId: newCajaMenor.empleadoId,
-                                    empleadoNombre: newCajaMenor.empleadoNombre,
-                                    empleadoEmail: newCajaMenor.empleadoEmail,
-                                    concepto: "",
-                                    imagenes: [],
-                                    valor: 0,
-                                    categoria: "Compras",
-                                    recursos: "",
-                                    contingencia: "No",
-                                    estado: "Pendiente",
-                                    createdAt: new Date().toISOString(),
-                                  };
-                                  await updateProjectMultiple(currentProjectData.id, {
-                                    cajaMenor: [...(currentProjectData.cajaMenor || []), newCajaMenor],
-                                    legalizacion: [...((currentProjectData.legalizacion || []) as LegalizacionItem[]), newLeg],
-                                  });
-                                  toast.warning("⚠️ Completa: Valor, Categoría y Recurso para poder cerrar.", { duration: 4000 });
-                                } catch (err) {
-                                  console.error('[PanelOperaciones] Error adding registro:', err);
-                                  toast.error("Error al agregar registro");
-                                }
-                              }}
-                            >
-                              <Plus className="h-3 w-3 sm:mr-1" />
-                              <span className="hidden sm:inline uppercase">AGREGAR REGISTRO</span>
-                              <span className="sm:hidden">Agregar</span>
-                            </Button>
+                            {(() => {
+                              // Check if current user has pending legalizaciones
+                              const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
+                              const userEmail = currentUserEmail || "";
+                              const userEmpId = currentUserEmpleado?.id || "";
+                              const hasPendingLeg = legalizacion.some(l => {
+                                const isOwner = (l.empleadoEmail?.toLowerCase() === userEmail) || 
+                                  (userEmpId && l.empleadoId === userEmpId);
+                                const isPending = l.estado !== "Aprobado" && l.estado !== "No aprobado";
+                                return isOwner && isPending;
+                              });
+                              // Admins bypass the restriction
+                              const isBlocked = hasPendingLeg && !isAdmin;
+                              
+                              return (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          disabled={isBlocked}
+                                          onClick={async () => {
+                                            setCajaMenorValidationErrors([]);
+                                            const newCajaMenor: CajaMenorItem = {
+                                              id: `cm${Date.now()}`,
+                                              empleadoId: currentUserEmpleado?.id || "",
+                                              empleadoNombre: currentUserEmpleado?.nombre || "",
+                                              empleadoEmail: currentUserEmpleado?.correo || currentUserEmail || "",
+                                              concepto: "",
+                                              imagenes: [],
+                                              valor: 0,
+                                              categoria: "Compras",
+                                              recursos: role?.toLowerCase() === "operativo" ? "Anticipo BBM" : "",
+                                              contingencia: "No",
+                                              estado: "Pendiente",
+                                              createdAt: new Date().toISOString(),
+                                            };
+                                            try {
+                                              const newLeg: LegalizacionItem = {
+                                                id: `leg-${newCajaMenor.id}`,
+                                                empleadoId: newCajaMenor.empleadoId,
+                                                empleadoNombre: newCajaMenor.empleadoNombre,
+                                                empleadoEmail: newCajaMenor.empleadoEmail,
+                                                concepto: "",
+                                                imagenes: [],
+                                                valor: 0,
+                                                categoria: "Compras",
+                                                recursos: "",
+                                                contingencia: "No",
+                                                estado: "Pendiente",
+                                                createdAt: new Date().toISOString(),
+                                              };
+                                              await updateProjectMultiple(currentProjectData.id, {
+                                                cajaMenor: [...(currentProjectData.cajaMenor || []), newCajaMenor],
+                                                legalizacion: [...((currentProjectData.legalizacion || []) as LegalizacionItem[]), newLeg],
+                                              });
+                                              toast.warning("⚠️ Completa: Valor, Categoría y Recurso para poder cerrar.", { duration: 4000 });
+                                            } catch (err) {
+                                              console.error('[PanelOperaciones] Error adding registro:', err);
+                                              toast.error("Error al agregar registro");
+                                            }
+                                          }}
+                                        >
+                                          <Plus className="h-3 w-3 sm:mr-1" />
+                                          <span className="hidden sm:inline uppercase">AGREGAR REGISTRO</span>
+                                          <span className="sm:hidden">Agregar</span>
+                                        </Button>
+                                      </span>
+                                    </TooltipTrigger>
+                                    {isBlocked && (
+                                      <TooltipContent side="bottom" className="max-w-[250px]">
+                                        <p>Debes legalizar tus anticipos pendientes antes de solicitar uno nuevo.</p>
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            })()}
                           </div>
                         </div>
                       </CardHeader>

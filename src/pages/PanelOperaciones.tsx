@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { logger } from "@/lib/logger";
@@ -3142,13 +3142,83 @@ const PanelOperaciones = () => {
                       </CardHeader>
                       <CardContent className="pt-0 caja-menor-mobile-scroll">
                         {(currentProjectData.cajaMenor || []).length > 0 ? (
-                          <MatrixTable
-                            data={currentProjectData.cajaMenor || []}
-                            columns={cajaMenorColumns}
-                            getRowClassName={getCajaMenorRowClassName}
-                          />
+                          <div className="overflow-x-auto scrollbar-thin">
+                            <table className="matrix-table w-full" style={{ minWidth: '1200px' }}>
+                              <thead>
+                                <tr>
+                                  <th style={{ width: '70px', minWidth: '70px' }}>Tipo</th>
+                                  <th style={{ width: '180px', minWidth: '180px' }}>Empleado</th>
+                                  <th style={{ width: '220px', minWidth: '220px' }}>Concepto</th>
+                                  <th style={{ width: '110px', minWidth: '110px' }}>Imágenes</th>
+                                  <th style={{ width: '130px', minWidth: '130px' }}>Valor (COP) *</th>
+                                  <th style={{ width: '130px', minWidth: '130px' }}>Categoría *</th>
+                                  <th style={{ width: '130px', minWidth: '130px' }}>Recursos *</th>
+                                  <th style={{ width: '110px', minWidth: '110px' }}>Contingencia</th>
+                                  <th style={{ width: '130px', minWidth: '130px' }}>Plazo</th>
+                                  <th style={{ width: '50px', minWidth: '50px' }}></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(currentProjectData.cajaMenor || []).map((cm: CajaMenorItem, cmIdx: number) => {
+                                  const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
+                                  const linkedLeg = legalizacion.find(l => l.id === `leg-${cm.id}`);
+                                  const projectId = currentProjectData.id;
+
+                                  // Render helpers
+                                  const getEmpName = (item: { empleadoId?: string; empleadoNombre?: string }) => {
+                                    if (item.empleadoId) {
+                                      const emp = empleados.find(e => e.id === item.empleadoId);
+                                      if (emp?.nombre) return emp.nombre;
+                                    }
+                                    return item.empleadoNombre || "Sin empleado";
+                                  };
+
+                                  return (
+                                    <Fragment key={cm.id}>
+                                      {/* ROW 1: Anticipo */}
+                                      <tr className={`${getCajaMenorRowClassName(cm)} border-b-0`}>
+                                        <td>
+                                          <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                            Anticipo
+                                          </span>
+                                        </td>
+                                        <td>{(cajaMenorColumns.find(c => c.key === 'empleado')?.render as any)?.(cm)}</td>
+                                        <td>{(cajaMenorColumns.find(c => c.key === 'concepto')?.render as any)?.(cm)}</td>
+                                        <td>{(cajaMenorColumns.find(c => c.key === 'imagenes')?.render as any)?.(cm)}</td>
+                                        <td>{(cajaMenorColumns.find(c => c.key === 'valor')?.render as any)?.(cm)}</td>
+                                        <td>{(cajaMenorColumns.find(c => c.key === 'categoria')?.render as any)?.(cm)}</td>
+                                        <td className="text-muted-foreground text-xs">—</td>
+                                        <td className="text-muted-foreground text-xs">—</td>
+                                        <td className="text-muted-foreground text-xs">—</td>
+                                        <td>{(cajaMenorColumns.find(c => c.key === 'acciones')?.render as any)?.(cm)}</td>
+                                      </tr>
+                                      {/* ROW 2: Legalización vinculada */}
+                                      {linkedLeg && (
+                                        <tr className={`bg-muted/20 border-b-2 border-primary/15 ${linkedLeg.estado === "Aprobado" ? "caja-menor-row-approved" : ""}`}>
+                                          <td>
+                                            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                              ↳ Legaliz.
+                                            </span>
+                                          </td>
+                                          <td>{(legalizacionColumns.find(c => c.key === 'empleado')?.render as any)?.(linkedLeg)}</td>
+                                          <td>{(legalizacionColumns.find(c => c.key === 'concepto')?.render as any)?.(linkedLeg)}</td>
+                                          <td>{(legalizacionColumns.find(c => c.key === 'imagenes')?.render as any)?.(linkedLeg)}</td>
+                                          <td>{(legalizacionColumns.find(c => c.key === 'valor')?.render as any)?.(linkedLeg)}</td>
+                                          <td>{(legalizacionColumns.find(c => c.key === 'categoria')?.render as any)?.(linkedLeg)}</td>
+                                          <td>{(legalizacionColumns.find(c => c.key === 'recursos')?.render as any)?.(linkedLeg)}</td>
+                                          <td>{(legalizacionColumns.find(c => c.key === 'contingencia')?.render as any)?.(linkedLeg)}</td>
+                                          <td>{(legalizacionColumns.find(c => c.key === 'plazo')?.render as any)?.(linkedLeg)}</td>
+                                          <td>{(legalizacionColumns.find(c => c.key === 'acciones')?.render as any)?.(linkedLeg)}</td>
+                                        </tr>
+                                      )}
+                                    </Fragment>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
                         ) : (
-                          <p className="text-sm text-muted-foreground">No hay registros de caja menor. Haga clic en "Agregar Registro" para comenzar.</p>
+                          <p className="text-sm text-muted-foreground">No hay registros. Haga clic en "Agregar Registro" para comenzar.</p>
                         )}
                       </CardContent>
                     </Card>

@@ -3176,7 +3176,7 @@ const PanelOperaciones = () => {
                                       {/* ROW 1: Anticipo */}
                                       <tr className={`${getCajaMenorRowClassName(cm)} border-b-0`}>
                                         <td>
-                                          <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                          <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 whitespace-nowrap">
                                             Anticipo
                                           </span>
                                         </td>
@@ -3192,12 +3192,23 @@ const PanelOperaciones = () => {
                                       {linkedLeg && (
                                         <tr className={`bg-muted/20 border-b-2 border-primary/15 ${linkedLeg.estado === "Aprobado" ? "caja-menor-row-approved" : ""}`}>
                                           <td>
-                                            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 whitespace-nowrap">
                                               ↳ Legaliz.
                                             </span>
                                           </td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'empleado')?.render as any)?.(linkedLeg)}</td>
-                                          <td>{(legalizacionColumns.find(c => c.key === 'concepto')?.render as any)?.(linkedLeg)}</td>
+                                          <td>
+                                            {/* Show anticipo's concepto as read-only */}
+                                            <div className="flex flex-col gap-1">
+                                              <span className="text-sm text-muted-foreground truncate">{cm.concepto || "—"}</span>
+                                              {(cm as any).notaAdicional && (
+                                                <div className="flex items-center gap-1 text-xs text-primary/80">
+                                                  <MessageSquare className="h-3 w-3 shrink-0" />
+                                                  <span className="truncate">{(cm as any).notaAdicional}</span>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'imagenes')?.render as any)?.(linkedLeg)}</td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'valor')?.render as any)?.(linkedLeg)}</td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'categoria')?.render as any)?.(linkedLeg)}</td>

@@ -2526,7 +2526,7 @@ const PanelOperaciones = () => {
             
             // Validación de Caja Menor - TODOS los campos son BLOQUEANTES
             if (selectedSection === "cajaMenor") {
-              // Validación de SOLICITUD DE PRESUPUESTO - Imágenes OPCIONAL
+              // Validación de SOLICITUD DE ANTICIPOS - Imágenes OPCIONAL
               const cajaMenorItems = currentProjectData.cajaMenor || [];
               if (cajaMenorItems.length > 0) {
                 // BLOQUEANTE: Verificar campos obligatorios (SIN imagen - es opcional)
@@ -2542,7 +2542,7 @@ const PanelOperaciones = () => {
                   registrosIncompletos.forEach((item: CajaMenorItem) => {
                     const idx = cajaMenorItems.indexOf(item);
                     const faltantes: string[] = [];
-                    // Imagen es OPCIONAL en SOLICITUD DE PRESUPUESTO
+                    // Imagen es OPCIONAL en SOLICITUD DE ANTICIPOS
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
                     if (!item.categoria?.trim()) faltantes.push("categoría");
                     if (!item.recursos?.trim()) faltantes.push("recurso");
@@ -2956,7 +2956,7 @@ const PanelOperaciones = () => {
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <Wallet className="h-4 w-4" />
-                            SOLICITUD DE PRESUPUESTO ({(currentProjectData.cajaMenor || []).length})
+                            SOLICITUD DE ANTICIPOS ({(currentProjectData.cajaMenor || []).length})
                           </CardTitle>
                           <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
                             <DropdownMenu>
@@ -3029,10 +3029,28 @@ const PanelOperaciones = () => {
                                   createdAt: new Date().toISOString(),
                                 };
                                 try {
-                                  await contextUpdateProject(currentProjectData.id, 'cajaMenor', [...(currentProjectData.cajaMenor || []), newCajaMenor]);
-                                  toast.warning("⚠️ Completa: Imagen, Valor, Categoría y Recurso para poder cerrar.", { duration: 4000 });
+                                  // Create corresponding legalization item
+                                  const newLeg: LegalizacionItem = {
+                                    id: `leg-${newCajaMenor.id}`,
+                                    empleadoId: newCajaMenor.empleadoId,
+                                    empleadoNombre: newCajaMenor.empleadoNombre,
+                                    empleadoEmail: newCajaMenor.empleadoEmail,
+                                    concepto: "",
+                                    imagenes: [],
+                                    valor: 0,
+                                    categoria: "Compras",
+                                    recursos: "",
+                                    contingencia: "No",
+                                    estado: "Pendiente",
+                                    createdAt: new Date().toISOString(),
+                                  };
+                                  await updateProjectMultiple(currentProjectData.id, {
+                                    cajaMenor: [...(currentProjectData.cajaMenor || []), newCajaMenor],
+                                    legalizacion: [...((currentProjectData.legalizacion || []) as LegalizacionItem[]), newLeg],
+                                  });
+                                  toast.warning("⚠️ Completa: Valor, Categoría y Recurso para poder cerrar.", { duration: 4000 });
                                 } catch (err) {
-                                  console.error('[PanelOperaciones] Error adding caja menor:', err);
+                                  console.error('[PanelOperaciones] Error adding registro:', err);
                                   toast.error("Error al agregar registro");
                                 }
                               }}
@@ -3085,7 +3103,7 @@ const PanelOperaciones = () => {
                                         disabled={!hasApprovedSolicitud}
                                         className={!hasApprovedSolicitud ? "opacity-50" : ""}
                                       >
-                                        Agregar información de Solicitud de Presupuestos
+                                        Agregar información de Solicitud de Anticipos
                                       </DropdownMenuCheckboxItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem onClick={() => printLegalizacion(currentProjectData, empleados, includeSolicitudInExport)}>

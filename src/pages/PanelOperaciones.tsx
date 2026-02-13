@@ -3152,8 +3152,6 @@ const PanelOperaciones = () => {
                                   <th style={{ width: '110px', minWidth: '110px' }}>Imágenes</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Valor (COP) *</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Categoría *</th>
-                                  <th style={{ width: '130px', minWidth: '130px' }}>Recursos *</th>
-                                  <th style={{ width: '110px', minWidth: '110px' }}>Contingencia</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Plazo</th>
                                   <th style={{ width: '50px', minWidth: '50px' }}></th>
                                 </tr>
@@ -3188,8 +3186,6 @@ const PanelOperaciones = () => {
                                         <td>{(cajaMenorColumns.find(c => c.key === 'valor')?.render as any)?.(cm)}</td>
                                         <td>{(cajaMenorColumns.find(c => c.key === 'categoria')?.render as any)?.(cm)}</td>
                                         <td className="text-muted-foreground text-xs">—</td>
-                                        <td className="text-muted-foreground text-xs">—</td>
-                                        <td className="text-muted-foreground text-xs">—</td>
                                         <td>{(cajaMenorColumns.find(c => c.key === 'acciones')?.render as any)?.(cm)}</td>
                                       </tr>
                                       {/* ROW 2: Legalización vinculada */}
@@ -3205,8 +3201,6 @@ const PanelOperaciones = () => {
                                           <td>{(legalizacionColumns.find(c => c.key === 'imagenes')?.render as any)?.(linkedLeg)}</td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'valor')?.render as any)?.(linkedLeg)}</td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'categoria')?.render as any)?.(linkedLeg)}</td>
-                                          <td>{(legalizacionColumns.find(c => c.key === 'recursos')?.render as any)?.(linkedLeg)}</td>
-                                          <td>{(legalizacionColumns.find(c => c.key === 'contingencia')?.render as any)?.(linkedLeg)}</td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'plazo')?.render as any)?.(linkedLeg)}</td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'acciones')?.render as any)?.(linkedLeg)}</td>
                                         </tr>

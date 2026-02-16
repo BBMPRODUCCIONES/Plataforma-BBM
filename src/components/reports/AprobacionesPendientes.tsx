@@ -270,10 +270,7 @@ export default function AprobacionesPendientes() {
             <TableRow>
               <TableHead className="text-xs">Fecha</TableHead>
               <TableHead className="text-xs">CC</TableHead>
-              <TableHead className="text-xs">Empleado</TableHead>
-              <TableHead className="text-xs">Requerido para</TableHead>
               <TableHead className="text-xs">Categoría</TableHead>
-              <TableHead className="text-xs">Descripción</TableHead>
               <TableHead className="text-xs text-right">Valor</TableHead>
               <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
               <TableHead className="text-xs text-right">Legalización</TableHead>
@@ -285,7 +282,7 @@ export default function AprobacionesPendientes() {
           <TableBody>
             {filteredRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} className="text-center text-muted-foreground py-8 text-sm">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8 text-sm">
                   No se encontraron solicitudes
                 </TableCell>
               </TableRow>
@@ -298,12 +295,7 @@ export default function AprobacionesPendientes() {
                       {d ? format(d, "dd/MM/yyyy") : "—"}
                     </TableCell>
                     <TableCell className="text-xs">{row.centroCostos || "—"}</TableCell>
-                    <TableCell className="text-xs font-medium">{row.item.empleadoNombre || "—"}</TableCell>
-                    <TableCell className="text-xs">{row.evento || "—"}</TableCell>
                     <TableCell className="text-xs">{row.item.recursos || "—"}</TableCell>
-                    <TableCell className="text-xs max-w-[200px] truncate" title={row.item.concepto}>
-                      {row.item.concepto || "—"}
-                    </TableCell>
                     <TableCell className="text-xs text-right font-medium">
                       {formatCurrency(row.item.valor || 0)}
                     </TableCell>

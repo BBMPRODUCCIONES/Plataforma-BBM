@@ -3096,7 +3096,7 @@ const PanelOperaciones = () => {
                                               concepto: "",
                                               imagenes: [],
                                               valor: 0,
-                                              categoria: "Anticipo",
+                                              categoria: "Transporte",
                                               recursos: role?.toLowerCase() === "operativo" ? "Anticipo BBM" : "",
                                               contingencia: "No",
                                               estado: "Pendiente",
@@ -3191,7 +3191,15 @@ const PanelOperaciones = () => {
                                         <td>{(cajaMenorColumns.find(c => c.key === 'imagenes')?.render as any)?.(cm)}</td>
                                         <td>{(cajaMenorColumns.find(c => c.key === 'valor')?.render as any)?.(cm)}</td>
                                         <td>
-                                          <span className="text-xs font-medium text-muted-foreground">Anticipo</span>
+                                          <EditableCell
+                                            value={cm.categoria}
+                                            type="select"
+                                            options={["Transporte", "Alimentación", "Compras"]}
+                                            placeholder="Seleccionar..."
+                                            onChange={(value) => {
+                                              if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "categoria", value);
+                                            }}
+                                          />
                                         </td>
                                         <td className="text-muted-foreground text-xs">—</td>
                                         <td>{(cajaMenorColumns.find(c => c.key === 'acciones')?.render as any)?.(cm)}</td>

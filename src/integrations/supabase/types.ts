@@ -683,6 +683,7 @@ export type Database = {
           email: string | null
           id: string
           puede_aprobar_caja_menor: boolean | null
+          puede_crear_anticipos: boolean | null
           puede_editar_feedback: boolean | null
           puede_ver_feedback: boolean | null
           role: Database["public"]["Enums"]["app_role"]
@@ -693,6 +694,7 @@ export type Database = {
           email?: string | null
           id?: string
           puede_aprobar_caja_menor?: boolean | null
+          puede_crear_anticipos?: boolean | null
           puede_editar_feedback?: boolean | null
           puede_ver_feedback?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
@@ -703,6 +705,7 @@ export type Database = {
           email?: string | null
           id?: string
           puede_aprobar_caja_menor?: boolean | null
+          puede_crear_anticipos?: boolean | null
           puede_editar_feedback?: boolean | null
           puede_ver_feedback?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]

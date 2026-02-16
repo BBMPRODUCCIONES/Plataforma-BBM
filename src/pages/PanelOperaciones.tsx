@@ -3198,15 +3198,18 @@ const PanelOperaciones = () => {
                                         <td>{(cajaMenorColumns.find(c => c.key === 'imagenes')?.render as any)?.(cm)}</td>
                                         <td>{(cajaMenorColumns.find(c => c.key === 'valor')?.render as any)?.(cm)}</td>
                                         <td>
-                                          <EditableCell
-                                            value={cm.categoria}
-                                            type="select"
-                                            options={["Transporte", "Alimentación", "Compras"]}
-                                            placeholder="Seleccionar..."
-                                            onChange={(value) => {
-                                              if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "categoria", value);
-                                            }}
-                                          />
+                                          <div className={!cm.categoria ? "ring-1 ring-red-500 rounded" : undefined}>
+                                            <EditableCell
+                                              value={cm.categoria}
+                                              type="select"
+                                              options={["Transporte", "Alimentación", "Compras"]}
+                                              placeholder={!cm.categoria ? "Elegir opción" : "Seleccionar..."}
+                                              onChange={(value) => {
+                                                if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "categoria", value);
+                                              }}
+                                              className={!cm.categoria ? "text-red-500" : undefined}
+                                            />
+                                          </div>
                                         </td>
                                         <td className="text-muted-foreground text-xs">—</td>
                                         <td>{(cajaMenorColumns.find(c => c.key === 'acciones')?.render as any)?.(cm)}</td>

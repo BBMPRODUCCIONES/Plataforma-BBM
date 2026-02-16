@@ -3303,17 +3303,23 @@ const PanelOperaciones = () => {
                         </div>
                       </CardHeader>
                       <CardContent className="pt-4 caja-menor-mobile-scroll">
-                        {(currentProjectData.legalizacion || []).length === 0 ? (
-                          <p className="text-sm text-muted-foreground">
-                            No hay registros de caja menor. Haga clic en "AGREGAR REGISTRO" para comenzar.
-                          </p>
-                        ) : (
-                          <MatrixTable
-                            data={currentProjectData.legalizacion || []}
-                            columns={legalizacionColumns}
-                            getRowClassName={(record: LegalizacionItem) => record.estado === "Aprobado" ? "caja-menor-row-approved" : ""}
-                          />
-                        )}
+                        {(() => {
+                          // Filter out legalization items that are linked to anticipos (they appear in Solicitud de Anticipos section)
+                          const anticipoIds = new Set((currentProjectData.cajaMenor || []).map((cm: CajaMenorItem) => `leg-${cm.id}`));
+                          const independentLeg = (currentProjectData.legalizacion || []).filter((l: LegalizacionItem) => !anticipoIds.has(l.id));
+                          
+                          return independentLeg.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              No hay registros de caja menor. Haga clic en "AGREGAR REGISTRO" para comenzar.
+                            </p>
+                          ) : (
+                            <MatrixTable
+                              data={independentLeg}
+                              columns={legalizacionColumns}
+                              getRowClassName={(record: LegalizacionItem) => record.estado === "Aprobado" ? "caja-menor-row-approved" : ""}
+                            />
+                          );
+                        })()}
                       </CardContent>
                     </Card>
                     </>

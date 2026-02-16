@@ -135,7 +135,7 @@ export interface CajaMenorItem {
   concepto: string;
   imagenes?: Attachment[];
   valor: number;
-  categoria: 'Transporte' | 'Alimentación' | 'Compras' | 'Anticipo';
+  categoria: 'Transporte' | 'Alimentación' | 'Compras' | 'Anticipo' | '';
   recursos: 'Recursos propios' | 'BBM' | 'Anticipo BBM' | ''; // Obligatorio
   contingencia: 'Sí' | 'No'; // Default: 'No'
   estado: 'Pendiente' | 'Aprobado' | 'No aprobado';
@@ -153,7 +153,7 @@ export interface LegalizacionItem {
   notaAdicional?: string; // Nota adicional editable sin modificar concepto original
   imagenes?: Attachment[]; // Obligatorio para legalización
   valor: number;
-  categoria: 'Transporte' | 'Alimentación' | 'Compras';
+  categoria: 'Transporte' | 'Alimentación' | 'Compras' | '';
   recursos: 'Recursos propios' | 'BBM' | 'Anticipo BBM' | '';
   contingencia: 'Sí' | 'No';
   estado: 'Pendiente' | 'Aprobado' | 'No aprobado';

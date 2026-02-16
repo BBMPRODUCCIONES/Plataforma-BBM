@@ -3096,7 +3096,7 @@ const PanelOperaciones = () => {
                                               concepto: "",
                                               imagenes: [],
                                               valor: 0,
-                                              categoria: "Transporte",
+                                              categoria: "",
                                               recursos: role?.toLowerCase() === "operativo" ? "Anticipo BBM" : "",
                                               contingencia: "No",
                                               estado: "Pendiente",

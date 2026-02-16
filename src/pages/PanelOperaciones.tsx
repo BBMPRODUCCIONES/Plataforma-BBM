@@ -1092,11 +1092,17 @@ const PanelOperaciones = () => {
     }
     
     const updatedCajaMenor = (project.cajaMenor || []).filter(c => c.id !== cajaMenorId);
+    // Also remove linked legalization record (leg-{cajaMenorId}) so it doesn't appear in Caja Menor
+    const linkedLegId = `leg-${cajaMenorId}`;
+    const updatedLegalizacion = (project.legalizacion || []).filter(l => l.id !== linkedLegId);
     try {
-      await contextUpdateProject(projectId, 'cajaMenor', updatedCajaMenor);
-      toast.success("Registro de caja menor eliminado");
+      await updateProjectMultiple(projectId, {
+        cajaMenor: updatedCajaMenor,
+        legalizacion: updatedLegalizacion,
+      });
+      toast.success("Registro de anticipo eliminado");
     } catch (err) {
-      console.error('[PanelOperaciones] Error deleting caja menor:', err);
+      console.error('[PanelOperaciones] Error deleting anticipo:', err);
       toast.error("Error al eliminar registro");
     }
   };

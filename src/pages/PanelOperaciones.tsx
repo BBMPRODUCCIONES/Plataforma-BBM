@@ -134,7 +134,7 @@ const PanelOperaciones = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
-  const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor } = useUserRole();
+  const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor, canCrearAnticipos } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { empleados } = useEmpleados();
@@ -2184,12 +2184,12 @@ const PanelOperaciones = () => {
           
           if (canEdit) {
             return (
-              <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+              <div className={isEmpty ? "ring-1 ring-red-500 rounded" : ""}>
                 <EditableCell
                   value={l.categoria}
                   type="select"
                   options={["Transporte", "Alimentación", "Compras"]}
-                  placeholder="Seleccionar..."
+                  placeholder={isEmpty ? "Elegir opción" : "Seleccionar..."}
                   onChange={(value) => {
                     if (projectId) {
                       updateLegalizacionItem(projectId, l.id, "categoria", value);
@@ -3063,7 +3063,11 @@ const PanelOperaciones = () => {
                                 })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
-                            {(() => {
+            {(() => {
+                              // Check if current user has permission to create anticipos
+                              const hasPermission = canCrearAnticipos();
+                              if (!hasPermission) return null;
+                              
                               // Check if current user has pending legalizaciones
                               const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
                               const userEmail = currentUserEmail || "";
@@ -3309,6 +3313,7 @@ const PanelOperaciones = () => {
                                 })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
+                            {canCrearAnticipos() && (
                             <Button 
                               variant="outline"
                               size="sm" 
@@ -3322,7 +3327,7 @@ const PanelOperaciones = () => {
                                   concepto: "",
                                   imagenes: [],
                                   valor: 0,
-                                  categoria: "Compras",
+                                  categoria: "",
                                   recursos: "",
                                   contingencia: "No",
                                   estado: "Pendiente",
@@ -3336,6 +3341,7 @@ const PanelOperaciones = () => {
                               <Plus className="h-3 w-3 mr-1" />
                               AGREGAR REGISTRO
                             </Button>
+                            )}
                           </div>
                         </div>
                       </CardHeader>

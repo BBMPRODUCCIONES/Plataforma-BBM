@@ -54,6 +54,7 @@ interface UserWithRole {
   puede_ver_feedback: boolean;
   puede_editar_feedback: boolean;
   puede_aprobar_caja_menor: boolean;
+  puede_crear_anticipos: boolean;
   created_at: string | null;
 }
 
@@ -105,6 +106,7 @@ const Usuarios = () => {
   const [editPuedeVerFeedback, setEditPuedeVerFeedback] = useState(false);
   const [editPuedeEditarFeedback, setEditPuedeEditarFeedback] = useState(false);
   const [editPuedeAprobarCajaMenor, setEditPuedeAprobarCajaMenor] = useState(false);
+  const [editPuedeCrearAnticipos, setEditPuedeCrearAnticipos] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Delete user state
@@ -137,7 +139,7 @@ const Usuarios = () => {
       // Fetch users with roles and panels (now includes email and feedback permissions)
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor");
+        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos");
 
       if (rolesError) throw rolesError;
 
@@ -161,6 +163,7 @@ const Usuarios = () => {
           puede_ver_feedback: roleRecord.puede_ver_feedback ?? false,
           puede_editar_feedback: roleRecord.puede_editar_feedback ?? false,
           puede_aprobar_caja_menor: roleRecord.puede_aprobar_caja_menor ?? false,
+          puede_crear_anticipos: roleRecord.puede_crear_anticipos ?? false,
           created_at: profile?.created_at || null,
         };
       });
@@ -418,6 +421,8 @@ const Usuarios = () => {
     }
     // Caja Menor permission - only for admins, stored value
     setEditPuedeAprobarCajaMenor(user.puede_aprobar_caja_menor);
+    // Crear anticipos permission
+    setEditPuedeCrearAnticipos(user.puede_crear_anticipos);
   };
 
   const handleSaveUser = async () => {
@@ -436,6 +441,9 @@ const Usuarios = () => {
       
       // Caja Menor permission - only admins can have this
       const finalPuedeAprobarCajaMenor = editRole === "administrador" ? editPuedeAprobarCajaMenor : false;
+      
+      // Crear anticipos permission - any role can have it
+      const finalPuedeCrearAnticipos = editPuedeCrearAnticipos;
 
       // Update user roles with all permissions
       const { error: roleError } = await supabase
@@ -445,7 +453,8 @@ const Usuarios = () => {
           allowed_panels: finalPanels,
           puede_ver_feedback: finalPuedeVerFeedback,
           puede_editar_feedback: finalPuedeEditarFeedback,
-          puede_aprobar_caja_menor: finalPuedeAprobarCajaMenor
+          puede_aprobar_caja_menor: finalPuedeAprobarCajaMenor,
+          puede_crear_anticipos: finalPuedeCrearAnticipos
         })
         .eq("user_id", editingUser.id);
 
@@ -937,8 +946,35 @@ const Usuarios = () => {
                       </p>
                     </div>
                   </div>
+
                 </div>
               )}
+
+              {/* Crear Anticipos Permission - available for ALL roles */}
+              <div className="space-y-2">
+                <Label>Permisos de Solicitud de Anticipos</Label>
+                <div className="space-y-2 p-3 border rounded-md bg-blue-500/10 border-blue-500/30">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-puede-crear-anticipos"
+                      checked={editRole === "administrador" ? true : editPuedeCrearAnticipos}
+                      onCheckedChange={(checked) => setEditPuedeCrearAnticipos(checked as boolean)}
+                      disabled={isSaving || editRole === "administrador"}
+                    />
+                    <Label 
+                      htmlFor="edit-puede-crear-anticipos"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Puede crear solicitudes de anticipos y registros de caja menor
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {editRole === "administrador" 
+                      ? "Los administradores siempre tienen este permiso." 
+                      : "Solo los usuarios con este permiso pueden agregar nuevos registros en Solicitud de Anticipos y Caja Menor."}
+                  </p>
+                </div>
+              </div>
 
               {/* Feedback Permissions - only for non-admin roles */}
               {editRole !== "administrador" && (

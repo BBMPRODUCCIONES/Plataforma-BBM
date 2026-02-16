@@ -14,6 +14,7 @@ interface UseUserRoleReturn {
   canViewFeedback: () => boolean;
   canEditFeedback: () => boolean;
   canApproveCajaMenor: () => boolean;
+  canCrearAnticipos: () => boolean;
 }
 
 // Admin-only sections that require administrador role
@@ -91,13 +92,18 @@ export function useUserRole(): UseUserRoleReturn {
 
   const canApproveCajaMenor = (): boolean => {
     if (!role) return false;
-    // Administrador with permission flag OR explicit permission
     if (role.toLowerCase() === "administrador") {
-      // Admin also needs explicit permission unless they have it
       return cajaMenorPermissions?.puedeAprobarCajaMenor ?? false;
     }
-    // For other roles, permission is NOT available
     return false;
+  };
+
+  const canCrearAnticipos = (): boolean => {
+    if (!role) return false;
+    // Administrador always can
+    if (role.toLowerCase() === "administrador") return true;
+    // For other roles, check specific permission
+    return cajaMenorPermissions?.puedeCrearAnticipos ?? false;
   };
 
   return {
@@ -113,5 +119,6 @@ export function useUserRole(): UseUserRoleReturn {
     canViewFeedback,
     canEditFeedback,
     canApproveCajaMenor,
+    canCrearAnticipos,
   };
 }

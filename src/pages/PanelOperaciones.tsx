@@ -3187,7 +3187,14 @@ const PanelOperaciones = () => {
                                           </span>
                                         </td>
                                         <td>{(cajaMenorColumns.find(c => c.key === 'empleado')?.render as any)?.(cm)}</td>
-                                        <td>{(cajaMenorColumns.find(c => c.key === 'concepto')?.render as any)?.(cm)}</td>
+                                        <td>
+                                          <EditableCell
+                                            value={cm.concepto}
+                                            type="text"
+                                            placeholder="Descripción del concepto..."
+                                            onChange={(value) => currentProjectData?.id && updateCajaMenorItem(currentProjectData.id, cm.id, "concepto", value)}
+                                          />
+                                        </td>
                                         <td>{(cajaMenorColumns.find(c => c.key === 'imagenes')?.render as any)?.(cm)}</td>
                                         <td>{(cajaMenorColumns.find(c => c.key === 'valor')?.render as any)?.(cm)}</td>
                                         <td>

@@ -3244,7 +3244,11 @@ const PanelOperaciones = () => {
                                           </td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'imagenes')?.render as any)?.(linkedLeg)}</td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'valor')?.render as any)?.(linkedLeg)}</td>
-                                          <td>{(legalizacionColumns.find(c => c.key === 'categoria')?.render as any)?.(linkedLeg)}</td>
+                                          <td>
+                                            <span className="text-xs text-muted-foreground px-1">
+                                              {cm.categoria || "—"}
+                                            </span>
+                                          </td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'plazo')?.render as any)?.(linkedLeg)}</td>
                                           <td>{/* No delete for legalización rows */}</td>
                                         </tr>

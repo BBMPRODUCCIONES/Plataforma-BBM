@@ -44,15 +44,26 @@ export function PWAUpdateBanner() {
 
   const handleUpdate = useCallback(() => {
     if (waitingWorker) {
-      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-      
       // Listen for the new service worker to take control
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         window.location.reload();
       }, { once: true });
+
+      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+
+      // Fallback: if controllerchange doesn't fire within 2s, force reload
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } else {
-      // Fallback: just reload
-      window.location.reload();
+      // No waiting worker — try to unregister and reload
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg) {
+          reg.unregister().then(() => window.location.reload());
+        } else {
+          window.location.reload();
+        }
+      });
     }
   }, [waitingWorker]);
 

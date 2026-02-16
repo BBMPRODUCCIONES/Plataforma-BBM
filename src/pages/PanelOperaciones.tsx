@@ -3090,7 +3090,7 @@ const PanelOperaciones = () => {
                                               concepto: "",
                                               imagenes: [],
                                               valor: 0,
-                                              categoria: "Compras",
+                                              categoria: "Anticipo",
                                               recursos: role?.toLowerCase() === "operativo" ? "Anticipo BBM" : "",
                                               contingencia: "No",
                                               estado: "Pendiente",
@@ -3184,7 +3184,9 @@ const PanelOperaciones = () => {
                                         <td>{(cajaMenorColumns.find(c => c.key === 'concepto')?.render as any)?.(cm)}</td>
                                         <td>{(cajaMenorColumns.find(c => c.key === 'imagenes')?.render as any)?.(cm)}</td>
                                         <td>{(cajaMenorColumns.find(c => c.key === 'valor')?.render as any)?.(cm)}</td>
-                                        <td>{(cajaMenorColumns.find(c => c.key === 'categoria')?.render as any)?.(cm)}</td>
+                                        <td>
+                                          <span className="text-xs font-medium text-muted-foreground">Anticipo</span>
+                                        </td>
                                         <td className="text-muted-foreground text-xs">—</td>
                                         <td>{(cajaMenorColumns.find(c => c.key === 'acciones')?.render as any)?.(cm)}</td>
                                       </tr>
@@ -3198,22 +3200,29 @@ const PanelOperaciones = () => {
                                           </td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'empleado')?.render as any)?.(linkedLeg)}</td>
                                           <td>
-                                            {/* Show anticipo's concepto as read-only */}
+                                            {/* Editable note for legalización reasons */}
                                             <div className="flex flex-col gap-1">
-                                              <span className="text-sm text-muted-foreground truncate">{cm.concepto || "—"}</span>
-                                              {(cm as any).notaAdicional && (
-                                                <div className="flex items-center gap-1 text-xs text-primary/80">
-                                                  <MessageSquare className="h-3 w-3 shrink-0" />
-                                                  <span className="truncate">{(cm as any).notaAdicional}</span>
-                                                </div>
-                                              )}
+                                              <div className="flex items-center gap-1">
+                                                <MessageSquare className="h-3 w-3 text-primary shrink-0" />
+                                                <Input
+                                                  value={(linkedLeg as any).notaAdicional || ""}
+                                                  placeholder="+ Agregar nota..."
+                                                  className="h-6 text-xs border-dashed border-primary/30 bg-transparent focus:border-primary"
+                                                  onClick={(e) => e.stopPropagation()}
+                                                  onChange={(e) => {
+                                                    if (projectId) {
+                                                      updateLegalizacionItem(projectId, linkedLeg.id, "notaAdicional", e.target.value);
+                                                    }
+                                                  }}
+                                                />
+                                              </div>
                                             </div>
                                           </td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'imagenes')?.render as any)?.(linkedLeg)}</td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'valor')?.render as any)?.(linkedLeg)}</td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'categoria')?.render as any)?.(linkedLeg)}</td>
                                           <td>{(legalizacionColumns.find(c => c.key === 'plazo')?.render as any)?.(linkedLeg)}</td>
-                                          <td>{(legalizacionColumns.find(c => c.key === 'acciones')?.render as any)?.(linkedLeg)}</td>
+                                          <td>{/* No delete for legalización rows */}</td>
                                         </tr>
                                       )}
                                     </Fragment>

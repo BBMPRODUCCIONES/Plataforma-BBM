@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Project, CajaMenorItem, LegalizacionItem } from "@/types";
@@ -6,6 +6,7 @@ import { format, parseISO, getMonth, getYear } from "date-fns";
 import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -35,6 +36,15 @@ interface FlattenedRow {
   legalizacionEstado: string;
   saldoAFavor: number;
 }
+
+interface Suggestion {
+  type: 'estado' | 'categoria' | 'empleado' | 'evento' | 'cc' | 'legalizacion';
+  label: string;
+  value: string;
+  displayLabel: string;
+}
+
+const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
 function parseDateSafe(dateStr?: string): Date | null {
   if (!dateStr) return null;
@@ -72,6 +82,10 @@ const LEGALIZACION_ESTADO_OPTIONS = [
 
 const LEGALIZACION_NO_APROBADO = { value: "No legalizable", label: "No legalizable", className: "bg-red-500/20 text-red-400" };
 
+const KNOWN_ESTADOS = ["Pendiente", "Aprobado", "No aprobado"];
+const KNOWN_CATEGORIAS = ["Transporte", "Alimentación", "Compras"];
+const KNOWN_LEG_ESTADOS = ["Revisando", "Legalizado", "No legalizable"];
+
 export default function AprobacionesPendientes() {
   const { projects, updateProject } = useProjects();
   const { canApproveCajaMenor } = useUserRole();
@@ -81,6 +95,139 @@ export default function AprobacionesPendientes() {
   const [anioFilter, setAnioFilter] = useState("Todos");
   const [estadoFilter, setEstadoFilter] = useState("Todos");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Unique values for autocomplete suggestions
+  const uniqueEmpleados = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach(p => {
+      if (p.isDeleted) return;
+      (p.cajaMenor || []).forEach(item => {
+        if (item.empleadoNombre) set.add(item.empleadoNombre);
+      });
+    });
+    return Array.from(set).sort();
+  }, [projects]);
+
+  const uniqueEventos = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach(p => {
+      if (p.isDeleted) return;
+      if ((p.cajaMenor || []).length > 0 && p.evento) set.add(p.evento);
+    });
+    return Array.from(set).sort();
+  }, [projects]);
+
+  const uniqueCCs = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach(p => {
+      if (p.isDeleted) return;
+      if ((p.cajaMenor || []).length > 0 && p.centroCostos) set.add(p.centroCostos);
+    });
+    return Array.from(set).sort();
+  }, [projects]);
+
+  // Current token being typed (after last comma)
+  const currentToken = useMemo(() => {
+    const parts = searchQuery.split(',');
+    return parts[parts.length - 1].trim().toLowerCase();
+  }, [searchQuery]);
+
+  // Generate autocomplete suggestions
+  const suggestions = useMemo((): Suggestion[] => {
+    if (currentToken.length < 2) return [];
+    const results: Suggestion[] = [];
+    const normalizedToken = normalize(currentToken);
+
+    // Estado suggestions
+    KNOWN_ESTADOS.filter(e => normalize(e).includes(normalizedToken)).forEach(e => {
+      results.push({ type: 'estado', label: 'Estado', value: e, displayLabel: e });
+    });
+
+    // Categoría suggestions
+    KNOWN_CATEGORIAS.filter(c => normalize(c).includes(normalizedToken)).forEach(c => {
+      results.push({ type: 'categoria', label: 'Categoría', value: c, displayLabel: c });
+    });
+
+    // Legalización estado suggestions
+    KNOWN_LEG_ESTADOS.filter(l => normalize(l).includes(normalizedToken)).forEach(l => {
+      results.push({ type: 'legalizacion', label: 'Legaliz.', value: l, displayLabel: l });
+    });
+
+    // Empleado suggestions
+    uniqueEmpleados.filter(e => normalize(e).includes(normalizedToken)).slice(0, 5).forEach(e => {
+      results.push({ type: 'empleado', label: 'Empleado', value: e, displayLabel: e });
+    });
+
+    // Evento suggestions
+    uniqueEventos.filter(e => normalize(e).includes(normalizedToken)).slice(0, 5).forEach(e => {
+      results.push({ type: 'evento', label: 'Evento', value: e, displayLabel: e });
+    });
+
+    // CC suggestions
+    uniqueCCs.filter(c => normalize(c).includes(normalizedToken)).slice(0, 5).forEach(c => {
+      results.push({ type: 'cc', label: 'CC', value: c, displayLabel: c });
+    });
+
+    return results.slice(0, 10);
+  }, [currentToken, uniqueEmpleados, uniqueEventos, uniqueCCs]);
+
+  // Handle suggestion selection
+  const handleSelectSuggestion = useCallback((suggestion: Suggestion) => {
+    const parts = searchQuery.split(',');
+    parts.pop();
+    const newValue = parts.length > 0
+      ? parts.map(p => p.trim()).join(', ') + ', ' + suggestion.value
+      : suggestion.value;
+    setSearchQuery(newValue + ', ');
+    setShowSuggestions(false);
+    setSelectedSuggestionIndex(-1);
+    inputRef.current?.focus();
+  }, [searchQuery]);
+
+  // Keyboard navigation
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedSuggestionIndex(prev => prev < suggestions.length - 1 ? prev + 1 : 0);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : suggestions.length - 1);
+    } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
+      e.preventDefault();
+      handleSelectSuggestion(suggestions[selectedSuggestionIndex]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  }, [showSuggestions, suggestions, selectedSuggestionIndex, handleSelectSuggestion]);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node) &&
+        inputRef.current && !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Show suggestions when typing
+  useEffect(() => {
+    if (suggestions.length > 0 && currentToken.length >= 2) {
+      setShowSuggestions(true);
+      setSelectedSuggestionIndex(-1);
+    } else {
+      setShowSuggestions(false);
+    }
+  }, [suggestions, currentToken]);
 
   const availableYears = useMemo(() => {
     const years = new Set<number>();
@@ -250,13 +397,55 @@ export default function AprobacionesPendientes() {
         <div className="space-y-1 flex-1 min-w-[200px]">
           <label className="text-xs font-medium text-muted-foreground">Buscar</label>
           <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground z-10" />
             <Input
-              placeholder="Buscar por empleado, evento, categoría, estado, proceso de pago... (usa comas)"
+              ref={inputRef}
+              placeholder="Buscar por empleado, evento, categoría, estado... (usa comas)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
               className="pl-9 h-9 text-xs"
             />
+            {/* Autocomplete Suggestions Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div
+                ref={suggestionsRef}
+                className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto"
+              >
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={`${suggestion.type}-${suggestion.value}-${index}`}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                    className={`w-full px-4 py-2 text-left text-xs flex items-center gap-3 transition-colors ${
+                      index === selectedSuggestionIndex
+                        ? 'bg-accent text-accent-foreground'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] shrink-0 ${
+                        suggestion.type === 'estado' ? 'bg-green-500/10 text-green-600 border-green-500/30' :
+                        suggestion.type === 'categoria' ? 'bg-orange-500/10 text-orange-600 border-orange-500/30' :
+                        suggestion.type === 'empleado' ? 'bg-blue-500/10 text-blue-600 border-blue-500/30' :
+                        suggestion.type === 'evento' ? 'bg-purple-500/10 text-purple-600 border-purple-500/30' :
+                        suggestion.type === 'cc' ? 'bg-gray-500/10 text-gray-600 border-gray-500/30' :
+                        'bg-amber-500/10 text-amber-600 border-amber-500/30'
+                      }`}
+                    >
+                      {suggestion.type === 'estado' ? 'Estado' :
+                       suggestion.type === 'categoria' ? 'Cat.' :
+                       suggestion.type === 'empleado' ? 'Emp.' :
+                       suggestion.type === 'evento' ? 'Evento' :
+                       suggestion.type === 'cc' ? 'CC' : 'Legaliz.'}
+                    </Badge>
+                    <span className="truncate">{suggestion.displayLabel}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

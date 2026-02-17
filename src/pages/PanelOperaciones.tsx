@@ -3126,8 +3126,6 @@ const PanelOperaciones = () => {
                                   <th style={{ width: '110px', minWidth: '110px' }}>Imagen *</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Valor legalización</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Diferencia</th>
-                                  <th style={{ width: '120px', minWidth: '120px' }}>Estado Solicitud</th>
-                                  <th style={{ width: '120px', minWidth: '120px' }}>Estado Legaliz.</th>
                                   <th style={{ width: '50px', minWidth: '50px' }}></th>
                                 </tr>
                               </thead>
@@ -3319,38 +3317,6 @@ const PanelOperaciones = () => {
                                           return (
                                             <span className={`text-sm font-mono font-semibold ${colorClass}`}>
                                               $ {absDiff.toLocaleString('es-CO')}
-                                            </span>
-                                          );
-                                        })()}
-                                      </td>
-                                      <td>
-                                        {(() => {
-                                          const estadoClass = cm.estado === "Aprobado" 
-                                            ? "bg-green-500/20 text-green-400 border-green-500/30" 
-                                            : cm.estado === "No aprobado"
-                                              ? "bg-red-500/20 text-red-400 border-red-500/30"
-                                              : "bg-amber-500/20 text-amber-400 border-amber-500/30";
-                                          const label = cm.estado === "Pendiente" ? "En revisión" : cm.estado;
-                                          return (
-                                            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${estadoClass}`}>
-                                              {label}
-                                            </span>
-                                          );
-                                        })()}
-                                      </td>
-                                      <td>
-                                        {(() => {
-                                          const legEstado = linkedLeg?.estado || "Pendiente";
-                                          const legEstadoClass = legEstado === "Aprobado" 
-                                            ? "bg-green-500/20 text-green-400 border-green-500/30" 
-                                            : legEstado === "No aprobado"
-                                              ? "bg-red-500/20 text-red-400 border-red-500/30"
-                                              : "bg-amber-500/20 text-amber-400 border-amber-500/30";
-                                          const legLabel = cm.estado !== "Aprobado" ? "—" : (legEstado === "Pendiente" ? "En revisión" : legEstado);
-                                          if (cm.estado !== "Aprobado") return <span className="text-sm text-muted-foreground">—</span>;
-                                          return (
-                                            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${legEstadoClass}`}>
-                                              {legLabel}
                                             </span>
                                           );
                                         })()}

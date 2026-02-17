@@ -2059,49 +2059,85 @@ const PanelOperaciones = () => {
         header: "Concepto",
         width: "250px",
         mobileWidth: "220px",
-        render: (l: LegalizacionItem & { notaAdicional?: string }) => {
+        render: (l: LegalizacionItem & { notas_comentarios?: string[] }) => {
           const canEdit = canEditLegalizacionRecord(l);
+          const notas: string[] = (l as any).notas_comentarios || [];
           
           return (
             <div className="flex flex-col gap-1">
               {canEdit ? (
-                <EditableCell
-                  value={l.concepto}
-                  type="text"
-                  placeholder="Escribir concepto..."
-                  onChange={(value) => {
-                    if (projectId) {
-                      updateLegalizacionItem(projectId, l.id, "concepto", value);
-                    }
-                  }}
-                />
+                <div className={!l.concepto?.trim() ? "ring-1 ring-red-500 rounded" : ""}>
+                  <EditableCell
+                    value={l.concepto}
+                    type="text"
+                    placeholder="Escribir concepto..."
+                    onChange={(value) => {
+                      if (projectId) {
+                        updateLegalizacionItem(projectId, l.id, "concepto", value);
+                      }
+                    }}
+                  />
+                </div>
               ) : (
                 <span className="text-sm text-muted-foreground truncate">
                   {l.concepto || "-"}
                 </span>
               )}
-              {/* Campo para nota adicional */}
-              {canEdit ? (
-                <div className="flex items-center gap-1">
-                  <MessageSquare className="h-3 w-3 text-primary shrink-0" />
-                  <Input
-                    value={(l as any).notaAdicional || ""}
-                    placeholder="+ Agregar nota..."
-                    className="h-6 text-xs border-dashed border-primary/30 bg-transparent focus:border-primary"
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
+              {/* Notas/comentarios ilimitados */}
+              <div className="flex flex-col gap-0.5">
+                {notas.map((nota: string, idx: number) => (
+                  <div key={idx} className="flex items-center gap-1">
+                    <MessageSquare className="h-3 w-3 text-primary shrink-0" />
+                    {canEdit ? (
+                      <Input
+                        value={nota}
+                        placeholder="Nota..."
+                        className="h-6 text-xs border-dashed border-primary/30 bg-transparent focus:border-primary"
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          if (projectId) {
+                            const updated = [...notas];
+                            updated[idx] = e.target.value;
+                            updateLegalizacionItem(projectId, l.id, "notas_comentarios", updated);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <span className="text-xs text-primary/80 truncate">{nota}</span>
+                    )}
+                    {canEdit && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (projectId) {
+                            const updated = notas.filter((_: string, i: number) => i !== idx);
+                            updateLegalizacionItem(projectId, l.id, "notas_comentarios", updated);
+                          }
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                {canEdit && (
+                  <button
+                    className="flex items-center gap-1 text-xs text-primary/60 hover:text-primary cursor-pointer mt-0.5"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       if (projectId) {
-                        updateLegalizacionItem(projectId, l.id, "notaAdicional", e.target.value);
+                        updateLegalizacionItem(projectId, l.id, "notas_comentarios", [...notas, ""]);
                       }
                     }}
-                  />
-                </div>
-              ) : (l as any).notaAdicional ? (
-                <div className="flex items-center gap-1 text-xs text-primary/80">
-                  <MessageSquare className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{(l as any).notaAdicional}</span>
-                </div>
-              ) : null}
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    + Agregar nota...
+                  </button>
+                )}
+              </div>
             </div>
           );
         },
@@ -2240,6 +2276,24 @@ const PanelOperaciones = () => {
               options={["Sí", "No"]}
               onChange={(value) => projectId && updateLegalizacionItem(projectId, l.id, "contingencia", value)}
             />
+          );
+        },
+      },
+      {
+        key: "estado",
+        header: "Estado",
+        width: "120px",
+        mobileWidth: "120px",
+        render: (l: LegalizacionItem) => {
+          const estadoClass = l.estado === "Aprobado" 
+            ? "bg-green-500/20 text-green-400 border-green-500/30" 
+            : l.estado === "No aprobado"
+              ? "bg-red-500/20 text-red-400 border-red-500/30"
+              : "bg-amber-500/20 text-amber-400 border-amber-500/30";
+          return (
+            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${estadoClass}`}>
+              {l.estado === "Pendiente" ? "En revisión" : l.estado}
+            </span>
           );
         },
       },
@@ -2487,7 +2541,8 @@ const PanelOperaciones = () => {
                   const sinValor = !item.valor || item.valor === 0;
                   const sinCategoria = !item.categoria?.trim();
                   const sinImagen = !item.imagenes || item.imagenes.length === 0;
-                  return sinValor || sinCategoria || sinImagen;
+                  const sinConcepto = !item.concepto?.trim();
+                  return sinValor || sinCategoria || sinImagen || sinConcepto;
                 });
                 
                 if (registrosIncompletos.length > 0) {
@@ -2495,6 +2550,7 @@ const PanelOperaciones = () => {
                   registrosIncompletos.forEach((item: CajaMenorItem) => {
                     const idx = cajaMenorItems.indexOf(item);
                     const faltantes: string[] = [];
+                    if (!item.concepto?.trim()) faltantes.push("concepto");
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
                     if (!item.categoria?.trim()) faltantes.push("categoría");
                     if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
@@ -2519,8 +2575,9 @@ const PanelOperaciones = () => {
                   const sinImagen = !record.imagenes || record.imagenes.length === 0;
                   const sinValor = !record.valor || record.valor === 0;
                   const sinCategoria = !record.categoria?.trim();
+                  const sinConcepto = !record.concepto?.trim();
                   
-                  if (sinImagen || sinValor || sinCategoria) {
+                  if (sinImagen || sinValor || sinCategoria || sinConcepto) {
                     legIncompletos.push({ item: record, idx });
                   }
                 });
@@ -2529,6 +2586,7 @@ const PanelOperaciones = () => {
                   const errores: string[] = [];
                   legIncompletos.forEach(({ item, idx }) => {
                     const faltantes: string[] = [];
+                    if (!item.concepto?.trim()) faltantes.push("concepto");
                     if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
                     if (!item.categoria?.trim()) faltantes.push("categoría");
@@ -3059,7 +3117,7 @@ const PanelOperaciones = () => {
                       <CardContent className="pt-0 caja-menor-mobile-scroll">
                         {(currentProjectData.cajaMenor || []).length > 0 ? (
                           <div className="overflow-x-auto scrollbar-thin">
-                            <table className="matrix-table w-full" style={{ minWidth: '900px' }}>
+                            <table className="matrix-table w-full" style={{ minWidth: '1100px' }}>
                               <thead>
                                 <tr>
                                   <th style={{ width: '250px', minWidth: '250px' }}>Concepto</th>
@@ -3068,6 +3126,8 @@ const PanelOperaciones = () => {
                                   <th style={{ width: '110px', minWidth: '110px' }}>Imagen *</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Valor legalización</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Diferencia</th>
+                                  <th style={{ width: '120px', minWidth: '120px' }}>Estado Solicitud</th>
+                                  <th style={{ width: '120px', minWidth: '120px' }}>Estado Legaliz.</th>
                                   <th style={{ width: '50px', minWidth: '50px' }}></th>
                                 </tr>
                               </thead>
@@ -3080,15 +3140,17 @@ const PanelOperaciones = () => {
                                   const diferencia = valorAnticipo - valorLegalizacion;
 
                                   return (
-                                    <tr key={cm.id} className={getCajaMenorRowClassName(cm)}>
+                                    <tr key={cm.id}>
                                       <td>
                                         <div className="flex flex-col gap-1">
-                                          <EditableCell
-                                            value={cm.concepto}
-                                            type="text"
-                                            placeholder="Descripción del concepto..."
-                                            onChange={(value) => currentProjectData?.id && updateCajaMenorItem(currentProjectData.id, cm.id, "concepto", value)}
-                                          />
+                                          <div className={!cm.concepto?.trim() ? "ring-1 ring-red-500 rounded" : ""}>
+                                            <EditableCell
+                                              value={cm.concepto}
+                                              type="text"
+                                              placeholder="Descripción del concepto..."
+                                              onChange={(value) => currentProjectData?.id && updateCajaMenorItem(currentProjectData.id, cm.id, "concepto", value)}
+                                            />
+                                          </div>
                                           {/* Notas/comentarios ilimitados */}
                                           {(() => {
                                             const notas: string[] = (cm as any).notas_comentarios || [];
@@ -3261,6 +3323,38 @@ const PanelOperaciones = () => {
                                           );
                                         })()}
                                       </td>
+                                      <td>
+                                        {(() => {
+                                          const estadoClass = cm.estado === "Aprobado" 
+                                            ? "bg-green-500/20 text-green-400 border-green-500/30" 
+                                            : cm.estado === "No aprobado"
+                                              ? "bg-red-500/20 text-red-400 border-red-500/30"
+                                              : "bg-amber-500/20 text-amber-400 border-amber-500/30";
+                                          const label = cm.estado === "Pendiente" ? "En revisión" : cm.estado;
+                                          return (
+                                            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${estadoClass}`}>
+                                              {label}
+                                            </span>
+                                          );
+                                        })()}
+                                      </td>
+                                      <td>
+                                        {(() => {
+                                          const legEstado = linkedLeg?.estado || "Pendiente";
+                                          const legEstadoClass = legEstado === "Aprobado" 
+                                            ? "bg-green-500/20 text-green-400 border-green-500/30" 
+                                            : legEstado === "No aprobado"
+                                              ? "bg-red-500/20 text-red-400 border-red-500/30"
+                                              : "bg-amber-500/20 text-amber-400 border-amber-500/30";
+                                          const legLabel = cm.estado !== "Aprobado" ? "—" : (legEstado === "Pendiente" ? "En revisión" : legEstado);
+                                          if (cm.estado !== "Aprobado") return <span className="text-sm text-muted-foreground">—</span>;
+                                          return (
+                                            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${legEstadoClass}`}>
+                                              {legLabel}
+                                            </span>
+                                          );
+                                        })()}
+                                      </td>
                                       <td>{(cajaMenorColumns.find(c => c.key === 'acciones')?.render as any)?.(cm)}</td>
                                     </tr>
                                   );
@@ -3285,31 +3379,7 @@ const PanelOperaciones = () => {
                                 const anticipoIds = new Set((currentProjectData.cajaMenor || []).map((cm: CajaMenorItem) => `leg-${cm.id}`));
                                 return (currentProjectData.legalizacion || []).filter((l: LegalizacionItem) => !anticipoIds.has(l.id)).length;
                               })()})
-                            </CardTitle>
-                            {(() => {
-                              const anticipoIds = new Set((currentProjectData.cajaMenor || []).map((cm: CajaMenorItem) => `leg-${cm.id}`));
-                              const independentLeg = (currentProjectData.legalizacion || []).filter((l: LegalizacionItem) => !anticipoIds.has(l.id));
-                              if (independentLeg.length === 0) return null;
-                              
-                              const allApproved = independentLeg.every((l: LegalizacionItem) => l.estado === "Aprobado");
-                              const anyRejected = independentLeg.some((l: LegalizacionItem) => l.estado === "No aprobado");
-                              const estadoGeneral = allApproved ? "Aprobado" : anyRejected ? "No aprobado" : "En revisión";
-                              
-                              const estadoClass = estadoGeneral === "Aprobado" 
-                                ? "bg-green-500/20 text-green-400 border-green-500/30" 
-                                : estadoGeneral === "No aprobado"
-                                  ? "bg-red-500/20 text-red-400 border-red-500/30"
-                                  : "bg-amber-500/20 text-amber-400 border-amber-500/30";
-
-                              return (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-muted-foreground">Estado:</span>
-                                  <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoClass}`}>
-                                    {estadoGeneral}
-                                  </span>
-                                </div>
-                              );
-                            })()}
+                          </CardTitle>
                           </div>
                           <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
                             <DropdownMenu>
@@ -3393,7 +3463,7 @@ const PanelOperaciones = () => {
                             <MatrixTable
                               data={independentLeg}
                               columns={legalizacionColumns}
-                              getRowClassName={(record: LegalizacionItem) => record.estado === "Aprobado" ? "caja-menor-row-approved" : ""}
+                              getRowClassName={() => ""}
                             />
                           );
                         })()}

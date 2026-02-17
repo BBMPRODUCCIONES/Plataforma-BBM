@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, Fragment } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { logger } from "@/lib/logger";
@@ -2209,41 +2209,6 @@ const PanelOperaciones = () => {
         },
       },
       {
-        key: "recursos",
-        header: "Recursos *",
-        width: "140px",
-        mobileWidth: "140px",
-        render: (l: LegalizacionItem) => {
-          const isEmpty = !l.recursos?.trim();
-          const canEdit = canEditLegalizacionRecord(l);
-          
-          if (canEdit) {
-            return (
-              <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
-                <EditableCell
-                  value={l.recursos}
-                  type="select"
-                  options={["Recursos propios", "Caja Menor", "Anticipo BBM"]}
-                  placeholder="Seleccionar..."
-                  onChange={(value) => {
-                    if (projectId) {
-                      updateLegalizacionItem(projectId, l.id, "recursos", value);
-                      setCajaMenorValidationErrors([]);
-                    }
-                  }}
-                />
-              </div>
-            );
-          }
-          
-          return (
-            <span className={`text-sm ${isEmpty ? "text-destructive italic" : "text-muted-foreground"}`}>
-              {l.recursos || "Sin seleccionar"}
-            </span>
-          );
-        },
-      },
-      {
         key: "contingencia",
         header: "Contingencia",
         width: "120px",
@@ -2589,8 +2554,7 @@ const PanelOperaciones = () => {
                 const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
                   const sinValor = !item.valor || item.valor === 0;
                   const sinCategoria = !item.categoria?.trim();
-                  const sinRecurso = !item.recursos?.trim();
-                  return sinValor || sinCategoria || sinRecurso;
+                  return sinValor || sinCategoria;
                 });
                 
                 if (registrosIncompletos.length > 0) {
@@ -2598,12 +2562,10 @@ const PanelOperaciones = () => {
                   registrosIncompletos.forEach((item: CajaMenorItem) => {
                     const idx = cajaMenorItems.indexOf(item);
                     const faltantes: string[] = [];
-                    // Imagen es OPCIONAL en SOLICITUD DE ANTICIPOS
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
                     if (!item.categoria?.trim()) faltantes.push("categoría");
-                    if (!item.recursos?.trim()) faltantes.push("recurso");
                     if (faltantes.length > 0) {
-                      errores.push(`Gasto #${idx + 1}: falta ${faltantes.join(", ")}`);
+                      errores.push(`Anticipo #${idx + 1}: falta ${faltantes.join(", ")}`);
                     }
                   });
                   setCajaMenorValidationErrors(errores);
@@ -2611,19 +2573,20 @@ const PanelOperaciones = () => {
                 }
               }
               
-              // Validación de LEGALIZACIÓN - TODOS los campos obligatorios
+              // Validación de RECURSOS PROPIOS - TODOS los campos obligatorios (sin recursos)
               const legalizacionData = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
+              const anticipoIdsSet = new Set((currentProjectData.cajaMenor || []).map((cm: CajaMenorItem) => `leg-${cm.id}`));
+              const independentLegData = legalizacionData.filter(l => !anticipoIdsSet.has(l.id));
               
-              if (legalizacionData.length > 0) {
+              if (independentLegData.length > 0) {
                 const legIncompletos: { item: LegalizacionItem; idx: number }[] = [];
                 
-                legalizacionData.forEach((record, idx) => {
+                independentLegData.forEach((record, idx) => {
                   const sinImagen = !record.imagenes || record.imagenes.length === 0;
                   const sinValor = !record.valor || record.valor === 0;
                   const sinCategoria = !record.categoria?.trim();
-                  const sinRecurso = !record.recursos?.trim();
                   
-                  if (sinImagen || sinValor || sinCategoria || sinRecurso) {
+                  if (sinImagen || sinValor || sinCategoria) {
                     legIncompletos.push({ item: record, idx });
                   }
                 });
@@ -2635,9 +2598,8 @@ const PanelOperaciones = () => {
                     if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
                     if (!item.categoria?.trim()) faltantes.push("categoría");
-                    if (!item.recursos?.trim()) faltantes.push("recurso");
                     if (faltantes.length > 0) {
-                      errores.push(`Legalización #${idx + 1}: falta ${faltantes.join(", ")}`);
+                      errores.push(`Recurso propio #${idx + 1}: falta ${faltantes.join(", ")}`);
                     }
                   });
                   setCajaMenorValidationErrors(errores);
@@ -3153,111 +3115,66 @@ const PanelOperaciones = () => {
                       <CardContent className="pt-0 caja-menor-mobile-scroll">
                         {(currentProjectData.cajaMenor || []).length > 0 ? (
                           <div className="overflow-x-auto scrollbar-thin">
-                            <table className="matrix-table w-full" style={{ minWidth: '1200px' }}>
+                            <table className="matrix-table w-full" style={{ minWidth: '1100px' }}>
                               <thead>
                                 <tr>
-                                  <th style={{ width: '70px', minWidth: '70px' }}>Tipo</th>
                                   <th style={{ width: '180px', minWidth: '180px' }}>Empleado</th>
                                   <th style={{ width: '220px', minWidth: '220px' }}>Concepto</th>
-                                  <th style={{ width: '110px', minWidth: '110px' }}>Imágenes</th>
-                                  <th style={{ width: '130px', minWidth: '130px' }}>Valor (COP) *</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Categoría *</th>
-                                  <th style={{ width: '130px', minWidth: '130px' }}>Plazo</th>
+                                  <th style={{ width: '130px', minWidth: '130px' }}>Valor anticipo *</th>
+                                  <th style={{ width: '110px', minWidth: '110px' }}>Imagen</th>
+                                  <th style={{ width: '130px', minWidth: '130px' }}>Valor legalización</th>
+                                  <th style={{ width: '130px', minWidth: '130px' }}>Diferencia</th>
                                   <th style={{ width: '50px', minWidth: '50px' }}></th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {(currentProjectData.cajaMenor || []).map((cm: CajaMenorItem, cmIdx: number) => {
+                                {(currentProjectData.cajaMenor || []).map((cm: CajaMenorItem) => {
                                   const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
                                   const linkedLeg = legalizacion.find(l => l.id === `leg-${cm.id}`);
-                                  const projectId = currentProjectData.id;
-
-                                  // Render helpers
-                                  const getEmpName = (item: { empleadoId?: string; empleadoNombre?: string }) => {
-                                    if (item.empleadoId) {
-                                      const emp = empleados.find(e => e.id === item.empleadoId);
-                                      if (emp?.nombre) return emp.nombre;
-                                    }
-                                    return item.empleadoNombre || "Sin empleado";
-                                  };
+                                  const valorAnticipo = cm.valor || 0;
+                                  const valorLegalizacion = linkedLeg?.valor || 0;
+                                  const diferencia = valorAnticipo - valorLegalizacion;
 
                                   return (
-                                    <Fragment key={cm.id}>
-                                      {/* ROW 1: Anticipo */}
-                                      <tr className={`${getCajaMenorRowClassName(cm)} border-b-0`}>
-                                        <td>
-                                          <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 whitespace-nowrap">
-                                            Anticipo
-                                          </span>
-                                        </td>
-                                        <td>{(cajaMenorColumns.find(c => c.key === 'empleado')?.render as any)?.(cm)}</td>
-                                        <td>
+                                    <tr key={cm.id} className={getCajaMenorRowClassName(cm)}>
+                                      <td>{(cajaMenorColumns.find(c => c.key === 'empleado')?.render as any)?.(cm)}</td>
+                                      <td>
+                                        <EditableCell
+                                          value={cm.concepto}
+                                          type="text"
+                                          placeholder="Descripción del concepto..."
+                                          onChange={(value) => currentProjectData?.id && updateCajaMenorItem(currentProjectData.id, cm.id, "concepto", value)}
+                                        />
+                                      </td>
+                                      <td>
+                                        <div className={!cm.categoria ? "ring-1 ring-red-500 rounded" : undefined}>
                                           <EditableCell
-                                            value={cm.concepto}
-                                            type="text"
-                                            placeholder="Descripción del concepto..."
-                                            onChange={(value) => currentProjectData?.id && updateCajaMenorItem(currentProjectData.id, cm.id, "concepto", value)}
+                                            value={cm.categoria}
+                                            type="select"
+                                            options={["Transporte", "Alimentación", "Compras"]}
+                                            placeholder={!cm.categoria ? "Elegir opción" : "Seleccionar..."}
+                                            onChange={(value) => {
+                                              if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "categoria", value);
+                                            }}
+                                            className={!cm.categoria ? "text-red-500" : undefined}
                                           />
-                                        </td>
-                                        <td>{(cajaMenorColumns.find(c => c.key === 'imagenes')?.render as any)?.(cm)}</td>
-                                        <td>{(cajaMenorColumns.find(c => c.key === 'valor')?.render as any)?.(cm)}</td>
-                                        <td>
-                                          <div className={!cm.categoria ? "ring-1 ring-red-500 rounded" : undefined}>
-                                            <EditableCell
-                                              value={cm.categoria}
-                                              type="select"
-                                              options={["Transporte", "Alimentación", "Compras"]}
-                                              placeholder={!cm.categoria ? "Elegir opción" : "Seleccionar..."}
-                                              onChange={(value) => {
-                                                if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "categoria", value);
-                                              }}
-                                              className={!cm.categoria ? "text-red-500" : undefined}
-                                            />
-                                          </div>
-                                        </td>
-                                        <td className="text-muted-foreground text-xs">—</td>
-                                        <td>{(cajaMenorColumns.find(c => c.key === 'acciones')?.render as any)?.(cm)}</td>
-                                      </tr>
-                                      {/* ROW 2: Legalización vinculada */}
-                                      {linkedLeg && (
-                                        <tr className={`bg-muted/20 border-b-2 border-primary/15 ${linkedLeg.estado === "Aprobado" ? "caja-menor-row-approved" : ""}`}>
-                                          <td>
-                                            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 whitespace-nowrap">
-                                              ↳ Legaliz.
-                                            </span>
-                                          </td>
-                                          <td>{(legalizacionColumns.find(c => c.key === 'empleado')?.render as any)?.(linkedLeg)}</td>
-                                          <td>
-                                            {/* Editable note for legalización reasons */}
-                                            <div className="flex flex-col gap-1">
-                                              <div className="flex items-center gap-1">
-                                                <MessageSquare className="h-3 w-3 text-primary shrink-0" />
-                                                <Input
-                                                  value={(linkedLeg as any).notaAdicional || ""}
-                                                  placeholder="+ Agregar nota..."
-                                                  className="h-6 text-xs border-dashed border-primary/30 bg-transparent focus:border-primary"
-                                                  onClick={(e) => e.stopPropagation()}
-                                                  onChange={(e) => {
-                                                    if (projectId) {
-                                                      updateLegalizacionItem(projectId, linkedLeg.id, "notaAdicional", e.target.value);
-                                                    }
-                                                  }}
-                                                />
-                                              </div>
-                                            </div>
-                                          </td>
-                                          <td>{(legalizacionColumns.find(c => c.key === 'imagenes')?.render as any)?.(linkedLeg)}</td>
-                                          <td>{(legalizacionColumns.find(c => c.key === 'valor')?.render as any)?.(linkedLeg)}</td>
-                                          <td>
-                                            <span className="text-xs text-muted-foreground px-1">
-                                              {cm.categoria || "—"}
-                                            </span>
-                                          </td>
-                                          <td>{(legalizacionColumns.find(c => c.key === 'plazo')?.render as any)?.(linkedLeg)}</td>
-                                          <td>{/* No delete for legalización rows */}</td>
-                                        </tr>
-                                      )}
-                                    </Fragment>
+                                        </div>
+                                      </td>
+                                      <td>{(cajaMenorColumns.find(c => c.key === 'valor')?.render as any)?.(cm)}</td>
+                                      <td>{(cajaMenorColumns.find(c => c.key === 'imagenes')?.render as any)?.(cm)}</td>
+                                      <td>
+                                        <span className="text-sm font-mono font-semibold">
+                                          {valorLegalizacion > 0 ? `$ ${valorLegalizacion.toLocaleString('es-CO')}` : <span className="text-muted-foreground">—</span>}
+                                        </span>
+                                      </td>
+                                      <td>
+                                        <span className={`text-sm font-mono font-semibold ${diferencia > 0 ? "text-green-400" : diferencia < 0 ? "text-red-400" : "text-muted-foreground"}`}>
+                                          {valorAnticipo > 0 || valorLegalizacion > 0 ? `$ ${diferencia.toLocaleString('es-CO')}` : "—"}
+                                        </span>
+                                      </td>
+                                      <td>{(cajaMenorColumns.find(c => c.key === 'acciones')?.render as any)?.(cm)}</td>
+                                    </tr>
                                   );
                                 })}
                               </tbody>
@@ -3269,13 +3186,16 @@ const PanelOperaciones = () => {
                       </CardContent>
                     </Card>
 
-                    {/* Sección de CAJA MENOR - independiente */}
+                    {/* Sección de RECURSOS PROPIOS - independiente */}
                     <Card className="overflow-hidden mt-4 border-primary/30">
                       <CardHeader className="py-3 flex flex-col gap-2 bg-primary/5">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <FileText className="h-4 w-4" />
-                            CAJA MENOR ({(currentProjectData.legalizacion || []).length})
+                            RECURSOS PROPIOS ({(() => {
+                              const anticipoIds = new Set((currentProjectData.cajaMenor || []).map((cm: CajaMenorItem) => `leg-${cm.id}`));
+                              return (currentProjectData.legalizacion || []).filter((l: LegalizacionItem) => !anticipoIds.has(l.id)).length;
+                            })()})
                           </CardTitle>
                           <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
                             <DropdownMenu>
@@ -3335,7 +3255,7 @@ const PanelOperaciones = () => {
                                 };
                                 const updatedLeg = [...(currentProjectData.legalizacion || []), newLeg];
                                 contextUpdateProject(currentProjectData.id, 'legalizacion', updatedLeg);
-                                toast.success("Registro de caja menor agregado");
+                                toast.success("Registro de recursos propios agregado");
                               }}
                             >
                               <Plus className="h-3 w-3 mr-1" />
@@ -3353,7 +3273,7 @@ const PanelOperaciones = () => {
                           
                           return independentLeg.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
-                              No hay registros de caja menor. Haga clic en "AGREGAR REGISTRO" para comenzar.
+                              No hay registros de recursos propios. Haga clic en "AGREGAR REGISTRO" para comenzar.
                             </p>
                           ) : (
                             <MatrixTable

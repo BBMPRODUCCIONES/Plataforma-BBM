@@ -1,18 +1,25 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
-import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt } from "lucide-react";
+import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ReporteCajaMenor from "@/components/reports/ReporteCajaMenor";
 import AprobacionesPendientes from "@/components/reports/AprobacionesPendientes";
+import GastoMenorDialog from "@/components/reports/GastoMenorDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useGastosMenores } from "@/hooks/useGastosMenores";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 type ReportView = "main" | "financieros" | "caja-menor" | "reporte-caja-menor" | "aprobaciones";
 
 const PanelReportes = () => {
   const [currentView, setCurrentView] = useState<ReportView>("main");
+  const [gastoDialogOpen, setGastoDialogOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { gastos, loading, addGasto } = useGastosMenores();
 
   const renderMainView = () => (
     <div className="space-y-6">
@@ -173,18 +180,84 @@ const PanelReportes = () => {
 
   const renderReporteCajaMenorView = () => (
     <div className="flex flex-col h-[calc(100vh-120px)] gap-4">
-      <div className="flex items-center gap-4 flex-shrink-0">
-        <Button variant="ghost" size="icon" onClick={() => setCurrentView("financieros")} className="shrink-0">
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-foreground">Reporte de Caja Menor</h1>
-          <p className="text-muted-foreground">Control y seguimiento de movimientos</p>
+      <div className="flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setCurrentView("financieros")} className="shrink-0">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold text-foreground">Reporte de Caja Menor</h1>
+            <p className="text-muted-foreground">Control y seguimiento de movimientos</p>
+          </div>
         </div>
+        <Button onClick={() => setGastoDialogOpen(true)} size="sm">
+          <Plus className="h-4 w-4 mr-1" />
+          Agregar Gasto
+        </Button>
       </div>
-      <div className="flex-1 min-h-0 flex items-center justify-center">
-        <p className="text-muted-foreground">Próximamente disponible</p>
+
+      <div className="flex-1 min-h-0 overflow-auto">
+        {loading ? (
+          <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>
+        ) : gastos.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-muted-foreground">No hay gastos registrados. Haga clic en "Agregar Gasto" para comenzar.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Usuario</TableHead>
+                <TableHead>Concepto</TableHead>
+                <TableHead>Categoría</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead>Imagen</TableHead>
+                <TableHead>Estado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {gastos.map((g) => (
+                <TableRow key={g.id}>
+                  <TableCell className="text-xs whitespace-nowrap">
+                    {format(new Date(g.created_at), "dd/MM/yyyy", { locale: es })}
+                  </TableCell>
+                  <TableCell className="text-xs">{g.usuario_nombre}</TableCell>
+                  <TableCell className="text-xs">{g.concepto}</TableCell>
+                  <TableCell className="text-xs">{g.categoria}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">
+                    $ {g.valor.toLocaleString("es-CO")}
+                  </TableCell>
+                  <TableCell>
+                    {g.imagen_url ? (
+                      <a href={g.imagen_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
+                        Ver
+                      </a>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                      g.estado === "Aprobado" ? "bg-green-500/20 text-green-400" :
+                      g.estado === "No aprobado" ? "bg-red-500/20 text-red-400" :
+                      "bg-yellow-500/20 text-yellow-400"
+                    }`}>
+                      {g.estado}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
+
+      <GastoMenorDialog
+        open={gastoDialogOpen}
+        onOpenChange={setGastoDialogOpen}
+        onSubmit={addGasto}
+      />
     </div>
   );
 

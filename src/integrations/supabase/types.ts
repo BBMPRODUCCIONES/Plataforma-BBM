@@ -80,6 +80,59 @@ export type Database = {
         }
         Relationships: []
       }
+      gastos_menores: {
+        Row: {
+          categoria: string
+          centro_costos: string
+          concepto: string
+          created_at: string
+          estado: string
+          evento_id: string | null
+          id: string
+          imagen_url: string | null
+          updated_at: string
+          usuario_id: string
+          usuario_nombre: string
+          valor: number
+        }
+        Insert: {
+          categoria?: string
+          centro_costos?: string
+          concepto?: string
+          created_at?: string
+          estado?: string
+          evento_id?: string | null
+          id?: string
+          imagen_url?: string | null
+          updated_at?: string
+          usuario_id: string
+          usuario_nombre?: string
+          valor?: number
+        }
+        Update: {
+          categoria?: string
+          centro_costos?: string
+          concepto?: string
+          created_at?: string
+          estado?: string
+          evento_id?: string | null
+          id?: string
+          imagen_url?: string | null
+          updated_at?: string
+          usuario_id?: string
+          usuario_nombre?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_menores_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_calendar_tokens: {
         Row: {
           access_token: string

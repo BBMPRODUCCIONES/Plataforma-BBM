@@ -66,6 +66,8 @@ import {
 import { toast } from "sonner";
 import { HorarioFormDialog } from "@/components/HorarioFormDialog";
 import { CajaMenorStatusIcon } from "@/components/CajaMenorStatusIcon";
+import { useGastosMenores } from "@/hooks/useGastosMenores";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // Helper functions to serialize/deserialize multiple responsables to/from DB storage
 // We store as JSON strings to support multiple responsables while using existing DB columns
@@ -192,6 +194,10 @@ const PanelOperaciones = () => {
   // Estados para opciones de exportación - checkboxes
   const [includeLegalizacionInExport, setIncludeLegalizacionInExport] = useState(false);
   const [includeSolicitudInExport, setIncludeSolicitudInExport] = useState(false);
+  
+  // Gastos menores for the current project's centroCostos
+  const gastosMenoresCentroCostos = selectedProject ? (projects.find(p => p.id === selectedProject.id) || selectedProject)?.centroCostos : undefined;
+  const { gastos: gastosMenoresForProject } = useGastosMenores(gastosMenoresCentroCostos || undefined);
 
   // Sync local state when project changes (not on every keystroke)
   useEffect(() => {
@@ -3438,6 +3444,65 @@ const PanelOperaciones = () => {
                         })()}
                       </CardContent>
                     </Card>
+
+                    {/* Sección de GASTOS MENORES - solo lectura */}
+                    {gastosMenoresForProject.length > 0 && (
+                      <Card className="overflow-hidden mt-4 border-muted">
+                        <CardHeader className="py-3 bg-muted/30">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Wallet className="h-4 w-4" />
+                            GASTOS MENORES ({gastosMenoresForProject.length})
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground">Registros desde Reporte de Caja Menor (solo lectura)</p>
+                        </CardHeader>
+                        <CardContent className="pt-2 overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-xs">Fecha</TableHead>
+                                <TableHead className="text-xs">Usuario</TableHead>
+                                <TableHead className="text-xs">Concepto</TableHead>
+                                <TableHead className="text-xs">Categoría</TableHead>
+                                <TableHead className="text-xs text-right">Valor</TableHead>
+                                <TableHead className="text-xs">Imagen</TableHead>
+                                <TableHead className="text-xs">Estado</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {gastosMenoresForProject.map((g) => (
+                                <TableRow key={g.id}>
+                                  <TableCell className="text-xs whitespace-nowrap">
+                                    {format(new Date(g.created_at), "dd/MM/yyyy", { locale: es })}
+                                  </TableCell>
+                                  <TableCell className="text-xs">{g.usuario_nombre}</TableCell>
+                                  <TableCell className="text-xs">{g.concepto}</TableCell>
+                                  <TableCell className="text-xs">{g.categoria}</TableCell>
+                                  <TableCell className="text-xs text-right font-mono">
+                                    $ {g.valor.toLocaleString("es-CO")}
+                                  </TableCell>
+                                  <TableCell>
+                                    {g.imagen_url ? (
+                                      <a href={g.imagen_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">Ver</a>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                                      g.estado === "Aprobado" ? "bg-green-500/20 text-green-400" :
+                                      g.estado === "No aprobado" ? "bg-red-500/20 text-red-400" :
+                                      "bg-yellow-500/20 text-yellow-400"
+                                    }`}>
+                                      {g.estado}
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                    )}
                     </>
                   )}
                 </div>

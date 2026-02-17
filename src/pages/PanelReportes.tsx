@@ -10,6 +10,7 @@ import GastoMenorDialog from "@/components/reports/GastoMenorDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useGastosMenores } from "@/hooks/useGastosMenores";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import GastosMenoresKPIs from "@/components/reports/GastosMenoresKPIs";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -196,7 +197,7 @@ const PanelReportes = () => {
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-auto space-y-4">
         {loading ? (
           <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>
         ) : gastos.length === 0 ? (
@@ -204,6 +205,8 @@ const PanelReportes = () => {
             <p className="text-muted-foreground">No hay gastos registrados. Haga clic en "Agregar Gasto" para comenzar.</p>
           </div>
         ) : (
+          <>
+          <GastosMenoresKPIs gastos={gastos} />
           <Table>
             <TableHeader>
               <TableRow>
@@ -250,6 +253,7 @@ const PanelReportes = () => {
               ))}
             </TableBody>
           </Table>
+          </>
         )}
       </div>
 

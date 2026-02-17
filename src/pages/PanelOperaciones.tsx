@@ -3147,6 +3147,7 @@ const PanelOperaciones = () => {
                                               type="text"
                                               placeholder="Descripción del concepto..."
                                               onChange={(value) => currentProjectData?.id && updateCajaMenorItem(currentProjectData.id, cm.id, "concepto", value)}
+                                              disabled={cm.estado === "Aprobado"}
                                             />
                                           </div>
                                           {/* Notas/comentarios ilimitados */}
@@ -3223,6 +3224,7 @@ const PanelOperaciones = () => {
                                               if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "categoria", value);
                                             }}
                                             className={!cm.categoria ? "text-red-500" : undefined}
+                                            disabled={cm.estado === "Aprobado"}
                                           />
                                         </div>
                                       </td>
@@ -3230,7 +3232,8 @@ const PanelOperaciones = () => {
                                         {(() => {
                                           const canEdit = canEditCajaMenorRecord(cm);
                                           const isEmpty = !cm.valor || cm.valor === 0;
-                                          if (!canEdit) {
+                                          const isApproved = cm.estado === "Aprobado";
+                                          if (!canEdit || isApproved) {
                                             return (
                                               <span className={`text-base font-semibold font-mono ${isEmpty ? "text-destructive" : "text-foreground"}`}>
                                                 {isEmpty ? "$ 0 (Requerido)" : `$ ${(cm.valor || 0).toLocaleString('es-CO')}`}

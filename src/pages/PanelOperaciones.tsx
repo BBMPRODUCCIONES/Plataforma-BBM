@@ -2029,34 +2029,6 @@ const PanelOperaciones = () => {
     
     return [
       {
-        key: "empleado",
-        header: "Empleado",
-        width: "200px",
-        mobileWidth: "180px",
-        render: (l: LegalizacionItem & { isManual?: boolean }) => {
-          const empleadoName = getEmpleadoName(l);
-          
-          // EMPLEADO siempre es de solo lectura por seguridad
-          return (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center gap-2 text-sm truncate max-w-full cursor-default">
-                    <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <span className="truncate text-muted-foreground">
-                      {empleadoName}
-                    </span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[300px]">
-                  <p>Campo protegido (no editable por seguridad)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          );
-        },
-      },
-      {
         key: "concepto",
         header: "Concepto",
         width: "250px",
@@ -2241,71 +2213,6 @@ const PanelOperaciones = () => {
               type="select"
               options={["Sí", "No"]}
               onChange={(value) => projectId && updateLegalizacionItem(projectId, l.id, "contingencia", value)}
-            />
-          );
-        },
-      },
-      {
-        key: "plazo",
-        header: "Plazo",
-        width: "140px",
-        mobileWidth: "130px",
-        render: (l: LegalizacionItem) => {
-          // If already legalized/approved, show completed
-          if (l.estado === "Aprobado") {
-            return (
-              <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
-                Legalizado
-              </span>
-            );
-          }
-          
-          // Calculate time elapsed since creation
-          const createdDate = l.createdAt ? new Date(l.createdAt) : new Date();
-          const now = new Date();
-          const diffMs = now.getTime() - createdDate.getTime();
-          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-          const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-          
-          // Color coding: green < 3 days, yellow 3-5 days, red > 5 days
-          const urgencyClass = diffDays >= 5 
-            ? "bg-red-500/20 text-red-400 border-red-500/30" 
-            : diffDays >= 3 
-              ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-              : "bg-blue-500/20 text-blue-400 border-blue-500/30";
-          
-          const timeText = diffDays > 0 
-            ? `${diffDays}d ${diffHours}h` 
-            : `${diffHours}h`;
-          
-          return (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full border ${urgencyClass} cursor-default`}>
-                    ⏱ {timeText}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>Tiempo transcurrido desde la solicitud: {diffDays} días, {diffHours} horas</p>
-                  <p className="text-xs text-muted-foreground">Debe legalizar antes de solicitar un nuevo anticipo</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          );
-        },
-      },
-      {
-        key: "estado",
-        header: "Estado",
-        width: "130px",
-        mobileWidth: "130px",
-        render: (l: LegalizacionItem) => {
-          return (
-            <CajaMenorEstadoSelect
-              value={l.estado}
-              onChange={() => {}}
-              readOnly
             />
           );
         },
@@ -3198,13 +3105,55 @@ const PanelOperaciones = () => {
                     <Card className="overflow-hidden mt-4 border-primary/30">
                       <CardHeader className="py-3 flex flex-col gap-2 bg-primary/5">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                          <CardTitle className="text-sm flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            RECURSOS PROPIOS ({(() => {
+                          <div className="flex flex-col gap-1.5">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              RECURSOS PROPIOS ({(() => {
+                                const anticipoIds = new Set((currentProjectData.cajaMenor || []).map((cm: CajaMenorItem) => `leg-${cm.id}`));
+                                return (currentProjectData.legalizacion || []).filter((l: LegalizacionItem) => !anticipoIds.has(l.id)).length;
+                              })()})
+                            </CardTitle>
+                            {(() => {
                               const anticipoIds = new Set((currentProjectData.cajaMenor || []).map((cm: CajaMenorItem) => `leg-${cm.id}`));
-                              return (currentProjectData.legalizacion || []).filter((l: LegalizacionItem) => !anticipoIds.has(l.id)).length;
-                            })()})
-                          </CardTitle>
+                              const independentLeg = (currentProjectData.legalizacion || []).filter((l: LegalizacionItem) => !anticipoIds.has(l.id));
+                              if (independentLeg.length === 0) return null;
+                              
+                              const firstItem = independentLeg[0];
+                              let empleadoNombre = "Sin asignar";
+                              if (firstItem.empleadoId) {
+                                const emp = empleados.find(e => e.id === firstItem.empleadoId);
+                                if (emp) empleadoNombre = emp.nombre;
+                              } else if (firstItem.empleadoNombre) {
+                                empleadoNombre = firstItem.empleadoNombre;
+                              }
+                              
+                              const allApproved = independentLeg.every((l: LegalizacionItem) => l.estado === "Aprobado");
+                              const anyRejected = independentLeg.some((l: LegalizacionItem) => l.estado === "No aprobado");
+                              const estadoGeneral = allApproved ? "Aprobado" : anyRejected ? "No aprobado" : "En revisión";
+                              
+                              const estadoClass = estadoGeneral === "Aprobado" 
+                                ? "bg-green-500/20 text-green-400 border-green-500/30" 
+                                : estadoGeneral === "No aprobado"
+                                  ? "bg-red-500/20 text-red-400 border-red-500/30"
+                                  : "bg-amber-500/20 text-amber-400 border-amber-500/30";
+
+                              return (
+                                <div className="flex items-center gap-4 flex-wrap">
+                                  <div className="flex items-center gap-1.5">
+                                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground">Empleado:</span>
+                                    <span className="text-xs font-medium">{empleadoNombre}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs text-muted-foreground">Estado:</span>
+                                    <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoClass}`}>
+                                      {estadoGeneral}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
                           <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

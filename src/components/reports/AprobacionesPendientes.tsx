@@ -111,7 +111,12 @@ export default function AprobacionesPendientes() {
         });
       });
     });
+    // Sort: Pendiente first, then Aprobado, then No aprobado; within each group by date desc
+    const estadoOrder: Record<string, number> = { "Pendiente": 0, "Aprobado": 1, "No aprobado": 2 };
     result.sort((a, b) => {
+      const orderA = estadoOrder[a.item.estado] ?? 1;
+      const orderB = estadoOrder[b.item.estado] ?? 1;
+      if (orderA !== orderB) return orderA - orderB;
       const da = parseDateSafe(a.item.createdAt)?.getTime() || 0;
       const db = parseDateSafe(b.item.createdAt)?.getTime() || 0;
       return db - da;

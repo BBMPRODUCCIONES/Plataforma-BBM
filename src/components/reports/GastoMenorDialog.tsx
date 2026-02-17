@@ -24,13 +24,14 @@ interface GastoMenorDialogProps {
     imagen_url: string | null;
     estado: string;
   }) => Promise<boolean>;
-  centroCostos?: string;
+  centroCostosDefault?: string;
   eventoId?: string | null;
 }
 
-export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroCostos = "", eventoId = null }: GastoMenorDialogProps) {
+export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroCostosDefault = "", eventoId = null }: GastoMenorDialogProps) {
   const { user } = useAuth();
   const [concepto, setConcepto] = useState("");
+  const [centroCostos, setCentroCostos] = useState(centroCostosDefault || "");
   const [categoria, setCategoria] = useState("");
   const [valor, setValor] = useState("");
   const [imagenUrl, setImagenUrl] = useState<string | null>(null);
@@ -70,13 +71,14 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
   };
 
   const handleSubmit = async () => {
+    if (!centroCostos.trim()) { toast.error("El centro de costos es obligatorio"); return; }
     if (!concepto.trim()) { toast.error("El concepto es obligatorio"); return; }
     if (!categoria) { toast.error("La categoría es obligatoria"); return; }
     if (!valor || Number(valor) <= 0) { toast.error("El valor debe ser mayor a 0"); return; }
 
     setSubmitting(true);
     const success = await onSubmit({
-      centro_costos: centroCostos,
+      centro_costos: centroCostos.trim(),
       evento_id: eventoId,
       usuario_id: user?.id || "",
       usuario_nombre: userName || user?.email || "",
@@ -89,6 +91,7 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
 
     if (success) {
       setConcepto("");
+      setCentroCostos(centroCostosDefault || "");
       setCategoria("");
       setValor("");
       setImagenUrl(null);
@@ -108,6 +111,12 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
           <div className="space-y-1.5">
             <Label>Usuario</Label>
             <Input value={userName || user?.email || ""} disabled className="bg-muted" />
+          </div>
+
+          {/* Centro de Costos */}
+          <div className="space-y-1.5">
+            <Label>Centro de Costos *</Label>
+            <Input value={centroCostos} onChange={(e) => setCentroCostos(e.target.value)} placeholder="Ej: CC-001" />
           </div>
 
           {/* Concepto */}

@@ -2951,31 +2951,41 @@ const PanelOperaciones = () => {
                             </div>
                           </div>
                         )}
-                        {/* Estado general de la solicitud */}
-                        {(() => {
-                          const items = currentProjectData.cajaMenor || [];
-                          const allApproved = items.length > 0 && items.every((c: CajaMenorItem) => c.estado === "Aprobado");
-                          const anyRejected = items.some((c: CajaMenorItem) => c.estado === "No aprobado");
-                          const estadoGeneral = allApproved ? "Aprobado" : anyRejected ? "Rechazado" : "En revisión";
-                          const estadoClass = estadoGeneral === "Aprobado" 
-                            ? "bg-green-500/20 text-green-400 border-green-500/30" 
-                            : estadoGeneral === "Rechazado" 
-                              ? "bg-red-500/20 text-red-400 border-red-500/30" 
-                              : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-                          return items.length > 0 ? (
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-xs text-muted-foreground">Estado:</span>
-                              <span className={`text-xs font-medium px-3 py-1 rounded-full border ${estadoClass}`}>
-                                {estadoGeneral}
-                              </span>
-                            </div>
-                          ) : null;
-                        })()}
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <Wallet className="h-4 w-4" />
                             SOLICITUD DE ANTICIPOS ({(currentProjectData.cajaMenor || []).length})
                           </CardTitle>
+                          {/* Empleado y Estado debajo del título */}
+                          {(() => {
+                            const items = currentProjectData.cajaMenor || [];
+                            if (items.length === 0) return null;
+                            const firstItem = items[0] as CajaMenorItem;
+                            const empleadoNombre = firstItem.empleadoNombre || "Sin asignar";
+                            const allApproved = items.every((c: CajaMenorItem) => c.estado === "Aprobado");
+                            const anyRejected = items.some((c: CajaMenorItem) => c.estado === "No aprobado");
+                            const estadoGeneral = allApproved ? "Aprobado" : anyRejected ? "Rechazado" : "En revisión";
+                            const estadoClass = estadoGeneral === "Aprobado" 
+                              ? "bg-green-500/20 text-green-400 border-green-500/30" 
+                              : estadoGeneral === "Rechazado" 
+                                ? "bg-red-500/20 text-red-400 border-red-500/30" 
+                                : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+                            return (
+                              <div className="flex items-center gap-4 flex-wrap">
+                                <div className="flex items-center gap-1.5">
+                                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-xs text-muted-foreground">Empleado:</span>
+                                  <span className="text-xs font-medium">{empleadoNombre}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs text-muted-foreground">Estado:</span>
+                                  <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoClass}`}>
+                                    {estadoGeneral}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })()}
                           <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -3115,11 +3125,10 @@ const PanelOperaciones = () => {
                       <CardContent className="pt-0 caja-menor-mobile-scroll">
                         {(currentProjectData.cajaMenor || []).length > 0 ? (
                           <div className="overflow-x-auto scrollbar-thin">
-                            <table className="matrix-table w-full" style={{ minWidth: '1100px' }}>
+                            <table className="matrix-table w-full" style={{ minWidth: '900px' }}>
                               <thead>
                                 <tr>
-                                  <th style={{ width: '180px', minWidth: '180px' }}>Empleado</th>
-                                  <th style={{ width: '220px', minWidth: '220px' }}>Concepto</th>
+                                  <th style={{ width: '250px', minWidth: '250px' }}>Concepto</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Categoría *</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Valor anticipo *</th>
                                   <th style={{ width: '110px', minWidth: '110px' }}>Imagen</th>
@@ -3138,7 +3147,6 @@ const PanelOperaciones = () => {
 
                                   return (
                                     <tr key={cm.id} className={getCajaMenorRowClassName(cm)}>
-                                      <td>{(cajaMenorColumns.find(c => c.key === 'empleado')?.render as any)?.(cm)}</td>
                                       <td>
                                         <EditableCell
                                           value={cm.concepto}

@@ -131,12 +131,16 @@ export default function AprobacionesPendientes() {
       }
       if (estadoFilter !== "Todos" && row.item.estado !== estadoFilter) return false;
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
+        // Multi-term search separated by commas (like Caja Menor report)
+        const terms = searchQuery.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
         const searchable = [
           row.item.empleadoNombre, row.centroCostos, row.item.concepto,
-          row.evento, row.item.categoria,
+          row.evento, row.item.categoria, row.item.estado,
+          row.legalizacionEstado,
+          d ? format(d, "dd/MM/yyyy") : "",
         ].filter(Boolean).join(" ").toLowerCase();
-        if (!searchable.includes(q)) return false;
+        // ALL terms must match
+        if (!terms.every(term => searchable.includes(term))) return false;
       }
       return true;
     });
@@ -243,7 +247,7 @@ export default function AprobacionesPendientes() {
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Empleado, CC, descripción, evento..."
+              placeholder="Buscar por empleado, evento, categoría, estado, proceso de pago... (usa comas)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-9 text-xs"

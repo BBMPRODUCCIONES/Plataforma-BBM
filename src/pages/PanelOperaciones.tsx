@@ -51,7 +51,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, X } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printSolicitudPresupuesto, printLegalizacion, exportSolicitudToExcel, exportLegalizacionToExcel } from "@/utils/pdfGenerator";
@@ -2029,6 +2029,32 @@ const PanelOperaciones = () => {
     
     return [
       {
+        key: "empleado",
+        header: "Empleado",
+        width: "200px",
+        mobileWidth: "180px",
+        render: (l: LegalizacionItem) => {
+          const empleadoName = getEmpleadoName(l);
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-2 text-sm truncate max-w-full cursor-default">
+                    <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <span className="truncate text-foreground">
+                      {empleadoName}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[300px]">
+                  <p>{empleadoName}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        },
+      },
+      {
         key: "concepto",
         header: "Concepto",
         width: "250px",
@@ -3056,12 +3082,75 @@ const PanelOperaciones = () => {
                                   return (
                                     <tr key={cm.id} className={getCajaMenorRowClassName(cm)}>
                                       <td>
-                                        <EditableCell
-                                          value={cm.concepto}
-                                          type="text"
-                                          placeholder="Descripción del concepto..."
-                                          onChange={(value) => currentProjectData?.id && updateCajaMenorItem(currentProjectData.id, cm.id, "concepto", value)}
-                                        />
+                                        <div className="flex flex-col gap-1">
+                                          <EditableCell
+                                            value={cm.concepto}
+                                            type="text"
+                                            placeholder="Descripción del concepto..."
+                                            onChange={(value) => currentProjectData?.id && updateCajaMenorItem(currentProjectData.id, cm.id, "concepto", value)}
+                                          />
+                                          {/* Notas/comentarios ilimitados */}
+                                          {(() => {
+                                            const notas: string[] = (cm as any).notas_comentarios || [];
+                                            const canEdit = canEditCajaMenorRecord(cm);
+                                            return (
+                                              <div className="flex flex-col gap-0.5">
+                                                {notas.map((nota: string, idx: number) => (
+                                                  <div key={idx} className="flex items-center gap-1">
+                                                    <MessageSquare className="h-3 w-3 text-primary shrink-0" />
+                                                    {canEdit ? (
+                                                      <Input
+                                                        value={nota}
+                                                        placeholder="Nota..."
+                                                        className="h-6 text-xs border-dashed border-primary/30 bg-transparent focus:border-primary"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onChange={(e) => {
+                                                          if (currentProjectData?.id) {
+                                                            const updated = [...notas];
+                                                            updated[idx] = e.target.value;
+                                                            updateCajaMenorItem(currentProjectData.id, cm.id, "notas_comentarios", updated);
+                                                          }
+                                                        }}
+                                                      />
+                                                    ) : (
+                                                      <span className="text-xs text-primary/80 truncate">{nota}</span>
+                                                    )}
+                                                    {canEdit && (
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-5 w-5 text-muted-foreground hover:text-destructive shrink-0"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          if (currentProjectData?.id) {
+                                                            const updated = notas.filter((_: string, i: number) => i !== idx);
+                                                            updateCajaMenorItem(currentProjectData.id, cm.id, "notas_comentarios", updated);
+                                                          }
+                                                        }}
+                                                      >
+                                                        <X className="h-3 w-3" />
+                                                      </Button>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                                {canEdit && (
+                                                  <button
+                                                    className="flex items-center gap-1 text-xs text-primary/60 hover:text-primary cursor-pointer mt-0.5"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      if (currentProjectData?.id) {
+                                                        updateCajaMenorItem(currentProjectData.id, cm.id, "notas_comentarios", [...notas, ""]);
+                                                      }
+                                                    }}
+                                                  >
+                                                    <MessageSquare className="h-3 w-3" />
+                                                    + Agregar nota...
+                                                  </button>
+                                                )}
+                                              </div>
+                                            );
+                                          })()}
+                                        </div>
                                       </td>
                                       <td>
                                         <div className={!cm.categoria ? "ring-1 ring-red-500 rounded" : undefined}>
@@ -3108,6 +3197,10 @@ const PanelOperaciones = () => {
                                       </td>
                                       <td>
                                         {(() => {
+                                          const isApproved = cm.estado === "Aprobado";
+                                          if (!isApproved) {
+                                            return <span className="text-sm text-muted-foreground">—</span>;
+                                          }
                                           const canEdit = canEditCajaMenorRecord(cm);
                                           const imgEmpty = !cm.imagenes || cm.imagenes.length === 0;
                                           return (
@@ -3115,15 +3208,14 @@ const PanelOperaciones = () => {
                                               <AttachmentButton
                                                 attachments={cm.imagenes || []}
                                                 onAttachmentsChange={(attachments) => {
-                                                  if (canEdit && currentProjectData?.id) {
+                                                  if (currentProjectData?.id) {
                                                     updateCajaMenorItem(currentProjectData.id, cm.id, "imagenes", attachments);
                                                   }
                                                 }}
                                                 multiple
                                                 projectId={currentProjectData?.id || ""}
                                                 fieldName={`caja-menor-${cm.id}-imagenes`}
-                                                enableCamera={canEdit}
-                                                disabled={!canEdit}
+                                                enableCamera={true}
                                               />
                                               {imgEmpty && <span className="text-[10px] text-destructive block text-center">Requerida</span>}
                                             </div>
@@ -3136,16 +3228,8 @@ const PanelOperaciones = () => {
                                           if (!isApproved) {
                                             return <span className="text-sm text-muted-foreground">—</span>;
                                           }
-                                          const canEdit = canEditCajaMenorRecord(cm);
                                           const legId = `leg-${cm.id}`;
                                           const isEmpty = !valorLegalizacion || valorLegalizacion === 0;
-                                          if (!canEdit) {
-                                            return (
-                                              <span className={`text-base font-semibold font-mono ${isEmpty ? "text-muted-foreground" : "text-foreground"}`}>
-                                                {isEmpty ? "$ 0" : `$ ${valorLegalizacion.toLocaleString('es-CO')}`}
-                                              </span>
-                                            );
-                                          }
                                           return (
                                             <div className={isEmpty ? "ring-1 ring-amber-500/50 rounded bg-amber-500/5" : ""}>
                                               <EditableCell
@@ -3207,15 +3291,6 @@ const PanelOperaciones = () => {
                               const independentLeg = (currentProjectData.legalizacion || []).filter((l: LegalizacionItem) => !anticipoIds.has(l.id));
                               if (independentLeg.length === 0) return null;
                               
-                              const firstItem = independentLeg[0];
-                              let empleadoNombre = "Sin asignar";
-                              if (firstItem.empleadoId) {
-                                const emp = empleados.find(e => e.id === firstItem.empleadoId);
-                                if (emp) empleadoNombre = emp.nombre;
-                              } else if (firstItem.empleadoNombre) {
-                                empleadoNombre = firstItem.empleadoNombre;
-                              }
-                              
                               const allApproved = independentLeg.every((l: LegalizacionItem) => l.estado === "Aprobado");
                               const anyRejected = independentLeg.some((l: LegalizacionItem) => l.estado === "No aprobado");
                               const estadoGeneral = allApproved ? "Aprobado" : anyRejected ? "No aprobado" : "En revisión";
@@ -3227,18 +3302,11 @@ const PanelOperaciones = () => {
                                   : "bg-amber-500/20 text-amber-400 border-amber-500/30";
 
                               return (
-                                <div className="flex items-center gap-4 flex-wrap">
-                                  <div className="flex items-center gap-1.5">
-                                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                                    <span className="text-xs text-muted-foreground">Empleado:</span>
-                                    <span className="text-xs font-medium">{empleadoNombre}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-xs text-muted-foreground">Estado:</span>
-                                    <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoClass}`}>
-                                      {estadoGeneral}
-                                    </span>
-                                  </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs text-muted-foreground">Estado:</span>
+                                  <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoClass}`}>
+                                    {estadoGeneral}
+                                  </span>
                                 </div>
                               );
                             })()}

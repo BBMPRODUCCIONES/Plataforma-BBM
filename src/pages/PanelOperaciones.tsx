@@ -2454,14 +2454,14 @@ const PanelOperaciones = () => {
             
             // Validación de Caja Menor - TODOS los campos son BLOQUEANTES
             if (selectedSection === "cajaMenor") {
-              // Validación de SOLICITUD DE ANTICIPOS - Imágenes OPCIONAL
+              // Validación de SOLICITUD DE ANTICIPOS - Imagen OBLIGATORIA
               const cajaMenorItems = currentProjectData.cajaMenor || [];
               if (cajaMenorItems.length > 0) {
-                // BLOQUEANTE: Verificar campos obligatorios (SIN imagen - es opcional)
                 const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
                   const sinValor = !item.valor || item.valor === 0;
                   const sinCategoria = !item.categoria?.trim();
-                  return sinValor || sinCategoria;
+                  const sinImagen = !item.imagenes || item.imagenes.length === 0;
+                  return sinValor || sinCategoria || sinImagen;
                 });
                 
                 if (registrosIncompletos.length > 0) {
@@ -2471,6 +2471,7 @@ const PanelOperaciones = () => {
                     const faltantes: string[] = [];
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
                     if (!item.categoria?.trim()) faltantes.push("categoría");
+                    if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
                     if (faltantes.length > 0) {
                       errores.push(`Anticipo #${idx + 1}: falta ${faltantes.join(", ")}`);
                     }
@@ -3038,7 +3039,7 @@ const PanelOperaciones = () => {
                                   <th style={{ width: '250px', minWidth: '250px' }}>Concepto</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Categoría *</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Valor anticipo *</th>
-                                  <th style={{ width: '110px', minWidth: '110px' }}>Imagen</th>
+                                  <th style={{ width: '110px', minWidth: '110px' }}>Imagen *</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Valor legalización</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Diferencia</th>
                                   <th style={{ width: '50px', minWidth: '50px' }}></th>
@@ -3076,17 +3077,105 @@ const PanelOperaciones = () => {
                                           />
                                         </div>
                                       </td>
-                                      <td>{(cajaMenorColumns.find(c => c.key === 'valor')?.render as any)?.(cm)}</td>
-                                      <td>{(cajaMenorColumns.find(c => c.key === 'imagenes')?.render as any)?.(cm)}</td>
                                       <td>
-                                        <span className="text-sm font-mono font-semibold">
-                                          {valorLegalizacion > 0 ? `$ ${valorLegalizacion.toLocaleString('es-CO')}` : <span className="text-muted-foreground">—</span>}
-                                        </span>
+                                        {(() => {
+                                          const canEdit = canEditCajaMenorRecord(cm);
+                                          const isEmpty = !cm.valor || cm.valor === 0;
+                                          if (!canEdit) {
+                                            return (
+                                              <span className={`text-base font-semibold font-mono ${isEmpty ? "text-destructive" : "text-foreground"}`}>
+                                                {isEmpty ? "$ 0 (Requerido)" : `$ ${(cm.valor || 0).toLocaleString('es-CO')}`}
+                                              </span>
+                                            );
+                                          }
+                                          return (
+                                            <div className={isEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5" : ""}>
+                                              <EditableCell
+                                                value={cm.valor}
+                                                type="number"
+                                                placeholder="0"
+                                                onChange={(value) => {
+                                                  if (currentProjectData?.id) {
+                                                    updateCajaMenorItem(currentProjectData.id, cm.id, "valor", value);
+                                                    setCajaMenorValidationErrors([]);
+                                                  }
+                                                }}
+                                                className={`text-base font-semibold ${isEmpty ? "text-destructive" : ""}`}
+                                              />
+                                            </div>
+                                          );
+                                        })()}
                                       </td>
                                       <td>
-                                        <span className={`text-sm font-mono font-semibold ${diferencia > 0 ? "text-green-400" : diferencia < 0 ? "text-red-400" : "text-muted-foreground"}`}>
-                                          {valorAnticipo > 0 || valorLegalizacion > 0 ? `$ ${diferencia.toLocaleString('es-CO')}` : "—"}
-                                        </span>
+                                        {(() => {
+                                          const canEdit = canEditCajaMenorRecord(cm);
+                                          const imgEmpty = !cm.imagenes || cm.imagenes.length === 0;
+                                          return (
+                                            <div className={imgEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5 p-0.5" : ""}>
+                                              <AttachmentButton
+                                                attachments={cm.imagenes || []}
+                                                onAttachmentsChange={(attachments) => {
+                                                  if (canEdit && currentProjectData?.id) {
+                                                    updateCajaMenorItem(currentProjectData.id, cm.id, "imagenes", attachments);
+                                                  }
+                                                }}
+                                                multiple
+                                                projectId={currentProjectData?.id || ""}
+                                                fieldName={`caja-menor-${cm.id}-imagenes`}
+                                                enableCamera={canEdit}
+                                                disabled={!canEdit}
+                                              />
+                                              {imgEmpty && <span className="text-[10px] text-destructive block text-center">Requerida</span>}
+                                            </div>
+                                          );
+                                        })()}
+                                      </td>
+                                      <td>
+                                        {(() => {
+                                          const isApproved = cm.estado === "Aprobado";
+                                          if (!isApproved) {
+                                            return <span className="text-sm text-muted-foreground">—</span>;
+                                          }
+                                          const canEdit = canEditCajaMenorRecord(cm);
+                                          const legId = `leg-${cm.id}`;
+                                          const isEmpty = !valorLegalizacion || valorLegalizacion === 0;
+                                          if (!canEdit) {
+                                            return (
+                                              <span className={`text-base font-semibold font-mono ${isEmpty ? "text-muted-foreground" : "text-foreground"}`}>
+                                                {isEmpty ? "$ 0" : `$ ${valorLegalizacion.toLocaleString('es-CO')}`}
+                                              </span>
+                                            );
+                                          }
+                                          return (
+                                            <div className={isEmpty ? "ring-1 ring-amber-500/50 rounded bg-amber-500/5" : ""}>
+                                              <EditableCell
+                                                value={valorLegalizacion}
+                                                type="number"
+                                                placeholder="0"
+                                                onChange={(value) => {
+                                                  if (currentProjectData?.id) {
+                                                    updateLegalizacionItem(currentProjectData.id, legId, "valor", value);
+                                                  }
+                                                }}
+                                                className="text-base font-semibold"
+                                              />
+                                            </div>
+                                          );
+                                        })()}
+                                      </td>
+                                      <td>
+                                        {(() => {
+                                          if (valorAnticipo === 0 && valorLegalizacion === 0) return <span className="text-muted-foreground">—</span>;
+                                          const diff = valorAnticipo - valorLegalizacion;
+                                          const absDiff = Math.abs(diff);
+                                          // Green if legalización <= anticipo (diff >= 0), Red if legalización > anticipo (diff < 0)
+                                          const colorClass = diff >= 0 ? "text-green-400" : "text-red-400";
+                                          return (
+                                            <span className={`text-sm font-mono font-semibold ${colorClass}`}>
+                                              $ {absDiff.toLocaleString('es-CO')}
+                                            </span>
+                                          );
+                                        })()}
                                       </td>
                                       <td>{(cajaMenorColumns.find(c => c.key === 'acciones')?.render as any)?.(cm)}</td>
                                     </tr>

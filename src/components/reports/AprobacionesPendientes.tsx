@@ -381,13 +381,12 @@ export default function AprobacionesPendientes() {
     // For gastos_menores (source: gastoMenor), update DB directly
     if (row.source === 'gastoMenor' && row.gastoMenorId) {
       const { data: userData } = await supabase.auth.getUser();
+      const updateData = newEstado === "Pendiente"
+        ? { estado: newEstado, aprobado_por_id: null, aprobado_por_nombre: "" }
+        : { estado: newEstado, aprobado_por_id: userData?.user?.id || null, aprobado_por_nombre: currentUserName || "Admin" };
       const { error } = await supabase
         .from("gastos_menores")
-        .update({
-          estado: newEstado,
-          aprobado_por_id: userData?.user?.id || null,
-          aprobado_por_nombre: currentUserName || "Admin",
-        } as any)
+        .update(updateData as any)
         .eq("id", row.gastoMenorId);
       if (error) {
         toast.error("Error al actualizar estado: " + error.message);

@@ -15,7 +15,7 @@ const GastosMenoresKPIs = ({ gastos }: GastosMenoresKPIsProps) => {
     const noAprobado = gastos.filter(g => g.estado === "No aprobado");
 
     const byCategoria: Record<string, number> = {};
-    gastos.forEach(g => {
+    gastos.filter(g => g.estado === "Aprobado").forEach(g => {
       byCategoria[g.categoria] = (byCategoria[g.categoria] || 0) + g.valor;
     });
 

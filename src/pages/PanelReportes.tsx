@@ -33,13 +33,13 @@ const PanelReportes = () => {
     const { data: empData } = await supabase.rpc("get_my_employee");
     if (empData && empData.length > 0) aprobadorNombre = empData[0].nombre;
 
+    const updateData = newEstado === "Pendiente"
+      ? { estado: newEstado, aprobado_por_id: null, aprobado_por_nombre: "" }
+      : { estado: newEstado, aprobado_por_id: userData?.user?.id || null, aprobado_por_nombre: aprobadorNombre };
+
     const { error } = await supabase
       .from("gastos_menores")
-      .update({
-        estado: newEstado,
-        aprobado_por_id: userData?.user?.id || null,
-        aprobado_por_nombre: aprobadorNombre,
-      } as any)
+      .update(updateData as any)
       .eq("id", gastoId);
     if (error) {
       toast.error("Error al actualizar estado: " + error.message);

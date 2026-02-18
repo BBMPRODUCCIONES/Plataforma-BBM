@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
 import { Search } from "lucide-react";
+import AprobacionesKPIs from "@/components/reports/AprobacionesKPIs";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -449,6 +450,9 @@ export default function AprobacionesPendientes() {
           </div>
         </div>
       </div>
+
+      {/* KPIs */}
+      <AprobacionesKPIs rows={filteredRows} />
 
       <div className="text-xs text-muted-foreground flex-shrink-0">
         {filteredRows.length} solicitud{filteredRows.length !== 1 ? "es" : ""} encontrada{filteredRows.length !== 1 ? "s" : ""}

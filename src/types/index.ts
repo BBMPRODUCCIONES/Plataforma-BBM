@@ -140,6 +140,7 @@ export interface CajaMenorItem {
   contingencia: 'Sí' | 'No'; // Default: 'No'
   estado: 'Pendiente' | 'Aprobado' | 'No aprobado';
   procesoPago?: 'Pagado' | 'No pagado' | ''; // Campo para reportes (solo Admin puede editar)
+  revisadoPor?: string; // Nombre de quien aprobó/rechazó
   createdAt?: string; // Fecha de creación del registro
 }
 
@@ -157,6 +158,7 @@ export interface LegalizacionItem {
   recursos: 'Recursos propios' | 'BBM' | 'Anticipo BBM' | '';
   contingencia: 'Sí' | 'No';
   estado: 'Pendiente' | 'Aprobado' | 'No aprobado';
+  revisadoPor?: string; // Nombre de quien aprobó/rechazó
   createdAt?: string;
 }
 

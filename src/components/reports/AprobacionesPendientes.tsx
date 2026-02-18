@@ -470,6 +470,7 @@ export default function AprobacionesPendientes() {
         <Table>
           <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
             <TableRow>
+              <TableHead className="text-xs w-[40px]">Tipo</TableHead>
               <TableHead className="text-xs">Fecha</TableHead>
               <TableHead className="text-xs">CC</TableHead>
               <TableHead className="text-xs">Categoría</TableHead>
@@ -484,7 +485,7 @@ export default function AprobacionesPendientes() {
           <TableBody>
             {filteredRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground py-8 text-sm">
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-8 text-sm">
                   No se encontraron solicitudes
                 </TableCell>
               </TableRow>
@@ -493,11 +494,20 @@ export default function AprobacionesPendientes() {
                 const d = parseDateSafe(row.item.createdAt);
                 return (
                   <TableRow key={`${row.projectId}-${row.item.id}`}>
+                    <TableCell className="text-xs text-center font-bold">
+                      {(() => {
+                        const r = row.item.recursos as string || "";
+                        if (r === "Anticipo BBM" || r === "Anticipo") return "S";
+                        if (r === "Recursos propios") return "R";
+                        if (r === "BBM") return "C";
+                        return "—";
+                      })()}
+                    </TableCell>
                     <TableCell className="text-xs">
                       {d ? format(d, "dd/MM/yyyy") : "—"}
                     </TableCell>
                     <TableCell className="text-xs">{row.centroCostos || "—"}</TableCell>
-                    <TableCell className="text-xs">{row.item.recursos || "—"}</TableCell>
+                    <TableCell className="text-xs">{row.item.categoria || "—"}</TableCell>
                     <TableCell className="text-xs text-right font-medium">
                       {formatCurrency(row.item.valor || 0)}
                     </TableCell>

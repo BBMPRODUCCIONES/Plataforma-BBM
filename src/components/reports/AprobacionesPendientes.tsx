@@ -610,16 +610,22 @@ export default function AprobacionesPendientes() {
                 const d = parseDateSafe(row.item.createdAt);
                 return (
                   <TableRow key={`${row.projectId}-${row.item.id}`}>
-                    <TableCell className="text-xs text-center font-bold">
+                    <TableCell className="text-xs text-center">
                       {(() => {
                         const r = (row.item.recursos as string) || "";
-                        if (r === "Recursos propios") return "R";
-                        if (r === "BBM") return "C";
-                        // Default: all cajaMenor items are solicitudes de anticipos
-                        return "S";
+                        const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
+                        const colorClass =
+                          tipo === "S" ? "bg-blue-500/20 text-blue-400 border-blue-500/40" :
+                          tipo === "R" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
+                          "bg-amber-500/20 text-amber-400 border-amber-500/40";
+                        return (
+                          <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
+                            {tipo}
+                          </span>
+                        );
                       })()}
                     </TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell className="text-xs whitespace-nowrap">
                       {d ? format(d, "dd/MM/yyyy") : "—"}
                     </TableCell>
                     <TableCell className="text-xs">{row.centroCostos || "—"}</TableCell>

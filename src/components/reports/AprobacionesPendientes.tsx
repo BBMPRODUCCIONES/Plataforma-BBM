@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
-import { Search, Trash2 } from "lucide-react";
+import { Search } from "lucide-react";
 import AprobacionesKPIs from "@/components/reports/AprobacionesKPIs";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -640,7 +640,7 @@ export default function AprobacionesPendientes() {
               <TableHead className="text-xs text-right">Legalización</TableHead>
               <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>
               <TableHead className="text-xs text-right">Saldo</TableHead>
-              <TableHead className="text-xs w-[100px]">Acción</TableHead>
+              <TableHead className="text-xs w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -754,30 +754,18 @@ export default function AprobacionesPendientes() {
                       {row.source === 'gastoMenor' ? "—" : formatCurrency(Math.abs(row.saldoAFavor))}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        {row.source !== 'gastoMenor' && (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-7 px-1 text-xs text-primary underline"
-                            onClick={() => {
-                              window.open(`/?proyecto=${row.projectId}&seccion=gastos&evento=${encodeURIComponent(row.evento)}`, "_blank");
-                            }}
-                          >
-                            Ver más
-                          </Button>
-                        )}
-                        {canApproveCajaMenor() && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                            onClick={() => handleDelete(row)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
+                      {row.source !== 'gastoMenor' && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-7 px-1 text-xs text-primary underline"
+                          onClick={() => {
+                            window.open(`/?proyecto=${row.projectId}&seccion=gastos&evento=${encodeURIComponent(row.evento)}`, "_blank");
+                          }}
+                        >
+                          Ver más
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );

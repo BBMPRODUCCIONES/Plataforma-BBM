@@ -2546,9 +2546,10 @@ const PanelOperaciones = () => {
                 const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
                   const sinValor = !item.valor || item.valor === 0;
                   const sinCategoria = !item.categoria?.trim();
-                  const sinImagen = !item.imagenes || item.imagenes.length === 0;
                   const sinConcepto = !item.concepto?.trim();
-                  return sinValor || sinCategoria || sinImagen || sinConcepto;
+                  // Imagen solo es obligatoria si el anticipo está aprobado
+                  const sinImagen = item.estado === "Aprobado" && (!item.imagenes || item.imagenes.length === 0);
+                  return sinValor || sinCategoria || sinConcepto || sinImagen;
                 });
                 
                 if (registrosIncompletos.length > 0) {
@@ -2559,7 +2560,7 @@ const PanelOperaciones = () => {
                     if (!item.concepto?.trim()) faltantes.push("concepto");
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
                     if (!item.categoria?.trim()) faltantes.push("categoría");
-                    if (!item.imagenes || item.imagenes.length === 0) faltantes.push("imagen");
+                    if (item.estado === "Aprobado" && (!item.imagenes || item.imagenes.length === 0)) faltantes.push("imagen");
                     if (faltantes.length > 0) {
                       errores.push(`Anticipo #${idx + 1}: falta ${faltantes.join(", ")}`);
                     }

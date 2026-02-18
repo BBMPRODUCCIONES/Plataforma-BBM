@@ -62,7 +62,9 @@ export function EditableCell({
   }, [isEditing]);
 
   const handleSave = () => {
-    onChange(localValue);
+    // For number type, convert empty string to null/undefined so parent can handle it
+    const finalValue = type === "number" && localValue === "" ? null : localValue;
+    onChange(finalValue);
     setIsEditing(false);
   };
 
@@ -88,7 +90,7 @@ export function EditableCell({
             ref={inputRef}
             type={type === "number" ? "number" : "text"}
             value={localValue ?? ""}
-            onChange={(e) => setLocalValue(type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
+            onChange={(e) => setLocalValue(type === "number" ? (e.target.value === "" ? "" : parseFloat(e.target.value) || 0) : e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
             className="h-7 text-xs w-full"

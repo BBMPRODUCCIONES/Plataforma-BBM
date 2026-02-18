@@ -1068,8 +1068,9 @@ const PanelOperaciones = () => {
       return;
     }
     
-    // If record is approved, only 'estado' field can be changed (by users with approval permission)
-    if (isRecordApproved(record) && field !== "estado") {
+    // If record is approved, only certain fields can be changed
+    const allowedFieldsWhenApproved = ["estado", "imagenes", "notas_comentarios"];
+    if (isRecordApproved(record) && !allowedFieldsWhenApproved.includes(field)) {
       toast.error("El registro está aprobado y no puede ser modificado");
       return;
     }
@@ -3157,16 +3158,19 @@ const PanelOperaciones = () => {
                                               disabled={cm.estado === "Aprobado"}
                                             />
                                           </div>
-                                          {/* Notas/comentarios ilimitados */}
+                                          {/* Notas/comentarios: 1 antes de aprobación, ilimitados después */}
                                           {(() => {
                                             const notas: string[] = (cm as any).notas_comentarios || [];
-                                            const canEdit = canEditCajaMenorRecord(cm);
+                                            const isApproved = cm.estado === "Aprobado";
+                                            // Before approval: anyone who can edit can add 1 note. After approval: can add unlimited.
+                                            const canEditNotes = isApproved || canEditCajaMenorRecord(cm);
+                                            const canAddMore = isApproved || notas.length < 1;
                                             return (
                                               <div className="flex flex-col gap-0.5">
                                                 {notas.map((nota: string, idx: number) => (
                                                   <div key={idx} className="flex items-center gap-1">
                                                     <MessageSquare className="h-3 w-3 text-primary shrink-0" />
-                                                    {canEdit ? (
+                                                    {canEditNotes ? (
                                                       <Input
                                                         value={nota}
                                                         placeholder="Nota..."
@@ -3183,7 +3187,7 @@ const PanelOperaciones = () => {
                                                     ) : (
                                                       <span className="text-xs text-primary/80 truncate">{nota}</span>
                                                     )}
-                                                    {canEdit && (
+                                                    {canEditNotes && (
                                                       <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -3201,7 +3205,7 @@ const PanelOperaciones = () => {
                                                     )}
                                                   </div>
                                                 ))}
-                                                {canEdit && (
+                                                {canEditNotes && canAddMore && (
                                                   <button
                                                     className="flex items-center gap-1 text-xs text-primary/60 hover:text-primary cursor-pointer mt-0.5"
                                                     onClick={(e) => {
@@ -3271,7 +3275,6 @@ const PanelOperaciones = () => {
                                           if (!isApproved) {
                                             return <span className="text-sm text-muted-foreground">—</span>;
                                           }
-                                          const canEdit = canEditCajaMenorRecord(cm);
                                           const imgEmpty = !cm.imagenes || cm.imagenes.length === 0;
                                           return (
                                             <div className={imgEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5 p-0.5" : ""}>

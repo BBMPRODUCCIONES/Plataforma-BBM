@@ -265,6 +265,35 @@ export default function AprobacionesPendientes() {
           source: 'cajaMenor',
         });
       });
+      // Recursos propios: legalizacion items NOT linked to an anticipo
+      const anticipoIds = new Set((project.cajaMenor || []).map((cm) => `leg-${cm.id}`));
+      (project.legalizacion || []).forEach((leg) => {
+        if (anticipoIds.has(leg.id)) return; // skip legalizations linked to anticipos
+        const fakeItem: CajaMenorItem = {
+          id: leg.id,
+          empleadoId: leg.empleadoId,
+          empleadoNombre: leg.empleadoNombre,
+          empleadoEmail: leg.empleadoEmail,
+          concepto: leg.concepto,
+          valor: leg.valor,
+          categoria: leg.categoria as CajaMenorItem["categoria"],
+          recursos: "Recursos propios",
+          contingencia: leg.contingencia || "No",
+          estado: leg.estado as CajaMenorItem["estado"],
+          imagenes: leg.imagenes,
+          createdAt: leg.createdAt,
+        };
+        result.push({
+          projectId: project.id,
+          centroCostos: project.centroCostos || "",
+          evento: project.evento || "",
+          item: fakeItem,
+          legalizacionTotal: 0,
+          legalizacionEstado: "",
+          saldoAFavor: leg.valor,
+          source: 'cajaMenor', // use cajaMenor source so estado changes update legalizacion array
+        });
+      });
     });
     // gastos_menores from DB (Caja menor - "C")
     gastosMenores.forEach((g) => {
@@ -356,6 +385,18 @@ export default function AprobacionesPendientes() {
 
     const project = projects.find((p) => p.id === row.projectId);
     if (!project) return;
+
+    // Check if this is a "Recursos propios" item (lives in legalizacion array)
+    const isRecursosPropios = (row.item.recursos as string) === "Recursos propios";
+    if (isRecursosPropios) {
+      const updatedLegalizacion = (project.legalizacion || []).map((l) =>
+        l.id === row.item.id ? { ...l, estado: newEstado } : l
+      );
+      await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
+      toast.success(`Estado actualizado a "${newEstado}"`);
+      return;
+    }
+
     const updatedCajaMenor = (project.cajaMenor || []).map((item) =>
       item.id === row.item.id ? { ...item, estado: newEstado } : item
     );

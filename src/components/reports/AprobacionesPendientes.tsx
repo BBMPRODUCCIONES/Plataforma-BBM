@@ -63,11 +63,15 @@ function parseDateSafe(dateStr?: string): Date | null {
 
 function getLegalizacionForEmployee(
   legalizacion: LegalizacionItem[] | undefined,
-  empleadoNombre?: string
+  empleadoNombre?: string,
+  cajaMenorIds?: Set<string>
 ): { total: number; estado: string } {
-  if (!legalizacion || !empleadoNombre) return { total: 0, estado: "Pendiente" };
+  if (!legalizacion || !empleadoNombre) return { total: 0, estado: "Revisando" };
+  // Only include legalization items linked to an anticipo (leg-xxx), exclude standalone "Recursos propios"
   const matched = legalizacion.filter(
-    (l) => l.empleadoNombre?.toLowerCase() === empleadoNombre.toLowerCase()
+    (l) =>
+      l.empleadoNombre?.toLowerCase() === empleadoNombre.toLowerCase() &&
+      (cajaMenorIds ? cajaMenorIds.has(l.id) : true)
   );
   const total = matched.reduce((sum, l) => sum + (l.valor || 0), 0);
   const allApproved = matched.length > 0 && matched.every((l) => l.estado === "Aprobado");
@@ -262,8 +266,10 @@ export default function AprobacionesPendientes() {
     // cajaMenor items from projects (Solicitud de anticipos)
     projects.forEach((project) => {
       if (project.isDeleted) return;
+      // Build set of legalization IDs linked to anticipos
+      const linkedLegIds = new Set((project.cajaMenor || []).map((cm) => `leg-${cm.id}`));
       (project.cajaMenor || []).forEach((item) => {
-        const leg = getLegalizacionForEmployee(project.legalizacion, item.empleadoNombre);
+        const leg = getLegalizacionForEmployee(project.legalizacion, item.empleadoNombre, linkedLegIds);
         result.push({
           projectId: project.id,
           centroCostos: project.centroCostos || "",
@@ -276,9 +282,8 @@ export default function AprobacionesPendientes() {
         });
       });
       // Recursos propios: legalizacion items NOT linked to an anticipo
-      const anticipoIds = new Set((project.cajaMenor || []).map((cm) => `leg-${cm.id}`));
       (project.legalizacion || []).forEach((leg) => {
-        if (anticipoIds.has(leg.id)) return; // skip legalizations linked to anticipos
+        if (linkedLegIds.has(leg.id)) return; // skip legalizations linked to anticipos
         const fakeItem: CajaMenorItem = {
           id: leg.id,
           empleadoId: leg.empleadoId,
@@ -292,6 +297,7 @@ export default function AprobacionesPendientes() {
           estado: leg.estado as CajaMenorItem["estado"],
           imagenes: leg.imagenes,
           createdAt: leg.createdAt,
+          revisadoPor: leg.revisadoPor,
         };
         result.push({
           projectId: project.id,
@@ -800,7 +806,7 @@ export default function AprobacionesPendientes() {
                           size="sm"
                           className="h-7 px-1 text-xs text-primary underline"
                           onClick={() => {
-                            window.open(`/?proyecto=${row.projectId}&seccion=gastos&evento=${encodeURIComponent(row.evento)}`, "_blank");
+                            window.open(`/panel-operaciones?proyecto=${row.projectId}`, "_blank");
                           }}
                         >
                           Ver más

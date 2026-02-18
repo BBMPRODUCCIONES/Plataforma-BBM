@@ -464,7 +464,11 @@ export default function AprobacionesPendientes() {
     if (hasMatch) {
       updatedLegalizacion = currentLeg.map((l) => {
         if (l.id === linkedLegId) {
-          return { ...l, estado: newEstado };
+          return {
+            ...l,
+            estado: newEstado,
+            revisadoPor: newEstado === "Revisando" ? "" : currentUserName || "Admin",
+          };
         }
         return l;
       });
@@ -482,6 +486,7 @@ export default function AprobacionesPendientes() {
         contingencia: "No",
         estado: newEstado as any,
         createdAt: new Date().toISOString(),
+        revisadoPor: newEstado === "Revisando" ? "" : currentUserName || "Admin",
       };
       updatedLegalizacion = [...currentLeg, newLeg];
     }
@@ -805,7 +810,12 @@ export default function AprobacionesPendientes() {
                           size="sm"
                           className="h-7 px-1 text-xs text-primary underline"
                           onClick={() => {
-                            window.open(`/panel-operaciones?proyecto=${row.projectId}`, "_blank");
+                            const params = new URLSearchParams({
+                              eventId: row.projectId,
+                              eventName: row.evento,
+                              source: "aprobaciones",
+                            });
+                            window.open(`/panel-operaciones?${params.toString()}`, "_blank");
                           }}
                         >
                           Ver más

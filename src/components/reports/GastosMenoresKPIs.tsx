@@ -9,7 +9,7 @@ interface GastosMenoresKPIsProps {
 
 const GastosMenoresKPIs = ({ gastos }: GastosMenoresKPIsProps) => {
   const stats = useMemo(() => {
-    const total = gastos.reduce((s, g) => s + g.valor, 0);
+    const total = gastos.filter(g => g.estado === "Aprobado").reduce((s, g) => s + g.valor, 0);
     const pendiente = gastos.filter(g => g.estado === "Pendiente");
     const aprobado = gastos.filter(g => g.estado === "Aprobado");
     const noAprobado = gastos.filter(g => g.estado === "No aprobado");

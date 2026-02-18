@@ -4,6 +4,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Project, CajaMenorItem, LegalizacionItem } from "@/types";
 import { useGastosMenores, GastoMenor } from "@/hooks/useGastosMenores";
 import { supabase } from "@/integrations/supabase/client";
+
 import { format, parseISO, getMonth, getYear } from "date-fns";
 import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -25,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
-import { Search } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
 import AprobacionesKPIs from "@/components/reports/AprobacionesKPIs";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -95,7 +96,16 @@ export default function AprobacionesPendientes() {
   const { projects, updateProject } = useProjects();
   const { canApproveCajaMenor } = useUserRole();
   const isMobile = useIsMobile();
-  const { gastos: gastosMenores, refetch: refetchGastos } = useGastosMenores();
+  const { gastos: gastosMenores, refetch: refetchGastos, deleteGasto } = useGastosMenores();
+
+  // Get current user's employee name for approver tracking
+  const [currentUserName, setCurrentUserName] = useState("");
+  useEffect(() => {
+    supabase.rpc("get_my_employee").then(({ data }) => {
+      if (data && data.length > 0) setCurrentUserName(data[0].nombre);
+    });
+  }, []);
+  
 
   const [mesFilter, setMesFilter] = useState("Todos");
   const [anioFilter, setAnioFilter] = useState("Todos");
@@ -370,15 +380,19 @@ export default function AprobacionesPendientes() {
 
     // For gastos_menores (source: gastoMenor), update DB directly
     if (row.source === 'gastoMenor' && row.gastoMenorId) {
+      const { data: userData } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("gastos_menores")
-        .update({ estado: newEstado } as any)
+        .update({
+          estado: newEstado,
+          aprobado_por_id: userData?.user?.id || null,
+          aprobado_por_nombre: currentUserName || "Admin",
+        } as any)
         .eq("id", row.gastoMenorId);
       if (error) {
         toast.error("Error al actualizar estado: " + error.message);
         return;
       }
-      await refetchGastos();
       toast.success(`Estado actualizado a "${newEstado}"`);
       return;
     }
@@ -458,6 +472,36 @@ export default function AprobacionesPendientes() {
 
     await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
     toast.success(`Estado de legalización actualizado a "${newEstado}"`);
+  };
+
+  // Handle delete
+  const handleDelete = async (row: FlattenedRow) => {
+    if (!canApproveCajaMenor()) {
+      toast.error("No tienes permisos para eliminar solicitudes");
+      return;
+    }
+    if (!confirm("¿Estás seguro de que deseas eliminar esta solicitud?")) return;
+
+    if (row.source === 'gastoMenor' && row.gastoMenorId) {
+      await deleteGasto(row.gastoMenorId);
+      return;
+    }
+
+    const project = projects.find((p) => p.id === row.projectId);
+    if (!project) return;
+
+    const isRecursosPropios = (row.item.recursos as string) === "Recursos propios";
+    if (isRecursosPropios) {
+      const updatedLegalizacion = (project.legalizacion || []).filter((l) => l.id !== row.item.id);
+      await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
+    } else {
+      const updatedCajaMenor = (project.cajaMenor || []).filter((item) => item.id !== row.item.id);
+      await updateProject(row.projectId, "cajaMenor", updatedCajaMenor);
+      // Also remove linked legalizacion
+      const updatedLegalizacion = (project.legalizacion || []).filter((l) => l.id !== `leg-${row.item.id}`);
+      await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
+    }
+    toast.success("Solicitud eliminada");
   };
 
   const formatCurrency = (value: number) =>
@@ -592,16 +636,17 @@ export default function AprobacionesPendientes() {
               <TableHead className="text-xs">Categoría</TableHead>
               <TableHead className="text-xs text-right">Valor</TableHead>
               <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
+              <TableHead className="text-xs">Aprobado por</TableHead>
               <TableHead className="text-xs text-right">Legalización</TableHead>
               <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>
               <TableHead className="text-xs text-right">Saldo</TableHead>
-              <TableHead className="text-xs w-[80px]">Acción</TableHead>
+              <TableHead className="text-xs w-[100px]">Acción</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground py-8 text-sm">
+                <TableCell colSpan={11} className="text-center text-muted-foreground py-8 text-sm">
                   No se encontraron solicitudes
                 </TableCell>
               </TableRow>
@@ -647,6 +692,15 @@ export default function AprobacionesPendientes() {
                           readOnly
                         />
                       )}
+                    </TableCell>
+                    {/* Aprobado por */}
+                    <TableCell className="text-xs whitespace-nowrap">
+                      {row.source === 'gastoMenor' ? (
+                        (() => {
+                          const gm = gastosMenores.find(g => g.id === row.gastoMenorId);
+                          return gm?.aprobado_por_nombre || "—";
+                        })()
+                      ) : "—"}
                     </TableCell>
                     <TableCell className="text-xs text-right">
                       {row.source === 'gastoMenor' ? "—" : formatCurrency(row.legalizacionTotal)}
@@ -700,20 +754,30 @@ export default function AprobacionesPendientes() {
                       {row.source === 'gastoMenor' ? "—" : formatCurrency(Math.abs(row.saldoAFavor))}
                     </TableCell>
                     <TableCell>
-                      {row.source === 'gastoMenor' ? (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      ) : (
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="h-7 px-1 text-xs text-primary underline"
-                          onClick={() => {
-                            window.open(`/?proyecto=${row.projectId}&seccion=gastos&evento=${encodeURIComponent(row.evento)}`, "_blank");
-                          }}
-                        >
-                          Ver más
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {row.source !== 'gastoMenor' && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-7 px-1 text-xs text-primary underline"
+                            onClick={() => {
+                              window.open(`/?proyecto=${row.projectId}&seccion=gastos&evento=${encodeURIComponent(row.evento)}`, "_blank");
+                            }}
+                          >
+                            Ver más
+                          </Button>
+                        )}
+                        {canApproveCajaMenor() && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            onClick={() => handleDelete(row)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

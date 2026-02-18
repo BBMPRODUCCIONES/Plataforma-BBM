@@ -13,6 +13,8 @@ export interface GastoMenor {
   valor: number;
   imagen_url: string | null;
   estado: string;
+  aprobado_por_id: string | null;
+  aprobado_por_nombre: string;
   created_at: string;
   updated_at: string;
 }
@@ -46,7 +48,7 @@ export function useGastosMenores(centroCostos?: string) {
     }
   };
 
-  const addGasto = async (gasto: Omit<GastoMenor, "id" | "created_at" | "updated_at">) => {
+  const addGasto = async (gasto: Omit<GastoMenor, "id" | "created_at" | "updated_at" | "aprobado_por_id" | "aprobado_por_nombre">) => {
     try {
       const { error } = await supabase.from("gastos_menores").insert(gasto as any);
       if (error) throw error;
@@ -60,9 +62,40 @@ export function useGastosMenores(centroCostos?: string) {
     }
   };
 
+  const deleteGasto = async (id: string) => {
+    try {
+      const { error } = await supabase.from("gastos_menores").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Gasto eliminado exitosamente");
+      return true;
+    } catch (err: any) {
+      console.error("Error deleting gasto menor:", err);
+      toast.error("Error al eliminar el gasto: " + err.message);
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchGastos(centroCostos);
   }, [centroCostos]);
 
-  return { gastos, loading, addGasto, refetch: () => fetchGastos(centroCostos) };
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('gastos_menores_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'gastos_menores' },
+        () => {
+          fetchGastos(centroCostos);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [centroCostos]);
+
+  return { gastos, loading, addGasto, deleteGasto, refetch: () => fetchGastos(centroCostos) };
 }

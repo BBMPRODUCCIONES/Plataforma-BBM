@@ -82,6 +82,8 @@ export type Database = {
       }
       gastos_menores: {
         Row: {
+          aprobado_por_id: string | null
+          aprobado_por_nombre: string | null
           categoria: string
           centro_costos: string
           concepto: string
@@ -96,6 +98,8 @@ export type Database = {
           valor: number
         }
         Insert: {
+          aprobado_por_id?: string | null
+          aprobado_por_nombre?: string | null
           categoria?: string
           centro_costos?: string
           concepto?: string
@@ -110,6 +114,8 @@ export type Database = {
           valor?: number
         }
         Update: {
+          aprobado_por_id?: string | null
+          aprobado_por_nombre?: string | null
           categoria?: string
           centro_costos?: string
           concepto?: string

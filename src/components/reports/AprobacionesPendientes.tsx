@@ -403,7 +403,13 @@ export default function AprobacionesPendientes() {
     const isRecursosPropios = (row.item.recursos as string) === "Recursos propios";
     if (isRecursosPropios) {
       const updatedLegalizacion = (project.legalizacion || []).map((l) =>
-        l.id === row.item.id ? { ...l, estado: newEstado } : l
+        l.id === row.item.id
+          ? {
+              ...l,
+              estado: newEstado,
+              revisadoPor: newEstado === "Pendiente" ? "" : currentUserName || "Admin",
+            }
+          : l
       );
       await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
       toast.success(`Estado actualizado a "${newEstado}"`);
@@ -411,7 +417,13 @@ export default function AprobacionesPendientes() {
     }
 
     const updatedCajaMenor = (project.cajaMenor || []).map((item) =>
-      item.id === row.item.id ? { ...item, estado: newEstado } : item
+      item.id === row.item.id
+        ? {
+            ...item,
+            estado: newEstado,
+            revisadoPor: newEstado === "Pendiente" ? "" : currentUserName || "Admin",
+          }
+        : item
     );
     await updateProject(row.projectId, "cajaMenor", updatedCajaMenor);
 
@@ -694,63 +706,92 @@ export default function AprobacionesPendientes() {
                     </TableCell>
                     {/* Aprobado por */}
                     <TableCell className="text-xs whitespace-nowrap">
-                      {row.source === 'gastoMenor' ? (
-                        (() => {
+                      {(() => {
+                        const r = (row.item.recursos as string) || "";
+                        const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
+                        if (tipo === "C") {
                           const gm = gastosMenores.find(g => g.id === row.gastoMenorId);
                           return gm?.aprobado_por_nombre || "—";
-                        })()
-                      ) : "—"}
+                        }
+                        // S and R types: use revisadoPor from the item
+                        return row.item.revisadoPor || "—";
+                      })()}
                     </TableCell>
                     <TableCell className="text-xs text-right">
-                      {row.source === 'gastoMenor' ? "—" : formatCurrency(row.legalizacionTotal)}
+                      {(() => {
+                        const r = (row.item.recursos as string) || "";
+                        const isR = r === "Recursos propios";
+                        if (row.source === 'gastoMenor' || isR) return "—";
+                        return formatCurrency(row.legalizacionTotal);
+                      })()}
                     </TableCell>
-                    {/* Estado Legalización - editable only after solicitud is Aprobado */}
+                    {/* Estado Legalización */}
                     <TableCell className="text-xs">
-                      {row.source === 'gastoMenor' ? (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      ) : row.item.estado === "No aprobado" ? (
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>
-                          {LEGALIZACION_NO_APROBADO.label}
-                        </span>
-                      ) : canApproveCajaMenor() && row.item.estado === "Aprobado" ? (
-                        <Select
-                          value={row.legalizacionEstado}
-                          onValueChange={(v) => handleLegalizacionEstadoChange(row, v)}
-                        >
-                          <SelectTrigger
-                            className={`h-7 text-xs w-full border font-medium ${
-                              LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === row.legalizacionEstado)?.className || ""
-                            }`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-popover border-border z-50">
-                            {LEGALIZACION_ESTADO_OPTIONS.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                                className={`text-xs font-medium ${option.className}`}
+                      {(() => {
+                        const r = (row.item.recursos as string) || "";
+                        const isR = r === "Recursos propios";
+                        if (row.source === 'gastoMenor' || isR) {
+                          return <span className="text-xs text-muted-foreground">—</span>;
+                        }
+                        if (row.item.estado === "No aprobado") {
+                          return (
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>
+                              {LEGALIZACION_NO_APROBADO.label}
+                            </span>
+                          );
+                        }
+                        if (canApproveCajaMenor() && row.item.estado === "Aprobado") {
+                          return (
+                            <Select
+                              value={row.legalizacionEstado}
+                              onValueChange={(v) => handleLegalizacionEstadoChange(row, v)}
+                            >
+                              <SelectTrigger
+                                className={`h-7 text-xs w-full border font-medium ${
+                                  LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === row.legalizacionEstado)?.className || ""
+                                }`}
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                          LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === row.legalizacionEstado)?.className || "bg-yellow-500/20 text-yellow-400"
-                        }`}>
-                          {row.legalizacionEstado || "Revisando"}
-                        </span>
-                      )}
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-popover border-border z-50">
+                                {LEGALIZACION_ESTADO_OPTIONS.map((option) => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                    className={`text-xs font-medium ${option.className}`}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          );
+                        }
+                        return (
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                            LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === row.legalizacionEstado)?.className || "bg-yellow-500/20 text-yellow-400"
+                          }`}>
+                            {row.legalizacionEstado || "Revisando"}
+                          </span>
+                        );
+                      })()}
                     </TableCell>
                     {/* Saldo: green if positive (a favor), red if negative (en contra) */}
                     <TableCell className={`text-xs text-right font-medium ${
-                      row.source === 'gastoMenor' ? "" :
-                      row.saldoAFavor > 0 ? "text-green-400" : row.saldoAFavor < 0 ? "text-red-400" : ""
+                      (() => {
+                        const r = (row.item.recursos as string) || "";
+                        const isR = r === "Recursos propios";
+                        if (row.source === 'gastoMenor' || isR) return "";
+                        return row.saldoAFavor > 0 ? "text-green-400" : row.saldoAFavor < 0 ? "text-red-400" : "";
+                      })()
                     }`}>
-                      {row.source === 'gastoMenor' ? "—" : formatCurrency(Math.abs(row.saldoAFavor))}
+                      {(() => {
+                        const r = (row.item.recursos as string) || "";
+                        const isR = r === "Recursos propios";
+                        if (row.source === 'gastoMenor' || isR) return "—";
+                        return formatCurrency(Math.abs(row.saldoAFavor));
+                      })()}
                     </TableCell>
                     <TableCell>
                       {row.source !== 'gastoMenor' && (

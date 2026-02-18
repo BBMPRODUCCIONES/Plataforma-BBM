@@ -334,12 +334,38 @@ export default function AprobacionesPendientes() {
     }
     const project = projects.find((p) => p.id === row.projectId);
     if (!project) return;
-    const updatedLegalizacion = (project.legalizacion || []).map((l) => {
-      if (l.empleadoNombre?.toLowerCase() === row.item.empleadoNombre?.toLowerCase()) {
-        return { ...l, estado: newEstado };
-      }
-      return l;
-    });
+
+    const currentLeg = project.legalizacion || [];
+    const hasMatch = currentLeg.some(
+      (l) => l.empleadoNombre?.toLowerCase() === row.item.empleadoNombre?.toLowerCase()
+    );
+
+    let updatedLegalizacion;
+    if (hasMatch) {
+      updatedLegalizacion = currentLeg.map((l) => {
+        if (l.empleadoNombre?.toLowerCase() === row.item.empleadoNombre?.toLowerCase()) {
+          return { ...l, estado: newEstado };
+        }
+        return l;
+      });
+    } else {
+      // Create a legalizacion record linked to this cajaMenor item
+      const newLeg: LegalizacionItem = {
+        id: `leg-${row.item.id}`,
+        empleadoId: row.item.empleadoId,
+        empleadoNombre: row.item.empleadoNombre,
+        empleadoEmail: row.item.empleadoEmail,
+        concepto: row.item.concepto || "",
+        valor: 0,
+        categoria: (row.item.categoria === "Anticipo" ? "" : row.item.categoria || "") as LegalizacionItem["categoria"],
+        recursos: row.item.recursos || "",
+        contingencia: "No",
+        estado: newEstado as any,
+        createdAt: new Date().toISOString(),
+      };
+      updatedLegalizacion = [...currentLeg, newLeg];
+    }
+
     await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
     toast.success(`Estado de legalización actualizado a "${newEstado}"`);
   };
@@ -496,11 +522,11 @@ export default function AprobacionesPendientes() {
                   <TableRow key={`${row.projectId}-${row.item.id}`}>
                     <TableCell className="text-xs text-center font-bold">
                       {(() => {
-                        const r = row.item.recursos as string || "";
-                        if (r === "Anticipo BBM" || r === "Anticipo") return "S";
+                        const r = (row.item.recursos as string) || "";
                         if (r === "Recursos propios") return "R";
                         if (r === "BBM") return "C";
-                        return "—";
+                        // Default: all cajaMenor items are solicitudes de anticipos
+                        return "S";
                       })()}
                     </TableCell>
                     <TableCell className="text-xs">

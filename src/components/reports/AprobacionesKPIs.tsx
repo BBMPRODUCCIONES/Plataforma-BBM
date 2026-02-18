@@ -33,8 +33,9 @@ const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
 
     rows.forEach(r => {
       const recursos = r.item.recursos || "";
-      const cat = CATEGORIAS.find(c => c.recursos.some(rc => rc === recursos));
-      if (!cat) return;
+      let cat = CATEGORIAS.find(c => c.recursos.some(rc => rc === recursos));
+      // Default empty recursos to "Solicitud de anticipos" since all cajaMenor items are anticipos
+      if (!cat) cat = CATEGORIAS[0];
       const s = result[cat.key];
       s.total++;
       if (r.item.estado === "Pendiente") s.pendientes++;

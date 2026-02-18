@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
-import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus } from "lucide-react";
+import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,8 +11,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useGastosMenores } from "@/hooks/useGastosMenores";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import GastosMenoresKPIs from "@/components/reports/GastosMenoresKPIs";
+import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
+import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 
 type ReportView = "main" | "financieros" | "caja-menor" | "reporte-caja-menor" | "aprobaciones";
 
@@ -20,7 +24,32 @@ const PanelReportes = () => {
   const [currentView, setCurrentView] = useState<ReportView>("main");
   const [gastoDialogOpen, setGastoDialogOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { gastos, loading, addGasto } = useGastosMenores();
+  const { gastos, loading, addGasto, deleteGasto } = useGastosMenores();
+  const { canApproveCajaMenor } = useUserRole();
+
+  const handleEstadoChange = async (gastoId: string, newEstado: string) => {
+    const { data: userData } = await supabase.auth.getUser();
+    let aprobadorNombre = "Admin";
+    const { data: empData } = await supabase.rpc("get_my_employee");
+    if (empData && empData.length > 0) aprobadorNombre = empData[0].nombre;
+
+    const { error } = await supabase
+      .from("gastos_menores")
+      .update({
+        estado: newEstado,
+        aprobado_por_id: userData?.user?.id || null,
+        aprobado_por_nombre: aprobadorNombre,
+      } as any)
+      .eq("id", gastoId);
+    if (error) {
+      toast.error("Error al actualizar estado: " + error.message);
+    }
+  };
+
+  const handleDeleteGasto = async (id: string) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este gasto?")) return;
+    await deleteGasto(id);
+  };
 
   const renderMainView = () => (
     <div className="space-y-6">
@@ -217,6 +246,8 @@ const PanelReportes = () => {
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Imagen</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead>Aprobado por</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -241,13 +272,33 @@ const PanelReportes = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                      g.estado === "Aprobado" ? "bg-green-500/20 text-green-400" :
-                      g.estado === "No aprobado" ? "bg-red-500/20 text-red-400" :
-                      "bg-yellow-500/20 text-yellow-400"
-                    }`}>
-                      {g.estado}
-                    </span>
+                    {canApproveCajaMenor() ? (
+                      <CajaMenorEstadoSelect
+                        value={g.estado}
+                        onChange={(v) => handleEstadoChange(g.id, v)}
+                      />
+                    ) : (
+                      <CajaMenorEstadoSelect
+                        value={g.estado}
+                        onChange={() => {}}
+                        readOnly
+                      />
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">
+                    {g.aprobado_por_nombre || "—"}
+                  </TableCell>
+                  <TableCell>
+                    {canApproveCajaMenor() && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        onClick={() => handleDeleteGasto(g.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

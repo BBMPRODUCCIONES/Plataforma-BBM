@@ -2,6 +2,8 @@ import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Project, CajaMenorItem, LegalizacionItem } from "@/types";
+import { useGastosMenores, GastoMenor } from "@/hooks/useGastosMenores";
+import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, getMonth, getYear } from "date-fns";
 import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -36,6 +38,8 @@ interface FlattenedRow {
   legalizacionTotal: number;
   legalizacionEstado: string;
   saldoAFavor: number;
+  source: 'cajaMenor' | 'gastoMenor';
+  gastoMenorId?: string; // DB id for gastos_menores
 }
 
 interface Suggestion {
@@ -91,6 +95,7 @@ export default function AprobacionesPendientes() {
   const { projects, updateProject } = useProjects();
   const { canApproveCajaMenor } = useUserRole();
   const isMobile = useIsMobile();
+  const { gastos: gastosMenores, refetch: refetchGastos } = useGastosMenores();
 
   const [mesFilter, setMesFilter] = useState("Todos");
   const [anioFilter, setAnioFilter] = useState("Todos");
@@ -244,6 +249,7 @@ export default function AprobacionesPendientes() {
 
   const rows: FlattenedRow[] = useMemo(() => {
     const result: FlattenedRow[] = [];
+    // cajaMenor items from projects (Solicitud de anticipos)
     projects.forEach((project) => {
       if (project.isDeleted) return;
       (project.cajaMenor || []).forEach((item) => {
@@ -256,7 +262,34 @@ export default function AprobacionesPendientes() {
           legalizacionTotal: leg.total,
           legalizacionEstado: leg.estado,
           saldoAFavor: (item.valor || 0) - leg.total,
+          source: 'cajaMenor',
         });
+      });
+    });
+    // gastos_menores from DB (Caja menor - "C")
+    gastosMenores.forEach((g) => {
+      const fakeItem: CajaMenorItem = {
+        id: `gm-${g.id}`,
+        empleadoNombre: g.usuario_nombre,
+        concepto: g.concepto,
+        valor: g.valor,
+        categoria: g.categoria as CajaMenorItem["categoria"],
+        recursos: "BBM",
+        contingencia: "No",
+        estado: g.estado as CajaMenorItem["estado"],
+        imagenes: g.imagen_url ? [{ id: "img", name: "imagen", url: g.imagen_url, type: "image", uploadedAt: g.created_at }] : [],
+        createdAt: g.created_at,
+      };
+      result.push({
+        projectId: "",
+        centroCostos: g.centro_costos || "",
+        evento: "",
+        item: fakeItem,
+        legalizacionTotal: 0,
+        legalizacionEstado: "",
+        saldoAFavor: g.valor,
+        source: 'gastoMenor',
+        gastoMenorId: g.id,
       });
     });
     // Sort: Pendiente first, then Aprobado, then No aprobado; within each group by date desc
@@ -270,7 +303,7 @@ export default function AprobacionesPendientes() {
       return db - da;
     });
     return result;
-  }, [projects]);
+  }, [projects, gastosMenores]);
 
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
@@ -305,6 +338,22 @@ export default function AprobacionesPendientes() {
       toast.error("No tienes permisos para cambiar el estado");
       return;
     }
+
+    // For gastos_menores (source: gastoMenor), update DB directly
+    if (row.source === 'gastoMenor' && row.gastoMenorId) {
+      const { error } = await supabase
+        .from("gastos_menores")
+        .update({ estado: newEstado } as any)
+        .eq("id", row.gastoMenorId);
+      if (error) {
+        toast.error("Error al actualizar estado: " + error.message);
+        return;
+      }
+      await refetchGastos();
+      toast.success(`Estado actualizado a "${newEstado}"`);
+      return;
+    }
+
     const project = projects.find((p) => p.id === row.projectId);
     if (!project) return;
     const updatedCajaMenor = (project.cajaMenor || []).map((item) =>
@@ -553,11 +602,13 @@ export default function AprobacionesPendientes() {
                       )}
                     </TableCell>
                     <TableCell className="text-xs text-right">
-                      {formatCurrency(row.legalizacionTotal)}
+                      {row.source === 'gastoMenor' ? "—" : formatCurrency(row.legalizacionTotal)}
                     </TableCell>
                     {/* Estado Legalización - editable only after solicitud is Aprobado */}
                     <TableCell className="text-xs">
-                      {row.item.estado === "No aprobado" ? (
+                      {row.source === 'gastoMenor' ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : row.item.estado === "No aprobado" ? (
                         <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>
                           {LEGALIZACION_NO_APROBADO.label}
                         </span>
@@ -596,21 +647,26 @@ export default function AprobacionesPendientes() {
                     </TableCell>
                     {/* Saldo: green if positive (a favor), red if negative (en contra) */}
                     <TableCell className={`text-xs text-right font-medium ${
+                      row.source === 'gastoMenor' ? "" :
                       row.saldoAFavor > 0 ? "text-green-400" : row.saldoAFavor < 0 ? "text-red-400" : ""
                     }`}>
-                      {formatCurrency(Math.abs(row.saldoAFavor))}
+                      {row.source === 'gastoMenor' ? "—" : formatCurrency(Math.abs(row.saldoAFavor))}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="h-7 px-1 text-xs text-primary underline"
-                        onClick={() => {
-                          window.open(`/?proyecto=${row.projectId}&seccion=gastos&evento=${encodeURIComponent(row.evento)}`, "_blank");
-                        }}
-                      >
-                        Ver más
-                      </Button>
+                      {row.source === 'gastoMenor' ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-7 px-1 text-xs text-primary underline"
+                          onClick={() => {
+                            window.open(`/?proyecto=${row.projectId}&seccion=gastos&evento=${encodeURIComponent(row.evento)}`, "_blank");
+                          }}
+                        >
+                          Ver más
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );

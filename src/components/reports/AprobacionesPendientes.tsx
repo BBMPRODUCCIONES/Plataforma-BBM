@@ -74,8 +74,8 @@ function getLegalizacionForEmployee(
       (cajaMenorIds ? cajaMenorIds.has(l.id) : true)
   );
   const total = matched.reduce((sum, l) => sum + (l.valor || 0), 0);
-  const allApproved = matched.length > 0 && matched.every((l) => l.estado === "Aprobado");
-  const estado = matched.length === 0 ? "Revisando" : allApproved ? "Legalizado" : "Revisando";
+  const allLegalized = matched.length > 0 && matched.every((l) => (l.estado as string) === "Legalizado");
+  const estado = matched.length === 0 ? "Revisando" : allLegalized ? "Legalizado" : (matched[0]?.estado as string) || "Revisando";
   return { total, estado };
 }
 

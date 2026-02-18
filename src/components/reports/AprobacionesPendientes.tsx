@@ -457,14 +457,13 @@ export default function AprobacionesPendientes() {
     if (!project) return;
 
     const currentLeg = project.legalizacion || [];
-    const hasMatch = currentLeg.some(
-      (l) => l.empleadoNombre?.toLowerCase() === row.item.empleadoNombre?.toLowerCase()
-    );
+    const linkedLegId = `leg-${row.item.id}`;
+    const hasMatch = currentLeg.some((l) => l.id === linkedLegId);
 
     let updatedLegalizacion;
     if (hasMatch) {
       updatedLegalizacion = currentLeg.map((l) => {
-        if (l.empleadoNombre?.toLowerCase() === row.item.empleadoNombre?.toLowerCase()) {
+        if (l.id === linkedLegId) {
           return { ...l, estado: newEstado };
         }
         return l;
@@ -472,7 +471,7 @@ export default function AprobacionesPendientes() {
     } else {
       // Create a legalizacion record linked to this cajaMenor item
       const newLeg: LegalizacionItem = {
-        id: `leg-${row.item.id}`,
+        id: linkedLegId,
         empleadoId: row.item.empleadoId,
         empleadoNombre: row.item.empleadoNombre,
         empleadoEmail: row.item.empleadoEmail,

@@ -753,16 +753,16 @@ export default function AprobacionesPendientes() {
                         if (canApproveCajaMenor() && row.item.estado === "Aprobado") {
                           return (
                             <Select
-                              value={row.legalizacionEstado}
+                              value={row.legalizacionEstado || "Revisando"}
                               onValueChange={(v) => handleLegalizacionEstadoChange(row, v)}
                             >
                               <SelectTrigger
                                 className={`h-7 text-xs w-full border font-medium ${
-                                  LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === row.legalizacionEstado)?.className || ""
+                                  LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (row.legalizacionEstado || "Revisando"))?.className || "bg-yellow-500/20 text-yellow-400"
                                 }`}
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <SelectValue />
+                                <SelectValue placeholder="Revisando" />
                               </SelectTrigger>
                               <SelectContent className="bg-popover border-border z-50">
                                 {LEGALIZACION_ESTADO_OPTIONS.map((option) => (

@@ -21,36 +21,37 @@ const ESTADO_OPTIONS = [
 ] as const;
 
 export function CajaMenorEstadoSelect({ value, onChange, className, readOnly }: CajaMenorEstadoSelectProps) {
-  const currentOption = ESTADO_OPTIONS.find(o => o.value === value);
+  const safeValue = ESTADO_OPTIONS.some(o => o.value === value) ? value : "Pendiente";
+  const currentOption = ESTADO_OPTIONS.find(o => o.value === safeValue);
 
   if (readOnly) {
     return (
       <span className={cn(
         "text-xs font-medium px-2 py-0.5 rounded inline-block",
-        currentOption?.className || "",
+        currentOption?.className || "bg-yellow-500/20 text-yellow-400",
         className
       )}>
-        {currentOption?.label || value}
+        {currentOption?.label || "Pendiente"}
       </span>
     );
   }
 
   return (
     <Select
-      value={value}
+      value={safeValue}
       onValueChange={onChange}
     >
       <SelectTrigger 
         className={cn(
           "h-7 text-xs w-full border font-medium",
-          currentOption?.className || "border-border",
+          currentOption?.className || "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
           className
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <SelectValue placeholder="Seleccionar" />
+        <span>{currentOption?.label || "Pendiente"}</span>
       </SelectTrigger>
-      <SelectContent className="bg-popover border-border z-50">
+      <SelectContent className="bg-popover border-border z-[9999]">
         {ESTADO_OPTIONS.map((option) => (
           <SelectItem 
             key={option.value} 

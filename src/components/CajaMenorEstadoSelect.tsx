@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
 
 interface CajaMenorEstadoSelectProps {
   value: string;
@@ -22,7 +23,19 @@ const ESTADO_OPTIONS = [
 
 export function CajaMenorEstadoSelect({ value, onChange, className, readOnly }: CajaMenorEstadoSelectProps) {
   const safeValue = ESTADO_OPTIONS.some(o => o.value === value) ? value : "Pendiente";
-  const currentOption = ESTADO_OPTIONS.find(o => o.value === safeValue);
+  const [optimisticValue, setOptimisticValue] = useState(safeValue);
+
+  // Sync optimistic value with actual value
+  useEffect(() => {
+    setOptimisticValue(safeValue);
+  }, [safeValue]);
+
+  const handleChange = (newValue: string) => {
+    setOptimisticValue(newValue);
+    onChange(newValue);
+  };
+
+  const currentOption = ESTADO_OPTIONS.find(o => o.value === optimisticValue);
 
   if (readOnly) {
     return (
@@ -38,8 +51,8 @@ export function CajaMenorEstadoSelect({ value, onChange, className, readOnly }: 
 
   return (
     <Select
-      value={safeValue}
-      onValueChange={onChange}
+      value={optimisticValue}
+      onValueChange={handleChange}
     >
       <SelectTrigger 
         className={cn(

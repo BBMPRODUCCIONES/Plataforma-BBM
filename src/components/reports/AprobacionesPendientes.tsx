@@ -311,10 +311,12 @@ export default function AprobacionesPendientes() {
       // Recursos propios: legalizacion items NOT linked to an anticipo
       (project.legalizacion || []).forEach((leg) => {
         if (linkedLegIds.has(leg.id)) return; // skip legalizations linked to anticipos
-        const legEstado = leg.estado;
-        // Normalize estado: if it doesn't match known values, default to "Pendiente"
+         const legEstado = leg.estado as string;
+        // Map legalization estados to solicitud estados properly
         const normalizedEstado = ["Pendiente", "Aprobado", "No aprobado"].includes(legEstado)
           ? legEstado
+          : legEstado === "Legalizado" ? "Aprobado"
+          : legEstado === "Rechazado" || legEstado === "No legalizable" ? "No aprobado"
           : "Pendiente";
         const fakeItem: CajaMenorItem = {
           id: leg.id,

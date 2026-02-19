@@ -284,7 +284,7 @@ const PanelReportes = () => {
                     {g.aprobado_por_nombre || "—"}
                   </TableCell>
                   <TableCell>
-                    {canApproveCajaMenor() && (
+                    {canApproveCajaMenor() && g.estado !== "Aprobado" && (
                       <Button
                         variant="ghost"
                         size="icon"

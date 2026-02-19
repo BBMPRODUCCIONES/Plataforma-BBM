@@ -2,7 +2,9 @@ import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { DollarSign, Clock, CheckCircle, XCircle, Utensils, Car, ShoppingBag, Sparkles, Wrench } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { GastoMenor } from "@/hooks/useGastosMenores";
+import { GastoMenor, CATEGORIAS_GASTOS_MENORES } from "@/hooks/useGastosMenores";
+
+const CATEGORIAS_ALL = CATEGORIAS_GASTOS_MENORES as readonly string[];
 
 interface GastosMenoresKPIsProps {
   gastos: GastoMenor[];
@@ -107,64 +109,101 @@ const GastosMenoresKPIs = ({ gastos }: GastosMenoresKPIsProps) => {
         </Card>
       </div>
 
-      {/* Donut charts by category */}
+      {/* Donut + Category detail */}
       {chartData.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground mb-3">Valor aprobado por categoría</p>
-            <div className="flex flex-col md:flex-row items-center gap-4">
-              {/* Donut Chart */}
-              <div className="w-[180px] h-[180px] flex-shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={45}
-                      outerRadius={75}
-                      paddingAngle={3}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number) => fmt(value)}
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--popover))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                        color: "hsl(var(--popover-foreground))",
-                        fontSize: "12px",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              {/* Legend */}
-              <div className="flex flex-col gap-2 flex-1">
-                {chartData.map((entry) => (
-                  <div key={entry.name} className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: entry.color }}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Global donut */}
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground mb-3">Valor aprobado por categoría</p>
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-[160px] h-[160px] flex-shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={68}
+                        paddingAngle={3}
+                        dataKey="value"
+                        stroke="none"
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => fmt(value)}
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--popover))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                          color: "hsl(var(--popover-foreground))",
+                          fontSize: "12px",
+                        }}
                       />
-                      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        {catIcon[entry.name] || <DollarSign className="h-3.5 w-3.5" />}
-                        {entry.name}
-                      </span>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex flex-col gap-1.5 w-full">
+                  {chartData.map((entry) => (
+                    <div key={entry.name} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          {catIcon[entry.name] || <DollarSign className="h-3 w-3" />}
+                          {entry.name}
+                        </span>
+                      </div>
+                      <span className="text-xs font-medium">{fmt(entry.value)}</span>
                     </div>
-                    <span className="text-sm font-medium">{fmt(entry.value)}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Per-category detail bars */}
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground mb-3">Detalle por categoría (límite $1.000.000)</p>
+              <div className="flex flex-col gap-4">
+                {CATEGORIAS_ALL.map((cat) => {
+                  const value = stats.byCategoria[cat] || 0;
+                  const limit = 1_000_000;
+                  const pct = Math.min((value / limit) * 100, 100);
+                  const isOver = value > limit;
+                  const color = CATEGORY_COLORS[cat] || "#6b7280";
+
+                  return (
+                    <div key={cat} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          {catIcon[cat] || <DollarSign className="h-3 w-3" />}
+                          {cat}
+                        </span>
+                        <span className={`text-xs font-medium ${isOver ? "text-red-500" : ""}`}>
+                          {fmt(value)} / {fmt(limit)}
+                        </span>
+                      </div>
+                      <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: isOver ? "#ef4444" : color,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

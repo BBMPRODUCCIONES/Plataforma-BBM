@@ -68,9 +68,6 @@ const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
                   <p className="text-[11px] text-muted-foreground truncate">{cat.key}</p>
                   <div className="flex items-baseline gap-2">
                     <p className="text-sm font-bold">{stats.total}</p>
-                    {stats.valorAprobado > 0 && (
-                      <p className="text-[10px] text-green-400 truncate">$ {stats.valorAprobado.toLocaleString('es-CO')}</p>
-                    )}
                   </div>
                 </div>
               </CardContent>

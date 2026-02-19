@@ -44,7 +44,7 @@ interface FlattenedRow {
 }
 
 interface Suggestion {
-  type: 'estado' | 'categoria' | 'empleado' | 'evento' | 'cc' | 'legalizacion';
+  type: 'estado' | 'categoria' | 'empleado' | 'evento' | 'cc' | 'legalizacion' | 'tipo' | 'aprobadoPor' | 'estadoLeg';
   label: string;
   value: string;
   displayLabel: string;
@@ -95,6 +95,11 @@ const LEGALIZACION_NO_APROBADO = { value: "No legalizable", label: "No legalizab
 const KNOWN_ESTADOS = ["Pendiente", "Aprobado", "No aprobado"];
 const KNOWN_CATEGORIAS = ["Transporte", "Alimentación", "Compras"];
 const KNOWN_LEG_ESTADOS = ["Revisando", "Legalizado", "No legalizable"];
+const KNOWN_TIPOS = [
+  { value: "S", label: "S - Solicitud de anticipos" },
+  { value: "R", label: "R - Recursos propios" },
+  { value: "C", label: "C - Caja menor" },
+];
 
 export default function AprobacionesPendientes() {
   const { projects, updateProject } = useProjects();
@@ -150,6 +155,23 @@ export default function AprobacionesPendientes() {
     return Array.from(set).sort();
   }, [projects]);
 
+  const uniqueAprobadoPor = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach(p => {
+      if (p.isDeleted) return;
+      (p.cajaMenor || []).forEach(item => {
+        if (item.revisadoPor) set.add(item.revisadoPor);
+      });
+      (p.legalizacion || []).forEach(l => {
+        if (l.revisadoPor) set.add(l.revisadoPor);
+      });
+    });
+    gastosMenores.forEach(g => {
+      if (g.aprobado_por_nombre) set.add(g.aprobado_por_nombre);
+    });
+    return Array.from(set).sort();
+  }, [projects, gastosMenores]);
+
   // Current token being typed (after last comma)
   const currentToken = useMemo(() => {
     const parts = searchQuery.split(',');
@@ -158,13 +180,18 @@ export default function AprobacionesPendientes() {
 
   // Generate autocomplete suggestions
   const suggestions = useMemo((): Suggestion[] => {
-    if (currentToken.length < 2) return [];
+    if (currentToken.length < 1) return [];
     const results: Suggestion[] = [];
     const normalizedToken = normalize(currentToken);
 
-    // Estado suggestions
+    // Tipo suggestions
+    KNOWN_TIPOS.filter(t => normalize(t.value).includes(normalizedToken) || normalize(t.label).includes(normalizedToken)).forEach(t => {
+      results.push({ type: 'tipo', label: 'Tipo', value: t.value, displayLabel: t.label });
+    });
+
+    // Estado solicitud suggestions
     KNOWN_ESTADOS.filter(e => normalize(e).includes(normalizedToken)).forEach(e => {
-      results.push({ type: 'estado', label: 'Estado', value: e, displayLabel: e });
+      results.push({ type: 'estado', label: 'Estado Sol.', value: e, displayLabel: e });
     });
 
     // Categoría suggestions
@@ -172,9 +199,9 @@ export default function AprobacionesPendientes() {
       results.push({ type: 'categoria', label: 'Categoría', value: c, displayLabel: c });
     });
 
-    // Legalización estado suggestions
+    // Estado legalización suggestions
     KNOWN_LEG_ESTADOS.filter(l => normalize(l).includes(normalizedToken)).forEach(l => {
-      results.push({ type: 'legalizacion', label: 'Legaliz.', value: l, displayLabel: l });
+      results.push({ type: 'estadoLeg', label: 'Estado Leg.', value: l, displayLabel: l });
     });
 
     // Empleado suggestions
@@ -182,9 +209,9 @@ export default function AprobacionesPendientes() {
       results.push({ type: 'empleado', label: 'Empleado', value: e, displayLabel: e });
     });
 
-    // Evento suggestions
-    uniqueEventos.filter(e => normalize(e).includes(normalizedToken)).slice(0, 5).forEach(e => {
-      results.push({ type: 'evento', label: 'Evento', value: e, displayLabel: e });
+    // Aprobado por suggestions
+    uniqueAprobadoPor.filter(a => normalize(a).includes(normalizedToken)).slice(0, 5).forEach(a => {
+      results.push({ type: 'aprobadoPor', label: 'Aprobado por', value: a, displayLabel: a });
     });
 
     // CC suggestions
@@ -192,8 +219,8 @@ export default function AprobacionesPendientes() {
       results.push({ type: 'cc', label: 'CC', value: c, displayLabel: c });
     });
 
-    return results.slice(0, 10);
-  }, [currentToken, uniqueEmpleados, uniqueEventos, uniqueCCs]);
+    return results.slice(0, 12);
+  }, [currentToken, uniqueEmpleados, uniqueEventos, uniqueCCs, uniqueAprobadoPor]);
 
   // Handle suggestion selection
   const handleSelectSuggestion = useCallback((suggestion: Suggestion) => {
@@ -367,16 +394,24 @@ export default function AprobacionesPendientes() {
       }
       if (estadoFilter !== "Todos" && row.item.estado !== estadoFilter) return false;
       if (searchQuery.trim()) {
-        // Multi-term search separated by commas (like Caja Menor report)
         const terms = searchQuery.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
+        // Determine tipo label
+        const recursos = row.item.recursos || "";
+        const tipo = recursos === "Recursos propios" ? "R" : recursos === "BBM" ? "C" : "S";
+        // Aprobado por
+        const aprobadoPor = row.item.revisadoPor || (row.source === 'gastoMenor' ? (gastosMenores.find(g => g.id === row.gastoMenorId)?.aprobado_por_nombre || "") : "");
+        // Valor and saldo as formatted strings for search
+        const valorStr = (row.item.valor || 0).toLocaleString("es-CO");
+        const legTotal = row.legalizacionTotal > 0 ? row.legalizacionTotal.toLocaleString("es-CO") : "";
+        const saldoStr = row.saldoAFavor !== 0 ? row.saldoAFavor.toLocaleString("es-CO") : "";
         const searchable = [
-          row.item.empleadoNombre, row.centroCostos, row.item.concepto,
-          row.evento, row.item.categoria, row.item.estado,
-          row.legalizacionEstado,
-          d ? format(d, "dd/MM/yyyy") : "",
+          tipo, row.item.empleadoNombre, d ? format(d, "dd/MM/yyyy") : "",
+          row.centroCostos, row.item.categoria, valorStr,
+          row.item.estado, aprobadoPor,
+          legTotal, row.legalizacionEstado, saldoStr,
+          row.evento,
         ].filter(Boolean).join(" ").toLowerCase();
-        // ALL terms must match
-        if (!terms.every(term => searchable.includes(term))) return false;
+        if (!terms.every(term => normalize(searchable).includes(normalize(term)))) return false;
       }
       return true;
     });
@@ -589,7 +624,7 @@ export default function AprobacionesPendientes() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground z-10" />
             <Input
               ref={inputRef}
-              placeholder="Buscar por empleado, evento, categoría, estado... (usa comas)"
+              placeholder="Buscar por tipo, empleado, fecha, CC, categoría, valor, estado, aprobado por... (usa comas)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}

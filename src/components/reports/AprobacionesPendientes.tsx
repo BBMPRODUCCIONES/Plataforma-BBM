@@ -284,6 +284,11 @@ export default function AprobacionesPendientes() {
       // Recursos propios: legalizacion items NOT linked to an anticipo
       (project.legalizacion || []).forEach((leg) => {
         if (linkedLegIds.has(leg.id)) return; // skip legalizations linked to anticipos
+        const legEstado = leg.estado;
+        // Normalize estado: if it doesn't match known values, default to "Pendiente"
+        const normalizedEstado = ["Pendiente", "Aprobado", "No aprobado"].includes(legEstado)
+          ? legEstado
+          : "Pendiente";
         const fakeItem: CajaMenorItem = {
           id: leg.id,
           empleadoId: leg.empleadoId,
@@ -294,7 +299,7 @@ export default function AprobacionesPendientes() {
           categoria: leg.categoria as CajaMenorItem["categoria"],
           recursos: "Recursos propios",
           contingencia: leg.contingencia || "No",
-          estado: leg.estado as CajaMenorItem["estado"],
+          estado: normalizedEstado as CajaMenorItem["estado"],
           imagenes: leg.imagenes,
           createdAt: leg.createdAt,
           revisadoPor: leg.revisadoPor,
@@ -762,9 +767,9 @@ export default function AprobacionesPendientes() {
                                 }`}
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <SelectValue placeholder="Revisando" />
+                                <span>{LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (row.legalizacionEstado || "Revisando"))?.label || "Revisando"}</span>
                               </SelectTrigger>
-                              <SelectContent className="bg-popover border-border z-50">
+                              <SelectContent className="bg-popover border-border z-[9999]">
                                 {LEGALIZACION_ESTADO_OPTIONS.map((option) => (
                                   <SelectItem
                                     key={option.value}

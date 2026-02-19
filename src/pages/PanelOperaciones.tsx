@@ -28,7 +28,7 @@ import { useProjects } from "@/contexts/ProjectsContext";
 import { useEmpleados } from "@/contexts/EmpleadosContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Project, PersonalItem, InventarioItem, CajaMenorItem, LegalizacionItem, ProjectStatus, CalendarViewMode, Attachment } from "@/types";
+import { Project, PersonalItem, InventarioItem, CajaMenorItem, LegalizacionItem, ProjectStatus, CalendarViewMode, Attachment, RelacionGastoEntry } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -2298,7 +2298,7 @@ const PanelOperaciones = () => {
               ? "bg-red-500/20 text-red-400 border-red-500/30"
               : "bg-amber-500/20 text-amber-400 border-amber-500/30";
           return (
-            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${estadoClass}`}>
+            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border whitespace-nowrap ${estadoClass}`}>
               {l.estado === "Pendiente" ? "En revisión" : l.estado}
             </span>
           );
@@ -2951,79 +2951,14 @@ const PanelOperaciones = () => {
                             </div>
                           </div>
                         )}
-                        {/* Row 1: Title + Employee name */}
-                        <div className="flex items-center gap-4 flex-wrap">
+                        {/* Row 1: Title */}
+                        <div className="flex items-center justify-between flex-wrap gap-2">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <Wallet className="h-4 w-4" />
                             SOLICITUD DE ANTICIPOS ({(currentProjectData.cajaMenor || []).length})
                           </CardTitle>
-                          {(() => {
-                            const items = currentProjectData.cajaMenor || [];
-                            if (items.length === 0) return null;
-                            const firstItem = items[0] as CajaMenorItem;
-                            const empleadoNombre = firstItem.empleadoNombre || "Sin asignar";
-                            return (
-                              <div className="flex items-center gap-1.5">
-                                <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">Empleado:</span>
-                                <span className="text-xs font-medium">{empleadoNombre}</span>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                        {/* Row 2: Estados */}
-                        {(() => {
-                          const items = currentProjectData.cajaMenor || [];
-                          if (items.length === 0) return null;
-
-                          const allApproved = items.every((c: CajaMenorItem) => c.estado === "Aprobado");
-                          const anyRejected = items.some((c: CajaMenorItem) => c.estado === "No aprobado");
-                          const estadoSolicitud = allApproved ? "Aprobado" : anyRejected ? "Rechazado" : "En revisión";
-                          const estadoSolicitudClass = estadoSolicitud === "Aprobado" 
-                            ? "bg-green-500/20 text-green-400 border-green-500/30" 
-                            : estadoSolicitud === "Rechazado" 
-                              ? "bg-red-500/20 text-red-400 border-red-500/30" 
-                              : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-
-                          const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
-                          const linkedLegs = items.map((cm: CajaMenorItem) => legalizacion.find((l: LegalizacionItem) => l.id === `leg-${cm.id}`)).filter(Boolean) as LegalizacionItem[];
-                          let estadoLegalizacion = "Sin legalizar";
-                          let estadoLegClass = "bg-muted/30 text-muted-foreground border-border";
-                          if (linkedLegs.length > 0) {
-                            const allLegApproved = linkedLegs.every(l => l.estado === "Aprobado");
-                            const anyLegRejected = linkedLegs.some(l => l.estado === "No aprobado");
-                            const anyLegRevisando = linkedLegs.some(l => !l.estado || (l.estado as string) === "Revisando");
-                            if (allLegApproved) {
-                              estadoLegalizacion = "Aprobado";
-                              estadoLegClass = "bg-green-500/20 text-green-400 border-green-500/30";
-                            } else if (anyLegRejected) {
-                              estadoLegalizacion = "Rechazado";
-                              estadoLegClass = "bg-red-500/20 text-red-400 border-red-500/30";
-                            } else if (anyLegRevisando || linkedLegs.length > 0) {
-                              estadoLegalizacion = "Revisando";
-                              estadoLegClass = "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-                            }
-                          }
-
-                          return (
-                            <div className="flex items-center gap-4 flex-wrap">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs text-muted-foreground">Estado de solicitud:</span>
-                                <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoSolicitudClass}`}>
-                                  {estadoSolicitud}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs text-muted-foreground">Estado de legalización:</span>
-                                <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoLegClass}`}>
-                                  {estadoLegalizacion}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                        {/* Row 3: Buttons (Exportar + Agregar Registro) */}
-                        <div className="flex gap-2 flex-wrap justify-start w-full">
+                          {/* Buttons: Export + Add (right side) */}
+                          <div className="flex gap-2 flex-wrap">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm">
@@ -3032,7 +2967,7 @@ const PanelOperaciones = () => {
                                   <ChevronDown className="h-3 w-3 ml-1" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" className="min-w-[260px]">
+                              <DropdownMenuContent align="end" className="min-w-[260px]">
                                 {(() => {
                                   const cajaMenor = currentProjectData.cajaMenor || [];
                                   const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
@@ -3071,7 +3006,7 @@ const PanelOperaciones = () => {
                                 })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
-            {(() => {
+                            {(() => {
                               const hasPermission = canCrearAnticipos();
                               if (!hasPermission) return null;
                               
@@ -3152,7 +3087,73 @@ const PanelOperaciones = () => {
                                 </TooltipProvider>
                               );
                             })()}
+                          </div>
                         </div>
+                        {/* Row 2: Employee name */}
+                        {(() => {
+                          const items = currentProjectData.cajaMenor || [];
+                          if (items.length === 0) return null;
+                          const firstItem = items[0] as CajaMenorItem;
+                          const empleadoNombre = firstItem.empleadoNombre || "Sin asignar";
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">Empleado:</span>
+                              <span className="text-xs font-medium">{empleadoNombre}</span>
+                            </div>
+                          );
+                        })()}
+                        {/* Row 3: Estados */}
+                        {(() => {
+                          const items = currentProjectData.cajaMenor || [];
+                          if (items.length === 0) return null;
+
+                          const allApproved = items.every((c: CajaMenorItem) => c.estado === "Aprobado");
+                          const anyRejected = items.some((c: CajaMenorItem) => c.estado === "No aprobado");
+                          const estadoSolicitud = allApproved ? "Aprobado" : anyRejected ? "Rechazado" : "En revisión";
+                          const estadoSolicitudClass = estadoSolicitud === "Aprobado" 
+                            ? "bg-green-500/20 text-green-400 border-green-500/30" 
+                            : estadoSolicitud === "Rechazado" 
+                              ? "bg-red-500/20 text-red-400 border-red-500/30" 
+                              : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+
+                          const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
+                          const linkedLegs = items.map((cm: CajaMenorItem) => legalizacion.find((l: LegalizacionItem) => l.id === `leg-${cm.id}`)).filter(Boolean) as LegalizacionItem[];
+                          let estadoLegalizacion = "Sin legalizar";
+                          let estadoLegClass = "bg-muted/30 text-muted-foreground border-border";
+                          if (linkedLegs.length > 0) {
+                            const allLegApproved = linkedLegs.every(l => l.estado === "Aprobado");
+                            const anyLegRejected = linkedLegs.some(l => l.estado === "No aprobado");
+                            const anyLegRevisando = linkedLegs.some(l => !l.estado || (l.estado as string) === "Revisando");
+                            if (allLegApproved) {
+                              estadoLegalizacion = "Aprobado";
+                              estadoLegClass = "bg-green-500/20 text-green-400 border-green-500/30";
+                            } else if (anyLegRejected) {
+                              estadoLegalizacion = "Rechazado";
+                              estadoLegClass = "bg-red-500/20 text-red-400 border-red-500/30";
+                            } else if (anyLegRevisando || linkedLegs.length > 0) {
+                              estadoLegalizacion = "Revisando";
+                              estadoLegClass = "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+                            }
+                          }
+
+                          return (
+                            <div className="flex items-center gap-4 flex-wrap">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-muted-foreground">Estado de solicitud:</span>
+                                <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoSolicitudClass}`}>
+                                  {estadoSolicitud}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-muted-foreground">Estado de legalización:</span>
+                                <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoLegClass}`}>
+                                  {estadoLegalizacion}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </CardHeader>
                       <CardContent className="pt-0 caja-menor-mobile-scroll">
                         {(currentProjectData.cajaMenor || []).length > 0 ? (
@@ -3160,7 +3161,7 @@ const PanelOperaciones = () => {
                             <table className="matrix-table w-full" style={{ minWidth: '1100px' }}>
                               <thead>
                                 <tr>
-                                  <th style={{ width: '250px', minWidth: '250px' }}>Concepto</th>
+                                  <th style={{ width: '380px', minWidth: '380px' }}>Relación de Gastos</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Categoría *</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Valor anticipo *</th>
                                   <th style={{ width: '110px', minWidth: '110px' }}>Imagen *</th>
@@ -3189,81 +3190,116 @@ const PanelOperaciones = () => {
                                   return (
                                     <tr key={cm.id}>
                                       <td>
-                                        <div className="flex flex-col gap-1">
-                                          <div className={!cm.concepto?.trim() ? "ring-1 ring-red-500 rounded" : ""}>
-                                            <EditableCell
-                                              value={cm.concepto}
-                                              type="text"
-                                              placeholder="Descripción del concepto..."
-                                              onChange={(value) => currentProjectData?.id && updateCajaMenorItem(currentProjectData.id, cm.id, "concepto", value)}
-                                              disabled={isSolicitudAprobada}
-                                            />
-                                          </div>
-                                          {/* Notas/comentarios: 1 antes de aprobación, ilimitados después */}
-                                          {(() => {
-                                            const notas: string[] = (cm as any).notas_comentarios || [];
-                                            const isApproved = cm.estado === "Aprobado";
-                                            const canEditNotes = isApproved || canEditCajaMenorRecord(cm);
-                                            const canAddMore = isApproved || notas.length < 1;
-                                            // If fully locked, disable note editing
-                                            const notesDisabled = isFullyLocked;
-                                            return (
-                                              <div className="flex flex-col gap-0.5">
-                                                {notas.map((nota: string, idx: number) => (
-                                                  <div key={idx} className="flex items-center gap-1">
-                                                    <MessageSquare className="h-3 w-3 text-primary shrink-0" />
-                                                    {canEditNotes && !notesDisabled ? (
-                                                      <Input
-                                                        value={nota}
-                                                        placeholder="Nota..."
-                                                        className="h-6 text-xs border-dashed border-primary/30 bg-transparent focus:border-primary"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        onChange={(e) => {
-                                                          if (currentProjectData?.id) {
-                                                            const updated = [...notas];
-                                                            updated[idx] = e.target.value;
-                                                            updateCajaMenorItem(currentProjectData.id, cm.id, "notas_comentarios", updated);
-                                                          }
-                                                        }}
-                                                      />
-                                                    ) : (
-                                                      <span className="text-xs text-primary/80 truncate">{nota}</span>
-                                                    )}
-                                                    {canEditNotes && !notesDisabled && (
-                                                      <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-5 w-5 text-muted-foreground hover:text-destructive shrink-0"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          if (currentProjectData?.id) {
-                                                            const updated = notas.filter((_: string, i: number) => i !== idx);
-                                                            updateCajaMenorItem(currentProjectData.id, cm.id, "notas_comentarios", updated);
-                                                          }
-                                                        }}
-                                                      >
-                                                        <X className="h-3 w-3" />
-                                                      </Button>
-                                                    )}
-                                                  </div>
-                                                ))}
-                                                {canEditNotes && canAddMore && !notesDisabled && (
-                                                  <button
-                                                    className="flex items-center gap-1 text-xs text-primary/60 hover:text-primary cursor-pointer mt-0.5"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      if (currentProjectData?.id) {
-                                                        updateCajaMenorItem(currentProjectData.id, cm.id, "notas_comentarios", [...notas, ""]);
-                                                      }
-                                                    }}
-                                                  >
-                                                    <MessageSquare className="h-3 w-3" />
-                                                    + Agregar nota...
-                                                  </button>
-                                                )}
+                                        <div className="flex flex-col gap-1.5">
+                                          {/* Existing relacion_gastos entries */}
+                                          {((cm as any).relacion_gastos || []).map((entry: RelacionGastoEntry, idx: number) => (
+                                            <div key={idx} className="flex items-start gap-1 text-xs border-b border-border/40 pb-1">
+                                              <div className="flex-1 min-w-0 grid grid-cols-3 gap-1">
+                                                <span className="truncate" title={entry.comercio}>{entry.comercio || "—"}</span>
+                                                <span className="truncate" title={entry.nitCedula}>{entry.nitCedula || "—"}</span>
+                                                <span className="truncate" title={entry.concepto}>{entry.concepto || "—"}</span>
                                               </div>
-                                            );
-                                          })()}
+                                              {!isSolicitudAprobada && canEditCajaMenorRecord(cm) && (
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-5 w-5 text-muted-foreground hover:text-destructive shrink-0"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (currentProjectData?.id) {
+                                                      const updated = ((cm as any).relacion_gastos || []).filter((_: RelacionGastoEntry, i: number) => i !== idx);
+                                                      updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
+                                                    }
+                                                  }}
+                                                >
+                                                  <X className="h-3 w-3" />
+                                                </Button>
+                                              )}
+                                            </div>
+                                          ))}
+                                          {/* Inline add form */}
+                                          {!isSolicitudAprobada && canEditCajaMenorRecord(cm) && (
+                                            <div className="grid grid-cols-3 gap-1">
+                                              <Input
+                                                placeholder="Comercio"
+                                                className="h-7 text-xs"
+                                                id={`rg-comercio-${cm.id}`}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    const comercioEl = document.getElementById(`rg-comercio-${cm.id}`) as HTMLInputElement;
+                                                    const nitEl = document.getElementById(`rg-nit-${cm.id}`) as HTMLInputElement;
+                                                    const conceptoEl = document.getElementById(`rg-concepto-${cm.id}`) as HTMLInputElement;
+                                                    const comercio = comercioEl?.value?.trim() || "";
+                                                    const nitCedula = nitEl?.value?.trim() || "";
+                                                    const concepto = conceptoEl?.value?.trim() || "";
+                                                    if (!comercio && !nitCedula && !concepto) return;
+                                                    if (currentProjectData?.id) {
+                                                      const existing: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
+                                                      updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", [...existing, { comercio, nitCedula, concepto }]);
+                                                      if (comercioEl) comercioEl.value = "";
+                                                      if (nitEl) nitEl.value = "";
+                                                      if (conceptoEl) conceptoEl.value = "";
+                                                    }
+                                                  }
+                                                }}
+                                              />
+                                              <Input
+                                                placeholder="NIT/Cédula"
+                                                className="h-7 text-xs"
+                                                id={`rg-nit-${cm.id}`}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    const comercioEl = document.getElementById(`rg-comercio-${cm.id}`) as HTMLInputElement;
+                                                    const nitEl = document.getElementById(`rg-nit-${cm.id}`) as HTMLInputElement;
+                                                    const conceptoEl = document.getElementById(`rg-concepto-${cm.id}`) as HTMLInputElement;
+                                                    const comercio = comercioEl?.value?.trim() || "";
+                                                    const nitCedula = nitEl?.value?.trim() || "";
+                                                    const concepto = conceptoEl?.value?.trim() || "";
+                                                    if (!comercio && !nitCedula && !concepto) return;
+                                                    if (currentProjectData?.id) {
+                                                      const existing: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
+                                                      updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", [...existing, { comercio, nitCedula, concepto }]);
+                                                      if (comercioEl) comercioEl.value = "";
+                                                      if (nitEl) nitEl.value = "";
+                                                      if (conceptoEl) conceptoEl.value = "";
+                                                    }
+                                                  }
+                                                }}
+                                              />
+                                              <Input
+                                                placeholder="Concepto"
+                                                className="h-7 text-xs"
+                                                id={`rg-concepto-${cm.id}`}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    const comercioEl = document.getElementById(`rg-comercio-${cm.id}`) as HTMLInputElement;
+                                                    const nitEl = document.getElementById(`rg-nit-${cm.id}`) as HTMLInputElement;
+                                                    const conceptoEl = document.getElementById(`rg-concepto-${cm.id}`) as HTMLInputElement;
+                                                    const comercio = comercioEl?.value?.trim() || "";
+                                                    const nitCedula = nitEl?.value?.trim() || "";
+                                                    const concepto = conceptoEl?.value?.trim() || "";
+                                                    if (!comercio && !nitCedula && !concepto) return;
+                                                    if (currentProjectData?.id) {
+                                                      const existing: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
+                                                      updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", [...existing, { comercio, nitCedula, concepto }]);
+                                                      if (comercioEl) comercioEl.value = "";
+                                                      if (nitEl) nitEl.value = "";
+                                                      if (conceptoEl) conceptoEl.value = "";
+                                                    }
+                                                  }
+                                                }}
+                                              />
+                                            </div>
+                                          )}
+                                          {isSolicitudAprobada && ((cm as any).relacion_gastos || []).length === 0 && (
+                                            <span className="text-xs text-muted-foreground">Sin datos de relación de gastos</span>
+                                          )}
                                         </div>
                                       </td>
                                       <td>

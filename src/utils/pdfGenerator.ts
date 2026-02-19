@@ -909,22 +909,43 @@ const generateCorporateFormatoHTML = (
   const totalValor = cajaMenor.reduce((sum, c) => sum + (c.valor || 0), 0);
   const fechaHoy = format(new Date(), "dd/MM/yyyy", { locale: es });
   
-  // Build expense rows (RELACION DE GASTOS)
-  const expenseRows = cajaMenor.map(c => {
-    const emp = getEmpleadoFullInfo(c.empleadoId, empleados);
-    const notas: string[] = (c as any).notas_comentarios || [];
-    const notasHTML = notas.filter((n: string) => n && n.trim()).map((n: string) => `<br><span style="color:#555;font-size:9px;">• ${n}</span>`).join('');
-    return `
+  // Build expense rows (RELACION DE GASTOS) from relacion_gastos entries
+  const allExpenseEntries: { comercio: string; nitCedula: string; concepto: string; valor: number }[] = [];
+  cajaMenor.forEach(c => {
+    const entries = (c as any).relacion_gastos || [];
+    if (entries.length > 0) {
+      entries.forEach((entry: any) => {
+        allExpenseEntries.push({
+          comercio: entry.comercio || '',
+          nitCedula: entry.nitCedula || '',
+          concepto: entry.concepto || '',
+          valor: c.valor || 0,
+        });
+      });
+    } else {
+      // Fallback: use legacy concepto + employee info
+      const emp = getEmpleadoFullInfo(c.empleadoId, empleados);
+      const notas: string[] = (c as any).notas_comentarios || [];
+      const notasHTML = notas.filter((n: string) => n && n.trim()).map((n: string) => `<br><span style="color:#555;font-size:9px;">• ${n}</span>`).join('');
+      allExpenseEntries.push({
+        comercio: emp.nombre,
+        nitCedula: emp.cedula,
+        concepto: (c.concepto || '-') + notasHTML,
+        valor: c.valor || 0,
+      });
+    }
+  });
+  
+  const expenseRows = allExpenseEntries.map(entry => `
       <tr>
-        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${emp.nombre}</td>
-        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${emp.cedula}</td>
-        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${c.concepto || '-'}${notasHTML}</td>
-        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;text-align:right;">$ ${(c.valor || 0).toLocaleString('es-CO')}</td>
-      </tr>`;
-  }).join('');
+        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${entry.comercio}</td>
+        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${entry.nitCedula}</td>
+        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${entry.concepto}</td>
+        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;text-align:right;">$ ${(entry.valor || 0).toLocaleString('es-CO')}</td>
+      </tr>`).join('');
 
   // Empty rows to fill table (minimum 12 rows like the original format)
-  const emptyRowsCount = Math.max(0, 12 - cajaMenor.length);
+  const emptyRowsCount = Math.max(0, 12 - allExpenseEntries.length);
   const emptyRows = Array(emptyRowsCount).fill(0).map(() => `
     <tr>
       <td style="border:1px solid #000;padding:4px 6px;height:20px;">&nbsp;</td>
@@ -1282,12 +1303,18 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
   // Data rows with resolved employee names and banking info
   const solicitudData = cajaMenor.map(c => {
     const bankInfo = getEmpleadoBankingInfo(c.empleadoId, empleados);
+    const relacionGastos = (c as any).relacion_gastos || [];
+    const relacionStr = relacionGastos.length > 0
+      ? relacionGastos.map((e: any) => `${e.comercio || ''} | ${e.nitCedula || ''} | ${e.concepto || ''}`).join(' // ')
+      : [c.concepto, ...((c as any).notas_comentarios || []).filter((n: string) => n && n.trim())].join(' | ') || '';
     return {
       'Empleado': getEmpleadoNombre(c.empleadoId, empleados),
       'Banco': bankInfo.banco,
       'Tipo Cuenta': bankInfo.tipoCuenta,
       '# Cuenta': bankInfo.numeroCuenta,
-      'Concepto': [c.concepto, ...((c as any).notas_comentarios || []).filter((n: string) => n && n.trim())].join(' | ') || '',
+      'Comercio': relacionGastos.length > 0 ? relacionGastos.map((e: any) => e.comercio || '').join(', ') : '',
+      'NIT/Cédula': relacionGastos.length > 0 ? relacionGastos.map((e: any) => e.nitCedula || '').join(', ') : '',
+      'Concepto': relacionStr,
       'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
       'Valor': c.valor || 0,
       'Categoría': c.categoria || '',
@@ -1301,10 +1328,10 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
   const workbook = XLSX.utils.book_new();
   
   // Solicitud sheet
-  const solicitudHeaders = ['Empleado', 'Banco', 'Tipo Cuenta', '# Cuenta', 'Concepto', 'Imágenes', 'Valor', 'Categoría', 'Recursos', 'Contingencia', 'Estado'];
+  const solicitudHeaders = ['Empleado', 'Banco', 'Tipo Cuenta', '# Cuenta', 'Comercio', 'NIT/Cédula', 'Concepto', 'Imágenes', 'Valor', 'Categoría', 'Recursos', 'Contingencia', 'Estado'];
   const solicitudSheet = XLSX.utils.json_to_sheet(solicitudData, { header: solicitudHeaders });
   solicitudSheet['!cols'] = [
-    { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 15 }
+    { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 40 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 15 }
   ];
   const sheetName = solicitudAnticipoNum ? `Solicitud Anticipo No.${solicitudAnticipoNum}` : 'Solicitud Presupuesto';
   XLSX.utils.book_append_sheet(workbook, solicitudSheet, sheetName);
@@ -1370,12 +1397,16 @@ export const exportLegalizacionToExcel = async (project: Project, empleados: Emp
   if (includeSolicitud) {
     const solicitudData = cajaMenor.map(c => {
       const bankInfo = getEmpleadoBankingInfo(c.empleadoId, empleados);
+      const relacionGastos = (c as any).relacion_gastos || [];
+      const relacionStr = relacionGastos.length > 0
+        ? relacionGastos.map((e: any) => `${e.comercio || ''} | ${e.nitCedula || ''} | ${e.concepto || ''}`).join(' // ')
+        : [c.concepto, ...((c as any).notas_comentarios || []).filter((n: string) => n && n.trim())].join(' | ') || '';
       return {
         'Empleado': getEmpleadoNombre(c.empleadoId, empleados),
         'Banco': bankInfo.banco,
         'Tipo Cuenta': bankInfo.tipoCuenta,
         '# Cuenta': bankInfo.numeroCuenta,
-        'Concepto': [c.concepto, ...((c as any).notas_comentarios || []).filter((n: string) => n && n.trim())].join(' | ') || '',
+        'Concepto': relacionStr,
         'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
         'Valor': c.valor || 0,
         'Categoría': c.categoria || '',

@@ -127,6 +127,12 @@ export interface InventarioResponsables {
   responsableMaterialEventoNombre?: string;
 }
 
+export interface RelacionGastoEntry {
+  comercio: string;
+  nitCedula: string;
+  concepto: string;
+}
+
 export interface CajaMenorItem {
   id: string;
   empleadoId?: string; // ID del empleado/colaborador vinculado
@@ -142,6 +148,7 @@ export interface CajaMenorItem {
   procesoPago?: 'Pagado' | 'No pagado' | ''; // Campo para reportes (solo Admin puede editar)
   revisadoPor?: string; // Nombre de quien aprobó/rechazó
   createdAt?: string; // Fecha de creación del registro
+  relacion_gastos?: RelacionGastoEntry[]; // Datos para RELACIÓN DE GASTOS en PDF
 }
 
 // Legalización item - estructura independiente para justificar gastos

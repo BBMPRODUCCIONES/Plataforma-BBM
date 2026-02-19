@@ -3492,17 +3492,19 @@ const PanelOperaciones = () => {
                       </CardContent>
                     </Card>
 
-                    {/* Sección de GASTOS MENORES - solo lectura */}
-                    {gastosMenoresForProject.length > 0 && (
-                      <Card className="overflow-hidden mt-4 border-muted">
-                        <CardHeader className="py-3 bg-muted/30">
-                          <CardTitle className="text-sm flex items-center gap-2">
-                            <Wallet className="h-4 w-4" />
-                            GASTOS MENORES ({gastosMenoresForProject.length})
-                          </CardTitle>
-                          <p className="text-xs text-muted-foreground">Registros desde Reporte de Caja Menor (solo lectura)</p>
-                        </CardHeader>
-                        <CardContent className="pt-2 overflow-x-auto">
+                    {/* Sección de CAJA MENOR - solo lectura */}
+                    <Card className="overflow-hidden mt-4 border-muted">
+                      <CardHeader className="py-3 bg-muted/30">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Wallet className="h-4 w-4" />
+                          CAJA MENOR ({gastosMenoresForProject.length})
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground">Registros desde Reporte (Solo lectura)</p>
+                      </CardHeader>
+                      <CardContent className="pt-2 overflow-x-auto">
+                        {gastosMenoresForProject.length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center py-4">No hay registros de caja menor para este centro de costos.</p>
+                        ) : (
                           <Table>
                             <TableHeader>
                               <TableRow>
@@ -3547,9 +3549,9 @@ const PanelOperaciones = () => {
                               ))}
                             </TableBody>
                           </Table>
-                        </CardContent>
-                      </Card>
-                    )}
+                        )}
+                      </CardContent>
+                    </Card>
                     </>
                   )}
                 </div>

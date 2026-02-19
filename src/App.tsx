@@ -12,6 +12,7 @@ import { DateRangeProvider } from "@/contexts/DateRangeContext";
 import { HorariosProvider } from "@/contexts/HorariosContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PWAUpdateBanner } from "@/components/PWAUpdateBanner";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CrearCuenta from "./pages/CrearCuenta";
@@ -33,6 +34,7 @@ import PanelReportes from "./pages/PanelReportes";
 const queryClient = new QueryClient();
 
 const App = () => (
+  <ErrorBoundary title="Error inesperado" description="Algo salió mal. Intenta recargar la página." showDetails>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
@@ -132,6 +134,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

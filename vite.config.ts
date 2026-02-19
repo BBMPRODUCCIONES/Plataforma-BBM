@@ -41,17 +41,14 @@ export default defineConfig(({ mode }) => ({
           }
         ]
       },
-      workbox: {
+    workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        // Increase file size limit for precaching (4 MiB)
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-        // User controls when to update - no forced activation
         skipWaiting: false,
         clientsClaim: false,
-        // Clean old caches
         cleanupOutdatedCaches: true,
-        // Disable precaching for faster updates
-        navigateFallback: null,
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/auth/, /supabase/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -60,24 +57,12 @@ export default defineConfig(({ mode }) => ({
               cacheName: "supabase-api",
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 // 1 hour instead of 24
+                maxAgeSeconds: 60 * 60
               },
               cacheableResponse: {
                 statuses: [0, 200]
               },
-              networkTimeoutSeconds: 5 // Faster fallback
-            }
-          },
-          {
-            // Cache static assets but revalidate frequently
-            urlPattern: /\.(js|css|png|jpg|jpeg|svg|gif|woff2?)$/i,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "static-assets",
-              expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 2 // 2 hours
-              }
+              networkTimeoutSeconds: 5
             }
           }
         ]

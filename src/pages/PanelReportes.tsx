@@ -241,6 +241,7 @@ const PanelReportes = () => {
               <TableRow>
                 <TableHead>Fecha</TableHead>
                 <TableHead>Usuario</TableHead>
+                <TableHead>Centro de Costos</TableHead>
                 <TableHead>Concepto</TableHead>
                 <TableHead>Categoría</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
@@ -257,6 +258,7 @@ const PanelReportes = () => {
                     {format(new Date(g.created_at), "dd/MM/yyyy", { locale: es })}
                   </TableCell>
                   <TableCell className="text-xs">{g.usuario_nombre}</TableCell>
+                  <TableCell className="text-xs">{g.centro_costos || "—"}</TableCell>
                   <TableCell className="text-xs">{g.concepto}</TableCell>
                   <TableCell className="text-xs">{g.categoria}</TableCell>
                   <TableCell className="text-xs text-right font-mono">

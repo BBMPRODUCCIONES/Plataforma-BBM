@@ -910,7 +910,7 @@ const generateCorporateFormatoHTML = (
   const fechaHoy = format(new Date(), "dd/MM/yyyy", { locale: es });
   
   // Build expense rows (RELACION DE GASTOS) from relacion_gastos entries
-  const allExpenseEntries: { comercio: string; nitCedula: string; concepto: string; valor: number }[] = [];
+   const allExpenseEntries: { comercio: string; nitCedula: string; concepto: string; valor: number }[] = [];
   cajaMenor.forEach(c => {
     const entries = (c as any).relacion_gastos || [];
     if (entries.length > 0) {
@@ -919,7 +919,7 @@ const generateCorporateFormatoHTML = (
           comercio: entry.comercio || '',
           nitCedula: entry.nitCedula || '',
           concepto: entry.concepto || '',
-          valor: c.valor || 0,
+          valor: entry.valor || 0,
         });
       });
     } else {
@@ -1182,7 +1182,7 @@ const generateCorporateFormatoHTML = (
         ${emptyRows}
         <tr style="font-weight:bold;background:#f3f4f6;">
           <td colspan="3" style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">TOTAL</td>
-          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">$ ${totalValor.toLocaleString('es-CO')}</td>
+          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">$ ${allExpenseEntries.reduce((s, e) => s + (e.valor || 0), 0).toLocaleString('es-CO')}</td>
         </tr>
         <tr style="font-weight:bold;">
           <td colspan="3" style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">DIFERENCIA</td>

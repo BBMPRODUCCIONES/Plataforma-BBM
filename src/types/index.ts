@@ -131,6 +131,7 @@ export interface RelacionGastoEntry {
   comercio: string;
   nitCedula: string;
   concepto: string;
+  valor?: number;
 }
 
 export interface CajaMenorItem {

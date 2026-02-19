@@ -34,13 +34,13 @@ const GastosMenoresKPIs = ({ gastos }: GastosMenoresKPIsProps) => {
   }, [gastos]);
 
   const chartData = useMemo(() => {
-    return Object.entries(stats.byCategoria)
-      .filter(([, val]) => val > 0)
-      .map(([cat, val]) => ({
+    return CATEGORIAS_ALL
+      .map((cat) => ({
         name: cat,
-        value: val,
+        value: stats.byCategoria[cat] || 0,
         color: CATEGORY_COLORS[cat] || "#6b7280",
-      }));
+      }))
+      .filter(d => d.value > 0);
   }, [stats.byCategoria]);
 
   const fmt = (v: number) =>
@@ -58,58 +58,7 @@ const GastosMenoresKPIs = ({ gastos }: GastosMenoresKPIsProps) => {
 
   return (
     <div className="space-y-3">
-      {/* Main row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/20">
-              <DollarSign className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-[11px] text-muted-foreground">Total</p>
-              <p className="text-sm font-bold">{fmt(stats.total)}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-yellow-500/20 bg-yellow-500/5">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-yellow-500/20">
-              <Clock className="h-4 w-4 text-yellow-500" />
-            </div>
-            <div>
-              <p className="text-[11px] text-muted-foreground">Pendientes</p>
-              <p className="text-sm font-bold text-yellow-500">{stats.pendiente.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-emerald-500/20 bg-emerald-500/5">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-500/20">
-              <CheckCircle className="h-4 w-4 text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-[11px] text-muted-foreground">Aprobados</p>
-              <p className="text-sm font-bold text-emerald-500">{stats.aprobado.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-red-500/20 bg-red-500/5">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-500/20">
-              <XCircle className="h-4 w-4 text-red-500" />
-            </div>
-            <div>
-              <p className="text-[11px] text-muted-foreground">No aprobados</p>
-              <p className="text-sm font-bold text-red-500">{stats.noAprobado.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Donut + Category detail */}
+      {/* Donut + Category detail (charts first) */}
       {chartData.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Global donut */}
@@ -205,6 +154,57 @@ const GastosMenoresKPIs = ({ gastos }: GastosMenoresKPIsProps) => {
           </Card>
         </div>
       )}
+
+      {/* KPI cards below charts */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/20">
+              <DollarSign className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Total</p>
+              <p className="text-sm font-bold">{fmt(stats.total)}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-yellow-500/20 bg-yellow-500/5">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-yellow-500/20">
+              <Clock className="h-4 w-4 text-yellow-500" />
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Pendientes</p>
+              <p className="text-sm font-bold text-yellow-500">{stats.pendiente.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-emerald-500/20 bg-emerald-500/5">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-500/20">
+              <CheckCircle className="h-4 w-4 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Aprobados</p>
+              <p className="text-sm font-bold text-emerald-500">{stats.aprobado.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-red-500/20 bg-red-500/5">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-red-500/20">
+              <XCircle className="h-4 w-4 text-red-500" />
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">No aprobados</p>
+              <p className="text-sm font-bold text-red-500">{stats.noAprobado.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

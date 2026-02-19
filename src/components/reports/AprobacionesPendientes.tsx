@@ -399,21 +399,33 @@ export default function AprobacionesPendientes() {
         const terms = searchQuery.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
         // Determine tipo label
         const recursos = row.item.recursos || "";
-        const tipo = recursos === "Recursos propios" ? "R" : recursos === "BBM" ? "C" : "S";
+        const tipo = recursos === "Recursos propios" ? "r" : recursos === "BBM" ? "c" : "s";
         // Aprobado por
         const aprobadoPor = row.item.revisadoPor || (row.source === 'gastoMenor' ? (gastosMenores.find(g => g.id === row.gastoMenorId)?.aprobado_por_nombre || "") : "");
         // Valor and saldo as formatted strings for search
         const valorStr = (row.item.valor || 0).toLocaleString("es-CO");
         const legTotal = row.legalizacionTotal > 0 ? row.legalizacionTotal.toLocaleString("es-CO") : "";
         const saldoStr = row.saldoAFavor !== 0 ? row.saldoAFavor.toLocaleString("es-CO") : "";
-        const searchable = [
-          tipo, row.item.empleadoNombre, d ? format(d, "dd/MM/yyyy") : "",
+        
+        // Known tipo codes for exact matching
+        const tipoCodes = new Set(["s", "r", "c"]);
+        
+        const searchable = normalize([
+          row.item.empleadoNombre, d ? format(d, "dd/MM/yyyy") : "",
           row.centroCostos, row.item.categoria, valorStr,
           row.item.estado, aprobadoPor,
           legTotal, row.legalizacionEstado, saldoStr,
           row.evento,
-        ].filter(Boolean).join(" ").toLowerCase();
-        if (!terms.every(term => normalize(searchable).includes(normalize(term)))) return false;
+        ].filter(Boolean).join(" "));
+        
+        const matches = terms.every(term => {
+          // If the term is exactly a tipo code, match only against tipo
+          if (tipoCodes.has(term)) {
+            return tipo === term;
+          }
+          return searchable.includes(normalize(term));
+        });
+        if (!matches) return false;
       }
       return true;
     });

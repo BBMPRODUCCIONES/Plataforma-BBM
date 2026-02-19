@@ -25,21 +25,21 @@ const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
   const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
 
   const statsByCategoria = useMemo(() => {
-    const result: Record<Categoria, { total: number; pendientes: number; aprobados: number; noAprobados: number }> = {
-      "Solicitud de anticipos": { total: 0, pendientes: 0, aprobados: 0, noAprobados: 0 },
-      "Recursos propios": { total: 0, pendientes: 0, aprobados: 0, noAprobados: 0 },
-      "Caja menor": { total: 0, pendientes: 0, aprobados: 0, noAprobados: 0 },
+    const result: Record<Categoria, { total: number; pendientes: number; aprobados: number; noAprobados: number; valorTotal: number; valorAprobado: number }> = {
+      "Solicitud de anticipos": { total: 0, pendientes: 0, aprobados: 0, noAprobados: 0, valorTotal: 0, valorAprobado: 0 },
+      "Recursos propios": { total: 0, pendientes: 0, aprobados: 0, noAprobados: 0, valorTotal: 0, valorAprobado: 0 },
+      "Caja menor": { total: 0, pendientes: 0, aprobados: 0, noAprobados: 0, valorTotal: 0, valorAprobado: 0 },
     };
 
     rows.forEach(r => {
       const recursos = r.item.recursos || "";
       let cat = CATEGORIAS.find(c => c.recursos.some(rc => rc === recursos));
-      // Default empty recursos to "Solicitud de anticipos" since all cajaMenor items are anticipos
       if (!cat) cat = CATEGORIAS[0];
       const s = result[cat.key];
       s.total++;
+      s.valorTotal += r.item.valor || 0;
       if (r.item.estado === "Pendiente") s.pendientes++;
-      else if (r.item.estado === "Aprobado") s.aprobados++;
+      else if (r.item.estado === "Aprobado") { s.aprobados++; s.valorAprobado += r.item.valor || 0; }
       else if (r.item.estado === "No aprobado") s.noAprobados++;
     });
 
@@ -66,9 +66,14 @@ const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
                 <div className={`p-2 rounded-lg ${cat.iconBg}`}>
                   <Icon className={`h-4 w-4 ${cat.iconColor}`} />
                 </div>
-                <div>
-                  <p className="text-[11px] text-muted-foreground">{cat.key}</p>
-                  <p className="text-sm font-bold">{stats.total}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] text-muted-foreground truncate">{cat.key}</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-sm font-bold">{stats.total}</p>
+                    {stats.valorAprobado > 0 && (
+                      <p className="text-[10px] text-green-400 truncate">$ {stats.valorAprobado.toLocaleString('es-CO')}</p>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -98,8 +103,17 @@ const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
                 <span className="text-sm text-muted-foreground">No aprobados</span>
                 <span className="ml-auto text-sm font-bold text-red-500">{selectedStats.noAprobados}</span>
               </div>
-              <div className="text-xs text-center text-muted-foreground pt-1">
-                Total: {selectedStats.total} solicitud{selectedStats.total !== 1 ? "es" : ""}
+              <div className="border-t pt-2 mt-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Total solicitudes</span>
+                  <span className="font-bold">{selectedStats.total}</span>
+                </div>
+                {selectedStats.valorAprobado > 0 && (
+                  <div className="flex items-center justify-between text-sm mt-1">
+                    <span className="text-muted-foreground">Valor aprobado</span>
+                    <span className="font-bold text-green-400">$ {selectedStats.valorAprobado.toLocaleString('es-CO')}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -404,6 +404,8 @@ export default function AprobacionesPendientes() {
         return;
       }
       toast.success(`Estado actualizado a "${newEstado}"`);
+      // Explicitly refetch to ensure KPIs update immediately
+      refetchGastos();
       return;
     }
 

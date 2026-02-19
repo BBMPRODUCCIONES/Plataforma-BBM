@@ -2951,72 +2951,79 @@ const PanelOperaciones = () => {
                             </div>
                           </div>
                         )}
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        {/* Row 1: Title + Employee name */}
+                        <div className="flex items-center gap-4 flex-wrap">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <Wallet className="h-4 w-4" />
                             SOLICITUD DE ANTICIPOS ({(currentProjectData.cajaMenor || []).length})
                           </CardTitle>
-                          {/* Empleado y Estados debajo del título */}
                           {(() => {
                             const items = currentProjectData.cajaMenor || [];
                             if (items.length === 0) return null;
                             const firstItem = items[0] as CajaMenorItem;
                             const empleadoNombre = firstItem.empleadoNombre || "Sin asignar";
-
-                            // Estado de solicitud (basado en estados de los items de cajaMenor)
-                            const allApproved = items.every((c: CajaMenorItem) => c.estado === "Aprobado");
-                            const anyRejected = items.some((c: CajaMenorItem) => c.estado === "No aprobado");
-                            const estadoSolicitud = allApproved ? "Aprobado" : anyRejected ? "Rechazado" : "En revisión";
-                            const estadoSolicitudClass = estadoSolicitud === "Aprobado" 
-                              ? "bg-green-500/20 text-green-400 border-green-500/30" 
-                              : estadoSolicitud === "Rechazado" 
-                                ? "bg-red-500/20 text-red-400 border-red-500/30" 
-                                : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-
-                            // Estado de legalización (basado en legalizacion items vinculados)
-                            const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
-                            const linkedLegs = items.map((cm: CajaMenorItem) => legalizacion.find((l: LegalizacionItem) => l.id === `leg-${cm.id}`)).filter(Boolean) as LegalizacionItem[];
-                            let estadoLegalizacion = "Sin legalizar";
-                            let estadoLegClass = "bg-muted/30 text-muted-foreground border-border";
-                            if (linkedLegs.length > 0) {
-                              const allLegApproved = linkedLegs.every(l => l.estado === "Aprobado");
-                              const anyLegRejected = linkedLegs.some(l => l.estado === "No aprobado");
-                              const anyLegRevisando = linkedLegs.some(l => !l.estado || (l.estado as string) === "Revisando");
-                              if (allLegApproved) {
-                                estadoLegalizacion = "Aprobado";
-                                estadoLegClass = "bg-green-500/20 text-green-400 border-green-500/30";
-                              } else if (anyLegRejected) {
-                                estadoLegalizacion = "Rechazado";
-                                estadoLegClass = "bg-red-500/20 text-red-400 border-red-500/30";
-                              } else if (anyLegRevisando || linkedLegs.length > 0) {
-                                estadoLegalizacion = "Revisando";
-                                estadoLegClass = "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-                              }
-                            }
-
                             return (
-                              <div className="flex items-center gap-4 flex-wrap">
-                                <div className="flex items-center gap-1.5">
-                                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span className="text-xs text-muted-foreground">Empleado:</span>
-                                  <span className="text-xs font-medium">{empleadoNombre}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-muted-foreground">Estado de solicitud:</span>
-                                  <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoSolicitudClass}`}>
-                                    {estadoSolicitud}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-muted-foreground">Estado de legalización:</span>
-                                  <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoLegClass}`}>
-                                    {estadoLegalizacion}
-                                  </span>
-                                </div>
+                              <div className="flex items-center gap-1.5">
+                                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">Empleado:</span>
+                                <span className="text-xs font-medium">{empleadoNombre}</span>
                               </div>
                             );
                           })()}
-                          <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
+                        </div>
+                        {/* Row 2: Estados */}
+                        {(() => {
+                          const items = currentProjectData.cajaMenor || [];
+                          if (items.length === 0) return null;
+
+                          const allApproved = items.every((c: CajaMenorItem) => c.estado === "Aprobado");
+                          const anyRejected = items.some((c: CajaMenorItem) => c.estado === "No aprobado");
+                          const estadoSolicitud = allApproved ? "Aprobado" : anyRejected ? "Rechazado" : "En revisión";
+                          const estadoSolicitudClass = estadoSolicitud === "Aprobado" 
+                            ? "bg-green-500/20 text-green-400 border-green-500/30" 
+                            : estadoSolicitud === "Rechazado" 
+                              ? "bg-red-500/20 text-red-400 border-red-500/30" 
+                              : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+
+                          const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
+                          const linkedLegs = items.map((cm: CajaMenorItem) => legalizacion.find((l: LegalizacionItem) => l.id === `leg-${cm.id}`)).filter(Boolean) as LegalizacionItem[];
+                          let estadoLegalizacion = "Sin legalizar";
+                          let estadoLegClass = "bg-muted/30 text-muted-foreground border-border";
+                          if (linkedLegs.length > 0) {
+                            const allLegApproved = linkedLegs.every(l => l.estado === "Aprobado");
+                            const anyLegRejected = linkedLegs.some(l => l.estado === "No aprobado");
+                            const anyLegRevisando = linkedLegs.some(l => !l.estado || (l.estado as string) === "Revisando");
+                            if (allLegApproved) {
+                              estadoLegalizacion = "Aprobado";
+                              estadoLegClass = "bg-green-500/20 text-green-400 border-green-500/30";
+                            } else if (anyLegRejected) {
+                              estadoLegalizacion = "Rechazado";
+                              estadoLegClass = "bg-red-500/20 text-red-400 border-red-500/30";
+                            } else if (anyLegRevisando || linkedLegs.length > 0) {
+                              estadoLegalizacion = "Revisando";
+                              estadoLegClass = "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+                            }
+                          }
+
+                          return (
+                            <div className="flex items-center gap-4 flex-wrap">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-muted-foreground">Estado de solicitud:</span>
+                                <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoSolicitudClass}`}>
+                                  {estadoSolicitud}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-muted-foreground">Estado de legalización:</span>
+                                <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoLegClass}`}>
+                                  {estadoLegalizacion}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        {/* Row 3: Buttons (Exportar + Agregar Registro) */}
+                        <div className="flex gap-2 flex-wrap justify-start w-full">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm">
@@ -3027,7 +3034,6 @@ const PanelOperaciones = () => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="start" className="min-w-[260px]">
                                 {(() => {
-                                  // Check if there are approved legalization records
                                   const cajaMenor = currentProjectData.cajaMenor || [];
                                   const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
                                   const hasApprovedLegalizacion = legalizacion.some(l => l.estado === 'Aprobado') ||
@@ -3066,11 +3072,9 @@ const PanelOperaciones = () => {
                               </DropdownMenuContent>
                             </DropdownMenu>
             {(() => {
-                              // Check if current user has permission to create anticipos
                               const hasPermission = canCrearAnticipos();
                               if (!hasPermission) return null;
                               
-                              // Check if current user has pending legalizaciones
                               const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
                               const userEmail = currentUserEmail || "";
                               const userEmpId = currentUserEmpleado?.id || "";
@@ -3080,7 +3084,6 @@ const PanelOperaciones = () => {
                                 const isPending = l.estado !== "Aprobado" && l.estado !== "No aprobado";
                                 return isOwner && isPending;
                               });
-                              // Admins bypass the restriction
                               const isBlocked = hasPendingLeg && !isAdmin;
                               
                               return (
@@ -3149,7 +3152,6 @@ const PanelOperaciones = () => {
                                 </TooltipProvider>
                               );
                             })()}
-                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0 caja-menor-mobile-scroll">
@@ -3175,6 +3177,15 @@ const PanelOperaciones = () => {
                                   const valorLegalizacion = linkedLeg?.valor || 0;
                                   const diferencia = valorAnticipo - valorLegalizacion;
 
+                                  // Determine editability based on both estados
+                                  const isSolicitudAprobada = cm.estado === "Aprobado";
+                                  const isLegAprobada = linkedLeg?.estado === "Aprobado";
+                                  // Fully locked: both solicitud AND legalización are "Aprobado"
+                                  const isFullyLocked = isSolicitudAprobada && isLegAprobada;
+                                  // Partially editable: solicitud "Aprobado" but legalización NOT "Aprobado" (en revisión)
+                                  // In this state, Imagen, Valor legalización remain editable
+                                  const isPartiallyEditable = isSolicitudAprobada && !isLegAprobada;
+
                                   return (
                                     <tr key={cm.id}>
                                       <td>
@@ -3185,22 +3196,23 @@ const PanelOperaciones = () => {
                                               type="text"
                                               placeholder="Descripción del concepto..."
                                               onChange={(value) => currentProjectData?.id && updateCajaMenorItem(currentProjectData.id, cm.id, "concepto", value)}
-                                              disabled={cm.estado === "Aprobado"}
+                                              disabled={isSolicitudAprobada}
                                             />
                                           </div>
                                           {/* Notas/comentarios: 1 antes de aprobación, ilimitados después */}
                                           {(() => {
                                             const notas: string[] = (cm as any).notas_comentarios || [];
                                             const isApproved = cm.estado === "Aprobado";
-                                            // Before approval: anyone who can edit can add 1 note. After approval: can add unlimited.
                                             const canEditNotes = isApproved || canEditCajaMenorRecord(cm);
                                             const canAddMore = isApproved || notas.length < 1;
+                                            // If fully locked, disable note editing
+                                            const notesDisabled = isFullyLocked;
                                             return (
                                               <div className="flex flex-col gap-0.5">
                                                 {notas.map((nota: string, idx: number) => (
                                                   <div key={idx} className="flex items-center gap-1">
                                                     <MessageSquare className="h-3 w-3 text-primary shrink-0" />
-                                                    {canEditNotes ? (
+                                                    {canEditNotes && !notesDisabled ? (
                                                       <Input
                                                         value={nota}
                                                         placeholder="Nota..."
@@ -3217,7 +3229,7 @@ const PanelOperaciones = () => {
                                                     ) : (
                                                       <span className="text-xs text-primary/80 truncate">{nota}</span>
                                                     )}
-                                                    {canEditNotes && (
+                                                    {canEditNotes && !notesDisabled && (
                                                       <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -3235,7 +3247,7 @@ const PanelOperaciones = () => {
                                                     )}
                                                   </div>
                                                 ))}
-                                                {canEditNotes && canAddMore && (
+                                                {canEditNotes && canAddMore && !notesDisabled && (
                                                   <button
                                                     className="flex items-center gap-1 text-xs text-primary/60 hover:text-primary cursor-pointer mt-0.5"
                                                     onClick={(e) => {
@@ -3265,7 +3277,7 @@ const PanelOperaciones = () => {
                                               if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "categoria", value);
                                             }}
                                             className={!cm.categoria ? "text-red-500" : undefined}
-                                            disabled={cm.estado === "Aprobado"}
+                                            disabled={isSolicitudAprobada}
                                           />
                                         </div>
                                       </td>
@@ -3273,8 +3285,7 @@ const PanelOperaciones = () => {
                                         {(() => {
                                           const canEdit = canEditCajaMenorRecord(cm);
                                           const isEmpty = !cm.valor || cm.valor === 0;
-                                          const isApproved = cm.estado === "Aprobado";
-                                          if (!canEdit || isApproved) {
+                                          if (!canEdit || isSolicitudAprobada) {
                                             return (
                                               <span className={`text-base font-semibold font-mono ${isEmpty ? "text-destructive" : "text-foreground"}`}>
                                                 {isEmpty ? "$ 0 (Requerido)" : `$ ${(cm.valor || 0).toLocaleString('es-CO')}`}
@@ -3301,17 +3312,18 @@ const PanelOperaciones = () => {
                                       </td>
                                       <td>
                                         {(() => {
-                                          const isApproved = cm.estado === "Aprobado";
-                                          if (!isApproved) {
+                                          if (!isSolicitudAprobada) {
                                             return <span className="text-sm text-muted-foreground">—</span>;
                                           }
                                           const imgEmpty = !cm.imagenes || cm.imagenes.length === 0;
+                                          // Imagen is editable when solicitud approved but NOT fully locked
+                                          const imgDisabled = isFullyLocked;
                                           return (
-                                            <div className={imgEmpty ? "ring-2 ring-destructive/50 rounded bg-destructive/5 p-0.5" : ""}>
+                                            <div className={imgEmpty && !imgDisabled ? "ring-2 ring-destructive/50 rounded bg-destructive/5 p-0.5" : ""}>
                                               <AttachmentButton
                                                 attachments={cm.imagenes || []}
                                                 onAttachmentsChange={(attachments) => {
-                                                  if (currentProjectData?.id) {
+                                                  if (currentProjectData?.id && !imgDisabled) {
                                                     updateCajaMenorItem(currentProjectData.id, cm.id, "imagenes", attachments);
                                                   }
                                                 }}
@@ -3320,21 +3332,22 @@ const PanelOperaciones = () => {
                                                 fieldName={`caja-menor-${cm.id}-imagenes`}
                                                 enableCamera={true}
                                               />
-                                              {imgEmpty && <span className="text-[10px] text-destructive block text-center">Requerida</span>}
+                                              {imgEmpty && !imgDisabled && <span className="text-[10px] text-destructive block text-center">Requerida</span>}
                                             </div>
                                           );
                                         })()}
                                       </td>
                                       <td>
                                         {(() => {
-                                          const isApproved = cm.estado === "Aprobado";
-                                          if (!isApproved) {
+                                          if (!isSolicitudAprobada) {
                                             return <span className="text-sm text-muted-foreground">—</span>;
                                           }
                                           const legId = `leg-${cm.id}`;
                                           const isEmpty = !valorLegalizacion || valorLegalizacion === 0;
+                                          // Valor legalización is editable when solicitud approved but NOT fully locked
+                                          const legDisabled = isFullyLocked;
                                           return (
-                                            <div className={isEmpty ? "ring-1 ring-amber-500/50 rounded bg-amber-500/5" : ""}>
+                                            <div className={isEmpty && !legDisabled ? "ring-1 ring-amber-500/50 rounded bg-amber-500/5" : ""}>
                                               <EditableCell
                                                 value={valorLegalizacion}
                                                 type="number"
@@ -3345,6 +3358,7 @@ const PanelOperaciones = () => {
                                                   }
                                                 }}
                                                 className="text-base font-semibold"
+                                                disabled={legDisabled}
                                               />
                                             </div>
                                           );
@@ -3355,7 +3369,6 @@ const PanelOperaciones = () => {
                                           if (valorAnticipo === 0 && valorLegalizacion === 0) return <span className="text-muted-foreground">—</span>;
                                           const diff = valorAnticipo - valorLegalizacion;
                                           const absDiff = Math.abs(diff);
-                                          // Green if legalización <= anticipo (diff >= 0), Red if legalización > anticipo (diff < 0)
                                           const colorClass = diff >= 0 ? "text-green-400" : "text-red-400";
                                           return (
                                             <span className={`text-sm font-mono font-semibold ${colorClass}`}>

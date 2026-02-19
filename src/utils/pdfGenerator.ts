@@ -912,11 +912,13 @@ const generateCorporateFormatoHTML = (
   // Build expense rows (RELACION DE GASTOS)
   const expenseRows = cajaMenor.map(c => {
     const emp = getEmpleadoFullInfo(c.empleadoId, empleados);
+    const notas: string[] = (c as any).notas_comentarios || [];
+    const notasHTML = notas.filter((n: string) => n && n.trim()).map((n: string) => `<br><span style="color:#555;font-size:9px;">• ${n}</span>`).join('');
     return `
       <tr>
         <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${emp.nombre}</td>
         <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${emp.cedula}</td>
-        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${c.concepto || '-'}</td>
+        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${c.concepto || '-'}${notasHTML}</td>
         <td style="border:1px solid #000;padding:4px 6px;font-size:10px;text-align:right;">$ ${(c.valor || 0).toLocaleString('es-CO')}</td>
       </tr>`;
   }).join('');
@@ -1285,7 +1287,7 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
       'Banco': bankInfo.banco,
       'Tipo Cuenta': bankInfo.tipoCuenta,
       '# Cuenta': bankInfo.numeroCuenta,
-      'Concepto': c.concepto || '',
+      'Concepto': [c.concepto, ...((c as any).notas_comentarios || []).filter((n: string) => n && n.trim())].join(' | ') || '',
       'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
       'Valor': c.valor || 0,
       'Categoría': c.categoria || '',
@@ -1373,7 +1375,7 @@ export const exportLegalizacionToExcel = async (project: Project, empleados: Emp
         'Banco': bankInfo.banco,
         'Tipo Cuenta': bankInfo.tipoCuenta,
         '# Cuenta': bankInfo.numeroCuenta,
-        'Concepto': c.concepto || '',
+        'Concepto': [c.concepto, ...((c as any).notas_comentarios || []).filter((n: string) => n && n.trim())].join(' | ') || '',
         'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
         'Valor': c.valor || 0,
         'Categoría': c.categoria || '',
@@ -1446,7 +1448,7 @@ export const exportCajaMenorToExcel = async (project: Project, empleados: Emplea
       'Banco': bankInfo.banco,
       'Tipo Cuenta': bankInfo.tipoCuenta,
       '# Cuenta': bankInfo.numeroCuenta,
-      'Concepto': c.concepto || '',
+      'Concepto': [c.concepto, ...((c as any).notas_comentarios || []).filter((n: string) => n && n.trim())].join(' | ') || '',
       'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
       'Valor': c.valor || 0,
       'Categoría': c.categoria || '',

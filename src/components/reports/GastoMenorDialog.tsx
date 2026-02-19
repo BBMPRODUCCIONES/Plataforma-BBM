@@ -103,6 +103,7 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
     if (!concepto.trim()) { toast.error("El concepto es obligatorio"); return; }
     if (!categoria) { toast.error("La categoría es obligatoria"); return; }
     if (!valor || Number(valor) <= 0) { toast.error("El valor debe ser mayor a 0"); return; }
+    if (!imagenUrl) { toast.error("La imagen es obligatoria"); return; }
 
     setSubmitting(true);
     const success = await onSubmit({
@@ -229,7 +230,7 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
 
           {/* Imagen */}
           <div className="space-y-1.5">
-            <Label>Imagen (recibo/factura)</Label>
+            <Label>Imagen (recibo/factura) *</Label>
             <div className="flex items-center gap-2">
               <label className="flex items-center gap-2 cursor-pointer px-3 py-2 border rounded-md text-sm hover:bg-accent transition-colors">
                 <Upload className="h-4 w-4" />

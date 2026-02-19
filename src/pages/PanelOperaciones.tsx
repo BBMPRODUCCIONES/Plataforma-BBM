@@ -2956,20 +2956,44 @@ const PanelOperaciones = () => {
                             <Wallet className="h-4 w-4" />
                             SOLICITUD DE ANTICIPOS ({(currentProjectData.cajaMenor || []).length})
                           </CardTitle>
-                          {/* Empleado y Estado debajo del título */}
+                          {/* Empleado y Estados debajo del título */}
                           {(() => {
                             const items = currentProjectData.cajaMenor || [];
                             if (items.length === 0) return null;
                             const firstItem = items[0] as CajaMenorItem;
                             const empleadoNombre = firstItem.empleadoNombre || "Sin asignar";
+
+                            // Estado de solicitud (basado en estados de los items de cajaMenor)
                             const allApproved = items.every((c: CajaMenorItem) => c.estado === "Aprobado");
                             const anyRejected = items.some((c: CajaMenorItem) => c.estado === "No aprobado");
-                            const estadoGeneral = allApproved ? "Aprobado" : anyRejected ? "Rechazado" : "En revisión";
-                            const estadoClass = estadoGeneral === "Aprobado" 
+                            const estadoSolicitud = allApproved ? "Aprobado" : anyRejected ? "Rechazado" : "En revisión";
+                            const estadoSolicitudClass = estadoSolicitud === "Aprobado" 
                               ? "bg-green-500/20 text-green-400 border-green-500/30" 
-                              : estadoGeneral === "Rechazado" 
+                              : estadoSolicitud === "Rechazado" 
                                 ? "bg-red-500/20 text-red-400 border-red-500/30" 
                                 : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+
+                            // Estado de legalización (basado en legalizacion items vinculados)
+                            const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
+                            const linkedLegs = items.map((cm: CajaMenorItem) => legalizacion.find((l: LegalizacionItem) => l.id === `leg-${cm.id}`)).filter(Boolean) as LegalizacionItem[];
+                            let estadoLegalizacion = "Sin legalizar";
+                            let estadoLegClass = "bg-muted/30 text-muted-foreground border-border";
+                            if (linkedLegs.length > 0) {
+                              const allLegApproved = linkedLegs.every(l => l.estado === "Aprobado");
+                              const anyLegRejected = linkedLegs.some(l => l.estado === "No aprobado");
+                              const anyLegRevisando = linkedLegs.some(l => !l.estado || (l.estado as string) === "Revisando");
+                              if (allLegApproved) {
+                                estadoLegalizacion = "Aprobado";
+                                estadoLegClass = "bg-green-500/20 text-green-400 border-green-500/30";
+                              } else if (anyLegRejected) {
+                                estadoLegalizacion = "Rechazado";
+                                estadoLegClass = "bg-red-500/20 text-red-400 border-red-500/30";
+                              } else if (anyLegRevisando || linkedLegs.length > 0) {
+                                estadoLegalizacion = "Revisando";
+                                estadoLegClass = "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+                              }
+                            }
+
                             return (
                               <div className="flex items-center gap-4 flex-wrap">
                                 <div className="flex items-center gap-1.5">
@@ -2978,9 +3002,15 @@ const PanelOperaciones = () => {
                                   <span className="text-xs font-medium">{empleadoNombre}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-muted-foreground">Estado:</span>
-                                  <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoClass}`}>
-                                    {estadoGeneral}
+                                  <span className="text-xs text-muted-foreground">Estado de solicitud:</span>
+                                  <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoSolicitudClass}`}>
+                                    {estadoSolicitud}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs text-muted-foreground">Estado de legalización:</span>
+                                  <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoLegClass}`}>
+                                    {estadoLegalizacion}
                                   </span>
                                 </div>
                               </div>

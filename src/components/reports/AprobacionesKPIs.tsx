@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Wallet, Clock, CheckCircle, XCircle } from "lucide-react";
+import { FileText, Wallet, Coins, Clock, CheckCircle, XCircle } from "lucide-react";
 
 interface AprobacionRow {
   item: { estado: string; valor: number; recursos?: string };
@@ -13,11 +13,12 @@ interface AprobacionesKPIsProps {
   rows: AprobacionRow[];
 }
 
-type Categoria = "Solicitud de anticipos" | "Recursos propios";
+type Categoria = "Solicitud de anticipos" | "Recursos propios" | "Caja menor";
 
 const CATEGORIAS: { key: Categoria; recursos: string[]; icon: typeof FileText; borderColor: string; bgColor: string; iconBg: string; iconColor: string }[] = [
   { key: "Solicitud de anticipos", recursos: ["Anticipo BBM", "Anticipo"], icon: FileText, borderColor: "border-blue-500/20", bgColor: "bg-blue-500/5", iconBg: "bg-blue-500/20", iconColor: "text-blue-500" },
   { key: "Recursos propios", recursos: ["Recursos propios"], icon: Wallet, borderColor: "border-emerald-500/20", bgColor: "bg-emerald-500/5", iconBg: "bg-emerald-500/20", iconColor: "text-emerald-500" },
+  { key: "Caja menor", recursos: ["BBM"], icon: Coins, borderColor: "border-amber-500/20", bgColor: "bg-amber-500/5", iconBg: "bg-amber-500/20", iconColor: "text-amber-500" },
 ];
 
 const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
@@ -27,6 +28,7 @@ const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
     const result: Record<Categoria, { total: number; pendientes: number; aprobados: number; noAprobados: number; valorTotal: number; valorAprobado: number }> = {
       "Solicitud de anticipos": { total: 0, pendientes: 0, aprobados: 0, noAprobados: 0, valorTotal: 0, valorAprobado: 0 },
       "Recursos propios": { total: 0, pendientes: 0, aprobados: 0, noAprobados: 0, valorTotal: 0, valorAprobado: 0 },
+      "Caja menor": { total: 0, pendientes: 0, aprobados: 0, noAprobados: 0, valorTotal: 0, valorAprobado: 0 },
     };
 
     rows.forEach(r => {
@@ -50,7 +52,7 @@ const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         {CATEGORIAS.map(cat => {
           const stats = statsByCategoria[cat.key];
           const Icon = cat.icon;

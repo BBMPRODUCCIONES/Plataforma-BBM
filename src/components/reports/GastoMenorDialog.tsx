@@ -101,7 +101,17 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => {
+        if (!v) {
+          // Block close if required fields are filled partially
+          const hasData = concepto.trim() || categoria || (valor && Number(valor) > 0);
+          if (hasData && (!centroCostos.trim() || !concepto.trim() || !categoria || !valor || Number(valor) <= 0)) {
+            toast.error("Completa todos los campos obligatorios antes de salir");
+            return;
+          }
+        }
+        onOpenChange(v);
+      }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Registrar Gasto Menor</DialogTitle>

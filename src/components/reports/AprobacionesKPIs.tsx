@@ -79,7 +79,7 @@ const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
       </div>
 
       <Dialog open={!!selectedCategoria} onOpenChange={() => setSelectedCategoria(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm [&>button]:right-4 [&>button]:top-4">
           <DialogHeader>
             <DialogTitle className="text-base">{selectedCategoria}</DialogTitle>
           </DialogHeader>
@@ -99,18 +99,6 @@ const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
                 <XCircle className="h-4 w-4 text-red-500" />
                 <span className="text-sm text-muted-foreground">No aprobados</span>
                 <span className="ml-auto text-sm font-bold text-red-500">{selectedStats.noAprobados}</span>
-              </div>
-              <div className="border-t pt-2 mt-1">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Total solicitudes</span>
-                  <span className="font-bold">{selectedStats.total}</span>
-                </div>
-                {selectedStats.valorAprobado > 0 && (
-                  <div className="flex items-center justify-between text-sm mt-1">
-                    <span className="text-muted-foreground">Valor aprobado</span>
-                    <span className="font-bold text-green-400">$ {selectedStats.valorAprobado.toLocaleString('es-CO')}</span>
-                  </div>
-                )}
               </div>
             </div>
           )}

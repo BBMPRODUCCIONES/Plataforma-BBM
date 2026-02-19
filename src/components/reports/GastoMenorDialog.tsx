@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { CATEGORIAS_GASTOS_MENORES } from "@/hooks/useGastosMenores";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, ChevronsUpDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface GastoMenorDialogProps {
   open: boolean;
@@ -38,6 +41,8 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [userName, setUserName] = useState("");
+  const [ccOpen, setCcOpen] = useState(false);
+  const [centrosCostos, setCentrosCostos] = useState<{ value: string; evento: string }[]>([]);
 
   // Fetch user name on mount
   useState(() => {
@@ -51,6 +56,29 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
       });
     }
   });
+
+  // Fetch unique centro_costos from projects
+  useEffect(() => {
+    const fetchCentrosCostos = async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("centro_costos, evento")
+        .eq("is_deleted", false)
+        .neq("centro_costos", "");
+      if (!error && data) {
+        const unique = new Map<string, string>();
+        data.forEach((p) => {
+          if (p.centro_costos && p.centro_costos.trim()) {
+            unique.set(p.centro_costos.trim(), p.evento || "Sin evento");
+          }
+        });
+        setCentrosCostos(
+          Array.from(unique.entries()).map(([value, evento]) => ({ value, evento }))
+        );
+      }
+    };
+    if (open) fetchCentrosCostos();
+  }, [open]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -103,7 +131,6 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
   return (
     <Dialog open={open} onOpenChange={(v) => {
         if (!v) {
-          // Block close if required fields are filled partially
           const hasData = concepto.trim() || categoria || (valor && Number(valor) > 0);
           if (hasData && (!centroCostos.trim() || !concepto.trim() || !categoria || !valor || Number(valor) <= 0)) {
             toast.error("Completa todos los campos obligatorios antes de salir");
@@ -123,10 +150,48 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
             <Input value={userName || user?.email || ""} disabled className="bg-muted" />
           </div>
 
-          {/* Centro de Costos */}
+          {/* Centro de Costos - Select from existing */}
           <div className="space-y-1.5">
             <Label>Centro de Costos *</Label>
-            <Input value={centroCostos} onChange={(e) => setCentroCostos(e.target.value)} placeholder="Ej: CC-001" />
+            <Popover open={ccOpen} onOpenChange={setCcOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={ccOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  {centroCostos || "Seleccionar centro de costos"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar centro de costos..." />
+                  <CommandList>
+                    <CommandEmpty>No se encontraron centros de costos</CommandEmpty>
+                    <CommandGroup>
+                      {centrosCostos.map((cc) => (
+                        <CommandItem
+                          key={cc.value}
+                          value={cc.value}
+                          onSelect={(val) => {
+                            setCentroCostos(val === centroCostos ? "" : cc.value);
+                            setCcOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", centroCostos === cc.value ? "opacity-100" : "opacity-0")} />
+                          <div className="flex flex-col">
+                            <span>{cc.value}</span>
+                            <span className="text-xs text-muted-foreground">{cc.evento}</span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Concepto */}

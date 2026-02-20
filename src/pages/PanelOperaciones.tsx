@@ -3164,10 +3164,10 @@ const PanelOperaciones = () => {
                                    <th style={{ width: '200px', minWidth: '200px' }}>Concepto solicitud</th>
                                    <th style={{ width: '130px', minWidth: '130px' }}>Categoría *</th>
                                    <th style={{ width: '130px', minWidth: '130px' }}>Valor anticipo *</th>
-                                   <th style={{ width: '380px', minWidth: '380px' }}>Relación de Gastos</th>
-                                   <th style={{ width: '110px', minWidth: '110px' }}>Imagen *</th>
-                                   <th style={{ width: '130px', minWidth: '130px' }}>Valor legalización</th>
-                                   <th style={{ width: '130px', minWidth: '130px' }}>Diferencia</th>
+                                    <th style={{ width: '380px', minWidth: '380px' }}>Relación de Gastos</th>
+                                    <th style={{ width: '130px', minWidth: '130px' }}>Valor legalización</th>
+                                    <th style={{ width: '110px', minWidth: '110px' }}>Imagen *</th>
+                                    <th style={{ width: '130px', minWidth: '130px' }}>Diferencia</th>
                                   <th style={{ width: '50px', minWidth: '50px' }}></th>
                                 </tr>
                               </thead>
@@ -3338,33 +3338,6 @@ const PanelOperaciones = () => {
                                           )}
                                         </div>
                                       </td>
-                                      {/* Imagen */}
-                                      <td>
-                                        {(() => {
-                                          if (!isSolicitudAprobada) {
-                                            return <span className="text-sm text-muted-foreground">—</span>;
-                                          }
-                                          const imgEmpty = !cm.imagenes || cm.imagenes.length === 0;
-                                          const imgDisabled = isFullyLocked;
-                                          return (
-                                            <div className={imgEmpty && !imgDisabled ? "ring-2 ring-destructive/50 rounded bg-destructive/5 p-0.5" : ""}>
-                                              <AttachmentButton
-                                                attachments={cm.imagenes || []}
-                                                onAttachmentsChange={(attachments) => {
-                                                  if (currentProjectData?.id && !imgDisabled) {
-                                                    updateCajaMenorItem(currentProjectData.id, cm.id, "imagenes", attachments);
-                                                  }
-                                                }}
-                                                multiple
-                                                projectId={currentProjectData?.id || ""}
-                                                fieldName={`caja-menor-${cm.id}-imagenes`}
-                                                enableCamera={true}
-                                              />
-                                              {imgEmpty && !imgDisabled && <span className="text-[10px] text-destructive block text-center">Requerida</span>}
-                                            </div>
-                                          );
-                                        })()}
-                                      </td>
                                       {/* Valor legalización */}
                                       <td>
                                         {(() => {
@@ -3388,6 +3361,33 @@ const PanelOperaciones = () => {
                                                 className="text-base font-semibold"
                                                 disabled={legDisabled}
                                               />
+                                            </div>
+                                          );
+                                        })()}
+                                      </td>
+                                      {/* Imagen */}
+                                      <td>
+                                        {(() => {
+                                          if (!isSolicitudAprobada) {
+                                            return <span className="text-sm text-muted-foreground">—</span>;
+                                          }
+                                          const imgEmpty = !cm.imagenes || cm.imagenes.length === 0;
+                                          const imgDisabled = isFullyLocked;
+                                          return (
+                                            <div className={imgEmpty && !imgDisabled ? "ring-2 ring-destructive/50 rounded bg-destructive/5 p-0.5" : ""}>
+                                              <AttachmentButton
+                                                attachments={cm.imagenes || []}
+                                                onAttachmentsChange={(attachments) => {
+                                                  if (currentProjectData?.id && !imgDisabled) {
+                                                    updateCajaMenorItem(currentProjectData.id, cm.id, "imagenes", attachments);
+                                                  }
+                                                }}
+                                                multiple
+                                                projectId={currentProjectData?.id || ""}
+                                                fieldName={`caja-menor-${cm.id}-imagenes`}
+                                                enableCamera={true}
+                                              />
+                                              {imgEmpty && !imgDisabled && <span className="text-[10px] text-destructive block text-center">Requerida</span>}
                                             </div>
                                           );
                                         })()}

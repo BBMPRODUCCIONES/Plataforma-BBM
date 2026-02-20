@@ -2712,7 +2712,8 @@ const PanelOperaciones = () => {
                   const sinConcepto = !item.concepto?.trim();
                   const isAprobado = item.estado === "Aprobado";
                   const linkedLegItem = legalizacionData2.find(l => l.id === `leg-${item.id}`);
-                  const isLegAprobadaItem = linkedLegItem?.estado === "Aprobado";
+                  const legItemEstado = linkedLegItem?.estado as string | undefined;
+                  const isLegAprobadaItem = legItemEstado === "Aprobado" || legItemEstado === "Legalizado";
                   // Imagen obligatoria si el anticipo está aprobado pero legalización no aprobada aún
                   const sinImagen = isAprobado && !isLegAprobadaItem && (!item.imagenes || item.imagenes.length === 0);
                   // Relación de gastos obligatoria si el anticipo está aprobado pero legalización no aprobada aún
@@ -2727,7 +2728,7 @@ const PanelOperaciones = () => {
                     const isAprobado = item.estado === "Aprobado";
                     const legalizacionData3 = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
                     const linkedLegItem = legalizacionData3.find(l => l.id === `leg-${item.id}`);
-                    const isLegAprobadaItem = linkedLegItem?.estado === "Aprobado";
+                    const isLegAprobadaItem = (linkedLegItem?.estado as string) === "Aprobado" || (linkedLegItem?.estado as string) === "Legalizado";
                     const faltantes: string[] = [];
                     if (!item.concepto?.trim()) faltantes.push("concepto");
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
@@ -3294,34 +3295,55 @@ const PanelOperaciones = () => {
                           let estadoLegalizacion = "Sin legalizar";
                           let estadoLegClass = "bg-muted/30 text-muted-foreground border-border";
                           if (linkedLegs.length > 0) {
-                            const allLegApproved = linkedLegs.every(l => l.estado === "Aprobado");
-                            const anyLegRejected = linkedLegs.some(l => l.estado === "No aprobado");
-                            const anyLegRevisando = linkedLegs.some(l => !l.estado || (l.estado as string) === "Revisando");
+                          const isLegEstadoApproved = (estado: string) => estado === "Aprobado" || estado === "Legalizado";
+                            const isLegEstadoRejected = (estado: string) => estado === "No aprobado" || estado === "No legalizable" || estado === "Rechazado";
+                            const allLegApproved = linkedLegs.every(l => isLegEstadoApproved(l.estado as string));
+                            const anyLegRejected = linkedLegs.some(l => isLegEstadoRejected(l.estado as string));
                             if (allLegApproved) {
-                              estadoLegalizacion = "Aprobado";
+                              estadoLegalizacion = "Legalizado";
                               estadoLegClass = "bg-green-500/20 text-green-400 border-green-500/30";
                             } else if (anyLegRejected) {
-                              estadoLegalizacion = "Rechazado";
+                              estadoLegalizacion = "No legalizable";
                               estadoLegClass = "bg-red-500/20 text-red-400 border-red-500/30";
-                            } else if (anyLegRevisando || linkedLegs.length > 0) {
+                            } else if (linkedLegs.length > 0) {
                               estadoLegalizacion = "Revisando";
                               estadoLegClass = "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
                             }
                           }
 
                           return (
-                            <div className="flex items-center gap-4 flex-wrap">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs text-muted-foreground">Estado de solicitud:</span>
-                                <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoSolicitudClass}`}>
-                                  {estadoSolicitud}
-                                </span>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {/* Step 1: Solicitud */}
+                              <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-1.5 border border-border/50">
+                                <div className={`flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${estadoSolicitud === "Aprobado" ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                                  1
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] text-muted-foreground leading-none mb-0.5">Paso 1 · Solicitud</span>
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${estadoSolicitudClass}`}>
+                                    {estadoSolicitud}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs text-muted-foreground">Estado de legalización:</span>
-                                <span className={`text-xs font-medium px-3 py-0.5 rounded-full border ${estadoLegClass}`}>
-                                  {estadoLegalizacion}
-                                </span>
+
+                              {/* Arrow */}
+                              <span className="text-muted-foreground text-xs">→</span>
+
+                              {/* Step 2: Legalización */}
+                              <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 border ${estadoSolicitud === "Aprobado" ? "bg-muted/20 border-border/50" : "bg-muted/10 border-border/30 opacity-50"}`}>
+                                <div className={`flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${(estadoLegalizacion === "Legalizado") ? "bg-green-500 text-white" : estadoSolicitud === "Aprobado" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                                  2
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] text-muted-foreground leading-none mb-0.5">Paso 2 · Legalización</span>
+                                  {estadoSolicitud !== "Aprobado" ? (
+                                    <span className="text-xs text-muted-foreground">Disponible al aprobar</span>
+                                  ) : (
+                                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${estadoLegClass}`}>
+                                      {estadoLegalizacion}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           );
@@ -3353,11 +3375,12 @@ const PanelOperaciones = () => {
 
                                   // Determine editability based on both estados
                                   const isSolicitudAprobada = cm.estado === "Aprobado";
-                                  const isLegAprobada = linkedLeg?.estado === "Aprobado";
-                                  // Fully locked: both solicitud AND legalización are "Aprobado"
+                                  const legEstado = linkedLeg?.estado as string | undefined;
+                                  const isLegAprobada = legEstado === "Aprobado" || legEstado === "Legalizado";
+                                  // Fully locked: both solicitud AND legalización are approved/legalized
                                   const isFullyLocked = isSolicitudAprobada && isLegAprobada;
-                                  // Partially editable: solicitud "Aprobado" but legalización NOT "Aprobado" (en revisión)
-                                  // In this state, Imagen, Valor legalización remain editable
+                                  // Partially editable: solicitud "Aprobado" but legalización NOT approved yet
+                                  // In this state, Relacion de gastos, Imagen, Valor legalización remain editable
                                   const isPartiallyEditable = isSolicitudAprobada && !isLegAprobada;
 
                                   return (

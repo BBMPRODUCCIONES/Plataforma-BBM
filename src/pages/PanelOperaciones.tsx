@@ -3158,14 +3158,15 @@ const PanelOperaciones = () => {
                       <CardContent className="pt-0 caja-menor-mobile-scroll">
                         {(currentProjectData.cajaMenor || []).length > 0 ? (
                           <div className="overflow-x-auto scrollbar-thin">
-                            <table className="matrix-table w-full" style={{ minWidth: '1100px' }}>
-                              <thead>
+                            <table className="matrix-table w-full" style={{ minWidth: '1300px' }}>
+                               <thead>
                                 <tr>
+                                  <th style={{ width: '200px', minWidth: '200px' }}>Concepto solicitud</th>
                                   <th style={{ width: '380px', minWidth: '380px' }}>Relación de Gastos</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Categoría *</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Valor anticipo *</th>
-                                  <th style={{ width: '110px', minWidth: '110px' }}>Imagen *</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Valor legalización</th>
+                                  <th style={{ width: '110px', minWidth: '110px' }}>Imagen *</th>
                                   <th style={{ width: '130px', minWidth: '130px' }}>Diferencia</th>
                                   <th style={{ width: '50px', minWidth: '50px' }}></th>
                                 </tr>
@@ -3189,6 +3190,30 @@ const PanelOperaciones = () => {
 
                                   return (
                                     <tr key={cm.id}>
+                                      {/* Concepto solicitud */}
+                                      <td>
+                                        {(() => {
+                                          const canEdit = canEditCajaMenorRecord(cm) && !isSolicitudAprobada;
+                                          if (!canEdit) {
+                                            return (
+                                              <span className="text-sm text-muted-foreground truncate block max-w-[200px]" title={cm.concepto || "-"}>
+                                                {cm.concepto || "-"}
+                                              </span>
+                                            );
+                                          }
+                                          return (
+                                            <EditableCell
+                                              value={cm.concepto}
+                                              type="text"
+                                              placeholder="Concepto..."
+                                              onChange={(value) => {
+                                                if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "concepto", value);
+                                              }}
+                                            />
+                                          );
+                                        })()}
+                                      </td>
+                                      {/* Relación de Gastos */}
                                       <td>
                                         <div className="flex flex-col gap-1.5">
                                           {/* Existing relacion_gastos entries */}
@@ -3271,6 +3296,7 @@ const PanelOperaciones = () => {
                                           )}
                                         </div>
                                       </td>
+                                      {/* Categoría */}
                                       <td>
                                         <div className={!cm.categoria ? "ring-1 ring-red-500 rounded" : undefined}>
                                           <EditableCell
@@ -3286,6 +3312,7 @@ const PanelOperaciones = () => {
                                           />
                                         </div>
                                       </td>
+                                      {/* Valor anticipo */}
                                       <td>
                                         {(() => {
                                           const canEdit = canEditCajaMenorRecord(cm);
@@ -3315,13 +3342,40 @@ const PanelOperaciones = () => {
                                           );
                                         })()}
                                       </td>
+                                      {/* Valor legalización (moved before Imagen) */}
+                                      <td>
+                                        {(() => {
+                                          if (!isSolicitudAprobada) {
+                                            return <span className="text-sm text-muted-foreground">—</span>;
+                                          }
+                                          const legId = `leg-${cm.id}`;
+                                          const isEmpty = !valorLegalizacion || valorLegalizacion === 0;
+                                          const legDisabled = isFullyLocked;
+                                          return (
+                                            <div className={isEmpty && !legDisabled ? "ring-1 ring-amber-500/50 rounded bg-amber-500/5" : ""}>
+                                              <EditableCell
+                                                value={valorLegalizacion}
+                                                type="number"
+                                                placeholder="0"
+                                                onChange={(value) => {
+                                                  if (currentProjectData?.id) {
+                                                    updateLegalizacionItem(currentProjectData.id, legId, "valor", value);
+                                                  }
+                                                }}
+                                                className="text-base font-semibold"
+                                                disabled={legDisabled}
+                                              />
+                                            </div>
+                                          );
+                                        })()}
+                                      </td>
+                                      {/* Imagen */}
                                       <td>
                                         {(() => {
                                           if (!isSolicitudAprobada) {
                                             return <span className="text-sm text-muted-foreground">—</span>;
                                           }
                                           const imgEmpty = !cm.imagenes || cm.imagenes.length === 0;
-                                          // Imagen is editable when solicitud approved but NOT fully locked
                                           const imgDisabled = isFullyLocked;
                                           return (
                                             <div className={imgEmpty && !imgDisabled ? "ring-2 ring-destructive/50 rounded bg-destructive/5 p-0.5" : ""}>
@@ -3342,33 +3396,7 @@ const PanelOperaciones = () => {
                                           );
                                         })()}
                                       </td>
-                                      <td>
-                                        {(() => {
-                                          if (!isSolicitudAprobada) {
-                                            return <span className="text-sm text-muted-foreground">—</span>;
-                                          }
-                                          const legId = `leg-${cm.id}`;
-                                          const isEmpty = !valorLegalizacion || valorLegalizacion === 0;
-                                          // Valor legalización is editable when solicitud approved but NOT fully locked
-                                          const legDisabled = isFullyLocked;
-                                          return (
-                                            <div className={isEmpty && !legDisabled ? "ring-1 ring-amber-500/50 rounded bg-amber-500/5" : ""}>
-                                              <EditableCell
-                                                value={valorLegalizacion}
-                                                type="number"
-                                                placeholder="0"
-                                                onChange={(value) => {
-                                                  if (currentProjectData?.id) {
-                                                    updateLegalizacionItem(currentProjectData.id, legId, "valor", value);
-                                                  }
-                                                }}
-                                                className="text-base font-semibold"
-                                                disabled={legDisabled}
-                                              />
-                                            </div>
-                                          );
-                                        })()}
-                                      </td>
+                                      {/* Diferencia */}
                                       <td>
                                         {(() => {
                                           if (valorAnticipo === 0 && valorLegalizacion === 0) return <span className="text-muted-foreground">—</span>;

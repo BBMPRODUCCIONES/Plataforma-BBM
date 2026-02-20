@@ -3296,46 +3296,79 @@ const PanelOperaciones = () => {
                                                 </div>
                                               ))}
                                               {!isFullyLocked && canEditCajaMenorRecord(cm) && (
-                                                <div className="grid grid-cols-4 gap-1">
-                                                  {["Comercio", "NIT/Cédula", "Concepto", "Valor"].map((ph, phIdx) => {
-                                                    const idSuffix = ["comercio", "nit", "concepto", "valor"][phIdx];
-                                                    return (
-                                                      <Input
-                                                        key={ph}
-                                                        placeholder={ph}
-                                                        className="h-7 text-xs"
-                                                        id={`rg-${idSuffix}-${cm.id}`}
-                                                        type={phIdx === 3 ? "number" : "text"}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        onKeyDown={(e) => {
-                                                          if (e.key === "Enter") {
-                                                            e.preventDefault();
-                                                            const comercioEl = document.getElementById(`rg-comercio-${cm.id}`) as HTMLInputElement;
-                                                            const nitEl = document.getElementById(`rg-nit-${cm.id}`) as HTMLInputElement;
-                                                            const conceptoEl = document.getElementById(`rg-concepto-${cm.id}`) as HTMLInputElement;
-                                                            const valorEl = document.getElementById(`rg-valor-${cm.id}`) as HTMLInputElement;
-                                                            const comercio = comercioEl?.value?.trim() || "";
-                                                            const nitCedula = nitEl?.value?.trim() || "";
-                                                            const concepto = conceptoEl?.value?.trim() || "";
-                                                            const valor = parseFloat(valorEl?.value || "0") || 0;
-                                                            if (!comercio && !nitCedula && !concepto && !valor) return;
-                                                            if (currentProjectData?.id) {
-                                                              const existing: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
-                                                              const updated = [...existing, { comercio, nitCedula, concepto, valor }];
-                                                              updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
-                                                              const newSum = updated.reduce((s, e) => s + (e.valor || 0), 0);
-                                                              const legId = `leg-${cm.id}`;
-                                                              updateLegalizacionItem(currentProjectData.id, legId, "valor", newSum);
-                                                              if (comercioEl) comercioEl.value = "";
-                                                              if (nitEl) nitEl.value = "";
-                                                              if (conceptoEl) conceptoEl.value = "";
-                                                              if (valorEl) valorEl.value = "";
+                                                <div className="flex items-end gap-1">
+                                                  <div className="grid grid-cols-4 gap-1 flex-1">
+                                                    {["Comercio", "NIT/Cédula", "Concepto", "Valor"].map((ph, phIdx) => {
+                                                      const idSuffix = ["comercio", "nit", "concepto", "valor"][phIdx];
+                                                      return (
+                                                        <Input
+                                                          key={ph}
+                                                          placeholder={ph}
+                                                          className="h-7 text-xs"
+                                                          id={`rg-${idSuffix}-${cm.id}`}
+                                                          type={phIdx === 3 ? "number" : "text"}
+                                                          onClick={(e) => e.stopPropagation()}
+                                                          onKeyDown={(e) => {
+                                                            if (e.key === "Enter") {
+                                                              e.preventDefault();
+                                                              const comercioEl = document.getElementById(`rg-comercio-${cm.id}`) as HTMLInputElement;
+                                                              const nitEl = document.getElementById(`rg-nit-${cm.id}`) as HTMLInputElement;
+                                                              const conceptoEl = document.getElementById(`rg-concepto-${cm.id}`) as HTMLInputElement;
+                                                              const valorEl = document.getElementById(`rg-valor-${cm.id}`) as HTMLInputElement;
+                                                              const comercio = comercioEl?.value?.trim() || "";
+                                                              const nitCedula = nitEl?.value?.trim() || "";
+                                                              const concepto = conceptoEl?.value?.trim() || "";
+                                                              const valor = parseFloat(valorEl?.value || "0") || 0;
+                                                              if (!comercio && !nitCedula && !concepto && !valor) return;
+                                                              if (currentProjectData?.id) {
+                                                                const existing: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
+                                                                const updated = [...existing, { comercio, nitCedula, concepto, valor }];
+                                                                updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
+                                                                const newSum = updated.reduce((s, e) => s + (e.valor || 0), 0);
+                                                                const legId = `leg-${cm.id}`;
+                                                                updateLegalizacionItem(currentProjectData.id, legId, "valor", newSum);
+                                                                if (comercioEl) comercioEl.value = "";
+                                                                if (nitEl) nitEl.value = "";
+                                                                if (conceptoEl) conceptoEl.value = "";
+                                                                if (valorEl) valorEl.value = "";
+                                                              }
                                                             }
-                                                          }
-                                                        }}
-                                                      />
-                                                    );
-                                                  })}
+                                                          }}
+                                                        />
+                                                      );
+                                                    })}
+                                                  </div>
+                                                  <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="h-7 w-7 shrink-0"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      const comercioEl = document.getElementById(`rg-comercio-${cm.id}`) as HTMLInputElement;
+                                                      const nitEl = document.getElementById(`rg-nit-${cm.id}`) as HTMLInputElement;
+                                                      const conceptoEl = document.getElementById(`rg-concepto-${cm.id}`) as HTMLInputElement;
+                                                      const valorEl = document.getElementById(`rg-valor-${cm.id}`) as HTMLInputElement;
+                                                      const comercio = comercioEl?.value?.trim() || "";
+                                                      const nitCedula = nitEl?.value?.trim() || "";
+                                                      const concepto = conceptoEl?.value?.trim() || "";
+                                                      const valor = parseFloat(valorEl?.value || "0") || 0;
+                                                      if (!comercio && !nitCedula && !concepto && !valor) return;
+                                                      if (currentProjectData?.id) {
+                                                        const existing: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
+                                                        const updated = [...existing, { comercio, nitCedula, concepto, valor }];
+                                                        updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
+                                                        const newSum = updated.reduce((s, e) => s + (e.valor || 0), 0);
+                                                        const legId = `leg-${cm.id}`;
+                                                        updateLegalizacionItem(currentProjectData.id, legId, "valor", newSum);
+                                                        if (comercioEl) comercioEl.value = "";
+                                                        if (nitEl) nitEl.value = "";
+                                                        if (conceptoEl) conceptoEl.value = "";
+                                                        if (valorEl) valorEl.value = "";
+                                                      }
+                                                    }}
+                                                  >
+                                                    <Plus className="h-4 w-4" />
+                                                  </Button>
                                                 </div>
                                               )}
                                               {((cm as any).relacion_gastos || []).length === 0 && isFullyLocked && (

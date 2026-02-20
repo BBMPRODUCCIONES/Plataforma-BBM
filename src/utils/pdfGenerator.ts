@@ -1186,7 +1186,7 @@ const generateCorporateFormatoHTML = (
         </tr>
         <tr style="font-weight:bold;">
           <td colspan="3" style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">DIFERENCIA</td>
-          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">$ (${totalValor.toLocaleString('es-CO')})</td>
+          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">${(() => { const totalGastos = allExpenseEntries.reduce((s, e) => s + (e.valor || 0), 0); const diff = totalValor - totalGastos; return diff >= 0 ? `$ ${diff.toLocaleString('es-CO')}` : `$ (${Math.abs(diff).toLocaleString('es-CO')})`; })()}</td>
         </tr>
       </table>
 
@@ -1236,7 +1236,7 @@ const generateCorporateFormatoHTML = (
           </td>
           <td style="border:1px solid #000;padding:30px 8px 8px;font-size:10px;text-align:center;width:34%;">
             <div style="border-top:1px solid #000;display:inline-block;padding-top:4px;min-width:150px;">&nbsp;</div>
-            <div style="font-weight:bold;font-size:9px;margin-top:2px;">APROBADO</div>
+            <div style="font-weight:bold;font-size:9px;margin-top:2px;">AUTORIZADO</div>
           </td>
           <td style="border:1px solid #000;padding:30px 8px 8px;font-size:10px;text-align:center;width:33%;">
             <div style="border-top:1px solid #000;display:inline-block;padding-top:4px;min-width:150px;">&nbsp;</div>

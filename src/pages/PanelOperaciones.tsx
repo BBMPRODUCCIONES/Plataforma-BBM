@@ -1230,7 +1230,7 @@ const PanelOperaciones = () => {
     }
     
     // If record is approved, only certain fields can be changed
-    const allowedFieldsWhenApproved = ["estado", "imagenes", "notas_comentarios"];
+    const allowedFieldsWhenApproved = ["estado", "imagenes", "notas_comentarios", "relacion_gastos"];
     if (isRecordApproved(record) && !allowedFieldsWhenApproved.includes(field)) {
       toast.error("El registro está aprobado y no puede ser modificado");
       return;
@@ -3440,7 +3440,7 @@ const PanelOperaciones = () => {
                                             <RelacionGastosEditor
                                               entries={(cm as any).relacion_gastos || []}
                                               isFullyLocked={isFullyLocked}
-                                              canEdit={canEditCajaMenorRecord(cm)}
+                                              canEdit={!isFullyLocked}
                                               onUpdate={(updated) => {
                                                 if (currentProjectData?.id) {
                                                   updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);

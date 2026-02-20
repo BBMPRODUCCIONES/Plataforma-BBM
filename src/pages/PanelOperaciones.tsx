@@ -3434,18 +3434,22 @@ const PanelOperaciones = () => {
                                       {/* Relación de Gastos */}
                                       <td>
                                         <div className="flex flex-col gap-1.5">
-                                          <RelacionGastosEditor
-                                            entries={(cm as any).relacion_gastos || []}
-                                            isFullyLocked={isFullyLocked}
-                                            canEdit={canEditCajaMenorRecord(cm)}
-                                            onUpdate={(updated) => {
-                                              if (currentProjectData?.id) {
-                                                updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
-                                                const newSum = updated.reduce((s: number, e: RelacionGastoEntry) => s + (e.valor || 0), 0);
-                                                updateLegalizacionItem(currentProjectData.id, `leg-${cm.id}`, "valor", newSum);
-                                              }
-                                            }}
-                                          />
+                                          {!isSolicitudAprobada ? (
+                                            <span className="text-sm text-muted-foreground">—</span>
+                                          ) : (
+                                            <RelacionGastosEditor
+                                              entries={(cm as any).relacion_gastos || []}
+                                              isFullyLocked={isFullyLocked}
+                                              canEdit={canEditCajaMenorRecord(cm)}
+                                              onUpdate={(updated) => {
+                                                if (currentProjectData?.id) {
+                                                  updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
+                                                  const newSum = updated.reduce((s: number, e: RelacionGastoEntry) => s + (e.valor || 0), 0);
+                                                  updateLegalizacionItem(currentProjectData.id, `leg-${cm.id}`, "valor", newSum);
+                                                }
+                                              }}
+                                            />
+                                          )}
                                         </div>
                                       </td>
                                       {/* Valor legalización */}

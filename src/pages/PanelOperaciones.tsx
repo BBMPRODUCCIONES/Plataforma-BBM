@@ -132,6 +132,167 @@ const serializeResponsablesToStorage = (responsables: ResponsableData[]): {
   };
 };
 
+// ============= RelacionGastosEditor: isolated component with local state =============
+interface RelacionGastosEditorProps {
+  entries: RelacionGastoEntry[];
+  isFullyLocked: boolean;
+  canEdit: boolean;
+  onUpdate: (updated: RelacionGastoEntry[]) => void;
+}
+
+function RelacionGastosEditor({ entries, isFullyLocked, canEdit, onUpdate }: RelacionGastosEditorProps) {
+  const [localEntries, setLocalEntries] = useState<RelacionGastoEntry[]>(entries);
+  const [newComercio, setNewComercio] = useState("");
+  const [newNit, setNewNit] = useState("");
+  const [newConcepto, setNewConcepto] = useState("");
+  const [newValor, setNewValor] = useState("");
+  const prevEntriesRef = useRef<string>("");
+
+  useEffect(() => {
+    const serialized = JSON.stringify(entries);
+    if (serialized !== prevEntriesRef.current) {
+      prevEntriesRef.current = serialized;
+      setLocalEntries(entries);
+    }
+  }, [entries]);
+
+  const updateEntry = (idx: number, field: keyof RelacionGastoEntry, value: string | number) => {
+    const updated = localEntries.map((e, i) => i === idx ? { ...e, [field]: value } : e);
+    setLocalEntries(updated);
+    onUpdate(updated);
+  };
+
+  const deleteEntry = (idx: number) => {
+    const updated = localEntries.filter((_, i) => i !== idx);
+    setLocalEntries(updated);
+    onUpdate(updated);
+  };
+
+  const addEntry = () => {
+    const comercio = newComercio.trim();
+    const nitCedula = newNit.trim();
+    const concepto = newConcepto.trim();
+    const valor = parseFloat(newValor) || 0;
+    if (!comercio && !nitCedula && !concepto && !valor) return;
+    const updated = [...localEntries, { comercio, nitCedula, concepto, valor }];
+    setLocalEntries(updated);
+    onUpdate(updated);
+    setNewComercio("");
+    setNewNit("");
+    setNewConcepto("");
+    setNewValor("");
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-[300px]">
+      {localEntries.map((entry, idx) => (
+        <div key={idx} className="flex items-center gap-1 text-xs border-b border-border/40 pb-1">
+          {!isFullyLocked && canEdit ? (
+            <div className="flex-1 grid grid-cols-4 gap-1">
+              <Input
+                className="h-6 text-xs px-1"
+                value={entry.comercio || ""}
+                placeholder="Comercio"
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => updateEntry(idx, "comercio", e.target.value)}
+              />
+              <Input
+                className="h-6 text-xs px-1"
+                value={entry.nitCedula || ""}
+                placeholder="NIT/Cédula"
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => updateEntry(idx, "nitCedula", e.target.value)}
+              />
+              <Input
+                className="h-6 text-xs px-1"
+                value={entry.concepto || ""}
+                placeholder="Concepto"
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => updateEntry(idx, "concepto", e.target.value)}
+              />
+              <Input
+                className="h-6 text-xs px-1 font-mono"
+                type="number"
+                value={entry.valor ?? ""}
+                placeholder="Valor"
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => updateEntry(idx, "valor", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          ) : (
+            <div className="flex-1 grid grid-cols-4 gap-1">
+              <span className="truncate" title={entry.comercio}>{entry.comercio || "—"}</span>
+              <span className="truncate" title={entry.nitCedula}>{entry.nitCedula || "—"}</span>
+              <span className="truncate" title={entry.concepto}>{entry.concepto || "—"}</span>
+              <span className="truncate text-right font-mono">$ {(entry.valor || 0).toLocaleString('es-CO')}</span>
+            </div>
+          )}
+          {!isFullyLocked && canEdit && (
+            <button
+              type="button"
+              className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-destructive shrink-0"
+              onClick={(e) => { e.stopPropagation(); deleteEntry(idx); }}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      ))}
+
+      {!isFullyLocked && canEdit && (
+        <div className="flex items-center gap-1">
+          <div className="grid grid-cols-4 gap-1 flex-1">
+            <Input
+              className="h-7 text-xs"
+              placeholder="Comercio"
+              value={newComercio}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setNewComercio(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEntry(); } }}
+            />
+            <Input
+              className="h-7 text-xs"
+              placeholder="NIT/Cédula"
+              value={newNit}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setNewNit(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEntry(); } }}
+            />
+            <Input
+              className="h-7 text-xs"
+              placeholder="Concepto"
+              value={newConcepto}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setNewConcepto(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEntry(); } }}
+            />
+            <Input
+              className="h-7 text-xs font-mono"
+              type="number"
+              placeholder="Valor"
+              value={newValor}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setNewValor(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEntry(); } }}
+            />
+          </div>
+          <button
+            type="button"
+            className="h-7 w-7 flex items-center justify-center border border-border rounded-md hover:bg-accent shrink-0"
+            onClick={(e) => { e.stopPropagation(); addEntry(); }}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {localEntries.length === 0 && isFullyLocked && (
+        <span className="text-xs text-muted-foreground">Sin datos de relación de gastos</span>
+      )}
+    </div>
+  );
+}
+
 const PanelOperaciones = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -3277,169 +3438,18 @@ const PanelOperaciones = () => {
                                             <span className="text-sm text-muted-foreground">—</span>
                                           )}
                                           {isSolicitudAprobada && (
-                                            <>
-                                              {((cm as any).relacion_gastos || []).map((entry: RelacionGastoEntry, idx: number) => (
-                                                <div key={idx} className="flex items-start gap-1 text-xs border-b border-border/40 pb-1">
-                                                  {!isFullyLocked && canEditCajaMenorRecord(cm) ? (
-                                                    <div className="flex-1 min-w-0 grid grid-cols-4 gap-1">
-                                                      <Input
-                                                        className="h-6 text-xs px-1"
-                                                        defaultValue={entry.comercio}
-                                                        placeholder="Comercio"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        onBlur={(e) => {
-                                                          const updated = [...((cm as any).relacion_gastos || [])];
-                                                          updated[idx] = { ...updated[idx], comercio: e.target.value };
-                                                          if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
-                                                        }}
-                                                      />
-                                                      <Input
-                                                        className="h-6 text-xs px-1"
-                                                        defaultValue={entry.nitCedula}
-                                                        placeholder="NIT/Cédula"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        onBlur={(e) => {
-                                                          const updated = [...((cm as any).relacion_gastos || [])];
-                                                          updated[idx] = { ...updated[idx], nitCedula: e.target.value };
-                                                          if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
-                                                        }}
-                                                      />
-                                                      <Input
-                                                        className="h-6 text-xs px-1"
-                                                        defaultValue={entry.concepto}
-                                                        placeholder="Concepto"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        onBlur={(e) => {
-                                                          const updated = [...((cm as any).relacion_gastos || [])];
-                                                          updated[idx] = { ...updated[idx], concepto: e.target.value };
-                                                          if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
-                                                        }}
-                                                      />
-                                                      <Input
-                                                        className="h-6 text-xs px-1 font-mono"
-                                                        type="number"
-                                                        defaultValue={entry.valor}
-                                                        placeholder="Valor"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        onBlur={(e) => {
-                                                          const updated = [...((cm as any).relacion_gastos || [])];
-                                                          updated[idx] = { ...updated[idx], valor: parseFloat(e.target.value) || 0 };
-                                                          if (currentProjectData?.id) {
-                                                            updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
-                                                            const newSum = updated.reduce((s: number, e: RelacionGastoEntry) => s + (e.valor || 0), 0);
-                                                            updateLegalizacionItem(currentProjectData.id, `leg-${cm.id}`, "valor", newSum);
-                                                          }
-                                                        }}
-                                                      />
-                                                    </div>
-                                                  ) : (
-                                                    <div className="flex-1 min-w-0 grid grid-cols-4 gap-1">
-                                                      <span className="truncate" title={entry.comercio}>{entry.comercio || "—"}</span>
-                                                      <span className="truncate" title={entry.nitCedula}>{entry.nitCedula || "—"}</span>
-                                                      <span className="truncate" title={entry.concepto}>{entry.concepto || "—"}</span>
-                                                      <span className="truncate text-right font-mono">$ {(entry.valor || 0).toLocaleString('es-CO')}</span>
-                                                    </div>
-                                                  )}
-                                                  {!isFullyLocked && canEditCajaMenorRecord(cm) && (
-                                                    <Button
-                                                      variant="ghost"
-                                                      size="icon"
-                                                      className="h-5 w-5 text-muted-foreground hover:text-destructive shrink-0"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (currentProjectData?.id) {
-                                                          const updated = ((cm as any).relacion_gastos || []).filter((_: RelacionGastoEntry, i: number) => i !== idx);
-                                                          updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
-                                                          const newSum = updated.reduce((s: number, e: RelacionGastoEntry) => s + (e.valor || 0), 0);
-                                                          updateLegalizacionItem(currentProjectData.id, `leg-${cm.id}`, "valor", newSum);
-                                                        }
-                                                      }}
-                                                    >
-                                                      <X className="h-3 w-3" />
-                                                    </Button>
-                                                  )}
-                                                </div>
-                                              ))}
-                                              {!isFullyLocked && canEditCajaMenorRecord(cm) && (
-                                                <div className="flex items-end gap-1">
-                                                  <div className="grid grid-cols-4 gap-1 flex-1">
-                                                    {["Comercio", "NIT/Cédula", "Concepto", "Valor"].map((ph, phIdx) => {
-                                                      const idSuffix = ["comercio", "nit", "concepto", "valor"][phIdx];
-                                                      return (
-                                                        <Input
-                                                          key={ph}
-                                                          placeholder={ph}
-                                                          className="h-7 text-xs"
-                                                          id={`rg-${idSuffix}-${cm.id}`}
-                                                          type={phIdx === 3 ? "number" : "text"}
-                                                          onClick={(e) => e.stopPropagation()}
-                                                          onKeyDown={(e) => {
-                                                            if (e.key === "Enter") {
-                                                              e.preventDefault();
-                                                              const comercioEl = document.getElementById(`rg-comercio-${cm.id}`) as HTMLInputElement;
-                                                              const nitEl = document.getElementById(`rg-nit-${cm.id}`) as HTMLInputElement;
-                                                              const conceptoEl = document.getElementById(`rg-concepto-${cm.id}`) as HTMLInputElement;
-                                                              const valorEl = document.getElementById(`rg-valor-${cm.id}`) as HTMLInputElement;
-                                                              const comercio = comercioEl?.value?.trim() || "";
-                                                              const nitCedula = nitEl?.value?.trim() || "";
-                                                              const concepto = conceptoEl?.value?.trim() || "";
-                                                              const valor = parseFloat(valorEl?.value || "0") || 0;
-                                                              if (!comercio && !nitCedula && !concepto && !valor) return;
-                                                              if (currentProjectData?.id) {
-                                                                const existing: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
-                                                                const updated = [...existing, { comercio, nitCedula, concepto, valor }];
-                                                                updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
-                                                                const newSum = updated.reduce((s, e) => s + (e.valor || 0), 0);
-                                                                const legId = `leg-${cm.id}`;
-                                                                updateLegalizacionItem(currentProjectData.id, legId, "valor", newSum);
-                                                                if (comercioEl) comercioEl.value = "";
-                                                                if (nitEl) nitEl.value = "";
-                                                                if (conceptoEl) conceptoEl.value = "";
-                                                                if (valorEl) valorEl.value = "";
-                                                              }
-                                                            }
-                                                          }}
-                                                        />
-                                                      );
-                                                    })}
-                                                  </div>
-                                                  <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    className="h-7 w-7 shrink-0"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      const comercioEl = document.getElementById(`rg-comercio-${cm.id}`) as HTMLInputElement;
-                                                      const nitEl = document.getElementById(`rg-nit-${cm.id}`) as HTMLInputElement;
-                                                      const conceptoEl = document.getElementById(`rg-concepto-${cm.id}`) as HTMLInputElement;
-                                                      const valorEl = document.getElementById(`rg-valor-${cm.id}`) as HTMLInputElement;
-                                                      const comercio = comercioEl?.value?.trim() || "";
-                                                      const nitCedula = nitEl?.value?.trim() || "";
-                                                      const concepto = conceptoEl?.value?.trim() || "";
-                                                      const valor = parseFloat(valorEl?.value || "0") || 0;
-                                                      if (!comercio && !nitCedula && !concepto && !valor) return;
-                                                      if (currentProjectData?.id) {
-                                                        const existing: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
-                                                        const updated = [...existing, { comercio, nitCedula, concepto, valor }];
-                                                        updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
-                                                        const newSum = updated.reduce((s, e) => s + (e.valor || 0), 0);
-                                                        const legId = `leg-${cm.id}`;
-                                                        updateLegalizacionItem(currentProjectData.id, legId, "valor", newSum);
-                                                        if (comercioEl) comercioEl.value = "";
-                                                        if (nitEl) nitEl.value = "";
-                                                        if (conceptoEl) conceptoEl.value = "";
-                                                        if (valorEl) valorEl.value = "";
-                                                      }
-                                                    }}
-                                                  >
-                                                    <Plus className="h-4 w-4" />
-                                                  </Button>
-                                                </div>
-                                              )}
-                                              {((cm as any).relacion_gastos || []).length === 0 && isFullyLocked && (
-                                                <span className="text-xs text-muted-foreground">Sin datos de relación de gastos</span>
-                                              )}
-                                            </>
+                                            <RelacionGastosEditor
+                                              entries={(cm as any).relacion_gastos || []}
+                                              isFullyLocked={isFullyLocked}
+                                              canEdit={canEditCajaMenorRecord(cm)}
+                                              onUpdate={(updated) => {
+                                                if (currentProjectData?.id) {
+                                                  updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
+                                                  const newSum = updated.reduce((s: number, e: RelacionGastoEntry) => s + (e.valor || 0), 0);
+                                                  updateLegalizacionItem(currentProjectData.id, `leg-${cm.id}`, "valor", newSum);
+                                                }
+                                              }}
+                                            />
                                           )}
                                         </div>
                                       </td>

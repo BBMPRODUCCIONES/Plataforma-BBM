@@ -2544,24 +2544,35 @@ const PanelOperaciones = () => {
               // Validación de SOLICITUD DE ANTICIPOS - Imagen OBLIGATORIA
               const cajaMenorItems = currentProjectData.cajaMenor || [];
               if (cajaMenorItems.length > 0) {
+                const legalizacionData2 = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
                 const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
                   const sinValor = !item.valor || item.valor === 0;
                   const sinCategoria = !item.categoria?.trim();
                   const sinConcepto = !item.concepto?.trim();
-                  // Imagen solo es obligatoria si el anticipo está aprobado
-                  const sinImagen = item.estado === "Aprobado" && (!item.imagenes || item.imagenes.length === 0);
-                  return sinValor || sinCategoria || sinConcepto || sinImagen;
+                  const isAprobado = item.estado === "Aprobado";
+                  const linkedLegItem = legalizacionData2.find(l => l.id === `leg-${item.id}`);
+                  const isLegAprobadaItem = linkedLegItem?.estado === "Aprobado";
+                  // Imagen obligatoria si el anticipo está aprobado pero legalización no aprobada aún
+                  const sinImagen = isAprobado && !isLegAprobadaItem && (!item.imagenes || item.imagenes.length === 0);
+                  // Relación de gastos obligatoria si el anticipo está aprobado pero legalización no aprobada aún
+                  const sinRelacion = isAprobado && !isLegAprobadaItem && (!((item as any).relacion_gastos) || ((item as any).relacion_gastos).length === 0);
+                  return sinValor || sinCategoria || sinConcepto || sinImagen || sinRelacion;
                 });
                 
                 if (registrosIncompletos.length > 0) {
                   const errores: string[] = [];
                   registrosIncompletos.forEach((item: CajaMenorItem) => {
                     const idx = cajaMenorItems.indexOf(item);
+                    const isAprobado = item.estado === "Aprobado";
+                    const legalizacionData3 = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
+                    const linkedLegItem = legalizacionData3.find(l => l.id === `leg-${item.id}`);
+                    const isLegAprobadaItem = linkedLegItem?.estado === "Aprobado";
                     const faltantes: string[] = [];
                     if (!item.concepto?.trim()) faltantes.push("concepto");
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
                     if (!item.categoria?.trim()) faltantes.push("categoría");
-                    if (item.estado === "Aprobado" && (!item.imagenes || item.imagenes.length === 0)) faltantes.push("imagen");
+                    if (isAprobado && !isLegAprobadaItem && (!item.imagenes || item.imagenes.length === 0)) faltantes.push("imagen");
+                    if (isAprobado && !isLegAprobadaItem && (!((item as any).relacion_gastos) || ((item as any).relacion_gastos).length === 0)) faltantes.push("relación de gastos");
                     if (faltantes.length > 0) {
                       errores.push(`Anticipo #${idx + 1}: falta ${faltantes.join(", ")}`);
                     }
@@ -3269,12 +3280,66 @@ const PanelOperaciones = () => {
                                             <>
                                               {((cm as any).relacion_gastos || []).map((entry: RelacionGastoEntry, idx: number) => (
                                                 <div key={idx} className="flex items-start gap-1 text-xs border-b border-border/40 pb-1">
-                                                  <div className="flex-1 min-w-0 grid grid-cols-4 gap-1">
-                                                    <span className="truncate" title={entry.comercio}>{entry.comercio || "—"}</span>
-                                                    <span className="truncate" title={entry.nitCedula}>{entry.nitCedula || "—"}</span>
-                                                    <span className="truncate" title={entry.concepto}>{entry.concepto || "—"}</span>
-                                                    <span className="truncate text-right font-mono" title={String(entry.valor || 0)}>$ {(entry.valor || 0).toLocaleString('es-CO')}</span>
-                                                  </div>
+                                                  {!isFullyLocked && canEditCajaMenorRecord(cm) ? (
+                                                    <div className="flex-1 min-w-0 grid grid-cols-4 gap-1">
+                                                      <Input
+                                                        className="h-6 text-xs px-1"
+                                                        defaultValue={entry.comercio}
+                                                        placeholder="Comercio"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onBlur={(e) => {
+                                                          const updated = [...((cm as any).relacion_gastos || [])];
+                                                          updated[idx] = { ...updated[idx], comercio: e.target.value };
+                                                          if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
+                                                        }}
+                                                      />
+                                                      <Input
+                                                        className="h-6 text-xs px-1"
+                                                        defaultValue={entry.nitCedula}
+                                                        placeholder="NIT/Cédula"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onBlur={(e) => {
+                                                          const updated = [...((cm as any).relacion_gastos || [])];
+                                                          updated[idx] = { ...updated[idx], nitCedula: e.target.value };
+                                                          if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
+                                                        }}
+                                                      />
+                                                      <Input
+                                                        className="h-6 text-xs px-1"
+                                                        defaultValue={entry.concepto}
+                                                        placeholder="Concepto"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onBlur={(e) => {
+                                                          const updated = [...((cm as any).relacion_gastos || [])];
+                                                          updated[idx] = { ...updated[idx], concepto: e.target.value };
+                                                          if (currentProjectData?.id) updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
+                                                        }}
+                                                      />
+                                                      <Input
+                                                        className="h-6 text-xs px-1 font-mono"
+                                                        type="number"
+                                                        defaultValue={entry.valor}
+                                                        placeholder="Valor"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onBlur={(e) => {
+                                                          const updated = [...((cm as any).relacion_gastos || [])];
+                                                          updated[idx] = { ...updated[idx], valor: parseFloat(e.target.value) || 0 };
+                                                          if (currentProjectData?.id) {
+                                                            updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
+                                                            const newSum = updated.reduce((s: number, e: RelacionGastoEntry) => s + (e.valor || 0), 0);
+                                                            updateLegalizacionItem(currentProjectData.id, `leg-${cm.id}`, "valor", newSum);
+                                                          }
+                                                        }}
+                                                      />
+                                                    </div>
+                                                  ) : (
+                                                    <div className="flex-1 min-w-0 grid grid-cols-4 gap-1">
+                                                      <span className="truncate" title={entry.comercio}>{entry.comercio || "—"}</span>
+                                                      <span className="truncate" title={entry.nitCedula}>{entry.nitCedula || "—"}</span>
+                                                      <span className="truncate" title={entry.concepto}>{entry.concepto || "—"}</span>
+                                                      <span className="truncate text-right font-mono">$ {(entry.valor || 0).toLocaleString('es-CO')}</span>
+                                                    </div>
+                                                  )}
                                                   {!isFullyLocked && canEditCajaMenorRecord(cm) && (
                                                     <Button
                                                       variant="ghost"

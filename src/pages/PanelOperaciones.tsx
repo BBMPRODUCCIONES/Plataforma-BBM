@@ -214,11 +214,15 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, onUpdate }: Rel
                 <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">$</span>
                 <Input
                   className="h-6 text-xs pl-4 pr-1 font-mono text-right"
-                  type="number"
-                  value={entry.valor ?? ""}
+                  type="text"
+                  inputMode="numeric"
+                  value={entry.valor ? entry.valor.toLocaleString('es-CO') : ""}
                   placeholder="0"
                   onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => updateEntry(idx, "valor", parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9\-]/g, "");
+                    updateEntry(idx, "valor", parseInt(raw) || 0);
+                  }}
                 />
               </div>
             </div>
@@ -273,11 +277,15 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, onUpdate }: Rel
               <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">$</span>
               <Input
                 className="h-7 text-xs pl-4 pr-1 font-mono text-right"
-                type="number"
+                type="text"
+                inputMode="numeric"
                 placeholder="0"
-                value={newValor}
+                value={newValor ? parseInt(newValor.replace(/[^0-9\-]/g, "") || "0").toLocaleString('es-CO') : ""}
                 onClick={(e) => e.stopPropagation()}
-                onChange={(e) => setNewValor(e.target.value)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9\-]/g, "");
+                  setNewValor(raw);
+                }}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEntry(); } }}
               />
             </div>

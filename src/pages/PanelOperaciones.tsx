@@ -501,25 +501,23 @@ const PanelOperaciones = () => {
     return record.estado === "Aprobado";
   };
 
-  // Helper to check if user can edit a Caja Menor record
-  // Blocked when estado = "Aprobado" for everyone
+  // Helper to check if the current user is the creator/owner of a record
+  const isCreatorOfRecord = (record: { empleadoEmail?: string; empleadoId?: string }): boolean => {
+    if (!currentUserEmail) return false;
+    if (record.empleadoEmail?.toLowerCase() === currentUserEmail) return true;
+    if (currentUserEmpleado?.id && record.empleadoId === currentUserEmpleado.id) return true;
+    return false;
+  };
+
+  // Helper to check if user can edit a Caja Menor record (content fields)
+  // ONLY the creator of the anticipo can edit content fields
+  // Admins can only change estado (approve/reject)
   const canEditCajaMenorRecord = (record: CajaMenorItem): boolean => {
-    // If approved, no one can edit (except changing estado by approval users)
+    // If approved, no one can edit content (estado changes handled separately)
     if (isRecordApproved(record)) return false;
     
-    // Admins can always edit
-    if (isAdmin) return true;
-    
-    // Operativo can only edit their own records
-    if (!currentUserEmail) return false;
-    
-    // Match by email (primary)
-    if (record.empleadoEmail?.toLowerCase() === currentUserEmail) return true;
-    
-    // Fallback: match by empleadoId if the current user has a linked employee
-    if (currentUserEmpleado?.id && record.empleadoId === currentUserEmpleado.id) return true;
-    
-    return false;
+    // Only the creator can edit content fields
+    return isCreatorOfRecord(record);
   };
   
   // Get row class name for approved records
@@ -1229,17 +1227,26 @@ const PanelOperaciones = () => {
       return;
     }
     
-    // If record is approved, only certain fields can be changed
-    const allowedFieldsWhenApproved = ["estado", "imagenes", "notas_comentarios", "relacion_gastos"];
-    if (isRecordApproved(record) && !allowedFieldsWhenApproved.includes(field)) {
-      toast.error("El registro está aprobado y no puede ser modificado");
-      return;
-    }
-    
-    // Permission check for non-admins on other fields
-    if (!isAdmin && !canEditCajaMenorRecord(record)) {
-      toast.error("No tienes permiso para editar este registro");
-      return;
+    // Estado changes: admins and approval users can change estado
+    if (field === "estado") {
+      if (!isAdmin && !canApproveCajaMenor()) {
+        toast.error("No tienes permiso para cambiar el estado");
+        return;
+      }
+    } else {
+      // Content fields: ONLY the creator can edit
+      // If record is approved, only relacion_gastos, imagenes, notas_comentarios are allowed (for legalization phase)
+      const allowedFieldsWhenApproved = ["imagenes", "notas_comentarios", "relacion_gastos"];
+      if (isRecordApproved(record) && !allowedFieldsWhenApproved.includes(field)) {
+        toast.error("El registro está aprobado y no puede ser modificado");
+        return;
+      }
+      
+      // Only the creator can edit content fields (even admins cannot)
+      if (!isCreatorOfRecord(record)) {
+        toast.error("Solo el creador de este anticipo puede editarlo");
+        return;
+      }
     }
     
     const updatedCajaMenor = (project.cajaMenor || []).map(c =>
@@ -1252,10 +1259,10 @@ const PanelOperaciones = () => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
     
-    // Permission check for non-admins
+    // Permission check: only creator can delete
     const record = (project.cajaMenor || []).find(c => c.id === cajaMenorId);
-    if (!isAdmin && record && !canEditCajaMenorRecord(record)) {
-      toast.error("No tienes permiso para eliminar este registro");
+    if (record && !isCreatorOfRecord(record)) {
+      toast.error("Solo el creador de este anticipo puede eliminarlo");
       return;
     }
     
@@ -1318,18 +1325,22 @@ const PanelOperaciones = () => {
       return;
     }
     
-    // If record is approved, only 'estado' field can be changed
-    if (record.estado === "Aprobado" && field !== "estado") {
-      toast.error("El registro está aprobado y no puede ser modificado");
-      return;
-    }
-    
-    // Permission check for non-admins on other fields
-    if (!isAdmin) {
-      const canEdit = record.empleadoEmail?.toLowerCase() === currentUserEmail ||
-        (currentUserEmpleado?.id && record.empleadoId === currentUserEmpleado.id);
-      if (!canEdit) {
-        toast.error("No tienes permiso para editar este registro");
+    // Estado changes: admins and approval users can change estado
+    if (field === "estado") {
+      if (!isAdmin && !canApproveCajaMenor()) {
+        toast.error("No tienes permiso para cambiar el estado");
+        return;
+      }
+    } else {
+      // If record is approved, no content edits allowed
+      if (record.estado === "Aprobado") {
+        toast.error("El registro está aprobado y no puede ser modificado");
+        return;
+      }
+      
+      // Only the creator can edit content fields
+      if (!isCreatorOfRecord(record)) {
+        toast.error("Solo el creador de este anticipo puede editarlo");
         return;
       }
     }
@@ -1355,12 +1366,10 @@ const PanelOperaciones = () => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
     
-    // Permission check for non-admins
+    // Permission check: only creator can delete
     const record = (project.legalizacion || []).find(l => l.id === legalizacionId);
-    if (!isAdmin && record) {
-      const canEdit = record.empleadoEmail?.toLowerCase() === currentUserEmail ||
-        (currentUserEmpleado?.id && record.empleadoId === currentUserEmpleado.id);
-      if (!canEdit || record.estado === "Aprobado") {
+    if (record) {
+      if (!isCreatorOfRecord(record) || record.estado === "Aprobado") {
         toast.error("No tienes permiso para eliminar este registro");
         return;
       }
@@ -1376,14 +1385,11 @@ const PanelOperaciones = () => {
     }
   };
   
-  // Helper to check if user can edit a Legalizacion record
+  // Helper to check if user can edit a Legalizacion record (content fields)
+  // ONLY the creator can edit, not admins
   const canEditLegalizacionRecord = (record: LegalizacionItem): boolean => {
     if (record.estado === "Aprobado") return false;
-    if (isAdmin) return true;
-    if (!currentUserEmail) return false;
-    if (record.empleadoEmail?.toLowerCase() === currentUserEmail) return true;
-    if (currentUserEmpleado?.id && record.empleadoId === currentUserEmpleado.id) return true;
-    return false;
+    return isCreatorOfRecord(record);
   };
 
   // Get current project data from state (not stale selectedProject)
@@ -3527,7 +3533,7 @@ const PanelOperaciones = () => {
                                             <RelacionGastosEditor
                                               entries={(cm as any).relacion_gastos || []}
                                               isFullyLocked={isFullyLocked}
-                                              canEdit={!isFullyLocked}
+                                              canEdit={!isFullyLocked && isCreatorOfRecord(cm)}
                                               onUpdate={(updated) => {
                                                 if (currentProjectData?.id) {
                                                   updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
@@ -3546,7 +3552,7 @@ const PanelOperaciones = () => {
                                             return <span className="text-sm text-muted-foreground">—</span>;
                                           }
                                           const relEntries: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
-                                          const imgDisabled = isFullyLocked;
+                                          const imgDisabled = isFullyLocked || !isCreatorOfRecord(cm);
                                           if (relEntries.length === 0) {
                                             return <span className="text-xs text-muted-foreground">Agrega gastos</span>;
                                           }

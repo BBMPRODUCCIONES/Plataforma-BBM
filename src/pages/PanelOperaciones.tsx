@@ -210,14 +210,17 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, onUpdate }: Rel
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => updateEntry(idx, "concepto", e.target.value)}
               />
-              <Input
-                className="h-6 text-xs px-1 font-mono"
-                type="number"
-                value={entry.valor ?? ""}
-                placeholder="Valor"
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => updateEntry(idx, "valor", parseFloat(e.target.value) || 0)}
-              />
+              <div className="relative">
+                <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">$</span>
+                <Input
+                  className="h-6 text-xs pl-4 pr-1 font-mono text-right"
+                  type="number"
+                  value={entry.valor ?? ""}
+                  placeholder="0"
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => updateEntry(idx, "valor", parseFloat(e.target.value) || 0)}
+                />
+              </div>
             </div>
           ) : (
             <div className="flex-1 grid grid-cols-4 gap-1">
@@ -266,15 +269,18 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, onUpdate }: Rel
               onChange={(e) => setNewConcepto(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEntry(); } }}
             />
-            <Input
-              className="h-7 text-xs font-mono"
-              type="number"
-              placeholder="Valor"
-              value={newValor}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => setNewValor(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEntry(); } }}
-            />
+            <div className="relative">
+              <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">$</span>
+              <Input
+                className="h-7 text-xs pl-4 pr-1 font-mono text-right"
+                type="number"
+                placeholder="0"
+                value={newValor}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => setNewValor(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEntry(); } }}
+              />
+            </div>
           </div>
           <button
             type="button"

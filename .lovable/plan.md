@@ -1,22 +1,30 @@
 
 
-## Plan: Renombrar sección "Gastos Menores" a "Caja Menor" en Panel de Operaciones
+# Plan: Mover columna "#Factura" después de "Cotización"
 
-### Contexto
-Actualmente, en el dialog de "Gastos" del Panel de Operaciones ya existe una sección llamada "GASTOS MENORES" que muestra los registros del Reporte de Caja Menor filtrados por el centro de costos del evento, en modo solo lectura. Esta sección solo aparece cuando hay registros.
+## Resumen
 
-### Cambios a realizar
+Se reordenará la columna **#Factura** (actualmente en posición 3, después de "Centro de Costos") para ubicarla después de la columna **Cotización** (posición 11).
 
-**Archivo: `src/pages/PanelOperaciones.tsx`**
+## Cambio
 
-1. **Renombrar la sección**: Cambiar el titulo de "GASTOS MENORES" a "CAJA MENOR"
-2. **Mostrar siempre la sección**: Eliminar la condicion `gastosMenoresForProject.length > 0` para que la seccion siempre sea visible, mostrando un mensaje de "No hay registros" cuando este vacia
-3. **Actualizar la descripcion**: Cambiar "Registros desde Reporte de Caja Menor (solo lectura)" a un texto acorde
+Es una actualización directa en la configuración de columnas del Panel Directivo almacenada en la base de datos. No requiere cambios de código.
 
-### Detalles tecnicos
+### Orden actual
+```
+Evento → Centro de Costos → #Factura → Cliente → Avanzada → Fecha Montaje → Fecha Ejecución → Estado → Ingreso Bruto → Ingreso Total → Cotización → Notas
+```
 
-- Se modifica unicamente el bloque de JSX en las lineas ~3495-3552 del archivo `PanelOperaciones.tsx`
-- No se requieren cambios en la base de datos ni en otros archivos
-- La funcionalidad de solo lectura se mantiene exactamente igual
-- La consulta de datos via `useGastosMenores(centroCostos)` ya existe y filtra correctamente por centro de costos del evento
+### Orden nuevo
+```
+Evento → Centro de Costos → Cliente → Avanzada → Fecha Montaje → Fecha Ejecución → Estado → Ingreso Bruto → Ingreso Total → Cotización → #Factura → Notas
+```
+
+## Implementación
+
+Se actualizará el registro en la tabla `panel_column_configs` con el nuevo orden de columnas. El cambio se reflejará automáticamente para todos los usuarios en tiempo real gracias a la suscripción Realtime que ya tiene el hook `useGlobalColumns`.
+
+## Archivos a modificar
+
+Ninguno. Es exclusivamente una actualización de datos en la base de datos.
 

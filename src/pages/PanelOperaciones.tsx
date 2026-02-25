@@ -51,7 +51,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, X } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, X, Paperclip, Upload, Image } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printSolicitudPresupuesto, printLegalizacion, exportSolicitudToExcel, exportLegalizacionToExcel } from "@/utils/pdfGenerator";
@@ -3174,6 +3174,70 @@ const PanelOperaciones = () => {
                                         <FileSpreadsheet className="h-4 w-4 mr-2" />
                                         Descargar Excel
                                       </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => {
+                                        // Collect all images from relacion_gastos entries
+                                        const cajaMenorItems = currentProjectData.cajaMenor || [];
+                                        const allImages: { concepto: string; comercio: string; url: string }[] = [];
+                                        cajaMenorItems.forEach((cm: CajaMenorItem) => {
+                                          const relEntries: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
+                                          relEntries.forEach((entry) => {
+                                            if (entry.imagen_url) {
+                                              allImages.push({
+                                                concepto: cm.concepto || "Sin concepto",
+                                                comercio: entry.comercio || "Sin comercio",
+                                                url: entry.imagen_url,
+                                              });
+                                            }
+                                          });
+                                        });
+                                        if (allImages.length === 0) {
+                                          toast.error("No hay imágenes para exportar");
+                                          return;
+                                        }
+                                        // Generate printable HTML with all photos
+                                        const printWindow = window.open("", "_blank");
+                                        if (!printWindow) { toast.error("No se pudo abrir la ventana"); return; }
+                                        const eventoName = currentProjectData.evento || "Evento";
+                                        const html = `<!DOCTYPE html><html><head><title>Fotos - ${eventoName}</title><style>
+                                          @media print { .no-print { display: none !important; } @page { margin: 10mm; } }
+                                          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #fff; color: #000; }
+                                          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+                                          .header h1 { margin: 0 0 5px; font-size: 20px; }
+                                          .header p { margin: 0; color: #666; font-size: 14px; }
+                                          .photo-item { page-break-inside: avoid; margin-bottom: 25px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; }
+                                          .photo-item h3 { margin: 0 0 5px; font-size: 14px; }
+                                          .photo-item p { margin: 0 0 10px; font-size: 12px; color: #666; }
+                                          .photo-item img { max-width: 100%; max-height: 600px; display: block; margin: 0 auto; border-radius: 4px; }
+                                          .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 12px 20px; display: flex; gap: 10px; justify-content: center; z-index: 999; }
+                                          .action-bar button { padding: 8px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600; }
+                                          .btn-back { background: #555; color: #fff; }
+                                          .btn-pdf { background: #3b82f6; color: #fff; }
+                                          .total { text-align: center; margin: 20px 0 60px; font-size: 13px; color: #666; }
+                                        </style></head><body>
+                                          <div class="header">
+                                            <h1>Registro Fotográfico - Anticipos</h1>
+                                            <p>${eventoName} · ${currentProjectData.cliente || ""}</p>
+                                          </div>
+                                          ${allImages.map((img, i) => `
+                                            <div class="photo-item">
+                                              <h3>${i + 1}. ${img.concepto}</h3>
+                                              <p>Comercio: ${img.comercio}</p>
+                                              <img src="${img.url}" alt="Foto ${i + 1}" />
+                                            </div>
+                                          `).join("")}
+                                          <div class="total">Total de fotos: ${allImages.length}</div>
+                                          <div class="action-bar no-print">
+                                            <button class="btn-back" onclick="window.close()">← Volver</button>
+                                            <button class="btn-pdf" onclick="window.print()">📄 Guardar PDF</button>
+                                          </div>
+                                        </body></html>`;
+                                        printWindow.document.write(html);
+                                        printWindow.document.close();
+                                      }}>
+                                        <Image className="h-4 w-4 mr-2" />
+                                        Exportar Fotos (PDF)
+                                      </DropdownMenuItem>
                                     </>
                                   );
                                 })()}
@@ -3359,8 +3423,8 @@ const PanelOperaciones = () => {
                                    <th style={{ width: '130px', minWidth: '130px' }}>Categoría *</th>
                                    <th style={{ width: '130px', minWidth: '130px' }}>Valor anticipo *</th>
                                     <th style={{ width: '380px', minWidth: '380px' }}>Relación de Gastos</th>
-                                    <th style={{ width: '130px', minWidth: '130px' }}>Valor legalización</th>
                                     <th style={{ width: '110px', minWidth: '110px' }}>Imagen *</th>
+                                    <th style={{ width: '130px', minWidth: '130px' }}>Valor legalización</th>
                                     <th style={{ width: '130px', minWidth: '130px' }}>Diferencia</th>
                                   <th style={{ width: '50px', minWidth: '50px' }}></th>
                                 </tr>
@@ -3475,6 +3539,75 @@ const PanelOperaciones = () => {
                                           )}
                                         </div>
                                       </td>
+                                      {/* Imagen (per relacion_gastos row) */}
+                                      <td>
+                                        {(() => {
+                                          if (!isSolicitudAprobada) {
+                                            return <span className="text-sm text-muted-foreground">—</span>;
+                                          }
+                                          const relEntries: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
+                                          const imgDisabled = isFullyLocked;
+                                          if (relEntries.length === 0) {
+                                            return <span className="text-xs text-muted-foreground">Agrega gastos</span>;
+                                          }
+                                          return (
+                                            <div className="flex flex-col gap-1.5">
+                                              {relEntries.map((entry: RelacionGastoEntry, idx: number) => {
+                                                const hasImg = !!entry.imagen_url;
+                                                return (
+                                                  <div key={idx} className={`flex items-center gap-1 ${!hasImg && !imgDisabled ? "ring-1 ring-destructive/50 rounded bg-destructive/5 p-0.5" : "p-0.5"}`}>
+                                                    {hasImg ? (
+                                                      <div className="flex items-center gap-1">
+                                                        <a href={entry.imagen_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline flex items-center gap-1">
+                                                          <Paperclip className="h-3 w-3" />
+                                                          Ver
+                                                        </a>
+                                                        {!imgDisabled && (
+                                                          <button
+                                                            type="button"
+                                                            className="h-4 w-4 flex items-center justify-center text-muted-foreground hover:text-destructive"
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              const updated = [...relEntries];
+                                                              updated[idx] = { ...updated[idx], imagen_url: undefined };
+                                                              if (currentProjectData?.id) {
+                                                                updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
+                                                              }
+                                                            }}
+                                                          >
+                                                            <X className="h-3 w-3" />
+                                                          </button>
+                                                        )}
+                                                      </div>
+                                                    ) : imgDisabled ? (
+                                                      <span className="text-xs text-muted-foreground">—</span>
+                                                    ) : (
+                                                      <label className="flex items-center gap-1 cursor-pointer text-xs text-muted-foreground hover:text-primary transition-colors">
+                                                        <Upload className="h-3 w-3" />
+                                                        Subir
+                                                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                                          const file = e.target.files?.[0];
+                                                          if (!file) return;
+                                                          const ext = file.name.split('.').pop();
+                                                          const path = `relacion-gastos/${currentProjectData?.id}/${cm.id}/${idx}-${Date.now()}.${ext}`;
+                                                          const { error } = await supabase.storage.from("notes-images").upload(path, file);
+                                                          if (error) { toast.error("Error al subir imagen"); return; }
+                                                          const { data: urlData } = supabase.storage.from("notes-images").getPublicUrl(path);
+                                                          const updated = [...relEntries];
+                                                          updated[idx] = { ...updated[idx], imagen_url: urlData.publicUrl };
+                                                          if (currentProjectData?.id) {
+                                                            updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
+                                                          }
+                                                        }} />
+                                                      </label>
+                                                    )}
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          );
+                                        })()}
+                                      </td>
                                       {/* Valor legalización */}
                                       <td>
                                         {(() => {
@@ -3498,33 +3631,6 @@ const PanelOperaciones = () => {
                                                 className="text-base font-semibold"
                                                 disabled={legDisabled}
                                               />
-                                            </div>
-                                          );
-                                        })()}
-                                      </td>
-                                      {/* Imagen */}
-                                      <td>
-                                        {(() => {
-                                          if (!isSolicitudAprobada) {
-                                            return <span className="text-sm text-muted-foreground">—</span>;
-                                          }
-                                          const imgEmpty = !cm.imagenes || cm.imagenes.length === 0;
-                                          const imgDisabled = isFullyLocked;
-                                          return (
-                                            <div className={imgEmpty && !imgDisabled ? "ring-2 ring-destructive/50 rounded bg-destructive/5 p-0.5" : ""}>
-                                              <AttachmentButton
-                                                attachments={cm.imagenes || []}
-                                                onAttachmentsChange={(attachments) => {
-                                                  if (currentProjectData?.id && !imgDisabled) {
-                                                    updateCajaMenorItem(currentProjectData.id, cm.id, "imagenes", attachments);
-                                                  }
-                                                }}
-                                                multiple
-                                                projectId={currentProjectData?.id || ""}
-                                                fieldName={`caja-menor-${cm.id}-imagenes`}
-                                                enableCamera={true}
-                                              />
-                                              {imgEmpty && !imgDisabled && <span className="text-[10px] text-destructive block text-center">Requerida</span>}
                                             </div>
                                           );
                                         })()}

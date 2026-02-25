@@ -132,6 +132,7 @@ export interface RelacionGastoEntry {
   nitCedula: string;
   concepto: string;
   valor?: number;
+  imagen_url?: string;
 }
 
 export interface CajaMenorItem {

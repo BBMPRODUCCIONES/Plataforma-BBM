@@ -2734,11 +2734,12 @@ const PanelOperaciones = () => {
                   const linkedLegItem = legalizacionData2.find(l => l.id === `leg-${item.id}`);
                   const legItemEstado = linkedLegItem?.estado as string | undefined;
                   const isLegAprobadaItem = legItemEstado === "Aprobado" || legItemEstado === "Legalizado";
-                  // Imagen obligatoria si el anticipo está aprobado pero legalización no aprobada aún
-                  const sinImagen = isAprobado && !isLegAprobadaItem && (!item.imagenes || item.imagenes.length === 0);
                   // Relación de gastos obligatoria si el anticipo está aprobado pero legalización no aprobada aún
-                  const sinRelacion = isAprobado && !isLegAprobadaItem && (!((item as any).relacion_gastos) || ((item as any).relacion_gastos).length === 0);
-                  return sinValor || sinCategoria || sinConcepto || sinImagen || sinRelacion;
+                  const relEntries: RelacionGastoEntry[] = (item as any).relacion_gastos || [];
+                  const sinRelacion = isAprobado && !isLegAprobadaItem && relEntries.length === 0;
+                  // Cada entrada de relación de gastos debe tener imagen
+                  const sinImagenEnRelacion = isAprobado && !isLegAprobadaItem && relEntries.length > 0 && relEntries.some((e: RelacionGastoEntry) => !e.imagen_url);
+                  return sinValor || sinCategoria || sinConcepto || sinRelacion || sinImagenEnRelacion;
                 });
                 
                 if (registrosIncompletos.length > 0) {
@@ -2753,8 +2754,12 @@ const PanelOperaciones = () => {
                     if (!item.concepto?.trim()) faltantes.push("concepto");
                     if (!item.valor || item.valor === 0) faltantes.push("valor");
                     if (!item.categoria?.trim()) faltantes.push("categoría");
-                    if (isAprobado && !isLegAprobadaItem && (!item.imagenes || item.imagenes.length === 0)) faltantes.push("imagen");
-                    if (isAprobado && !isLegAprobadaItem && (!((item as any).relacion_gastos) || ((item as any).relacion_gastos).length === 0)) faltantes.push("relación de gastos");
+                    const relEntries2: RelacionGastoEntry[] = (item as any).relacion_gastos || [];
+                    if (isAprobado && !isLegAprobadaItem && relEntries2.length === 0) faltantes.push("relación de gastos");
+                    if (isAprobado && !isLegAprobadaItem && relEntries2.length > 0) {
+                      const sinImg = relEntries2.filter((e: RelacionGastoEntry) => !e.imagen_url).length;
+                      if (sinImg > 0) faltantes.push(`imagen en ${sinImg} entrada(s) de relación de gastos`);
+                    }
                     if (faltantes.length > 0) {
                       errores.push(`Anticipo #${idx + 1}: falta ${faltantes.join(", ")}`);
                     }

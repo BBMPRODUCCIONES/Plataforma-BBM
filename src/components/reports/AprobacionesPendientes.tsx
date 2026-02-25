@@ -860,12 +860,13 @@ export default function AprobacionesPendientes() {
                       })()}
                     </TableCell>
                     <TableCell>
-                      {row.source !== 'gastoMenor' && (
+                      {row.projectId && (
                         <Button
                           variant="link"
                           size="sm"
                           className="h-7 px-1 text-xs text-primary underline"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const params = new URLSearchParams({
                               eventId: row.projectId,
                               eventName: row.evento,

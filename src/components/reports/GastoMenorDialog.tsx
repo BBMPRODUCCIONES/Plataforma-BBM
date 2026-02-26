@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
-import { CATEGORIAS_GASTOS_MENORES } from "@/hooks/useGastosMenores";
+import { CATEGORIAS_EVENTOS, CATEGORIAS_ADMIN } from "@/hooks/useGastosMenores";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, Loader2, ChevronsUpDown, Check } from "lucide-react";
@@ -26,6 +26,9 @@ interface GastoMenorDialogProps {
     valor: number;
     imagen_url: string | null;
     estado: string;
+    nombre_comercio: string;
+    nit_cc: string;
+    tipo_centro: string;
   }) => Promise<boolean>;
   centroCostosDefault?: string;
   eventoId?: string | null;
@@ -43,6 +46,25 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
   const [userName, setUserName] = useState("");
   const [ccOpen, setCcOpen] = useState(false);
   const [centrosCostos, setCentrosCostos] = useState<{ value: string; evento: string }[]>([]);
+  const [nombreComercio, setNombreComercio] = useState("");
+  const [nitCc, setNitCc] = useState("");
+
+  // Determine tipo_centro based on selected centro de costos
+  const tipoCentro = useMemo(() => {
+    if (!centroCostos) return "eventos";
+    const norm = centroCostos.toLowerCase();
+    if (norm.includes("admin") || norm.includes("ti ") || norm.startsWith("ti")) return "admin";
+    return "eventos";
+  }, [centroCostos]);
+
+  const categoriasDisponibles = tipoCentro === "admin" ? CATEGORIAS_ADMIN : CATEGORIAS_EVENTOS;
+
+  // Reset categoria when tipo changes
+  useEffect(() => {
+    if (categoria && !(categoriasDisponibles as readonly string[]).includes(categoria)) {
+      setCategoria("");
+    }
+  }, [tipoCentro]);
 
   // Fetch user name on mount
   useState(() => {
@@ -104,6 +126,8 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
     if (!categoria) { toast.error("La categoría es obligatoria"); return; }
     if (!valor || Number(valor) <= 0) { toast.error("El valor debe ser mayor a 0"); return; }
     if (!imagenUrl) { toast.error("La imagen es obligatoria"); return; }
+    if (!nombreComercio.trim()) { toast.error("El nombre del comercio es obligatorio"); return; }
+    if (!nitCc.trim()) { toast.error("El NIT/CC es obligatorio"); return; }
 
     setSubmitting(true);
     const success = await onSubmit({
@@ -116,6 +140,9 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
       valor: Number(valor),
       imagen_url: imagenUrl,
       estado: "Pendiente",
+      nombre_comercio: nombreComercio.trim(),
+      nit_cc: nitCc.trim(),
+      tipo_centro: tipoCentro,
     });
 
     if (success) {
@@ -124,6 +151,8 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
       setCategoria("");
       setValor("");
       setImagenUrl(null);
+      setNombreComercio("");
+      setNitCc("");
       onOpenChange(false);
     }
     setSubmitting(false);
@@ -140,28 +169,23 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
         }
         onOpenChange(v);
       }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Registrar Gasto Menor</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          {/* Usuario - auto */}
+          {/* Usuario */}
           <div className="space-y-1.5">
             <Label>Usuario</Label>
             <Input value={userName || user?.email || ""} disabled className="bg-muted" />
           </div>
 
-          {/* Centro de Costos - Select from existing */}
+          {/* Centro de Costos */}
           <div className="space-y-1.5">
             <Label>Centro de Costos *</Label>
             <Popover open={ccOpen} onOpenChange={setCcOpen}>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={ccOpen}
-                  className="w-full justify-between font-normal"
-                >
+                <Button variant="outline" role="combobox" aria-expanded={ccOpen} className="w-full justify-between font-normal">
                   {centroCostos || "Seleccionar centro de costos"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -193,6 +217,11 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
                 </Command>
               </PopoverContent>
             </Popover>
+            {centroCostos && (
+              <p className="text-[11px] text-muted-foreground">
+                Tipo: <span className="font-medium capitalize">{tipoCentro}</span>
+              </p>
+            )}
           </div>
 
           {/* Concepto */}
@@ -201,7 +230,7 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
             <Input value={concepto} onChange={(e) => setConcepto(e.target.value)} placeholder="Descripción del gasto" />
           </div>
 
-          {/* Categoría */}
+          {/* Categoría - dynamic based on tipo_centro */}
           <div className="space-y-1.5">
             <Label>Categoría *</Label>
             <Select value={categoria} onValueChange={setCategoria}>
@@ -209,23 +238,29 @@ export default function GastoMenorDialog({ open, onOpenChange, onSubmit, centroC
                 <SelectValue placeholder="Seleccionar categoría" />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORIAS_GASTOS_MENORES.map((cat) => (
+                {categoriasDisponibles.map((cat) => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
+          {/* Nombre del Comercio */}
+          <div className="space-y-1.5">
+            <Label>Nombre del comercio *</Label>
+            <Input value={nombreComercio} onChange={(e) => setNombreComercio(e.target.value)} placeholder="Nombre del establecimiento" />
+          </div>
+
+          {/* NIT/CC */}
+          <div className="space-y-1.5">
+            <Label>NIT / CC *</Label>
+            <Input value={nitCc} onChange={(e) => setNitCc(e.target.value)} placeholder="NIT o cédula del comercio" />
+          </div>
+
           {/* Valor */}
           <div className="space-y-1.5">
             <Label>Valor *</Label>
-            <Input
-              type="number"
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              placeholder="0"
-              min={0}
-            />
+            <Input type="number" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0" min={0} />
           </div>
 
           {/* Imagen */}

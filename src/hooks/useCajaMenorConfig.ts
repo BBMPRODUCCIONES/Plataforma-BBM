@@ -1,0 +1,161 @@
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { GastoMenor } from "./useGastosMenores";
+
+export interface CajaMenorConfig {
+  id: string;
+  base_asignada: number;
+  responsable_user_id: string | null;
+  responsable_nombre: string;
+  responsable_timestamp: string | null;
+  estado_cierre: string;
+  desembolso: number;
+  desembolsado_por: string;
+  fecha_cierre: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CajaMenorCierre {
+  id: string;
+  fecha_cierre: string;
+  responsable_nombre: string;
+  responsable_user_id: string | null;
+  valor_total: number;
+  estado: string;
+  desembolsado_por: string;
+  cambios_base: string;
+  created_at: string;
+}
+
+export function useCajaMenorConfig(gastos: GastoMenor[]) {
+  const { user } = useAuth();
+  const [config, setConfig] = useState<CajaMenorConfig | null>(null);
+  const [cierres, setCierres] = useState<CajaMenorCierre[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchConfig = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("caja_menor_config")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!error && data) {
+      setConfig(data as unknown as CajaMenorConfig);
+    }
+    setLoading(false);
+  }, []);
+
+  const fetchCierres = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("caja_menor_cierres")
+      .select("*")
+      .order("fecha_cierre", { ascending: false });
+    if (!error && data) {
+      setCierres(data as unknown as CajaMenorCierre[]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchConfig();
+    fetchCierres();
+  }, [fetchConfig, fetchCierres]);
+
+  // Realtime
+  useEffect(() => {
+    const ch1 = supabase
+      .channel("caja_menor_config_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "caja_menor_config" }, () => fetchConfig())
+      .subscribe();
+    const ch2 = supabase
+      .channel("caja_menor_cierres_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "caja_menor_cierres" }, () => fetchCierres())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch1);
+      supabase.removeChannel(ch2);
+    };
+  }, [fetchConfig, fetchCierres]);
+
+  // Derived stats
+  const stats = useMemo(() => {
+    const base = config?.base_asignada || 0;
+    const totalAprobados = gastos
+      .filter((g) => g.estado === "Aprobado" || g.estado === "Legalizado" || g.estado === "Reembolsado")
+      .reduce((s, g) => s + g.valor, 0);
+    const totalPendientes = gastos
+      .filter((g) => g.estado === "Pendiente")
+      .reduce((s, g) => s + g.valor, 0);
+    const efectivoEnCaja = base - totalAprobados;
+    const reembolsado = config?.desembolso || 0;
+
+    return { base, totalAprobados, totalPendientes, efectivoEnCaja, reembolsado };
+  }, [config, gastos]);
+
+  const updateBase = useCallback(async (newBase: number) => {
+    if (!config) {
+      const { error } = await supabase.from("caja_menor_config").insert({ base_asignada: newBase } as any);
+      if (error) { toast.error("Error: " + error.message); return false; }
+    } else {
+      const { error } = await supabase.from("caja_menor_config").update({ base_asignada: newBase } as any).eq("id", config.id);
+      if (error) { toast.error("Error: " + error.message); return false; }
+    }
+    toast.success("Base actualizada");
+    return true;
+  }, [config]);
+
+  const registerResponsable = useCallback(async () => {
+    const { data: empData } = await supabase.rpc("get_my_employee");
+    const nombre = empData?.[0]?.nombre || user?.email || "";
+
+    if (!config) {
+      const { error } = await supabase.from("caja_menor_config").insert({
+        base_asignada: 0,
+        responsable_user_id: user?.id,
+        responsable_nombre: nombre,
+        responsable_timestamp: new Date().toISOString(),
+      } as any);
+      if (error) { toast.error("Error: " + error.message); return false; }
+    } else {
+      const { error } = await supabase.from("caja_menor_config").update({
+        responsable_user_id: user?.id,
+        responsable_nombre: nombre,
+        responsable_timestamp: new Date().toISOString(),
+      } as any).eq("id", config.id);
+      if (error) { toast.error("Error: " + error.message); return false; }
+    }
+    toast.success("Responsable registrado");
+    return true;
+  }, [config, user]);
+
+  const realizarCierre = useCallback(async (estado: "Legalizado" | "Reembolsado") => {
+    const responsableNombre = config?.responsable_nombre || "";
+    const valorTotal = gastos
+      .filter((g) => g.estado === "Aprobado")
+      .reduce((s, g) => s + g.valor, 0);
+
+    const { error } = await supabase.from("caja_menor_cierres").insert({
+      responsable_nombre: responsableNombre,
+      responsable_user_id: user?.id,
+      valor_total: valorTotal,
+      estado,
+      cambios_base: `Base: ${config?.base_asignada || 0}`,
+    } as any);
+    if (error) { toast.error("Error: " + error.message); return false; }
+
+    // Update config
+    if (config) {
+      await supabase.from("caja_menor_config").update({
+        estado_cierre: estado,
+        fecha_cierre: new Date().toISOString(),
+      } as any).eq("id", config.id);
+    }
+    toast.success(`Cierre de caja: ${estado}`);
+    return true;
+  }, [config, gastos, user]);
+
+  return { config, cierres, loading, stats, updateBase, registerResponsable, realizarCierre, refetch: fetchConfig };
+}

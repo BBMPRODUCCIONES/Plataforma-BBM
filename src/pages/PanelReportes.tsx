@@ -1,14 +1,16 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
-import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2 } from "lucide-react";
+import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2, UserCheck, Lock, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ReporteCajaMenor from "@/components/reports/ReporteCajaMenor";
 import AprobacionesPendientes from "@/components/reports/AprobacionesPendientes";
 import GastoMenorDialog from "@/components/reports/GastoMenorDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useGastosMenores } from "@/hooks/useGastosMenores";
+import { useCajaMenorConfig } from "@/hooks/useCajaMenorConfig";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import GastosMenoresKPIs from "@/components/reports/GastosMenoresKPIs";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
@@ -25,7 +27,11 @@ const PanelReportes = () => {
   const [gastoDialogOpen, setGastoDialogOpen] = useState(false);
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores();
-  const { canApproveCajaMenor } = useUserRole();
+  const { config, cierres, stats, updateBase, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
+  const { canApproveCajaMenor, role } = useUserRole();
+  const isAdmin = role === "administrador";
+  const [editingBase, setEditingBase] = useState(false);
+  const [baseInput, setBaseInput] = useState("");
 
   const handleEstadoChange = async (gastoId: string, newEstado: string) => {
     const { data: userData } = await supabase.auth.getUser();
@@ -227,23 +233,106 @@ const PanelReportes = () => {
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto space-y-4">
+        {/* Estado de Caja Menor - Dashboard */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Base Asignada */}
+          <Card className="border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-muted-foreground font-medium">Base Asignada</p>
+                {isAdmin && (
+                  <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => {
+                    setEditingBase(!editingBase);
+                    setBaseInput(String(stats.base || ""));
+                  }}>
+                    {editingBase ? "Cancelar" : "Editar"}
+                  </Button>
+                )}
+              </div>
+              {editingBase ? (
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    value={baseInput}
+                    onChange={(e) => setBaseInput(e.target.value)}
+                    className="h-8 text-sm"
+                    placeholder="0"
+                  />
+                  <Button size="sm" className="h-8" onClick={async () => {
+                    if (await updateBase(Number(baseInput))) setEditingBase(false);
+                  }}>OK</Button>
+                </div>
+              ) : (
+                <p className="text-xl font-bold">{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(stats.base)}</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Persona Responsable */}
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground font-medium mb-2">Persona Responsable</p>
+              {config?.responsable_nombre ? (
+                <div className="flex items-center gap-2">
+                  <UserCheck className="h-4 w-4 text-emerald-500" />
+                  <div>
+                    <p className="text-sm font-medium">{config.responsable_nombre}</p>
+                    {config.responsable_timestamp && (
+                      <p className="text-[10px] text-muted-foreground">
+                        {format(new Date(config.responsable_timestamp), "dd/MM/yyyy HH:mm", { locale: es })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" onClick={registerResponsable} className="w-full">
+                  <UserCheck className="h-4 w-4 mr-1" /> Registrarme
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Cierre de Caja */}
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground font-medium mb-2">Cierre de Caja</p>
+              <p className="text-sm mb-2">
+                Estado: <span className="font-medium">{config?.estado_cierre || "Abierta"}</span>
+              </p>
+              {isAdmin && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="text-xs flex-1" onClick={() => realizarCierre("Legalizado")}>
+                    <Lock className="h-3 w-3 mr-1" /> Legalizar
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-xs flex-1" onClick={() => realizarCierre("Reembolsado")}>
+                    <RotateCcw className="h-3 w-3 mr-1" /> Reembolsar
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* KPIs */}
+        <GastosMenoresKPIs gastos={gastos} baseAsignada={stats.base} />
+
+        {/* Gastos Table */}
         {loading ? (
           <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>
         ) : gastos.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">No hay gastos registrados. Haga clic en "Agregar Gasto" para comenzar.</p>
+          <div className="flex items-center justify-center py-12">
+            <p className="text-muted-foreground">No hay gastos registrados.</p>
           </div>
         ) : (
-          <>
-          <GastosMenoresKPIs gastos={gastos} />
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Fecha</TableHead>
-                <TableHead>Usuario</TableHead>
                 <TableHead>Centro de Costos</TableHead>
                 <TableHead>Concepto</TableHead>
                 <TableHead>Categoría</TableHead>
+                <TableHead>Nombre Comercio</TableHead>
+                <TableHead>NIT/CC</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Imagen</TableHead>
                 <TableHead>Estado</TableHead>
@@ -257,38 +346,35 @@ const PanelReportes = () => {
                   <TableCell className="text-xs whitespace-nowrap">
                     {format(new Date(g.created_at), "dd/MM/yyyy", { locale: es })}
                   </TableCell>
-                  <TableCell className="text-xs">{g.usuario_nombre}</TableCell>
                   <TableCell className="text-xs">{g.centro_costos || "—"}</TableCell>
                   <TableCell className="text-xs">{g.concepto}</TableCell>
                   <TableCell className="text-xs">{g.categoria}</TableCell>
+                  <TableCell className="text-xs">{g.nombre_comercio || "—"}</TableCell>
+                  <TableCell className="text-xs">{g.nit_cc || "—"}</TableCell>
                   <TableCell className="text-xs text-right font-mono">
                     $ {g.valor.toLocaleString("es-CO")}
                   </TableCell>
                   <TableCell>
                     {g.imagen_url ? (
-                      <a href={g.imagen_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
-                        Ver
-                      </a>
+                      <a href={g.imagen_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">Ver</a>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
-                    <CajaMenorEstadoSelect
-                      value={g.estado}
-                      onChange={() => {}}
-                      readOnly
-                    />
+                    {canApproveCajaMenor() ? (
+                      <CajaMenorEstadoSelect value={g.estado} onChange={(v) => handleEstadoChange(g.id, v)} />
+                    ) : (
+                      <CajaMenorEstadoSelect value={g.estado} onChange={() => {}} readOnly />
+                    )}
                   </TableCell>
-                  <TableCell className="text-xs whitespace-nowrap">
-                    {g.aprobado_por_nombre || "—"}
-                  </TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{g.aprobado_por_nombre || "—"}</TableCell>
                   <TableCell>
-                    {canApproveCajaMenor() && g.estado !== "Aprobado" && (
+                    {canApproveCajaMenor() && g.estado !== "Aprobado" && g.estado !== "Legalizado" && g.estado !== "Reembolsado" && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => handleDeleteGasto(g.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -299,7 +385,37 @@ const PanelReportes = () => {
               ))}
             </TableBody>
           </Table>
-          </>
+        )}
+
+        {/* Historial de Cierres */}
+        {cierres.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-muted-foreground">Historial de Cierres de Caja</h3>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha Cierre</TableHead>
+                  <TableHead>Responsable</TableHead>
+                  <TableHead className="text-right">Valor Total</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Cambios Base</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {cierres.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="text-xs">{format(new Date(c.fecha_cierre), "dd/MM/yyyy HH:mm", { locale: es })}</TableCell>
+                    <TableCell className="text-xs">{c.responsable_nombre}</TableCell>
+                    <TableCell className="text-xs text-right font-mono">$ {c.valor_total.toLocaleString("es-CO")}</TableCell>
+                    <TableCell>
+                      <CajaMenorEstadoSelect value={c.estado} onChange={() => {}} readOnly />
+                    </TableCell>
+                    <TableCell className="text-xs">{c.cambios_base || "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

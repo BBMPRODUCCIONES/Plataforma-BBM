@@ -15,16 +15,28 @@ export interface GastoMenor {
   estado: string;
   aprobado_por_id: string | null;
   aprobado_por_nombre: string;
+  nombre_comercio: string;
+  nit_cc: string;
+  tipo_centro: string;
   created_at: string;
   updated_at: string;
 }
 
-export const CATEGORIAS_GASTOS_MENORES = [
-  "Transporte",
+export const CATEGORIAS_EVENTOS = [
+  "Insumos",
   "Alimentación",
-  "Papelería",
+  "Transporte",
+] as const;
+
+export const CATEGORIAS_ADMIN = [
   "Aseo",
-  "Servicios",
+  "Cafetería",
+  "Papelería",
+] as const;
+
+export const CATEGORIAS_GASTOS_MENORES = [
+  ...CATEGORIAS_EVENTOS,
+  ...CATEGORIAS_ADMIN,
 ] as const;
 
 export function useGastosMenores(centroCostos?: string) {

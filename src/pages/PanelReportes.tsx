@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
-import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2, UserCheck, Lock, RotateCcw } from "lucide-react";
+import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useGastosMenores } from "@/hooks/useGastosMenores";
 import { useCajaMenorConfig } from "@/hooks/useCajaMenorConfig";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import GastosMenoresKPIs from "@/components/reports/GastosMenoresKPIs";
+import EstadoCajaMenor from "@/components/reports/EstadoCajaMenor";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
@@ -233,88 +233,21 @@ const PanelReportes = () => {
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto space-y-4">
-        {/* Estado de Caja Menor - Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Base Asignada */}
-          <Card className="border-primary/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-muted-foreground font-medium">Base Asignada</p>
-                {isAdmin && (
-                  <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => {
-                    setEditingBase(!editingBase);
-                    setBaseInput(String(stats.base || ""));
-                  }}>
-                    {editingBase ? "Cancelar" : "Editar"}
-                  </Button>
-                )}
-              </div>
-              {editingBase ? (
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    value={baseInput}
-                    onChange={(e) => setBaseInput(e.target.value)}
-                    className="h-8 text-sm"
-                    placeholder="0"
-                  />
-                  <Button size="sm" className="h-8" onClick={async () => {
-                    if (await updateBase(Number(baseInput))) setEditingBase(false);
-                  }}>OK</Button>
-                </div>
-              ) : (
-                <p className="text-xl font-bold">{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(stats.base)}</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Persona Responsable */}
-          <Card className="border-border/50">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground font-medium mb-2">Persona Responsable</p>
-              {config?.responsable_nombre ? (
-                <div className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4 text-emerald-500" />
-                  <div>
-                    <p className="text-sm font-medium">{config.responsable_nombre}</p>
-                    {config.responsable_timestamp && (
-                      <p className="text-[10px] text-muted-foreground">
-                        {format(new Date(config.responsable_timestamp), "dd/MM/yyyy HH:mm", { locale: es })}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <Button variant="outline" size="sm" onClick={registerResponsable} className="w-full">
-                  <UserCheck className="h-4 w-4 mr-1" /> Registrarme
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Cierre de Caja */}
-          <Card className="border-border/50">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground font-medium mb-2">Cierre de Caja</p>
-              <p className="text-sm mb-2">
-                Estado: <span className="font-medium">{config?.estado_cierre || "Abierta"}</span>
-              </p>
-              {isAdmin && (
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="text-xs flex-1" onClick={() => realizarCierre("Legalizado")}>
-                    <Lock className="h-3 w-3 mr-1" /> Legalizar
-                  </Button>
-                  <Button variant="outline" size="sm" className="text-xs flex-1" onClick={() => realizarCierre("Reembolsado")}>
-                    <RotateCcw className="h-3 w-3 mr-1" /> Reembolsar
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* KPIs */}
-        <GastosMenoresKPIs gastos={gastos} baseAsignada={stats.base} />
+        {/* Estado de Caja Menor - Full Dashboard */}
+        <EstadoCajaMenor
+          gastos={gastos}
+          config={config}
+          stats={stats}
+          isAdmin={isAdmin}
+          editingBase={editingBase}
+          baseInput={baseInput}
+          onEditBase={() => { setEditingBase(true); setBaseInput(String(stats.base || "")); }}
+          onCancelEditBase={() => setEditingBase(false)}
+          onBaseInputChange={setBaseInput}
+          onSaveBase={async () => { if (await updateBase(Number(baseInput))) setEditingBase(false); }}
+          onRegisterResponsable={registerResponsable}
+          onCierre={realizarCierre}
+        />
 
         {/* Gastos Table */}
         {loading ? (
@@ -398,6 +331,7 @@ const PanelReportes = () => {
                   <TableHead>Responsable</TableHead>
                   <TableHead className="text-right">Valor Total</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead>Desembolsado por</TableHead>
                   <TableHead>Cambios Base</TableHead>
                 </TableRow>
               </TableHeader>
@@ -410,6 +344,7 @@ const PanelReportes = () => {
                     <TableCell>
                       <CajaMenorEstadoSelect value={c.estado} onChange={() => {}} readOnly />
                     </TableCell>
+                    <TableCell className="text-xs">{c.desembolsado_por || "—"}</TableCell>
                     <TableCell className="text-xs">{c.cambios_base || "—"}</TableCell>
                   </TableRow>
                 ))}

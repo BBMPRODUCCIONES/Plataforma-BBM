@@ -43,6 +43,19 @@ export function PWAUpdateBanner() {
   }, []);
 
   const handleUpdate = useCallback(() => {
+    // Immediately hide the banner to prevent multiple clicks
+    setShowUpdate(false);
+
+    const forceReload = () => {
+      if ('caches' in window) {
+        caches.keys()
+          .then((names: string[]) => Promise.all(names.map((n: string) => caches.delete(n))))
+          .finally(() => { window.location.reload(); });
+      } else {
+        window.location.reload();
+      }
+    };
+
     if (waitingWorker) {
       // Listen for the new service worker to take control
       navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -51,19 +64,17 @@ export function PWAUpdateBanner() {
 
       waitingWorker.postMessage({ type: 'SKIP_WAITING' });
 
-      // Fallback: if controllerchange doesn't fire within 2s, force reload
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      // Fallback: force reload after 1s if controllerchange doesn't fire
+      setTimeout(forceReload, 1000);
     } else {
-      // No waiting worker — try to unregister and reload
+      // No waiting worker — unregister, clear caches, and reload
       navigator.serviceWorker.getRegistration().then((reg) => {
         if (reg) {
-          reg.unregister().then(() => window.location.reload());
+          reg.unregister().then(forceReload).catch(forceReload);
         } else {
-          window.location.reload();
+          forceReload();
         }
-      });
+      }).catch(forceReload);
     }
   }, [waitingWorker]);
 

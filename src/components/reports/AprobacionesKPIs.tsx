@@ -15,10 +15,10 @@ interface AprobacionesKPIsProps {
 
 type Categoria = "Solicitud de anticipos" | "Recursos propios" | "Caja menor";
 
-const CATEGORIAS: { key: Categoria; recursos: string[]; icon: typeof FileText; borderColor: string; bgColor: string; iconBg: string; iconColor: string }[] = [
-  { key: "Solicitud de anticipos", recursos: ["Anticipo BBM", "Anticipo"], icon: FileText, borderColor: "border-blue-500/20", bgColor: "bg-blue-500/5", iconBg: "bg-blue-500/20", iconColor: "text-blue-500" },
-  { key: "Recursos propios", recursos: ["Recursos propios"], icon: Wallet, borderColor: "border-emerald-500/20", bgColor: "bg-emerald-500/5", iconBg: "bg-emerald-500/20", iconColor: "text-emerald-500" },
-  { key: "Caja menor", recursos: ["BBM"], icon: Coins, borderColor: "border-amber-500/20", bgColor: "bg-amber-500/5", iconBg: "bg-amber-500/20", iconColor: "text-amber-500" },
+const CATEGORIAS: { key: Categoria; recursos: string[]; icon: typeof FileText; letra: string; borderColor: string; bgColor: string; iconBg: string; iconColor: string; letraBg: string; letraText: string; letraBorder: string }[] = [
+  { key: "Solicitud de anticipos", recursos: ["Anticipo BBM", "Anticipo"], icon: FileText, letra: "S", borderColor: "border-blue-500/20", bgColor: "bg-blue-500/5", iconBg: "bg-blue-500/20", iconColor: "text-blue-500", letraBg: "bg-blue-500/20", letraText: "text-blue-400", letraBorder: "border-blue-500/40" },
+  { key: "Recursos propios", recursos: ["Recursos propios"], icon: Wallet, letra: "R", borderColor: "border-emerald-500/20", bgColor: "bg-emerald-500/5", iconBg: "bg-emerald-500/20", iconColor: "text-emerald-500", letraBg: "bg-emerald-500/20", letraText: "text-emerald-400", letraBorder: "border-emerald-500/40" },
+  { key: "Caja menor", recursos: ["BBM"], icon: Coins, letra: "C", borderColor: "border-amber-500/20", bgColor: "bg-amber-500/5", iconBg: "bg-amber-500/20", iconColor: "text-amber-500", letraBg: "bg-amber-500/20", letraText: "text-amber-400", letraBorder: "border-amber-500/40" },
 ];
 
 const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
@@ -55,7 +55,6 @@ const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
       <div className="grid grid-cols-3 gap-3">
         {CATEGORIAS.map(cat => {
           const stats = statsByCategoria[cat.key];
-          const Icon = cat.icon;
           return (
             <Card
               key={cat.key}
@@ -63,9 +62,9 @@ const AprobacionesKPIs = ({ rows }: AprobacionesKPIsProps) => {
               onClick={() => setSelectedCategoria(cat.key)}
             >
               <CardContent className="p-3 flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${cat.iconBg}`}>
-                  <Icon className={`h-4 w-4 ${cat.iconColor}`} />
-                </div>
+                <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${cat.letraBg} ${cat.letraText} ${cat.letraBorder}`}>
+                  {cat.letra}
+                </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] text-muted-foreground truncate">{cat.key}</p>
                   <div className="flex items-baseline gap-2">

@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      caja_menor_cierres: {
+        Row: {
+          cambios_base: string | null
+          created_at: string
+          desembolsado_por: string | null
+          estado: string
+          fecha_cierre: string
+          id: string
+          responsable_nombre: string
+          responsable_user_id: string | null
+          valor_total: number
+        }
+        Insert: {
+          cambios_base?: string | null
+          created_at?: string
+          desembolsado_por?: string | null
+          estado?: string
+          fecha_cierre?: string
+          id?: string
+          responsable_nombre?: string
+          responsable_user_id?: string | null
+          valor_total?: number
+        }
+        Update: {
+          cambios_base?: string | null
+          created_at?: string
+          desembolsado_por?: string | null
+          estado?: string
+          fecha_cierre?: string
+          id?: string
+          responsable_nombre?: string
+          responsable_user_id?: string | null
+          valor_total?: number
+        }
+        Relationships: []
+      }
+      caja_menor_config: {
+        Row: {
+          base_asignada: number
+          created_at: string
+          desembolsado_por: string | null
+          desembolso: number
+          estado_cierre: string
+          fecha_cierre: string | null
+          id: string
+          responsable_nombre: string | null
+          responsable_timestamp: string | null
+          responsable_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          base_asignada?: number
+          created_at?: string
+          desembolsado_por?: string | null
+          desembolso?: number
+          estado_cierre?: string
+          fecha_cierre?: string | null
+          id?: string
+          responsable_nombre?: string | null
+          responsable_timestamp?: string | null
+          responsable_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          base_asignada?: number
+          created_at?: string
+          desembolsado_por?: string | null
+          desembolso?: number
+          estado_cierre?: string
+          fecha_cierre?: string | null
+          id?: string
+          responsable_nombre?: string | null
+          responsable_timestamp?: string | null
+          responsable_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           created_at: string
@@ -92,6 +170,9 @@ export type Database = {
           evento_id: string | null
           id: string
           imagen_url: string | null
+          nit_cc: string | null
+          nombre_comercio: string | null
+          tipo_centro: string | null
           updated_at: string
           usuario_id: string
           usuario_nombre: string
@@ -108,6 +189,9 @@ export type Database = {
           evento_id?: string | null
           id?: string
           imagen_url?: string | null
+          nit_cc?: string | null
+          nombre_comercio?: string | null
+          tipo_centro?: string | null
           updated_at?: string
           usuario_id: string
           usuario_nombre?: string
@@ -124,6 +208,9 @@ export type Database = {
           evento_id?: string | null
           id?: string
           imagen_url?: string | null
+          nit_cc?: string | null
+          nombre_comercio?: string | null
+          tipo_centro?: string | null
           updated_at?: string
           usuario_id?: string
           usuario_nombre?: string

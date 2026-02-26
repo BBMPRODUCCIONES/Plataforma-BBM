@@ -3757,6 +3757,8 @@ const PanelOperaciones = () => {
                                 <TableHead className="text-xs">Usuario</TableHead>
                                 <TableHead className="text-xs">Concepto</TableHead>
                                 <TableHead className="text-xs">Categoría</TableHead>
+                                <TableHead className="text-xs">Nombre Comercio</TableHead>
+                                <TableHead className="text-xs">NIT/CC</TableHead>
                                 <TableHead className="text-xs text-right">Valor</TableHead>
                                 <TableHead className="text-xs">Imagen</TableHead>
                                 <TableHead className="text-xs">Estado</TableHead>
@@ -3771,6 +3773,8 @@ const PanelOperaciones = () => {
                                   <TableCell className="text-xs">{g.usuario_nombre}</TableCell>
                                   <TableCell className="text-xs">{g.concepto}</TableCell>
                                   <TableCell className="text-xs">{g.categoria}</TableCell>
+                                  <TableCell className="text-xs">{g.nombre_comercio || "—"}</TableCell>
+                                  <TableCell className="text-xs">{g.nit_cc || "—"}</TableCell>
                                   <TableCell className="text-xs text-right font-mono">
                                     $ {g.valor.toLocaleString("es-CO")}
                                   </TableCell>
@@ -3782,13 +3786,7 @@ const PanelOperaciones = () => {
                                     )}
                                   </TableCell>
                                   <TableCell>
-                                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                                      g.estado === "Aprobado" ? "bg-green-500/20 text-green-400" :
-                                      g.estado === "No aprobado" ? "bg-red-500/20 text-red-400" :
-                                      "bg-yellow-500/20 text-yellow-400"
-                                    }`}>
-                                      {g.estado}
-                                    </span>
+                                    <CajaMenorEstadoSelect value={g.estado} onChange={() => {}} readOnly />
                                   </TableCell>
                                 </TableRow>
                               ))}

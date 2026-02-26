@@ -1,170 +1,68 @@
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign, Clock, CheckCircle, XCircle, Utensils, Car, ShoppingBag, Sparkles, Wrench } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { GastoMenor, CATEGORIAS_GASTOS_MENORES } from "@/hooks/useGastosMenores";
-
-const CATEGORIAS_ALL = CATEGORIAS_GASTOS_MENORES as readonly string[];
+import { DollarSign, Clock, CheckCircle, XCircle, Wallet, ArrowDownCircle, FileCheck, RotateCcw } from "lucide-react";
+import { GastoMenor } from "@/hooks/useGastosMenores";
 
 interface GastosMenoresKPIsProps {
   gastos: GastoMenor[];
+  baseAsignada?: number;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  Transporte: "#3b82f6",
-  Alimentación: "#f97316",
-  Papelería: "#a855f7",
-  Aseo: "#06b6d4",
-  Servicios: "#f59e0b",
-};
-
-const GastosMenoresKPIs = ({ gastos }: GastosMenoresKPIsProps) => {
+const GastosMenoresKPIs = ({ gastos, baseAsignada = 0 }: GastosMenoresKPIsProps) => {
   const stats = useMemo(() => {
-    const total = gastos.filter(g => g.estado === "Aprobado").reduce((s, g) => s + g.valor, 0);
-    const pendiente = gastos.filter(g => g.estado === "Pendiente");
-    const aprobado = gastos.filter(g => g.estado === "Aprobado");
-    const noAprobado = gastos.filter(g => g.estado === "No aprobado");
+    const totalAprobados = gastos
+      .filter(g => g.estado === "Aprobado" || g.estado === "Legalizado" || g.estado === "Reembolsado")
+      .reduce((s, g) => s + g.valor, 0);
+    const totalPendientes = gastos
+      .filter(g => g.estado === "Pendiente")
+      .reduce((s, g) => s + g.valor, 0);
+    const efectivoEnCaja = baseAsignada - totalAprobados;
+    const reembolsado = gastos
+      .filter(g => g.estado === "Reembolsado")
+      .reduce((s, g) => s + g.valor, 0);
 
-    const byCategoria: Record<string, number> = {};
-    gastos.filter(g => g.estado === "Aprobado").forEach(g => {
-      byCategoria[g.categoria] = (byCategoria[g.categoria] || 0) + g.valor;
-    });
+    const pendienteCount = gastos.filter(g => g.estado === "Pendiente").length;
+    const aprobadoCount = gastos.filter(g => g.estado === "Aprobado").length;
+    const noAprobadoCount = gastos.filter(g => g.estado === "No aprobado").length;
+    const legalizadoCount = gastos.filter(g => g.estado === "Legalizado").length;
+    const reembolsadoCount = gastos.filter(g => g.estado === "Reembolsado").length;
 
-    return { total, pendiente, aprobado, noAprobado, byCategoria };
-  }, [gastos]);
-
-  const chartData = useMemo(() => {
-    return CATEGORIAS_ALL
-      .map((cat) => ({
-        name: cat,
-        value: stats.byCategoria[cat] || 0,
-        color: CATEGORY_COLORS[cat] || "#6b7280",
-      }))
-      .filter(d => d.value > 0);
-  }, [stats.byCategoria]);
+    return {
+      totalAprobados, totalPendientes, efectivoEnCaja, reembolsado,
+      pendienteCount, aprobadoCount, noAprobadoCount, legalizadoCount, reembolsadoCount,
+      total: gastos.length,
+    };
+  }, [gastos, baseAsignada]);
 
   const fmt = (v: number) =>
     new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
-  const catIcon: Record<string, React.ReactNode> = {
-    Transporte: <Car className="h-3.5 w-3.5" />,
-    Alimentación: <Utensils className="h-3.5 w-3.5" />,
-    Papelería: <ShoppingBag className="h-3.5 w-3.5" />,
-    Aseo: <Sparkles className="h-3.5 w-3.5" />,
-    Servicios: <Wrench className="h-3.5 w-3.5" />,
-  };
-
-  if (gastos.length === 0) return null;
-
   return (
     <div className="space-y-3">
-      {/* Donut + Category detail (charts first) */}
-      {chartData.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Global donut */}
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-3">Valor aprobado por categoría</p>
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-[160px] h-[160px] flex-shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={chartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={68}
-                        paddingAngle={3}
-                        dataKey="value"
-                        stroke="none"
-                      >
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number) => fmt(value)}
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--popover))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                          color: "hsl(var(--popover-foreground))",
-                          fontSize: "12px",
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex flex-col gap-1.5 w-full">
-                  {chartData.map((entry) => (
-                    <div key={entry.name} className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          {catIcon[entry.name] || <DollarSign className="h-3 w-3" />}
-                          {entry.name}
-                        </span>
-                      </div>
-                      <span className="text-xs font-medium">{fmt(entry.value)}</span>
-                    </div>
-                  ))}
-                </div>
+      {/* Financial KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {baseAsignada > 0 && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/20">
+                <Wallet className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Base Asignada</p>
+                <p className="text-sm font-bold">{fmt(baseAsignada)}</p>
               </div>
             </CardContent>
           </Card>
+        )}
 
-          {/* Per-category detail bars */}
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-3">Detalle por categoría (límite $1.000.000)</p>
-              <div className="flex flex-col gap-4">
-                {CATEGORIAS_ALL.map((cat) => {
-                  const value = stats.byCategoria[cat] || 0;
-                  const limit = 1_000_000;
-                  const pct = Math.min((value / limit) * 100, 100);
-                  const isOver = value > limit;
-                  const color = CATEGORY_COLORS[cat] || "#6b7280";
-
-                  return (
-                    <div key={cat} className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          {catIcon[cat] || <DollarSign className="h-3 w-3" />}
-                          {cat}
-                        </span>
-                        <span className={`text-xs font-medium ${isOver ? "text-red-500" : ""}`}>
-                          {fmt(value)} / {fmt(limit)}
-                        </span>
-                      </div>
-                      <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${pct}%`,
-                            backgroundColor: isOver ? "#ef4444" : color,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* KPI cards below charts */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="border-primary/20 bg-primary/5">
+        <Card className="border-emerald-500/20 bg-emerald-500/5">
           <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/20">
-              <DollarSign className="h-4 w-4 text-primary" />
+            <div className="p-2 rounded-lg bg-emerald-500/20">
+              <CheckCircle className="h-4 w-4 text-emerald-500" />
             </div>
             <div>
-              <p className="text-[11px] text-muted-foreground">Total</p>
-              <p className="text-sm font-bold">{fmt(stats.total)}</p>
+              <p className="text-[11px] text-muted-foreground">Gastos Aprobados</p>
+              <p className="text-sm font-bold text-emerald-500">{fmt(stats.totalAprobados)}</p>
             </div>
           </CardContent>
         </Card>
@@ -175,33 +73,71 @@ const GastosMenoresKPIs = ({ gastos }: GastosMenoresKPIsProps) => {
               <Clock className="h-4 w-4 text-yellow-500" />
             </div>
             <div>
-              <p className="text-[11px] text-muted-foreground">Pendientes</p>
-              <p className="text-sm font-bold text-yellow-500">{stats.pendiente.length}</p>
+              <p className="text-[11px] text-muted-foreground">Gastos Pendientes</p>
+              <p className="text-sm font-bold text-yellow-500">{fmt(stats.totalPendientes)}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-500/20 bg-emerald-500/5">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-500/20">
-              <CheckCircle className="h-4 w-4 text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-[11px] text-muted-foreground">Aprobados</p>
-              <p className="text-sm font-bold text-emerald-500">{stats.aprobado.length}</p>
-            </div>
+        {baseAsignada > 0 && (
+          <Card className={`border-${stats.efectivoEnCaja >= 0 ? "blue" : "red"}-500/20 bg-${stats.efectivoEnCaja >= 0 ? "blue" : "red"}-500/5`}>
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className={`p-2 rounded-lg bg-${stats.efectivoEnCaja >= 0 ? "blue" : "red"}-500/20`}>
+                <ArrowDownCircle className={`h-4 w-4 text-${stats.efectivoEnCaja >= 0 ? "blue" : "red"}-500`} />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Efectivo en Caja</p>
+                <p className={`text-sm font-bold text-${stats.efectivoEnCaja >= 0 ? "blue" : "red"}-500`}>{fmt(stats.efectivoEnCaja)}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {stats.reembolsado > 0 && (
+          <Card className="border-cyan-500/20 bg-cyan-500/5">
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-cyan-500/20">
+                <RotateCcw className="h-4 w-4 text-cyan-500" />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Reembolsado</p>
+                <p className="text-sm font-bold text-cyan-500">{fmt(stats.reembolsado)}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Status counts */}
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+        <Card>
+          <CardContent className="p-2.5 text-center">
+            <p className="text-[10px] text-yellow-500">Pendientes</p>
+            <p className="text-lg font-bold text-yellow-500">{stats.pendienteCount}</p>
           </CardContent>
         </Card>
-
-        <Card className="border-red-500/20 bg-red-500/5">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-500/20">
-              <XCircle className="h-4 w-4 text-red-500" />
-            </div>
-            <div>
-              <p className="text-[11px] text-muted-foreground">No aprobados</p>
-              <p className="text-sm font-bold text-red-500">{stats.noAprobado.length}</p>
-            </div>
+        <Card>
+          <CardContent className="p-2.5 text-center">
+            <p className="text-[10px] text-emerald-500">Aprobados</p>
+            <p className="text-lg font-bold text-emerald-500">{stats.aprobadoCount}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-2.5 text-center">
+            <p className="text-[10px] text-red-500">No aprobados</p>
+            <p className="text-lg font-bold text-red-500">{stats.noAprobadoCount}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-2.5 text-center">
+            <p className="text-[10px] text-blue-500">Legalizados</p>
+            <p className="text-lg font-bold text-blue-500">{stats.legalizadoCount}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-2.5 text-center">
+            <p className="text-[10px] text-cyan-500">Reembolsados</p>
+            <p className="text-lg font-bold text-cyan-500">{stats.reembolsadoCount}</p>
           </CardContent>
         </Card>
       </div>

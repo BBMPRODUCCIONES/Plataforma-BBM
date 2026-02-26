@@ -12,15 +12,29 @@ interface GlobalColumnsState {
   loading: boolean;
   error: string | null;
 }
+// Module-level cache to persist columns across component unmount/remount (page navigation)
+const columnsCache = new Map<string, ColumnConfig[]>();
 
 export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[]) {
   const { user } = useAuth();
   const { role, loading: roleLoading } = useUserRole();
+  
+  const cachedColumns = columnsCache.get(panelKey);
+  const initialColumns = cachedColumns || defaultColumns;
+
   const [state, setState] = useState<GlobalColumnsState>({
-    columns: defaultColumns,
-    loading: true,
+    columns: initialColumns,
+    loading: !cachedColumns, // not loading if cache hit
     error: null,
   });
+
+  // Helper to update state and cache simultaneously
+  const setStateAndCache = useCallback((newState: GlobalColumnsState) => {
+    if (newState.columns) {
+      columnsCache.set(panelKey, newState.columns);
+    }
+    setState(newState);
+  }, [panelKey]);
 
   const isAdmin = role === "administrador";
 
@@ -65,7 +79,7 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
 
       if (error) {
         console.error("[useGlobalColumns] Error fetching:", error);
-        setState(prev => ({ ...prev, loading: false, error: error.message }));
+        setStateAndCache({ columns: state.columns, loading: false, error: error.message });
         return;
       }
 
@@ -113,7 +127,7 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
         }
 
         logger.debug(`[useGlobalColumns] Loaded ${merged.length} columns for ${panelKey}`);
-        setState({ columns: merged, loading: false, error: null });
+        setStateAndCache({ columns: merged, loading: false, error: null });
       } else {
         // No config exists yet - auto-initialize if admin
         logger.debug(`[useGlobalColumns] No config found for ${panelKey}`);
@@ -130,7 +144,7 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
               .maybeSingle();
             
             if (newData?.columns) {
-              setState({ columns: newData.columns as unknown as ColumnConfig[], loading: false, error: null });
+              setStateAndCache({ columns: newData.columns as unknown as ColumnConfig[], loading: false, error: null });
               toast.success("Estructura inicializada globalmente");
               return;
             }
@@ -138,11 +152,11 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
         }
         
         // Fallback to defaults
-        setState({ columns: defaultColumns, loading: false, error: null });
+        setStateAndCache({ columns: defaultColumns, loading: false, error: null });
       }
     } catch (err) {
       console.error("[useGlobalColumns] Unexpected error:", err);
-      setState(prev => ({ ...prev, loading: false, error: "Error inesperado" }));
+      setStateAndCache({ columns: state.columns, loading: false, error: "Error inesperado" });
     }
   }, [panelKey, defaultColumns, isAdmin, user, initializeConfig]);
 
@@ -169,10 +183,10 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
           logger.debug(`[useGlobalColumns] Realtime update for ${panelKey}:`, payload.eventType);
           
           if (payload.eventType === "DELETE") {
-            setState({ columns: defaultColumns, loading: false, error: null });
+            setStateAndCache({ columns: defaultColumns, loading: false, error: null });
           } else if (payload.new && (payload.new as any).columns) {
             const newColumns = (payload.new as any).columns as ColumnConfig[];
-            setState({ columns: newColumns, loading: false, error: null });
+            setStateAndCache({ columns: newColumns, loading: false, error: null });
           }
         }
       )
@@ -199,7 +213,7 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
     const previousColumns = state.columns;
     
     // Optimistic update
-    setState(prev => ({ ...prev, columns: newColumns }));
+    setStateAndCache({ ...state, columns: newColumns });
 
     try {
       const { error } = await supabase
@@ -218,7 +232,7 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
         console.error("[useGlobalColumns] Error saving:", error);
         toast.error("Error al guardar la configuración: " + error.message);
         // Revert on error
-        setState(prev => ({ ...prev, columns: previousColumns }));
+        setStateAndCache({ ...state, columns: previousColumns });
         return false;
       }
 
@@ -228,7 +242,7 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
     } catch (err) {
       console.error("[useGlobalColumns] Unexpected save error:", err);
       toast.error("Error inesperado al guardar");
-      setState(prev => ({ ...prev, columns: previousColumns }));
+      setStateAndCache({ ...state, columns: previousColumns });
       return false;
     }
   }, [isAdmin, user, panelKey, state.columns]);

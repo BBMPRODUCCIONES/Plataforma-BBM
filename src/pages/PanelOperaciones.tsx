@@ -51,7 +51,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, X, Paperclip, Upload, Image } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, X, Paperclip, Upload, Image, AlertTriangle } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printSolicitudPresupuesto, printLegalizacion, exportSolicitudToExcel, exportLegalizacionToExcel } from "@/utils/pdfGenerator";
@@ -76,10 +76,11 @@ interface RelacionGastosEditorProps {
   entries: RelacionGastoEntry[];
   isFullyLocked: boolean;
   canEdit: boolean;
+  valorAnticipo: number;
   onUpdate: (updated: RelacionGastoEntry[]) => void;
 }
 
-function RelacionGastosEditor({ entries, isFullyLocked, canEdit, onUpdate }: RelacionGastosEditorProps) {
+function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, onUpdate }: RelacionGastosEditorProps) {
   const [localEntries, setLocalEntries] = useState<RelacionGastoEntry[]>(entries);
   const [newComercio, setNewComercio] = useState("");
   const [newNit, setNewNit] = useState("");
@@ -95,8 +96,15 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, onUpdate }: Rel
     }
   }, [entries]);
 
+  const currentSum = localEntries.reduce((s, e) => s + (e.valor || 0), 0);
+  const exceedsLimit = valorAnticipo > 0 && currentSum > valorAnticipo;
+
   const updateEntry = (idx: number, field: keyof RelacionGastoEntry, value: string | number) => {
     const updated = localEntries.map((e, i) => i === idx ? { ...e, [field]: value } : e);
+    const newSum = updated.reduce((s, e) => s + (e.valor || 0), 0);
+    if (field === "valor" && valorAnticipo > 0 && newSum > valorAnticipo) {
+      toast.error(`El valor total de la relación de gastos ($${newSum.toLocaleString('es-CO')}) supera el valor del anticipo ($${valorAnticipo.toLocaleString('es-CO')}). No se puede procesar la legalización.`);
+    }
     setLocalEntries(updated);
     onUpdate(updated);
   };
@@ -113,6 +121,14 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, onUpdate }: Rel
     const concepto = newConcepto.trim();
     const valor = parseFloat(newValor) || 0;
     if (!comercio && !nitCedula && !concepto && !valor) return;
+
+    // Check if adding this entry would exceed the anticipo value
+    const projectedSum = currentSum + valor;
+    if (valorAnticipo > 0 && projectedSum > valorAnticipo) {
+      toast.error(`No se puede agregar este ítem. El total ($${projectedSum.toLocaleString('es-CO')}) superaría el valor del anticipo ($${valorAnticipo.toLocaleString('es-CO')}). Ajusta los valores existentes o el valor del anticipo.`);
+      return;
+    }
+
     const updated = [...localEntries, { comercio, nitCedula, concepto, valor }];
     setLocalEntries(updated);
     onUpdate(updated);
@@ -241,6 +257,13 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, onUpdate }: Rel
 
       {localEntries.length === 0 && isFullyLocked && (
         <span className="text-xs text-muted-foreground">Sin datos de relación de gastos</span>
+      )}
+
+      {exceedsLimit && (
+        <div className="flex items-center gap-1 text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded px-2 py-1 mt-1">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span>El total ($&nbsp;{currentSum.toLocaleString('es-CO')}) supera el anticipo ($&nbsp;{valorAnticipo.toLocaleString('es-CO')}). No se podrá procesar la legalización.</span>
+        </div>
       )}
     </div>
   );
@@ -3505,6 +3528,7 @@ const PanelOperaciones = () => {
                                               entries={(cm as any).relacion_gastos || []}
                                               isFullyLocked={isFullyLocked}
                                               canEdit={!isFullyLocked && isCreatorOfRecord(cm)}
+                                              valorAnticipo={cm.valor || 0}
                                               onUpdate={(updated) => {
                                                 if (currentProjectData?.id) {
                                                   updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);

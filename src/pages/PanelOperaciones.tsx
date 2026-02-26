@@ -101,10 +101,6 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
 
   const updateEntry = (idx: number, field: keyof RelacionGastoEntry, value: string | number) => {
     const updated = localEntries.map((e, i) => i === idx ? { ...e, [field]: value } : e);
-    const newSum = updated.reduce((s, e) => s + (e.valor || 0), 0);
-    if (field === "valor" && valorAnticipo > 0 && newSum > valorAnticipo) {
-      toast.error(`El valor total de la relación de gastos ($${newSum.toLocaleString('es-CO')}) supera el valor del anticipo ($${valorAnticipo.toLocaleString('es-CO')}). No se puede procesar la legalización.`);
-    }
     setLocalEntries(updated);
     onUpdate(updated);
   };
@@ -121,13 +117,6 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
     const concepto = newConcepto.trim();
     const valor = parseFloat(newValor) || 0;
     if (!comercio && !nitCedula && !concepto && !valor) return;
-
-    // Check if adding this entry would exceed the anticipo value
-    const projectedSum = currentSum + valor;
-    if (valorAnticipo > 0 && projectedSum > valorAnticipo) {
-      toast.error(`No se puede agregar este ítem. El total ($${projectedSum.toLocaleString('es-CO')}) superaría el valor del anticipo ($${valorAnticipo.toLocaleString('es-CO')}). Ajusta los valores existentes o el valor del anticipo.`);
-      return;
-    }
 
     const updated = [...localEntries, { comercio, nitCedula, concepto, valor }];
     setLocalEntries(updated);
@@ -260,9 +249,9 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
       )}
 
       {exceedsLimit && (
-        <div className="flex items-center gap-1 text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded px-2 py-1 mt-1">
+        <div className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1 mt-1">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-          <span>El total ($&nbsp;{currentSum.toLocaleString('es-CO')}) supera el anticipo ($&nbsp;{valorAnticipo.toLocaleString('es-CO')}). No se podrá procesar la legalización.</span>
+          <span>El total ($&nbsp;{currentSum.toLocaleString('es-CO')}) supera el anticipo ($&nbsp;{valorAnticipo.toLocaleString('es-CO')}).</span>
         </div>
       )}
     </div>

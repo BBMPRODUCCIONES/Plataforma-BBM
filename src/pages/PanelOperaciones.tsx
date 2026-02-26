@@ -3434,7 +3434,8 @@ const PanelOperaciones = () => {
                                   const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
                                   const linkedLeg = legalizacion.find(l => l.id === `leg-${cm.id}`);
                                   const valorAnticipo = cm.valor || 0;
-                                  const valorLegalizacion = linkedLeg?.valor || 0;
+                                  const relGastosEntries: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
+                                  const valorLegalizacion = relGastosEntries.reduce((s: number, e: RelacionGastoEntry) => s + (e.valor || 0), 0);
                                   const diferencia = valorAnticipo - valorLegalizacion;
 
                                   // Determine editability based on both estados
@@ -3609,30 +3610,18 @@ const PanelOperaciones = () => {
                                           );
                                         })()}
                                       </td>
-                                      {/* Valor legalización */}
+                                      {/* Valor legalización (read-only: sum of relacion_gastos) */}
                                       <td>
                                         {(() => {
                                           if (!isSolicitudAprobada) {
                                             return <span className="text-sm text-muted-foreground">—</span>;
                                           }
-                                          const legId = `leg-${cm.id}`;
-                                          const isEmpty = !valorLegalizacion || valorLegalizacion === 0;
-                                          const legDisabled = isFullyLocked;
+                                          const relEntries: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
+                                          const computedSum = relEntries.reduce((s: number, e: RelacionGastoEntry) => s + (e.valor || 0), 0);
                                           return (
-                                            <div className={isEmpty && !legDisabled ? "ring-1 ring-amber-500/50 rounded bg-amber-500/5" : ""}>
-                                              <EditableCell
-                                                value={valorLegalizacion}
-                                                type="number"
-                                                placeholder="0"
-                                                onChange={(value) => {
-                                                  if (currentProjectData?.id) {
-                                                    updateLegalizacionItem(currentProjectData.id, legId, "valor", value);
-                                                  }
-                                                }}
-                                                className="text-base font-semibold"
-                                                disabled={legDisabled}
-                                              />
-                                            </div>
+                                            <span className="text-base font-semibold">
+                                              {computedSum > 0 ? `$ ${computedSum.toLocaleString("es-CO")}` : <span className="text-muted-foreground">$ 0</span>}
+                                            </span>
                                           );
                                         })()}
                                       </td>

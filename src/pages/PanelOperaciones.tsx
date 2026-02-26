@@ -20,7 +20,7 @@ import { ProveedorAutocomplete } from "@/components/ProveedorAutocomplete";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
-import { InventarioResponsablesSelector, ResponsableData } from "@/components/InventarioResponsablesSelector";
+import { InventarioResponsablesSelector, ResponsableAutoLog } from "@/components/InventarioResponsablesSelector";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,68 +69,7 @@ import { CajaMenorStatusIcon } from "@/components/CajaMenorStatusIcon";
 import { useGastosMenores } from "@/hooks/useGastosMenores";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-// Helper functions to serialize/deserialize multiple responsables to/from DB storage
-// We store as JSON strings to support multiple responsables while using existing DB columns
-const parseResponsablesFromStorage = (
-  tipo?: string | null,
-  id?: string | null,
-  nombre?: string | null
-): ResponsableData[] => {
-  // Try to parse as JSON array (new format)
-  try {
-    if (nombre) {
-      const parsed = JSON.parse(nombre);
-      if (Array.isArray(parsed)) {
-        return parsed.map((item: { tipo?: string; responsableId?: string; nombre?: string }, idx: number) => ({
-          id: `stored-${idx}`,
-          tipo: item.tipo as 'empleado' | 'proveedor' | undefined,
-          responsableId: item.responsableId,
-          nombre: item.nombre,
-        }));
-      }
-    }
-  } catch {
-    // Fall through to legacy format
-  }
-  
-  // Legacy single value format
-  if (nombre && tipo) {
-    return [{
-      id: 'legacy-0',
-      tipo: tipo as 'empleado' | 'proveedor',
-      responsableId: id || undefined,
-      nombre: nombre,
-    }];
-  }
-  
-  return [];
-};
-
-const serializeResponsablesToStorage = (responsables: ResponsableData[]): {
-  tipo: string | null;
-  id: string | null;
-  nombre: string | null;
-} => {
-  // Filter out empty entries
-  const validResponsables = responsables.filter(r => r.nombre && r.tipo);
-  
-  if (validResponsables.length === 0) {
-    return { tipo: null, id: null, nombre: null };
-  }
-  
-  // Store as JSON array to support multiple responsables
-  const serialized = validResponsables.map(r => ({
-    tipo: r.tipo,
-    responsableId: r.responsableId,
-    nombre: r.nombre,
-  }));
-  
-  return {
-    tipo: JSON.stringify(serialized.map(r => r.tipo)),
-    id: JSON.stringify(serialized.map(r => r.responsableId)),
-    nombre: JSON.stringify(serialized),
-  };
-};
+// (Legacy responsable helpers removed - now using auto-login system)
 
 // ============= RelacionGastosEditor: isolated component with local state =============
 interface RelacionGastosEditorProps {
@@ -3009,36 +2948,49 @@ const PanelOperaciones = () => {
 
                           {/* Responsables del Inventario */}
                           <InventarioResponsablesSelector
-                            responsablesEntradasSalidas={parseResponsablesFromStorage(
-                              currentProjectData.inventarioResponsableEntradasSalidasTipo,
-                              currentProjectData.inventarioResponsableEntradasSalidasId,
-                              currentProjectData.inventarioResponsableEntradasSalidasNombre
-                            )}
-                            responsablesMaterialEvento={parseResponsablesFromStorage(
-                              currentProjectData.inventarioResponsableMaterialEventoTipo,
-                              currentProjectData.inventarioResponsableMaterialEventoId,
-                              currentProjectData.inventarioResponsableMaterialEventoNombre
-                            )}
-                            onResponsablesEntradasSalidasChange={async (data) => {
+                            responsableSalida={{
+                              userId: currentProjectData.inventarioResponsableSalidaUserId,
+                              nombre: currentProjectData.inventarioResponsableSalidaNombre,
+                              timestamp: currentProjectData.inventarioResponsableSalidaTimestamp,
+                            }}
+                            responsableEntrada={{
+                              userId: currentProjectData.inventarioResponsableEntradaUserId,
+                              nombre: currentProjectData.inventarioResponsableEntradaNombre,
+                              timestamp: currentProjectData.inventarioResponsableEntradaTimestamp,
+                            }}
+                            responsableEvento={{
+                              userId: currentProjectData.inventarioResponsableEventoUserId,
+                              nombre: currentProjectData.inventarioResponsableEventoNombre,
+                              timestamp: currentProjectData.inventarioResponsableEventoTimestamp,
+                            }}
+                            onResponsableSalidaChange={async (data) => {
                               try {
-                                const serialized = serializeResponsablesToStorage(data);
-                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradasSalidasTipo', serialized.tipo);
-                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradasSalidasId', serialized.id);
-                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradasSalidasNombre', serialized.nombre);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableSalidaUserId', data.userId || null);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableSalidaNombre', data.nombre || null);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableSalidaTimestamp', data.timestamp || null);
                               } catch (err) {
-                                console.error('[Inventario] Error updating responsables entradas/salidas:', err);
-                                toast.error("Error al actualizar responsables");
+                                console.error('[Inventario] Error updating responsable salida:', err);
+                                toast.error("Error al actualizar responsable");
                               }
                             }}
-                            onResponsablesMaterialEventoChange={async (data) => {
+                            onResponsableEntradaChange={async (data) => {
                               try {
-                                const serialized = serializeResponsablesToStorage(data);
-                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableMaterialEventoTipo', serialized.tipo);
-                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableMaterialEventoId', serialized.id);
-                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableMaterialEventoNombre', serialized.nombre);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradaUserId', data.userId || null);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradaNombre', data.nombre || null);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEntradaTimestamp', data.timestamp || null);
                               } catch (err) {
-                                console.error('[Inventario] Error updating responsables material evento:', err);
-                                toast.error("Error al actualizar responsables");
+                                console.error('[Inventario] Error updating responsable entrada:', err);
+                                toast.error("Error al actualizar responsable");
+                              }
+                            }}
+                            onResponsableEventoChange={async (data) => {
+                              try {
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEventoUserId', data.userId || null);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEventoNombre', data.nombre || null);
+                                await contextUpdateProject(currentProjectData.id, 'inventarioResponsableEventoTimestamp', data.timestamp || null);
+                              } catch (err) {
+                                console.error('[Inventario] Error updating responsable evento:', err);
+                                toast.error("Error al actualizar responsable");
                               }
                             }}
                           />

@@ -248,12 +248,6 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
         <span className="text-xs text-muted-foreground">Sin datos de relación de gastos</span>
       )}
 
-      {exceedsLimit && (
-        <div className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1 mt-1">
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-          <span>El total ($&nbsp;{currentSum.toLocaleString('es-CO')}) supera el anticipo ($&nbsp;{valorAnticipo.toLocaleString('es-CO')}).</span>
-        </div>
-      )}
     </div>
   );
 }

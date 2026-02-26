@@ -908,6 +908,26 @@ const generateCorporateFormatoHTML = (
   const solicitante = getEmpleadoFullInfo(firstItem?.empleadoId, empleados);
   const totalValor = cajaMenor.reduce((sum, c) => sum + (c.valor || 0), 0);
   const fechaHoy = format(new Date(), "dd/MM/yyyy", { locale: es });
+  const categoriaAnticipo = firstItem?.categoria || '-';
+
+  // Determine fecha de legalización: date when all legalization entries were approved
+  let fechaLegalizacion = '';
+  const legalizacionEntries = ((project.legalizacion as any[]) || []);
+  const syncedLegEntries = cajaMenor.map(cm => legalizacionEntries.find(l => l.id === `leg-${cm.id}`)).filter(Boolean);
+  if (syncedLegEntries.length > 0 && syncedLegEntries.every((l: any) => l.estado === 'Aprobado' || l.estado === 'Legalizado')) {
+    // Use the latest createdAt from legalization entries, or project updatedAt as fallback
+    const latestDate = syncedLegEntries.reduce((latest: string, l: any) => {
+      const d = l.createdAt || '';
+      return d > latest ? d : latest;
+    }, '');
+    try {
+      fechaLegalizacion = latestDate
+        ? format(parseISO(latestDate), "dd/MM/yyyy", { locale: es })
+        : format(parseISO(project.updatedAt), "dd/MM/yyyy", { locale: es });
+    } catch {
+      fechaLegalizacion = '';
+    }
+  }
   
   // Build expense rows (RELACION DE GASTOS) from relacion_gastos entries
    const allExpenseEntries: { comercio: string; nitCedula: string; concepto: string; valor: number }[] = [];
@@ -1158,11 +1178,12 @@ const generateCorporateFormatoHTML = (
           <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${fechaHoy}</td>
           <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">TIPO</td>
           <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${solicitante.tipoCuenta === 'Ahorros' ? 'AH' : solicitante.tipoCuenta === 'Corriente' ? 'CTE' : solicitante.tipoCuenta}</td>
-          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;" colspan="2"></td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">CATEGORÍA</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${categoriaAnticipo}</td>
         </tr>
         <tr>
           <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">FECHA A LEGALIZAR</td>
-          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;"></td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${fechaLegalizacion}</td>
           <td style="border:1px solid #000;padding:4px 8px;font-size:10px;" colspan="4"></td>
         </tr>
       </table>

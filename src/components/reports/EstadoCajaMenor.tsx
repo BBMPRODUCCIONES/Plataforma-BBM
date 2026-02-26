@@ -41,7 +41,7 @@ export default function EstadoCajaMenor({
   editingBase, baseInput, onEditBase, onCancelEditBase, onBaseInputChange, onSaveBase,
   onRegisterResponsable, onCierre,
 }: EstadoCajaMenorProps) {
-  // Chart data: breakdown by category
+  // Chart data: approved expenses by category (for donut)
   const chartData = useMemo(() => {
     const byCategory = new Map<string, number>();
     gastos
@@ -54,84 +54,78 @@ export default function EstadoCajaMenor({
       .sort((a, b) => b.value - a.value);
   }, [gastos]);
 
-  // Breakdown by tipo_centro
-  const tipoCentroData = useMemo(() => {
-    let eventos = 0, admin = 0;
-    gastos
-      .filter(g => g.estado === "Aprobado" || g.estado === "Legalizado" || g.estado === "Reembolsado")
-      .forEach(g => {
-        if (g.tipo_centro === "admin") admin += g.valor;
-        else eventos += g.valor;
-      });
-    return [
-      { name: "Eventos", value: eventos },
-      { name: "Admin", value: admin },
-    ].filter(d => d.value > 0);
-  }, [gastos]);
+  const totalAprobados = useMemo(() => chartData.reduce((s, d) => s + d.value, 0), [chartData]);
+  const base = stats.base;
+  const gastadoPct = base > 0 ? Math.min((totalAprobados / base) * 100, 100) : 0;
+  const disponible = base - totalAprobados;
 
   const cuadreDeCaja = stats.efectivoEnCaja;
 
   return (
     <div className="space-y-4">
-      {/* Chart Row: Pie chart + Bar breakdown */}
+      {/* Chart Row: Donut by category + Budget progress bar */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Pie Chart - Eventos vs Admin */}
+        {/* Donut Chart - Gastos aprobados por categoría */}
         <Card className="border-border/50">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground font-medium mb-2 text-center uppercase tracking-wider">Distribución por Tipo</p>
-            {tipoCentroData.length > 0 ? (
+            <p className="text-xs text-muted-foreground font-medium mb-2 text-center uppercase tracking-wider">Distribución por Categoría</p>
+            {chartData.length > 0 ? (
               <div className="flex items-center justify-center gap-6">
-                <ResponsiveContainer width={140} height={140}>
+                <ResponsiveContainer width={160} height={160}>
                   <PieChart>
-                    <Pie data={tipoCentroData} dataKey="value" cx="50%" cy="50%" outerRadius={60} innerRadius={30}>
-                      {tipoCentroData.map((_, i) => (
-                        <Cell key={i} fill={i === 0 ? "#06b6d4" : "#f59e0b"} />
+                    <Pie data={chartData} dataKey="value" cx="50%" cy="50%" outerRadius={65} innerRadius={35}>
+                      {chartData.map((_, i) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(val: number) => fmt(val)} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="space-y-2">
-                  {tipoCentroData.map((d, i) => (
+                  {chartData.map((d, i) => (
                     <div key={d.name} className="flex items-center gap-2 text-xs">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: i === 0 ? "#06b6d4" : "#f59e0b" }} />
+                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
                       <span className="text-muted-foreground">{d.name}</span>
                       <span className="font-semibold">{fmt(d.value)}</span>
                     </div>
                   ))}
+                  <div className="border-t border-border/30 pt-1 mt-1">
+                    <span className="text-xs font-bold">Total: {fmt(totalAprobados)}</span>
+                  </div>
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-6">Sin datos</p>
+              <p className="text-xs text-muted-foreground text-center py-6">Sin gastos aprobados</p>
             )}
           </CardContent>
         </Card>
 
-        {/* Bar-style category breakdown */}
+        {/* Budget progress bar */}
         <Card className="border-border/50">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground font-medium mb-3 text-center uppercase tracking-wider">Gasto por Categoría</p>
-            {chartData.length > 0 ? (
-              <div className="space-y-2">
-                {chartData.map((cat, i) => {
-                  const maxVal = chartData[0]?.value || 1;
-                  const pct = (cat.value / maxVal) * 100;
-                  return (
-                    <div key={cat.name} className="space-y-0.5">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">{cat.name}</span>
-                        <span className="font-semibold">{fmt(cat.value)}</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                      </div>
-                    </div>
-                  );
-                })}
+          <CardContent className="p-4 flex flex-col justify-center h-full">
+            <p className="text-xs text-muted-foreground font-medium mb-4 text-center uppercase tracking-wider">Presupuesto Base</p>
+            <div className="space-y-3">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Gastado</span>
+                <span className="font-semibold">{fmt(totalAprobados)}</span>
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground text-center py-6">Sin datos</p>
-            )}
+              <div className="h-4 rounded-full bg-muted overflow-hidden relative">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${gastadoPct}%`,
+                    backgroundColor: gastadoPct > 80 ? "hsl(var(--destructive))" : gastadoPct > 50 ? "#f59e0b" : "#06b6d4",
+                  }}
+                />
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Disponible</span>
+                <span className={`font-bold ${disponible >= 0 ? "text-emerald-500" : "text-destructive"}`}>{fmt(disponible)}</span>
+              </div>
+              <p className="text-center text-[11px] text-muted-foreground">
+                Base asignada: <span className="font-semibold">{fmt(base)}</span> — Usado: <span className="font-semibold">{gastadoPct.toFixed(1)}%</span>
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -860,7 +860,7 @@ const PanelOperaciones = () => {
         case "cajaMenor":
           return (
             <div className="flex items-center gap-2">
-              <CajaMenorStatusIcon cajaMenor={p.cajaMenor || []} />
+              <CajaMenorStatusIcon cajaMenor={p.cajaMenor || []} legalizacion={p.legalizacion || []} />
               <Button
                 variant="ghost"
                 size="sm"

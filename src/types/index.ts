@@ -45,13 +45,23 @@ export interface Project {
   cajaMenor?: CajaMenorItem[];
   // Legalización section (datos independientes de cajaMenor)
   legalizacion?: LegalizacionItem[];
-  // Inventory responsables (project-level)
+  // Inventory responsables (project-level) - legacy fields kept for backward compat
   inventarioResponsableEntradasSalidasTipo?: 'empleado' | 'proveedor';
   inventarioResponsableEntradasSalidasId?: string;
   inventarioResponsableEntradasSalidasNombre?: string;
   inventarioResponsableMaterialEventoTipo?: 'empleado' | 'proveedor';
   inventarioResponsableMaterialEventoId?: string;
   inventarioResponsableMaterialEventoNombre?: string;
+  // New auto-login responsables
+  inventarioResponsableSalidaUserId?: string;
+  inventarioResponsableSalidaNombre?: string;
+  inventarioResponsableSalidaTimestamp?: string;
+  inventarioResponsableEntradaUserId?: string;
+  inventarioResponsableEntradaNombre?: string;
+  inventarioResponsableEntradaTimestamp?: string;
+  inventarioResponsableEventoUserId?: string;
+  inventarioResponsableEventoNombre?: string;
+  inventarioResponsableEventoTimestamp?: string;
   // Soft delete fields
   isDeleted?: boolean;
   deletedAt?: string;

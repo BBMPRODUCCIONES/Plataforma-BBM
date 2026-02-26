@@ -90,13 +90,23 @@ function dbRowToProject(row: any): Project {
     feedbackAdjuntos: row.feedback_adjuntos || [],
     cajaMenor: row.caja_menor || [],
     legalizacion: row.legalizacion || [],
-    // Inventory responsables fields
+    // Inventory responsables fields (legacy)
     inventarioResponsableEntradasSalidasTipo: row.inventario_responsable_entradas_salidas_tipo || undefined,
     inventarioResponsableEntradasSalidasId: row.inventario_responsable_entradas_salidas_id || undefined,
     inventarioResponsableEntradasSalidasNombre: row.inventario_responsable_entradas_salidas_nombre || undefined,
     inventarioResponsableMaterialEventoTipo: row.inventario_responsable_material_evento_tipo || undefined,
     inventarioResponsableMaterialEventoId: row.inventario_responsable_material_evento_id || undefined,
     inventarioResponsableMaterialEventoNombre: row.inventario_responsable_material_evento_nombre || undefined,
+    // New auto-login responsables
+    inventarioResponsableSalidaUserId: (row as any).inventario_responsable_salida_user_id || undefined,
+    inventarioResponsableSalidaNombre: (row as any).inventario_responsable_salida_nombre || undefined,
+    inventarioResponsableSalidaTimestamp: (row as any).inventario_responsable_salida_timestamp || undefined,
+    inventarioResponsableEntradaUserId: (row as any).inventario_responsable_entrada_user_id || undefined,
+    inventarioResponsableEntradaNombre: (row as any).inventario_responsable_entrada_nombre || undefined,
+    inventarioResponsableEntradaTimestamp: (row as any).inventario_responsable_entrada_timestamp || undefined,
+    inventarioResponsableEventoUserId: (row as any).inventario_responsable_evento_user_id || undefined,
+    inventarioResponsableEventoNombre: (row as any).inventario_responsable_evento_nombre || undefined,
+    inventarioResponsableEventoTimestamp: (row as any).inventario_responsable_evento_timestamp || undefined,
     // Soft delete fields
     isDeleted: row.is_deleted || false,
     deletedAt: row.deleted_at || null,
@@ -149,13 +159,23 @@ function projectToDbRow(project: Partial<Project>): Record<string, any> {
   if (project.feedbackAdjuntos !== undefined) row.feedback_adjuntos = project.feedbackAdjuntos;
   if (project.cajaMenor !== undefined) row.caja_menor = project.cajaMenor;
   if (project.legalizacion !== undefined) row.legalizacion = project.legalizacion;
-  // Inventory responsables fields
+  // Inventory responsables fields (legacy)
   if (project.inventarioResponsableEntradasSalidasTipo !== undefined) row.inventario_responsable_entradas_salidas_tipo = project.inventarioResponsableEntradasSalidasTipo;
   if (project.inventarioResponsableEntradasSalidasId !== undefined) row.inventario_responsable_entradas_salidas_id = project.inventarioResponsableEntradasSalidasId;
   if (project.inventarioResponsableEntradasSalidasNombre !== undefined) row.inventario_responsable_entradas_salidas_nombre = project.inventarioResponsableEntradasSalidasNombre;
   if (project.inventarioResponsableMaterialEventoTipo !== undefined) row.inventario_responsable_material_evento_tipo = project.inventarioResponsableMaterialEventoTipo;
   if (project.inventarioResponsableMaterialEventoId !== undefined) row.inventario_responsable_material_evento_id = project.inventarioResponsableMaterialEventoId;
   if (project.inventarioResponsableMaterialEventoNombre !== undefined) row.inventario_responsable_material_evento_nombre = project.inventarioResponsableMaterialEventoNombre;
+  // New auto-login responsables
+  if (project.inventarioResponsableSalidaUserId !== undefined) row.inventario_responsable_salida_user_id = project.inventarioResponsableSalidaUserId;
+  if (project.inventarioResponsableSalidaNombre !== undefined) row.inventario_responsable_salida_nombre = project.inventarioResponsableSalidaNombre;
+  if (project.inventarioResponsableSalidaTimestamp !== undefined) row.inventario_responsable_salida_timestamp = project.inventarioResponsableSalidaTimestamp;
+  if (project.inventarioResponsableEntradaUserId !== undefined) row.inventario_responsable_entrada_user_id = project.inventarioResponsableEntradaUserId;
+  if (project.inventarioResponsableEntradaNombre !== undefined) row.inventario_responsable_entrada_nombre = project.inventarioResponsableEntradaNombre;
+  if (project.inventarioResponsableEntradaTimestamp !== undefined) row.inventario_responsable_entrada_timestamp = project.inventarioResponsableEntradaTimestamp;
+  if (project.inventarioResponsableEventoUserId !== undefined) row.inventario_responsable_evento_user_id = project.inventarioResponsableEventoUserId;
+  if (project.inventarioResponsableEventoNombre !== undefined) row.inventario_responsable_evento_nombre = project.inventarioResponsableEventoNombre;
+  if (project.inventarioResponsableEventoTimestamp !== undefined) row.inventario_responsable_evento_timestamp = project.inventarioResponsableEventoTimestamp;
   
   return row;
 }
@@ -190,13 +210,23 @@ function fieldToColumn(field: string): string {
     feedback: "feedback",
     feedbackAdjuntos: "feedback_adjuntos",
     cajaMenor: "caja_menor",
-    // Inventory responsables fields
+    // Inventory responsables fields (legacy)
     inventarioResponsableEntradasSalidasTipo: "inventario_responsable_entradas_salidas_tipo",
     inventarioResponsableEntradasSalidasId: "inventario_responsable_entradas_salidas_id",
     inventarioResponsableEntradasSalidasNombre: "inventario_responsable_entradas_salidas_nombre",
     inventarioResponsableMaterialEventoTipo: "inventario_responsable_material_evento_tipo",
     inventarioResponsableMaterialEventoId: "inventario_responsable_material_evento_id",
     inventarioResponsableMaterialEventoNombre: "inventario_responsable_material_evento_nombre",
+    // New auto-login responsables
+    inventarioResponsableSalidaUserId: "inventario_responsable_salida_user_id",
+    inventarioResponsableSalidaNombre: "inventario_responsable_salida_nombre",
+    inventarioResponsableSalidaTimestamp: "inventario_responsable_salida_timestamp",
+    inventarioResponsableEntradaUserId: "inventario_responsable_entrada_user_id",
+    inventarioResponsableEntradaNombre: "inventario_responsable_entrada_nombre",
+    inventarioResponsableEntradaTimestamp: "inventario_responsable_entrada_timestamp",
+    inventarioResponsableEventoUserId: "inventario_responsable_evento_user_id",
+    inventarioResponsableEventoNombre: "inventario_responsable_evento_nombre",
+    inventarioResponsableEventoTimestamp: "inventario_responsable_evento_timestamp",
   };
   return mapping[field] || field;
 }

@@ -710,7 +710,7 @@ export default function AprobacionesPendientes() {
               <TableHead className="text-xs w-[40px]">Tipo</TableHead>
               <TableHead className="text-xs">Fecha</TableHead>
               <TableHead className="text-xs">CC</TableHead>
-              <TableHead className="text-xs">Categoría</TableHead>
+              <TableHead className="text-xs">Relación de eventos</TableHead>
               <TableHead className="text-xs text-right">Valor</TableHead>
               <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
               <TableHead className="text-xs">Aprobado por</TableHead>
@@ -751,7 +751,7 @@ export default function AprobacionesPendientes() {
                       {d ? format(d, "dd/MM/yyyy") : "—"}
                     </TableCell>
                     <TableCell className="text-xs">{row.centroCostos || "—"}</TableCell>
-                    <TableCell className="text-xs">{row.item.categoria || "—"}</TableCell>
+                    <TableCell className="text-xs">{row.evento || "—"}</TableCell>
                     <TableCell className="text-xs text-right font-medium">
                       {formatCurrency(row.item.valor || 0)}
                     </TableCell>

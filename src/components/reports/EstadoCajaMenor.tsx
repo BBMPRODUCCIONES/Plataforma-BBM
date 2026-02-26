@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserCheck, Lock, RotateCcw } from "lucide-react";
+import { UserCheck, Lock, RotateCcw, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { GastoMenor } from "@/hooks/useGastosMenores";
@@ -29,6 +29,7 @@ interface EstadoCajaMenorProps {
   onSaveBase: () => void;
   onRegisterResponsable: () => void;
   onCierre: (estado: "Legalizado" | "Reembolsado") => void;
+  onAgregarGasto: () => void;
 }
 
 const CHART_COLORS = ["#06b6d4", "#f59e0b", "#a855f7", "#3b82f6", "#ef4444", "#10b981"];
@@ -39,7 +40,7 @@ const fmt = (v: number) =>
 export default function EstadoCajaMenor({
   gastos, config, stats, isAdmin,
   editingBase, baseInput, onEditBase, onCancelEditBase, onBaseInputChange, onSaveBase,
-  onRegisterResponsable, onCierre,
+  onRegisterResponsable, onCierre, onAgregarGasto,
 }: EstadoCajaMenorProps) {
   // Chart data: approved expenses by category (for donut)
   const chartData = useMemo(() => {
@@ -133,12 +134,23 @@ export default function EstadoCajaMenor({
       {/* Estado de Caja Menor Panel */}
       <Card className="border-primary/30 bg-primary/5">
         <CardContent className="p-0">
-          <div className="bg-primary/10 px-4 py-2.5 border-b border-primary/20">
-            <h3 className="text-sm font-bold text-center uppercase tracking-wider">Estado de Caja Menor</h3>
+          <div className="bg-primary/10 px-4 py-2.5 border-b border-primary/20 flex items-center justify-between">
+            <h3 className="text-sm font-bold uppercase tracking-wider">Estado de Caja Menor</h3>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => onCierre("Legalizado")}>
+                <Lock className="h-3 w-3 mr-1" /> Legalizado
+              </Button>
+              <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => onCierre("Reembolsado")}>
+                <RotateCcw className="h-3 w-3 mr-1" /> Reembolsado
+              </Button>
+              <Button size="sm" className="text-[11px] h-7" onClick={onAgregarGasto}>
+                <Plus className="h-3 w-3 mr-1" /> Agregar Gasto
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/30">
-            {/* Left: Persona Responsable + Cierre */}
+            {/* Left: Persona Responsable + Cierre estado */}
             <div className="p-4 space-y-3">
               {/* Persona Responsable */}
               <div>
@@ -162,22 +174,12 @@ export default function EstadoCajaMenor({
                 )}
               </div>
 
-              {/* Cierre de Caja */}
+              {/* Cierre de Caja estado */}
               <div>
                 <p className="text-[11px] text-muted-foreground font-semibold uppercase mb-1.5">Cierre de Caja</p>
-                <p className="text-xs mb-2">
+                <p className="text-xs">
                   Estado: <span className="font-semibold">{config?.estado_cierre || "Abierta"}</span>
                 </p>
-                {isAdmin && (
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="text-[11px] flex-1 h-8" onClick={() => onCierre("Legalizado")}>
-                      <Lock className="h-3 w-3 mr-1" /> Legalizado
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-[11px] flex-1 h-8" onClick={() => onCierre("Reembolsado")}>
-                      <RotateCcw className="h-3 w-3 mr-1" /> Reembolsado
-                    </Button>
-                  </div>
-                )}
               </div>
             </div>
 

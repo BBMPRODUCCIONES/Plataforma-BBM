@@ -226,10 +226,6 @@ const PanelReportes = () => {
             <p className="text-muted-foreground">Control y seguimiento de movimientos</p>
           </div>
         </div>
-        <Button onClick={() => setGastoDialogOpen(true)} size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          Agregar Gasto
-        </Button>
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto space-y-4">
@@ -247,6 +243,7 @@ const PanelReportes = () => {
           onSaveBase={async () => { if (await updateBase(Number(baseInput))) setEditingBase(false); }}
           onRegisterResponsable={registerResponsable}
           onCierre={realizarCierre}
+          onAgregarGasto={() => setGastoDialogOpen(true)}
         />
 
         {/* Gastos Table */}

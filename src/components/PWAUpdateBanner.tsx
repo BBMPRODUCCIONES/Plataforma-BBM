@@ -47,19 +47,20 @@ export function PWAUpdateBanner() {
     setShowUpdate(false);
 
     const forceReload = () => {
+      const doReload = () => location.reload();
       if ('caches' in window) {
         caches.keys()
           .then((names: string[]) => Promise.all(names.map((n: string) => caches.delete(n))))
-          .finally(() => { window.location.reload(); });
+          .finally(doReload);
       } else {
-        window.location.reload();
+        doReload();
       }
     };
 
     if (waitingWorker) {
       // Listen for the new service worker to take control
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
+        location.reload();
       }, { once: true });
 
       waitingWorker.postMessage({ type: 'SKIP_WAITING' });

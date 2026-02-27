@@ -435,7 +435,7 @@ export function PurchaseOrderUpload({
           ) : (
             <>
               <Upload className="h-3 w-3 mr-1" />
-              Cargar OC
+              Cargar CO
             </>
           )}
         </Button>

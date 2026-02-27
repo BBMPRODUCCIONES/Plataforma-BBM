@@ -101,7 +101,7 @@ const PanelDirectivo = () => {
     { key: "ingresoBruto", header: "Ingreso Bruto", type: "number" as CellType, width: "120px", visible: true, isCustom: false, order: 9 },
     { key: "ingresoTotal", header: "Ingreso Total", type: "number" as CellType, width: "120px", visible: true, isCustom: false, order: 10 },
     { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "120px", visible: true, isCustom: false, order: 11 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 12 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 12 },
     { key: "panelGeneral", header: "Ver en Panel", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 13 },
   ];
   const { columns: managedColumns, setColumns: setManagedColumns, loading: columnsLoading, isAdmin: canModifyStructure } = useGlobalColumns("panel-directivo", defaultColumns);
@@ -393,7 +393,7 @@ const PanelDirectivo = () => {
     { key: "ingresoBruto", header: "Ingreso Bruto", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
     { key: "ingresoTotal", header: "Ingreso Total", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 10 },
     { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "120px", visible: true, isCustom: false, order: 11 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 12 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 12 },
   ], []);
 
   // Get all columns (base + managed) - direct calculation for immediate updates

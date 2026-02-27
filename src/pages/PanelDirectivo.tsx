@@ -63,8 +63,9 @@ const PanelDirectivo = () => {
   // Column management state - persisted to localStorage
   const defaultColumns: ColumnConfig[] = [
     { key: "centroCostos", header: "Centro de Costos", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
-    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 1 },
-    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 2 },
+    { key: "ordenCompra", header: "Orden De Compra", type: "file" as CellType, width: "140px", visible: true, isCustom: false, order: 1 },
+    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 2 },
+    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 3 },
     { key: "evento", header: "Evento", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 3 },
     { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 4, options: ["No se hizo", "Se hizo", "No es necesario"] },
     { key: "fechaMontaje", header: "Fecha de Montaje", type: "date" as CellType, width: "160px", visible: true, isCustom: false, order: 5 },
@@ -162,8 +163,9 @@ const PanelDirectivo = () => {
   // Define base columns with their configurations
   const baseColumnDefs: ColumnConfig[] = useMemo(() => [
     { key: "centroCostos", header: "Centro de Costos", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 0 },
-    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 1 },
-    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "180px", visible: true, isCustom: false, order: 2 },
+    { key: "ordenCompra", header: "Orden De Compra", type: "file" as CellType, width: "140px", visible: true, isCustom: false, order: 1 },
+    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 2 },
+    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "180px", visible: true, isCustom: false, order: 3 },
     { key: "evento", header: "Evento", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 3 },
     { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 4 },
     { key: "fechaMontaje", header: "Fecha Montaje", type: "date" as CellType, width: "140px", visible: true, isCustom: false, order: 5 },

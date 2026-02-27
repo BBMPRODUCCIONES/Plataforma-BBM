@@ -10,6 +10,7 @@ import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -25,8 +26,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
-import { Search } from "lucide-react";
+import { Search, RotateCcw, Lock, ChevronDown, ChevronUp } from "lucide-react";
 import AprobacionesKPIs from "@/components/reports/AprobacionesKPIs";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -124,6 +133,13 @@ export default function AprobacionesPendientes() {
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Restore functionality state
+  const [selectedForRestore, setSelectedForRestore] = useState<Set<string>>(new Set());
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [showResolvedSection, setShowResolvedSection] = useState(true);
 
   // Unique values for autocomplete suggestions
   const uniqueEmpleados = useMemo(() => {
@@ -431,7 +447,10 @@ export default function AprobacionesPendientes() {
     });
   }, [rows, mesFilter, anioFilter, estadoFilter, searchQuery]);
 
-  // Handle solicitud estado change
+  // Split into pending and resolved
+  const pendingRows = useMemo(() => filteredRows.filter(r => r.item.estado === "Pendiente"), [filteredRows]);
+  const resolvedRows = useMemo(() => filteredRows.filter(r => r.item.estado !== "Pendiente"), [filteredRows]);
+
   const handleEstadoChange = async (row: FlattenedRow, newEstado: string) => {
     if (!canApproveCajaMenor()) {
       toast.error("No tienes permisos para cambiar el estado");
@@ -581,8 +600,270 @@ export default function AprobacionesPendientes() {
     toast.success("Solicitud eliminada");
   };
 
+  // Restore selected solicitudes back to "Pendiente"
+  const handleRestoreSelected = async () => {
+    if (selectedForRestore.size === 0) {
+      toast.error("Selecciona al menos una solicitud para restaurar");
+      return;
+    }
+    setShowPasswordDialog(true);
+  };
+
+  const confirmRestore = async () => {
+    if (!passwordInput) {
+      toast.error("Ingresa tu contraseña");
+      return;
+    }
+    setIsRestoring(true);
+    try {
+      // Verify password by re-authenticating
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user?.email) {
+        toast.error("No se pudo verificar el usuario");
+        setIsRestoring(false);
+        return;
+      }
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: userData.user.email,
+        password: passwordInput,
+      });
+      if (authError) {
+        toast.error("Contraseña incorrecta");
+        setIsRestoring(false);
+        return;
+      }
+
+      // Restore each selected row
+      const rowsToRestore = resolvedRows.filter(r => selectedForRestore.has(`${r.projectId}-${r.item.id}`));
+      
+      for (const row of rowsToRestore) {
+        if (row.source === 'gastoMenor' && row.gastoMenorId) {
+          await supabase
+            .from("gastos_menores")
+            .update({ estado: "Pendiente", aprobado_por_id: null, aprobado_por_nombre: "" } as any)
+            .eq("id", row.gastoMenorId);
+        } else {
+          const project = projects.find(p => p.id === row.projectId);
+          if (!project) continue;
+
+          const isRecursosPropios = (row.item.recursos as string) === "Recursos propios";
+          if (isRecursosPropios) {
+            const updatedLeg = (project.legalizacion || []).map(l =>
+              l.id === row.item.id ? { ...l, estado: "Pendiente", revisadoPor: "", restaurada: true } : l
+            );
+            await updateProject(row.projectId, "legalizacion", updatedLeg);
+          } else {
+            const updatedCajaMenor = (project.cajaMenor || []).map(item =>
+              item.id === row.item.id ? { ...item, estado: "Pendiente", revisadoPor: "", restaurada: true } : item
+            );
+            await updateProject(row.projectId, "cajaMenor", updatedCajaMenor);
+          }
+        }
+      }
+
+      refetchGastos();
+      toast.success(`${rowsToRestore.length} solicitud(es) restaurada(s) a Pendiente`);
+      setSelectedForRestore(new Set());
+      setShowPasswordDialog(false);
+      setPasswordInput("");
+    } catch (err) {
+      toast.error("Error al restaurar solicitudes");
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
+  const toggleSelectForRestore = (key: string) => {
+    setSelectedForRestore(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (rows: FlattenedRow[]) => {
+    const keys = rows.map(r => `${r.projectId}-${r.item.id}`);
+    const allSelected = keys.every(k => selectedForRestore.has(k));
+    setSelectedForRestore(prev => {
+      const next = new Set(prev);
+      if (allSelected) {
+        keys.forEach(k => next.delete(k));
+      } else {
+        keys.forEach(k => next.add(k));
+      }
+      return next;
+    });
+  };
+
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(value);
+
+  const renderRow = (row: FlattenedRow, showCheckbox: boolean) => {
+    const d = parseDateSafe(row.item.createdAt);
+    const rowKey = `${row.projectId}-${row.item.id}`;
+    const isRestored = row.item.restaurada === true;
+    return (
+      <TableRow key={rowKey} className={isRestored ? "bg-cyan-500/5 border-l-2 border-l-cyan-500" : ""}>
+        {showCheckbox && canApproveCajaMenor() && (
+          <TableCell className="text-xs">
+            <Checkbox
+              checked={selectedForRestore.has(rowKey)}
+              onCheckedChange={() => toggleSelectForRestore(rowKey)}
+              className="h-4 w-4"
+            />
+          </TableCell>
+        )}
+        <TableCell className="text-xs text-center">
+          <div className="flex items-center gap-1 justify-center">
+            {isRestored && (
+              <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0" />
+            )}
+            {(() => {
+              const r = (row.item.recursos as string) || "";
+              const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
+              const colorClass =
+                tipo === "S" ? "bg-blue-500/20 text-blue-400 border-blue-500/40" :
+                tipo === "R" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
+                "bg-amber-500/20 text-amber-400 border-amber-500/40";
+              return (
+                <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
+                  {tipo}
+                </span>
+              );
+            })()}
+          </div>
+        </TableCell>
+        <TableCell className="text-xs whitespace-nowrap">
+          {d ? format(d, "dd/MM/yyyy") : "—"}
+        </TableCell>
+        <TableCell className="text-xs">{row.centroCostos || "—"}</TableCell>
+        <TableCell className="text-xs">{row.evento || "—"}</TableCell>
+        <TableCell className="text-xs text-right font-medium">
+          {formatCurrency(row.item.valor || 0)}
+        </TableCell>
+        <TableCell className="text-xs">
+          {canApproveCajaMenor() ? (
+            <CajaMenorEstadoSelect
+              value={row.item.estado}
+              onChange={(v) => handleEstadoChange(row, v)}
+            />
+          ) : (
+            <CajaMenorEstadoSelect
+              value={row.item.estado}
+              onChange={() => {}}
+              readOnly
+            />
+          )}
+        </TableCell>
+        <TableCell className="text-xs whitespace-nowrap">
+          {(() => {
+            const r = (row.item.recursos as string) || "";
+            const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
+            if (tipo === "C") {
+              const gm = gastosMenores.find(g => g.id === row.gastoMenorId);
+              return gm?.aprobado_por_nombre || "—";
+            }
+            return row.item.revisadoPor || "—";
+          })()}
+        </TableCell>
+        <TableCell className="text-xs text-right">
+          {(() => {
+            const r = (row.item.recursos as string) || "";
+            const isR = r === "Recursos propios";
+            if (row.source === 'gastoMenor' || isR) return "—";
+            return formatCurrency(row.legalizacionTotal);
+          })()}
+        </TableCell>
+        <TableCell className="text-xs">
+          {(() => {
+            const r = (row.item.recursos as string) || "";
+            const isR = r === "Recursos propios";
+            if (row.source === 'gastoMenor' || isR) {
+              return <span className="text-xs text-muted-foreground">—</span>;
+            }
+            if (row.item.estado === "No aprobado") {
+              return (
+                <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>
+                  {LEGALIZACION_NO_APROBADO.label}
+                </span>
+              );
+            }
+            if (canApproveCajaMenor() && row.item.estado === "Aprobado") {
+              return (
+                <Select
+                  value={row.legalizacionEstado || "Revisando"}
+                  onValueChange={(v) => handleLegalizacionEstadoChange(row, v)}
+                >
+                  <SelectTrigger
+                    className={`h-7 text-xs w-full border font-medium ${
+                      LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (row.legalizacionEstado || "Revisando"))?.className || "bg-yellow-500/20 text-yellow-400"
+                    }`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span>{LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (row.legalizacionEstado || "Revisando"))?.label || "Revisando"}</span>
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-[9999]">
+                    {LEGALIZACION_ESTADO_OPTIONS.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className={`text-xs font-medium ${option.className}`}
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              );
+            }
+            return (
+              <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === row.legalizacionEstado)?.className || "bg-yellow-500/20 text-yellow-400"
+              }`}>
+                {row.legalizacionEstado || "Revisando"}
+              </span>
+            );
+          })()}
+        </TableCell>
+        <TableCell className={`text-xs text-right font-medium ${
+          (() => {
+            const r = (row.item.recursos as string) || "";
+            const isR = r === "Recursos propios";
+            if (row.source === 'gastoMenor' || isR) return "";
+            return row.saldoAFavor > 0 ? "text-green-400" : row.saldoAFavor < 0 ? "text-red-400" : "";
+          })()
+        }`}>
+          {(() => {
+            const r = (row.item.recursos as string) || "";
+            const isR = r === "Recursos propios";
+            if (row.source === 'gastoMenor' || isR) return "—";
+            return formatCurrency(Math.abs(row.saldoAFavor));
+          })()}
+        </TableCell>
+        <TableCell>
+          {row.projectId && (
+            <Button
+              variant="link"
+              size="sm"
+              className="h-7 px-1 text-xs text-primary underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                const params = new URLSearchParams({
+                  eventId: row.projectId,
+                  eventName: row.evento,
+                  source: "aprobaciones",
+                });
+                window.open(`/panel-operaciones?${params.toString()}`, "_blank");
+              }}
+            >
+              Ver más
+            </Button>
+          )}
+        </TableCell>
+      </TableRow>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -692,14 +973,15 @@ export default function AprobacionesPendientes() {
       <AprobacionesKPIs rows={filteredRows} />
 
       <div className="text-xs text-muted-foreground flex-shrink-0">
-        {filteredRows.length} solicitud{filteredRows.length !== 1 ? "es" : ""} encontrada{filteredRows.length !== 1 ? "s" : ""}
+        {pendingRows.length} solicitud{pendingRows.length !== 1 ? "es" : ""} pendiente{pendingRows.length !== 1 ? "s" : ""}
+        {resolvedRows.length > 0 && ` · ${resolvedRows.length} procesada${resolvedRows.length !== 1 ? "s" : ""}`}
       </div>
 
-      {/* Table with visible scrollbar */}
+      {/* Pending Solicitudes Table */}
       <div
-        className="flex-1 min-h-0 border rounded-md overflow-auto"
+        className="border rounded-md overflow-auto"
         style={{
-          maxHeight: "clamp(360px, 50vh, 600px)",
+          maxHeight: "clamp(280px, 40vh, 500px)",
           scrollbarWidth: "auto",
           scrollbarColor: "hsl(var(--muted-foreground) / 0.3) transparent",
         }}
@@ -721,171 +1003,119 @@ export default function AprobacionesPendientes() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRows.length === 0 ? (
+            {pendingRows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={11} className="text-center text-muted-foreground py-8 text-sm">
-                  No se encontraron solicitudes
+                  No hay solicitudes pendientes
                 </TableCell>
               </TableRow>
             ) : (
-              filteredRows.map((row) => {
-                const d = parseDateSafe(row.item.createdAt);
-                return (
-                  <TableRow key={`${row.projectId}-${row.item.id}`}>
-                    <TableCell className="text-xs text-center">
-                      {(() => {
-                        const r = (row.item.recursos as string) || "";
-                        const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
-                        const colorClass =
-                          tipo === "S" ? "bg-blue-500/20 text-blue-400 border-blue-500/40" :
-                          tipo === "R" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
-                          "bg-amber-500/20 text-amber-400 border-amber-500/40";
-                        return (
-                          <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
-                            {tipo}
-                          </span>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {d ? format(d, "dd/MM/yyyy") : "—"}
-                    </TableCell>
-                    <TableCell className="text-xs">{row.centroCostos || "—"}</TableCell>
-                    <TableCell className="text-xs">{row.evento || "—"}</TableCell>
-                    <TableCell className="text-xs text-right font-medium">
-                      {formatCurrency(row.item.valor || 0)}
-                    </TableCell>
-                    {/* Estado Solicitud - editable for admin */}
-                    <TableCell className="text-xs">
-                      {canApproveCajaMenor() ? (
-                        <CajaMenorEstadoSelect
-                          value={row.item.estado}
-                          onChange={(v) => handleEstadoChange(row, v)}
-                        />
-                      ) : (
-                        <CajaMenorEstadoSelect
-                          value={row.item.estado}
-                          onChange={() => {}}
-                          readOnly
-                        />
-                      )}
-                    </TableCell>
-                    {/* Aprobado por */}
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {(() => {
-                        const r = (row.item.recursos as string) || "";
-                        const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
-                        if (tipo === "C") {
-                          const gm = gastosMenores.find(g => g.id === row.gastoMenorId);
-                          return gm?.aprobado_por_nombre || "—";
-                        }
-                        // S and R types: use revisadoPor from the item
-                        return row.item.revisadoPor || "—";
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-xs text-right">
-                      {(() => {
-                        const r = (row.item.recursos as string) || "";
-                        const isR = r === "Recursos propios";
-                        if (row.source === 'gastoMenor' || isR) return "—";
-                        return formatCurrency(row.legalizacionTotal);
-                      })()}
-                    </TableCell>
-                    {/* Estado Legalización */}
-                    <TableCell className="text-xs">
-                      {(() => {
-                        const r = (row.item.recursos as string) || "";
-                        const isR = r === "Recursos propios";
-                        if (row.source === 'gastoMenor' || isR) {
-                          return <span className="text-xs text-muted-foreground">—</span>;
-                        }
-                        if (row.item.estado === "No aprobado") {
-                          return (
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>
-                              {LEGALIZACION_NO_APROBADO.label}
-                            </span>
-                          );
-                        }
-                        if (canApproveCajaMenor() && row.item.estado === "Aprobado") {
-                          return (
-                            <Select
-                              value={row.legalizacionEstado || "Revisando"}
-                              onValueChange={(v) => handleLegalizacionEstadoChange(row, v)}
-                            >
-                              <SelectTrigger
-                                className={`h-7 text-xs w-full border font-medium ${
-                                  LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (row.legalizacionEstado || "Revisando"))?.className || "bg-yellow-500/20 text-yellow-400"
-                                }`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <span>{LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (row.legalizacionEstado || "Revisando"))?.label || "Revisando"}</span>
-                              </SelectTrigger>
-                              <SelectContent className="bg-popover border-border z-[9999]">
-                                {LEGALIZACION_ESTADO_OPTIONS.map((option) => (
-                                  <SelectItem
-                                    key={option.value}
-                                    value={option.value}
-                                    className={`text-xs font-medium ${option.className}`}
-                                  >
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          );
-                        }
-                        return (
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                            LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === row.legalizacionEstado)?.className || "bg-yellow-500/20 text-yellow-400"
-                          }`}>
-                            {row.legalizacionEstado || "Revisando"}
-                          </span>
-                        );
-                      })()}
-                    </TableCell>
-                    {/* Saldo: green if positive (a favor), red if negative (en contra) */}
-                    <TableCell className={`text-xs text-right font-medium ${
-                      (() => {
-                        const r = (row.item.recursos as string) || "";
-                        const isR = r === "Recursos propios";
-                        if (row.source === 'gastoMenor' || isR) return "";
-                        return row.saldoAFavor > 0 ? "text-green-400" : row.saldoAFavor < 0 ? "text-red-400" : "";
-                      })()
-                    }`}>
-                      {(() => {
-                        const r = (row.item.recursos as string) || "";
-                        const isR = r === "Recursos propios";
-                        if (row.source === 'gastoMenor' || isR) return "—";
-                        return formatCurrency(Math.abs(row.saldoAFavor));
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      {row.projectId && (
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="h-7 px-1 text-xs text-primary underline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const params = new URLSearchParams({
-                              eventId: row.projectId,
-                              eventName: row.evento,
-                              source: "aprobaciones",
-                            });
-                            window.open(`/panel-operaciones?${params.toString()}`, "_blank");
-                          }}
-                        >
-                          Ver más
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
+              pendingRows.map((row) => renderRow(row, false))
             )}
           </TableBody>
         </Table>
       </div>
+
+      {/* Resolved Solicitudes Section */}
+      {resolvedRows.length > 0 && (
+        <div className="space-y-3 mt-2">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setShowResolvedSection(!showResolvedSection)}
+              className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showResolvedSection ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              Solicitudes Procesadas ({resolvedRows.length})
+            </button>
+            {showResolvedSection && canApproveCajaMenor() && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-xs"
+                onClick={handleRestoreSelected}
+                disabled={selectedForRestore.size === 0}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Restaurar seleccionados ({selectedForRestore.size})
+              </Button>
+            )}
+          </div>
+
+          {showResolvedSection && (
+            <div
+              className="border rounded-md overflow-auto border-muted-foreground/20"
+              style={{
+                maxHeight: "clamp(240px, 35vh, 400px)",
+                scrollbarWidth: "auto",
+                scrollbarColor: "hsl(var(--muted-foreground) / 0.3) transparent",
+              }}
+            >
+              <Table>
+                <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
+                  <TableRow>
+                    {canApproveCajaMenor() && (
+                      <TableHead className="text-xs w-[40px]">
+                        <Checkbox
+                          checked={resolvedRows.length > 0 && resolvedRows.every(r => selectedForRestore.has(`${r.projectId}-${r.item.id}`))}
+                          onCheckedChange={() => toggleSelectAll(resolvedRows)}
+                          className="h-4 w-4"
+                        />
+                      </TableHead>
+                    )}
+                    <TableHead className="text-xs w-[40px]">Tipo</TableHead>
+                    <TableHead className="text-xs">Fecha</TableHead>
+                    <TableHead className="text-xs">CC</TableHead>
+                    <TableHead className="text-xs">Relación de eventos</TableHead>
+                    <TableHead className="text-xs text-right">Valor</TableHead>
+                    <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
+                    <TableHead className="text-xs">Aprobado por</TableHead>
+                    <TableHead className="text-xs text-right">Legalización</TableHead>
+                    <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>
+                    <TableHead className="text-xs text-right">Saldo</TableHead>
+                    <TableHead className="text-xs w-[80px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {resolvedRows.map((row) => renderRow(row, true))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Password Confirmation Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={(open) => { if (!open) { setShowPasswordDialog(false); setPasswordInput(""); } }}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary" />
+              Confirmar Restauración
+            </DialogTitle>
+            <DialogDescription>
+              Por seguridad, ingresa tu contraseña para restaurar {selectedForRestore.size} solicitud{selectedForRestore.size !== 1 ? "es" : ""} a estado Pendiente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input
+              type="password"
+              placeholder="Contraseña"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") confirmRestore(); }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowPasswordDialog(false); setPasswordInput(""); }} disabled={isRestoring}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmRestore} disabled={isRestoring || !passwordInput}>
+              {isRestoring ? "Restaurando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Custom scrollbar styles */}
       <style>{`

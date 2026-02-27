@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { logger } from "@/lib/logger";
+import { cn } from "@/lib/utils";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
@@ -26,7 +27,7 @@ import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus, ExternalLink, Settings, Loader2, Trash2, RotateCcw } from "lucide-react";
+import { Search, Plus, ExternalLink, Settings, Loader2, Trash2, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
@@ -45,6 +46,20 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+interface SmartSuggestion {
+  type: string;
+  label: string;
+  value: string;
+  displayLabel: string;
+}
+
+const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+type SortDirection = "asc" | "desc" | null;
+type EmptyPlacement = "last" | "first";
+
+const KNOWN_ESTADOS_DIR = ["Por Ejecutar", "En Progreso", "Facturado", "Completado", "Cancelado"];
+const KNOWN_AVANZADA = ["No se hizo", "Se hizo", "No es necesario"];
 
 const PanelDirectivo = () => {
   const navigate = useNavigate();
@@ -59,6 +74,17 @@ const PanelDirectivo = () => {
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [hideDeleted, setHideDeleted] = useState(false);
+  
+  // Smart search state
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Sort state
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [emptyPlacement, setEmptyPlacement] = useState<EmptyPlacement>("last");
   
   // Column management state - persisted to localStorage
   const defaultColumns: ColumnConfig[] = [
@@ -112,27 +138,219 @@ const PanelDirectivo = () => {
     }
   };
 
-  const filteredProjects = projects.filter((p) => {
-    // Show all by default, hide deleted only when hideDeleted is enabled
-    const matchesDeleted = !hideDeleted || !p.isDeleted;
-    
-    const matchesSearch =
-      p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
-    
-    const range = getDateRange();
-    const projectStart = parseISO(p.fechaMontajeInicio);
-    const projectEnd = parseISO(p.fechaEjecucionFin);
-    const matchesDate = 
-      isWithinInterval(projectStart, range) ||
-      isWithinInterval(projectEnd, range) ||
-      (projectStart <= range.start && projectEnd >= range.end);
+  // Smart search: parse search tokens
+  const searchTokens = useMemo(() => {
+    return searchTerm.split(',').map(t => t.trim()).filter(Boolean).map(t => normalize(t));
+  }, [searchTerm]);
 
-    return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
-  });
+  const currentToken = useMemo(() => {
+    const parts = searchTerm.split(',');
+    return parts[parts.length - 1].trim().toLowerCase();
+  }, [searchTerm]);
+
+  // Unique values for autocomplete
+  const uniqueClientes = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach(p => { if (!p.isDeleted && p.cliente) set.add(p.cliente); });
+    return Array.from(set).sort();
+  }, [projects]);
+
+  const uniqueEventos = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach(p => { if (!p.isDeleted && p.evento) set.add(p.evento); });
+    return Array.from(set).sort();
+  }, [projects]);
+
+  const uniqueCCs = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach(p => { if (!p.isDeleted && p.centroCostos) set.add(p.centroCostos); });
+    return Array.from(set).sort();
+  }, [projects]);
+
+  // Autocomplete suggestions
+  const suggestions = useMemo((): SmartSuggestion[] => {
+    if (currentToken.length < 1) return [];
+    const results: SmartSuggestion[] = [];
+    const nt = normalize(currentToken);
+
+    KNOWN_ESTADOS_DIR.filter(e => normalize(e).includes(nt)).forEach(e => {
+      results.push({ type: 'estado', label: 'Estado', value: e, displayLabel: e });
+    });
+    KNOWN_AVANZADA.filter(a => normalize(a).includes(nt)).forEach(a => {
+      results.push({ type: 'avanzada', label: 'Avanzada', value: a, displayLabel: a });
+    });
+    uniqueClientes.filter(c => normalize(c).includes(nt)).slice(0, 5).forEach(c => {
+      results.push({ type: 'cliente', label: 'Cliente', value: c, displayLabel: c });
+    });
+    uniqueEventos.filter(e => normalize(e).includes(nt)).slice(0, 5).forEach(e => {
+      results.push({ type: 'evento', label: 'Evento', value: e, displayLabel: e });
+    });
+    uniqueCCs.filter(c => normalize(c).includes(nt)).slice(0, 5).forEach(c => {
+      results.push({ type: 'cc', label: 'CC', value: c, displayLabel: c });
+    });
+
+    // Special: "con factura" / "sin factura" / "con cotización" / "sin cotización" / "con orden" / "sin orden"
+    const specials = [
+      { keyword: "con factura", value: "con:factura", label: "Con #Factura" },
+      { keyword: "sin factura", value: "sin:factura", label: "Sin #Factura" },
+      { keyword: "con cotizacion", value: "con:cotizacion", label: "Con Cotización" },
+      { keyword: "sin cotizacion", value: "sin:cotizacion", label: "Sin Cotización" },
+      { keyword: "con orden", value: "con:orden", label: "Con Orden de Compra" },
+      { keyword: "sin orden", value: "sin:orden", label: "Sin Orden de Compra" },
+    ];
+    specials.filter(s => normalize(s.keyword).includes(nt) || normalize(s.label).includes(nt)).forEach(s => {
+      results.push({ type: 'special', label: 'Filtro', value: s.value, displayLabel: s.label });
+    });
+
+    return results.slice(0, 12);
+  }, [currentToken, uniqueClientes, uniqueEventos, uniqueCCs]);
+
+  const handleSelectSuggestion = useCallback((suggestion: SmartSuggestion) => {
+    const parts = searchTerm.split(',');
+    parts.pop();
+    const newValue = parts.length > 0
+      ? parts.map(p => p.trim()).join(', ') + ', ' + suggestion.value
+      : suggestion.value;
+    setSearchTerm(newValue + ', ');
+    setShowSuggestions(false);
+    setSelectedSuggestionIndex(-1);
+    inputRef.current?.focus();
+  }, [searchTerm]);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedSuggestionIndex(prev => prev < suggestions.length - 1 ? prev + 1 : 0);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : suggestions.length - 1);
+    } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
+      e.preventDefault();
+      handleSelectSuggestion(suggestions[selectedSuggestionIndex]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  }, [showSuggestions, suggestions, selectedSuggestionIndex, handleSelectSuggestion]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node) &&
+        inputRef.current && !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (suggestions.length > 0 && currentToken.length >= 2) {
+      setShowSuggestions(true);
+      setSelectedSuggestionIndex(-1);
+    } else {
+      setShowSuggestions(false);
+    }
+  }, [suggestions, currentToken]);
+
+  const filteredProjects = useMemo(() => {
+    let result = projects.filter((p) => {
+      const matchesDeleted = !hideDeleted || !p.isDeleted;
+      const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
+      
+      const range = getDateRange();
+      const projectStart = parseISO(p.fechaMontajeInicio);
+      const projectEnd = parseISO(p.fechaEjecucionFin);
+      const matchesDate = 
+        isWithinInterval(projectStart, range) ||
+        isWithinInterval(projectEnd, range) ||
+        (projectStart <= range.start && projectEnd >= range.end);
+
+      if (!matchesDeleted || !matchesStatus || !matchesDate) return false;
+
+      // Smart search: check each token
+      if (searchTokens.length === 0) return true;
+      
+      return searchTokens.every(token => {
+        // Special filters
+        if (token === "con:factura") return !!p.numFactura && p.numFactura.trim() !== "";
+        if (token === "sin:factura") return !p.numFactura || p.numFactura.trim() === "";
+        if (token === "con:cotizacion") return (p.cotizaciones || []).length > 0;
+        if (token === "sin:cotizacion") return (p.cotizaciones || []).length === 0;
+        if (token === "con:orden") return (p.ordenesCompra || []).length > 0;
+        if (token === "sin:orden") return (p.ordenesCompra || []).length === 0;
+        
+        // General text search across all fields
+        return (
+          normalize(p.cliente || "").includes(token) ||
+          normalize(p.evento || "").includes(token) ||
+          normalize(p.centroCostos || "").includes(token) ||
+          normalize(p.estado || "").includes(token) ||
+          normalize(p.avanzada || "").includes(token) ||
+          normalize(p.numFactura || "").includes(token) ||
+          normalize(p.notas || "").includes(token)
+        );
+      });
+    });
+
+    // Sort
+    if (sortColumn && sortDirection) {
+      result = [...result].sort((a, b) => {
+        const getVal = (proj: Project): string | number => {
+          switch (sortColumn) {
+            case "numFactura": return proj.numFactura || "";
+            case "cliente": return proj.cliente || "";
+            case "evento": return proj.evento || "";
+            case "centroCostos": return proj.centroCostos || "";
+            case "estado": return proj.estado || "";
+            case "avanzada": return proj.avanzada || "";
+            case "ingresoBruto": return proj.ingresoBruto || 0;
+            case "ingresoTotal": return proj.ingresoTotal || 0;
+            case "cotizaciones": return (proj.cotizaciones || []).length;
+            case "ordenCompra": return (proj.ordenesCompra || []).length;
+            case "notas": return proj.notas || "";
+            case "fechaMontaje": return proj.fechaMontajeInicio || "";
+            case "fechaEjecucion": return proj.fechaEjecucionInicio || "";
+            case "fechaDesmontaje": return proj.fechaDesmontajeInicio || "";
+            default: return (proj as any)[sortColumn] || "";
+          }
+        };
+
+        const valA = getVal(a);
+        const valB = getVal(b);
+        
+        const emptyA = valA === "" || valA === 0;
+        const emptyB = valB === "" || valB === 0;
+
+        // Empty placement
+        if (emptyA && !emptyB) return emptyPlacement === "last" ? 1 : -1;
+        if (!emptyA && emptyB) return emptyPlacement === "last" ? -1 : 1;
+        if (emptyA && emptyB) return 0;
+
+        const dir = sortDirection === "asc" ? 1 : -1;
+        if (typeof valA === "number" && typeof valB === "number") return (valA - valB) * dir;
+        return String(valA).localeCompare(String(valB)) * dir;
+      });
+    }
+
+    return result;
+  }, [projects, hideDeleted, statusFilter, searchTokens, sortColumn, sortDirection, emptyPlacement, globalSelectedDate, globalViewMode, globalDateRange]);
+
+  const handleColumnSort = (columnKey: string) => {
+    if (sortColumn === columnKey) {
+      if (sortDirection === "asc") setSortDirection("desc");
+      else if (sortDirection === "desc") { setSortColumn(null); setSortDirection(null); }
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection("asc");
+    }
+  };
+
+  const toggleEmptyPlacement = () => {
+    setEmptyPlacement(prev => prev === "last" ? "first" : "last");
+  };
 
   const handleSoftDelete = async (project: Project) => {
     if (!user) return;
@@ -519,14 +737,27 @@ const PanelDirectivo = () => {
     ),
   };
 
-  // Build final columns array - direct calculation for immediate updates
+  // Build final columns array with sortable headers
   const columns = (() => {
     const visibleColumns = allColumnConfigs
       .filter(col => col.visible)
       .sort((a, b) => a.order - b.order)
       .map(col => ({
         key: col.key,
-        header: col.header,
+        header: (
+          <button
+            className="flex items-center gap-1 hover:text-primary transition-colors w-full text-left"
+            onClick={(e) => { e.stopPropagation(); handleColumnSort(col.key); }}
+            title={`Ordenar por ${col.header}`}
+          >
+            <span>{col.header}</span>
+            {sortColumn === col.key ? (
+              sortDirection === "asc" ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />
+            ) : (
+              <ArrowUpDown className="h-3 w-3 opacity-30" />
+            )}
+          </button>
+        ),
         width: col.width,
         render: getColumnRender(col),
       }));
@@ -614,14 +845,51 @@ const PanelDirectivo = () => {
                 </Label>
               </div>
             </div>
-            <div className={isMobile ? 'relative w-full' : 'relative w-64'}>
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar proyecto..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className={isMobile ? 'pl-9 h-8 text-sm' : 'pl-9 h-9'}
-              />
+            <div className="flex items-center gap-2">
+              <div className={isMobile ? 'relative w-full' : 'relative w-80'}>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                <Input
+                  ref={inputRef}
+                  placeholder="Buscar: cliente, estado, con factura, sin orden..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  onFocus={() => { if (suggestions.length > 0 && currentToken.length >= 2) setShowSuggestions(true); }}
+                  className={isMobile ? 'pl-9 h-8 text-sm' : 'pl-9 h-9'}
+                />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div
+                    ref={suggestionsRef}
+                    className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden max-h-64 overflow-y-auto"
+                  >
+                    {suggestions.map((s, idx) => (
+                      <button
+                        key={`${s.type}-${s.value}`}
+                        className={cn(
+                          "w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-accent transition-colors",
+                          idx === selectedSuggestionIndex && "bg-accent"
+                        )}
+                        onClick={() => handleSelectSuggestion(s)}
+                        onMouseEnter={() => setSelectedSuggestionIndex(idx)}
+                      >
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">{s.label}</Badge>
+                        <span className="truncate">{s.displayLabel}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {sortColumn && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleEmptyPlacement}
+                  className="text-xs h-9 whitespace-nowrap"
+                  title={`Vacíos: ${emptyPlacement === "last" ? "al final" : "al inicio"}`}
+                >
+                  {emptyPlacement === "last" ? "Vacíos al final" : "Vacíos al inicio"}
+                </Button>
+              )}
             </div>
           </div>
 

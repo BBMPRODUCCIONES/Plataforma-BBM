@@ -4,7 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Column<T> {
   key: string;
-  header: string;
+  header: ReactNode;
   width?: string;
   /** Mobile-specific width (used only in ACW/mobile view) */
   mobileWidth?: string;

@@ -376,6 +376,7 @@ const PanelDirectivo = () => {
             currentIngresoBruto={p.ingresoBruto}
             currentIngresoTotal={p.ingresoTotal}
             projectId={p.id}
+            placeholderText="Cargar Cot."
             onDataExtracted={(ingresoBruto, ingresoTotal, inventarioItems) => {
               // Merge new inventory items with existing ones (don't replace)
               const existingInventario = p.inventario || [];

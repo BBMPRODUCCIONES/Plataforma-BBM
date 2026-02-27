@@ -47,6 +47,8 @@ interface PurchaseOrderUploadProps {
   attachments?: Attachment[];
   onAttachmentsChange?: (attachments: Attachment[]) => void;
   projectId?: string;
+  /** Placeholder text shown when no files uploaded */
+  placeholderText?: string;
 }
 
 export function PurchaseOrderUpload({ 
@@ -56,6 +58,7 @@ export function PurchaseOrderUpload({
   attachments = [],
   onAttachmentsChange,
   projectId = "general",
+  placeholderText = "Cargar CO",
 }: PurchaseOrderUploadProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -435,7 +438,7 @@ export function PurchaseOrderUpload({
           ) : (
             <>
               <Upload className="h-3 w-3 mr-1" />
-              Cargar CO
+              {placeholderText}
             </>
           )}
         </Button>

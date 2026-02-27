@@ -161,6 +161,7 @@ export interface CajaMenorItem {
   revisadoPor?: string; // Nombre de quien aprobó/rechazó
   createdAt?: string; // Fecha de creación del registro
   relacion_gastos?: RelacionGastoEntry[]; // Datos para RELACIÓN DE GASTOS en PDF
+  restaurada?: boolean; // Indica si fue restaurada desde aprobadas/rechazadas
 }
 
 // Legalización item - estructura independiente para justificar gastos
@@ -179,6 +180,7 @@ export interface LegalizacionItem {
   estado: 'Pendiente' | 'Aprobado' | 'No aprobado';
   revisadoPor?: string; // Nombre de quien aprobó/rechazó
   createdAt?: string;
+  restaurada?: boolean; // Indica si fue restaurada desde aprobadas/rechazadas
 }
 
 export interface Proveedor {

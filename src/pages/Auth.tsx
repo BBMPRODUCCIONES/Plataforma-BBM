@@ -190,7 +190,9 @@ const Auth = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handlePasswordReset} className="space-y-4">
+            <form onSubmit={handlePasswordReset} className="space-y-4" autoComplete="off">
+              {/* Hidden field to prevent browser from showing email autofill */}
+              <input type="text" name="prevent-autofill" style={{ display: 'none' }} tabIndex={-1} />
               <div className="space-y-2">
                 <Label htmlFor="new-password">Nueva Contraseña</Label>
                 <div className="relative">
@@ -201,7 +203,7 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isLoading}
-                    autoComplete="new-password"
+                    autoComplete="off"
                   />
                   <button
                     type="button"
@@ -224,7 +226,7 @@ const Auth = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={isLoading}
-                    autoComplete="new-password"
+                    autoComplete="off"
                   />
                   <button
                     type="button"

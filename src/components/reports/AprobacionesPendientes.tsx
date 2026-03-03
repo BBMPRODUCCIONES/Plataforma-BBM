@@ -476,20 +476,28 @@ export default function AprobacionesPendientes() {
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
+      const isTypeC = recursos === "BBM";
+      // Type S stays pending until legalization is complete
       if (isTypeS && r.legalizacionEstado !== "Legalizado" && r.legalizacionEstado !== "No legalizable") return true;
+      // Type C stays pending until Legalizado or Reembolsado
+      if (isTypeC) return true;
     }
     return false;
   }), [filteredRows]);
   const resolvedRows = useMemo(() => filteredRows.filter(r => {
     if (r.item.estado === "No aprobado") return true;
-    // "Legalizado" and "Reembolsado" are terminal states for C type
+    // "Legalizado" and "Reembolsado" are terminal states
     if ((r.item.estado as string) === "Legalizado" || (r.item.estado as string) === "Reembolsado") return true;
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
+      const isTypeR = recursos === "Recursos propios";
       // Type S resolved when legalization is "Legalizado" or "No legalizable"
       if (isTypeS) return r.legalizacionEstado === "Legalizado" || r.legalizacionEstado === "No legalizable";
-      return true; // R and C go to history when approved (their process is done)
+      // Type R goes to history when approved
+      if (isTypeR) return true;
+      // Type C (BBM) only goes to history when Legalizado or Reembolsado (handled above)
+      return false;
     }
     return false;
   }), [filteredRows]);

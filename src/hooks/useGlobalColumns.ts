@@ -15,11 +15,25 @@ interface GlobalColumnsState {
 // Module-level cache to persist columns across component unmount/remount (page navigation)
 const columnsCache = new Map<string, ColumnConfig[]>();
 
+// Also persist to localStorage for instant first-paint (avoids layout shift on hard refresh)
+function getPersistedCache(panelKey: string): ColumnConfig[] | null {
+  try {
+    const raw = localStorage.getItem(`global-cols-cache-${panelKey}`);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+function setPersistedCache(panelKey: string, cols: ColumnConfig[]) {
+  try {
+    localStorage.setItem(`global-cols-cache-${panelKey}`, JSON.stringify(cols));
+  } catch {}
+}
+
 export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[]) {
   const { user } = useAuth();
   const { role, loading: roleLoading } = useUserRole();
   
-  const cachedColumns = columnsCache.get(panelKey);
+  const cachedColumns = columnsCache.get(panelKey) || getPersistedCache(panelKey);
   const initialColumns = cachedColumns || defaultColumns;
 
   const [state, setState] = useState<GlobalColumnsState>({
@@ -32,6 +46,7 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
   const setStateAndCache = useCallback((newState: GlobalColumnsState) => {
     if (newState.columns) {
       columnsCache.set(panelKey, newState.columns);
+      setPersistedCache(panelKey, newState.columns);
     }
     setState(newState);
   }, [panelKey]);

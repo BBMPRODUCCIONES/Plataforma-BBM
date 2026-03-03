@@ -385,6 +385,7 @@ export default function AprobacionesPendientes() {
         recursos: "BBM",
         contingencia: "No",
         estado: g.estado as CajaMenorItem["estado"],
+        restaurada: (g as any).restaurada === true,
         imagenes: g.imagen_url ? [{ id: "img", name: "imagen", url: g.imagen_url, type: "image", uploadedAt: g.created_at }] : [],
         createdAt: g.created_at,
       };
@@ -829,7 +830,7 @@ export default function AprobacionesPendientes() {
       for (const row of gastoMenorRows) {
         await supabase
           .from("gastos_menores")
-          .update({ estado: "Pendiente", aprobado_por_id: null, aprobado_por_nombre: "" } as any)
+          .update({ estado: "Pendiente", aprobado_por_id: null, aprobado_por_nombre: "", restaurada: true } as any)
           .eq("id", row.gastoMenorId!);
         toast.info(`Solicitud de caja menor restaurada a Pendiente`);
       }
@@ -861,6 +862,22 @@ export default function AprobacionesPendientes() {
               : item
           );
           await updateProject(projectId, "cajaMenor", updatedCajaMenor);
+          
+          // Also reset linked legalization items to "Revisando" for type S
+          const legIdsLinkedToCajaMenor = new Set(
+            (project.legalizacion || [])
+              .filter(l => l.id && cajaMenorIdsToRestore.has(l.id.replace("leg-", "")))
+              .map(l => l.id)
+          );
+          if (legIdsLinkedToCajaMenor.size > 0) {
+            const updatedLegForS = (project.legalizacion || []).map(l =>
+              legIdsLinkedToCajaMenor.has(l.id)
+                ? { ...l, estado: "Revisando" }
+                : l
+            );
+            await updateProject(projectId, "legalizacion", updatedLegForS);
+          }
+          
           cajaMenorIdsToRestore.forEach(() => toast.info("Solicitud de anticipo restaurada a Pendiente"));
         }
         
@@ -1278,13 +1295,19 @@ export default function AprobacionesPendientes() {
                 // Determine legalization estado for type S
                 const legEstados = isTypeS ? [...new Set(group.rows.map(r => r.legalizacionEstado || "Revisando"))] : [];
                 const commonLegEstado = legEstados.length === 1 ? legEstados[0] : legEstados.length > 1 ? "Mixto" : "";
+                const hasRestoredRows = group.rows.some(r => r.item.restaurada === true);
 
                 return (
-                  <TableRow key={group.key}>
+                  <TableRow key={group.key} className={hasRestoredRows ? "bg-cyan-500/5 border-l-2 border-l-cyan-500" : ""}>
                     <TableCell className="text-xs text-center">
-                      <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
-                        {group.tipo}
-                      </span>
+                      <div className="flex items-center gap-1 justify-center">
+                        {group.rows.some(r => r.item.restaurada === true) && (
+                          <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0" />
+                        )}
+                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
+                          {group.tipo}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
                       {d ? format(d, "dd/MM/yyyy") : "—"}

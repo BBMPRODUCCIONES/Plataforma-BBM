@@ -1348,88 +1348,129 @@ export const printCajaMenor = (project: Project, empleados: EmpleadoBasic[] = []
   openPrintWindow(html);
 };
 
-// Export ONLY Solicitud de Presupuesto to Excel
+// Export ONLY Solicitud de Presupuesto to Excel (mirrors PDF FIN-F-002 format)
 export const exportSolicitudToExcel = async (project: Project, empleados: EmpleadoBasic[] = [], includeLegalizacion: boolean = false, solicitudAnticipoNum?: number) => {
   const XLSX = await import('xlsx');
   const cajaMenor = project.cajaMenor || [];
+  const firstItem = cajaMenor[0];
+  const solicitante = getEmpleadoFullInfo(firstItem?.empleadoId, empleados);
+  const totalValor = cajaMenor.reduce((sum, c) => sum + (c.valor || 0), 0);
+  const fechaHoy = format(new Date(), "dd/MM/yyyy", { locale: es });
+  const categoriaAnticipo = firstItem?.categoria || '-';
+
+  // Fecha legalización
+  let fechaLegalizacion = '';
+  const legalizacionEntries = ((project.legalizacion as any[]) || []);
+  const syncedLegEntries = cajaMenor.map(cm => legalizacionEntries.find(l => l.id === `leg-${cm.id}`)).filter(Boolean);
+  if (syncedLegEntries.length > 0 && syncedLegEntries.every((l: any) => l.estado === 'Aprobado' || l.estado === 'Legalizado')) {
+    const latestDate = syncedLegEntries.reduce((latest: string, l: any) => { const d = l.createdAt || ''; return d > latest ? d : latest; }, '');
+    try { fechaLegalizacion = latestDate ? format(parseISO(latestDate), "dd/MM/yyyy", { locale: es }) : ''; } catch { fechaLegalizacion = ''; }
+  }
+
+  const rows: any[][] = [];
+
+  // Corporate header
+  rows.push(['BBM Producciones S.A.S.', '', '', 'SOLICITUD DE ANTICIPO', '', 'CÓDIGO', 'FIN-F-002']);
+  rows.push(['Carrera 74 # 48 19', '', '', '', '', 'VERSIÓN', '1']);
+  rows.push(['Bogotá, D.C. Colombia | NIT 901.577.285-7', '', '', '', '', 'FECHA ELABORACIÓN', fechaHoy]);
+  rows.push([]);
+
+  // Anticipo number
+  rows.push(['SOLICITUD DE ANTICIPO No.', solicitudAnticipoNum || '']);
+  rows.push([]);
+
+  // Solicitante info
+  rows.push(['SOLICITADO POR', solicitante.nombre, '', 'CIUDAD', 'BOGOTÁ']);
+  rows.push(['CÉDULA', solicitante.cedula, '', 'EVENTO', project.evento || '-']);
+  rows.push(['CARGO', solicitante.cargo, '', 'CENTRO DE COSTO', project.centroCostos || '-']);
+  rows.push([]);
+
+  // Financial info
+  rows.push(['VALOR SOLICITADO', `$ ${totalValor.toLocaleString('es-CO')}`, 'BANCO', solicitante.banco, 'No CUENTA', solicitante.numeroCuenta]);
+  rows.push(['FECHA SOLICITUD', fechaHoy, 'TIPO', solicitante.tipoCuenta === 'Ahorros' ? 'AH' : solicitante.tipoCuenta === 'Corriente' ? 'CTE' : solicitante.tipoCuenta, 'CATEGORÍA', categoriaAnticipo]);
+  rows.push(['FECHA A LEGALIZAR', fechaLegalizacion]);
+  rows.push([]);
+
+  // RELACIÓN DE GASTOS grouped by category
+  rows.push(['RELACIÓN DE GASTOS']);
   
-  // Data rows with resolved employee names and banking info
-  const solicitudData = cajaMenor.map(c => {
-    const bankInfo = getEmpleadoBankingInfo(c.empleadoId, empleados);
-    const relacionGastos = (c as any).relacion_gastos || [];
-    const relacionStr = relacionGastos.length > 0
-      ? relacionGastos.map((e: any) => `${e.comercio || ''} | ${e.nitCedula || ''} | ${e.concepto || ''}`).join(' // ')
-      : [c.concepto, ...((c as any).notas_comentarios || []).filter((n: string) => n && n.trim())].join(' | ') || '';
-    return {
-      'Empleado': getEmpleadoNombre(c.empleadoId, empleados),
-      'Banco': bankInfo.banco,
-      'Tipo Cuenta': bankInfo.tipoCuenta,
-      '# Cuenta': bankInfo.numeroCuenta,
-      'Comercio': relacionGastos.length > 0 ? relacionGastos.map((e: any) => e.comercio || '').join(', ') : '',
-      'NIT/Cédula': relacionGastos.length > 0 ? relacionGastos.map((e: any) => e.nitCedula || '').join(', ') : '',
-      'Concepto': relacionStr,
-      'Imágenes': `${(c.imagenes || []).length} imagen(es)`,
-      'Valor': c.valor || 0,
-      'Categoría': c.categoria || '',
-      'Recursos': c.recursos || '',
-      'Contingencia': c.contingencia || 'No',
-      'Estado': c.estado || ''
-    };
+  const entriesByCategory: Record<string, { comercio: string; nitCedula: string; concepto: string; valor: number }[]> = {};
+  cajaMenor.forEach(c => {
+    const cat = c.categoria || 'Sin categoría';
+    if (!entriesByCategory[cat]) entriesByCategory[cat] = [];
+    const entries = (c as any).relacion_gastos || [];
+    if (entries.length > 0) {
+      entries.forEach((entry: any) => {
+        entriesByCategory[cat].push({ comercio: entry.comercio || '', nitCedula: entry.nitCedula || '', concepto: entry.concepto || '', valor: entry.valor || 0 });
+      });
+    } else {
+      const emp = getEmpleadoFullInfo(c.empleadoId, empleados);
+      const notas: string[] = (c as any).notas_comentarios || [];
+      const notasStr = notas.filter((n: string) => n && n.trim()).map((n: string) => `• ${n}`).join(' ');
+      entriesByCategory[cat].push({ comercio: emp.nombre, nitCedula: emp.cedula, concepto: (c.concepto || '-') + (notasStr ? ` ${notasStr}` : ''), valor: c.valor || 0 });
+    }
   });
-  
+
+  const categories = Object.keys(entriesByCategory);
+  const hasMultipleCategories = categories.length > 1;
+  let allExpenseTotal = 0;
+
+  categories.forEach(cat => {
+    const catEntries = entriesByCategory[cat];
+    const catTotal = catEntries.reduce((s, e) => s + (e.valor || 0), 0);
+    allExpenseTotal += catTotal;
+
+    if (hasMultipleCategories) {
+      rows.push([`📁 ${cat}`]);
+    }
+    rows.push(['NOMBRE DE TERCEROS', 'NIT/CÉDULA', 'CONCEPTO', 'VALOR']);
+    catEntries.forEach(entry => {
+      rows.push([entry.comercio, entry.nitCedula, entry.concepto, entry.valor]);
+    });
+    if (hasMultipleCategories) {
+      rows.push(['', '', `Subtotal ${cat}`, catTotal]);
+    }
+  });
+
+  rows.push([]);
+  rows.push(['', '', 'TOTAL', allExpenseTotal]);
+  rows.push(['', '', 'DIFERENCIA', totalValor - allExpenseTotal]);
+  rows.push([]);
+
+  // Firmas
+  rows.push(['SOLICITANTE', '', 'AUTORIZADO', '', 'TESORERÍA']);
+  rows.push([solicitante.nombre]);
+
   // Create workbook
   const workbook = XLSX.utils.book_new();
-  
-  // Solicitud sheet
-  const solicitudHeaders = ['Empleado', 'Banco', 'Tipo Cuenta', '# Cuenta', 'Comercio', 'NIT/Cédula', 'Concepto', 'Imágenes', 'Valor', 'Categoría', 'Recursos', 'Contingencia', 'Estado'];
-  const solicitudSheet = XLSX.utils.json_to_sheet(solicitudData, { header: solicitudHeaders });
-  solicitudSheet['!cols'] = [
-    { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 40 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 15 }
-  ];
+  const sheet = XLSX.utils.aoa_to_sheet(rows);
+  sheet['!cols'] = [{ wch: 25 }, { wch: 22 }, { wch: 20 }, { wch: 22 }, { wch: 18 }, { wch: 15 }, { wch: 15 }];
   const sheetName = solicitudAnticipoNum ? `Solicitud Anticipo No.${solicitudAnticipoNum}` : 'Solicitud Presupuesto';
-  XLSX.utils.book_append_sheet(workbook, solicitudSheet, sheetName);
-  
+  XLSX.utils.book_append_sheet(workbook, sheet, sheetName);
+
   if (includeLegalizacion) {
-    // Build legalization data
+    const legRows: any[][] = [];
+    legRows.push(['LEGALIZACIÓN']);
+    legRows.push(['NOMBRE DE TERCEROS', 'NIT/CÉDULA', 'CONCEPTO', 'VALOR']);
     const manualLeg = ((project.legalizacion as any[]) || []).filter(l => !l.id.startsWith('leg-'));
     const syncedLeg = cajaMenor.map(cm => {
       const legEntry = ((project.legalizacion as any[]) || []).find(l => l.id === `leg-${cm.id}`);
-      return {
-        empleadoId: cm.empleadoId,
-        concepto: cm.concepto + (legEntry?.notaAdicional ? ` + ${legEntry.notaAdicional}` : ''),
-        imagenes: legEntry?.imagenes || [],
-        valor: legEntry?.valor || 0,
-        categoria: cm.categoria,
-        recursos: cm.recursos,
-        contingencia: legEntry?.contingencia || cm.contingencia,
-        estado: legEntry?.estado || 'Pendiente'
-      };
+      return { empleadoId: cm.empleadoId, concepto: cm.concepto + (legEntry?.notaAdicional ? ` + ${legEntry.notaAdicional}` : ''), valor: legEntry?.valor || 0, estado: legEntry?.estado || 'Pendiente' };
     });
-    
     const allLeg = [...syncedLeg, ...manualLeg];
-    const legData = allLeg.map(l => {
-      const bankInfo = getEmpleadoBankingInfo(l.empleadoId, empleados);
-      return {
-        'Empleado': getEmpleadoNombre(l.empleadoId, empleados),
-        'Banco': bankInfo.banco,
-        'Tipo Cuenta': bankInfo.tipoCuenta,
-        '# Cuenta': bankInfo.numeroCuenta,
-        'Concepto': l.concepto || '',
-        'Imágenes': `${(l.imagenes || []).length} imagen(es)`,
-        'Valor': l.valor || 0,
-        'Categoría': l.categoria || '',
-        'Recursos': l.recursos || '',
-        'Contingencia': l.contingencia || 'No',
-        'Estado': l.estado || ''
-      };
+    const legTotal = allLeg.reduce((sum, l) => sum + (l.valor || 0), 0);
+    allLeg.forEach(l => {
+      const emp = getEmpleadoFullInfo(l.empleadoId, empleados);
+      legRows.push([emp.nombre, emp.cedula, l.concepto || '-', l.valor || 0]);
     });
-    
-    const legSheet = XLSX.utils.json_to_sheet(legData, { header: solicitudHeaders });
-    legSheet['!cols'] = solicitudSheet['!cols'];
+    legRows.push([]);
+    legRows.push(['', '', 'TOTAL LEGALIZADO', legTotal]);
+    legRows.push(['', '', 'DIFERENCIA', totalValor - legTotal]);
+    const legSheet = XLSX.utils.aoa_to_sheet(legRows);
+    legSheet['!cols'] = [{ wch: 25 }, { wch: 18 }, { wch: 40 }, { wch: 18 }];
     XLSX.utils.book_append_sheet(workbook, legSheet, 'Legalización');
   }
-  
-  // Generate and download file
+
   const numSuffix = solicitudAnticipoNum ? `_No${solicitudAnticipoNum}` : '';
   const fileName = `solicitud_anticipo${numSuffix}_${project.evento.replace(/[^a-zA-Z0-9]/g, '_')}_${format(new Date(), 'yyyyMMdd')}.xlsx`;
   XLSX.writeFile(workbook, fileName);

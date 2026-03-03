@@ -1,12 +1,16 @@
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface PhotoExportItem {
   url: string;
   comercio: string;
   concepto: string;
+  bucket?: string;
+  filePath?: string;
 }
 
 interface PhotoExportDialogProps {
@@ -17,7 +21,42 @@ interface PhotoExportDialogProps {
   photos: PhotoExportItem[];
 }
 
+async function resolveUrl(photo: PhotoExportItem): Promise<string> {
+  // If it has bucket/filePath, try to get a fresh signed URL
+  if (photo.bucket && photo.filePath) {
+    try {
+      const { data, error } = await supabase.functions.invoke("get-signed-url", {
+        body: { bucket: photo.bucket, path: photo.filePath, expiresIn: 3600 },
+      });
+      if (!error && data?.signedUrl) return data.signedUrl;
+    } catch {}
+  }
+  // If url looks like a public URL, try getPublicUrl
+  if (photo.url && !photo.url.startsWith("blob:")) {
+    return photo.url;
+  }
+  return photo.url;
+}
+
 export function PhotoExportDialog({ open, onOpenChange, title, subtitle, photos }: PhotoExportDialogProps) {
+  const [resolvedPhotos, setResolvedPhotos] = useState<{ url: string; comercio: string; concepto: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || photos.length === 0) {
+      setResolvedPhotos([]);
+      return;
+    }
+    setLoading(true);
+    Promise.all(photos.map(async (p) => {
+      const url = await resolveUrl(p);
+      return { url, comercio: p.comercio, concepto: p.concepto };
+    })).then((resolved) => {
+      setResolvedPhotos(resolved);
+      setLoading(false);
+    });
+  }, [open, photos]);
+
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
@@ -41,14 +80,14 @@ export function PhotoExportDialog({ open, onOpenChange, title, subtitle, photos 
         <h1>${title}</h1>
         <p>${subtitle}</p>
       </div>
-      ${photos.map((img, i) => `
+      ${resolvedPhotos.map((img, i) => `
         <div class="photo-item">
           <h3>${i + 1}. ${img.comercio || "Sin comercio"}</h3>
           <p class="concepto">${img.concepto || "Sin concepto"}</p>
           <img src="${img.url}" alt="Foto ${i + 1}" />
         </div>
       `).join("")}
-      <div class="total">Total de fotos: ${photos.length}</div>
+      <div class="total">Total de fotos: ${resolvedPhotos.length}</div>
       <div class="action-bar no-print">
         <button class="btn-back" onclick="window.close()">← Volver</button>
         <button class="btn-pdf" onclick="window.print()">📄 Guardar PDF</button>
@@ -66,28 +105,38 @@ export function PhotoExportDialog({ open, onOpenChange, title, subtitle, photos 
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </DialogHeader>
         <div className="px-6 pb-2 flex justify-end">
-          <Button size="sm" variant="outline" onClick={handlePrint}>
+          <Button size="sm" variant="outline" onClick={handlePrint} disabled={loading || resolvedPhotos.length === 0}>
             <Download className="h-4 w-4 mr-2" />
             Guardar PDF
           </Button>
         </div>
         <ScrollArea className="flex-1 px-6 pb-6 max-h-[calc(90vh-140px)]">
-          <div className="space-y-4">
-            {photos.map((img, i) => (
-              <div key={i} className="border border-border rounded-lg p-4">
-                <h3 className="font-bold text-sm">{i + 1}. {img.comercio || "Sin comercio"}</h3>
-                <p className="text-xs text-muted-foreground mb-3">{img.concepto || "Sin concepto"}</p>
-                <img
-                  src={img.url}
-                  alt={`Foto ${i + 1}`}
-                  className="max-w-full max-h-[500px] rounded-md mx-auto block"
-                />
-              </div>
-            ))}
-            <p className="text-center text-xs text-muted-foreground pt-2">
-              Total de fotos: {photos.length}
-            </p>
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">Cargando imágenes...</span>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {resolvedPhotos.map((img, i) => (
+                <div key={i} className="border border-border rounded-lg p-4">
+                  <h3 className="font-bold text-sm">{i + 1}. {img.comercio || "Sin comercio"}</h3>
+                  <p className="text-xs text-muted-foreground mb-3">{img.concepto || "Sin concepto"}</p>
+                  <img
+                    src={img.url}
+                    alt={`Foto ${i + 1}`}
+                    className="max-w-full max-h-[500px] rounded-md mx-auto block"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).alt = "Error al cargar imagen";
+                    }}
+                  />
+                </div>
+              ))}
+              <p className="text-center text-xs text-muted-foreground pt-2">
+                Total de fotos: {resolvedPhotos.length}
+              </p>
+            </div>
+          )}
         </ScrollArea>
       </DialogContent>
     </Dialog>

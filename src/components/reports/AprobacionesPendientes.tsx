@@ -845,27 +845,10 @@ export default function AprobacionesPendientes() {
         return;
       }
 
-      // Resolve group keys to individual rows
-      // selectedForRestore now contains group keys like "40-000-R"
-      // Find all resolved rows that belong to selected groups
+      // Match selected rows by their individual row keys (projectId-itemId)
       const rowsToRestore: FlattenedRow[] = rows.filter(r => {
-        // Check if this row is in a resolved state
-        const isResolved = (() => {
-          if (r.item.estado === "No aprobado") return true;
-          if (r.item.estado === "Aprobado") {
-            const recursos = (r.item.recursos as string) || "";
-            const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
-            if (isTypeS) return r.legalizacionEstado === "Legalizado" || r.legalizacionEstado === "No legalizable";
-            return true;
-          }
-          return false;
-        })();
-        if (!isResolved) return false;
-        
-        const recursos = (r.item.recursos as string) || "";
-        const tipo = recursos === "Recursos propios" ? "R" : recursos === "BBM" ? "C" : "S";
-        const groupKey = `${r.centroCostos || "sin-cc"}-${tipo}`;
-        return selectedForRestore.has(groupKey);
+        const rowKey = `${r.projectId}-${r.item.id}`;
+        return selectedForRestore.has(rowKey);
       });
 
       if (rowsToRestore.length === 0) {
@@ -913,10 +896,10 @@ export default function AprobacionesPendientes() {
         );
         
         if (cajaMenorIdsToRestore.size > 0) {
-          // For type S: keep the approval estado, only mark as restaurada
+          // Reset estado to "Pendiente" and mark as restaurada
           const updatedCajaMenor = (project.cajaMenor || []).map(item =>
             cajaMenorIdsToRestore.has(item.id)
-              ? { ...item, restaurada: true, restauradaPor: restoreBy, restauradaEn: restoreTimestamp }
+              ? { ...item, estado: "Pendiente", revisadoPor: "", restaurada: true, restauradaPor: restoreBy, restauradaEn: restoreTimestamp }
               : item
           );
           await updateProject(projectId, "cajaMenor", updatedCajaMenor);

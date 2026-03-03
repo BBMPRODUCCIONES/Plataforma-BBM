@@ -1349,13 +1349,31 @@ export const printCajaMenor = (project: Project, empleados: EmpleadoBasic[] = []
 
 // Export ONLY Solicitud de Presupuesto to Excel (mirrors PDF FIN-F-002 format exactly)
 export const exportSolicitudToExcel = async (project: Project, empleados: EmpleadoBasic[] = [], includeLegalizacion: boolean = false, solicitudAnticipoNum?: number) => {
-  const XLSX = await import('xlsx');
+  const XLSX = await import('xlsx-js-style');
   const cajaMenor = project.cajaMenor || [];
   const firstItem = cajaMenor[0];
   const solicitante = getEmpleadoFullInfo(firstItem?.empleadoId, empleados);
   const totalValor = cajaMenor.reduce((sum, c) => sum + (c.valor || 0), 0);
   const fechaHoy = format(new Date(), "dd/MM/yyyy", { locale: es });
   const categoriaAnticipo = firstItem?.categoria || '-';
+
+  // === STYLE DEFINITIONS ===
+  const borderThin = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+  const borderMedium = { top: { style: 'medium' }, bottom: { style: 'medium' }, left: { style: 'medium' }, right: { style: 'medium' } };
+  const fontTitle = { name: 'Arial', sz: 14, bold: true };
+  const fontSubtitle = { name: 'Arial', sz: 11, bold: true };
+  const fontLabel = { name: 'Arial', sz: 10, bold: true };
+  const fontValue = { name: 'Arial', sz: 10 };
+  const fontSmall = { name: 'Arial', sz: 9 };
+  const fontSmallBold = { name: 'Arial', sz: 9, bold: true };
+  const fontCompanyName = { name: 'Arial', sz: 12, bold: true };
+  const fontCompanyDetail = { name: 'Arial', sz: 8, color: { rgb: '666666' } };
+  const fillHeader = { fgColor: { rgb: 'F3F4F6' } };
+  const fillDarkHeader = { fgColor: { rgb: 'E5E7EB' } };
+  const fillCategoryHeader = { fgColor: { rgb: 'FFF3E0' } };
+  const alignCenter = { horizontal: 'center', vertical: 'center', wrapText: true };
+  const alignLeft = { horizontal: 'left', vertical: 'center', wrapText: true };
+  const alignRight = { horizontal: 'right', vertical: 'center' };
 
   // Fecha legalización
   let fechaLegalizacion = '';
@@ -1368,83 +1386,128 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
 
   const rows: any[][] = [];
   const merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [];
-  let r = 0; // current row index
+  // Store cell styles: key = "R,C" => style object
+  const cellStyles: Record<string, any> = {};
+  const setStyle = (row: number, col: number, style: any) => { cellStyles[`${row},${col}`] = style; };
+  const setRowStyle = (row: number, cols: number, style: any) => { for (let c = 0; c < cols; c++) setStyle(row, c, style); };
+  let r = 0;
 
-  // === HEADER CORPORATIVO (3 rows, cols A-H) ===
-  // Row 0: BBM info | SOLICITUD DE ANTICIPO | CÓDIGO | FIN-F-002
+  // === HEADER CORPORATIVO (3 rows) ===
   rows.push(['BBM Producciones S.A.S.', '', '', '', 'SOLICITUD DE ANTICIPO', '', 'CÓDIGO', 'FIN-F-002']);
-  merges.push({ s: { r, c: 0 }, e: { r: r + 2, c: 1 } }); // A1:B3 company info
-  merges.push({ s: { r, c: 4 }, e: { r: r + 2, c: 5 } }); // E1:F3 title
+  merges.push({ s: { r, c: 0 }, e: { r: r + 2, c: 1 } });
+  merges.push({ s: { r, c: 4 }, e: { r: r + 2, c: 5 } });
+  setStyle(r, 0, { font: fontCompanyName, border: borderMedium, alignment: { vertical: 'center', wrapText: true } });
+  setStyle(r, 4, { font: fontTitle, border: borderMedium, alignment: alignCenter });
+  setStyle(r, 6, { font: fontSmallBold, border: borderThin, alignment: alignLeft });
+  setStyle(r, 7, { font: fontSmall, border: borderThin, alignment: alignLeft });
   r++;
-  // Row 1
   rows.push(['', '', 'Carrera 74 # 48 19', '', '', '', 'VERSIÓN', '1']);
+  setStyle(r, 2, { font: fontCompanyDetail, border: borderThin });
+  setStyle(r, 6, { font: fontSmallBold, border: borderThin, alignment: alignLeft });
+  setStyle(r, 7, { font: fontSmall, border: borderThin, alignment: alignLeft });
   r++;
-  // Row 2
   rows.push(['', '', 'Bogotá, D.C. Colombia | NIT 901.577.285-7', '', '', '', 'FECHA ELABORACIÓN', fechaHoy]);
+  setStyle(r, 2, { font: fontCompanyDetail, border: borderThin });
+  setStyle(r, 6, { font: fontSmallBold, border: borderThin, alignment: alignLeft });
+  setStyle(r, 7, { font: fontSmall, border: borderThin, alignment: alignLeft });
   r++;
 
-  // Row 3: ADMON / OPERATIVO
+  // ADMON / OPERATIVO
   rows.push(['', '', '', '', 'ADMON', '', 'OPERATIVO', 'X']);
+  setStyle(r, 4, { font: fontLabel, border: borderThin, alignment: alignCenter });
+  setStyle(r, 6, { font: fontLabel, border: borderThin, alignment: alignCenter });
+  setStyle(r, 7, { font: fontSubtitle, border: borderThin, alignment: alignCenter });
+  for (let c = 0; c < 4; c++) setStyle(r, c, { border: borderThin });
+  setStyle(r, 5, { border: borderThin });
   r++;
 
-  // Row 4: SOLICITUD DE ANTICIPO No.
+  // SOLICITUD DE ANTICIPO No.
   rows.push(['SOLICITUD DE ANTICIPO No.', '', '', solicitudAnticipoNum || '']);
-  merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); // merge label
+  merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+  setStyle(r, 0, { font: fontSubtitle, border: borderThin, alignment: alignLeft });
+  setStyle(r, 3, { font: { name: 'Arial', sz: 14, bold: true, color: { rgb: '1D4ED8' } }, border: borderThin, alignment: alignCenter });
+  for (let c = 4; c < 8; c++) setStyle(r, c, { border: borderThin });
   r++;
 
-  // Row 5: Title bar
-  rows.push(['', '', '', '', 'SOLICITUD DE ANTICIPO', '', '', '']);
-  merges.push({ s: { r, c: 0 }, e: { r, c: 7 } }); // full width merge
+  // Title bar: SOLICITUD DE ANTICIPO
+  rows.push(['SOLICITUD DE ANTICIPO', '', '', '', '', '', '', '']);
+  merges.push({ s: { r, c: 0 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontSubtitle, fill: fillHeader, border: borderThin, alignment: alignCenter });
   r++;
 
-  // Row 6: SOLICITADO POR
+  // SOLICITADO POR
   rows.push(['SOLICITADO POR', solicitante.nombre, '', '', 'CIUDAD', '', 'BOGOTÁ', '']);
-  merges.push({ s: { r, c: 1 }, e: { r, c: 3 } }); // name spans
-  merges.push({ s: { r, c: 4 }, e: { r, c: 5 } }); // CIUDAD label
-  merges.push({ s: { r, c: 6 }, e: { r, c: 7 } }); // BOGOTÁ value
+  merges.push({ s: { r, c: 1 }, e: { r, c: 3 } });
+  merges.push({ s: { r, c: 4 }, e: { r, c: 5 } });
+  merges.push({ s: { r, c: 6 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 1, { font: fontValue, border: borderThin, alignment: alignLeft });
+  setStyle(r, 4, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 6, { font: fontValue, border: borderThin, alignment: alignLeft });
   r++;
 
-  // Row 7: CÉDULA
+  // CÉDULA
   rows.push(['CÉDULA', solicitante.cedula, '', '', 'EVENTO', '', project.evento || '-', '']);
   merges.push({ s: { r, c: 1 }, e: { r, c: 3 } });
   merges.push({ s: { r, c: 4 }, e: { r, c: 5 } });
   merges.push({ s: { r, c: 6 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 1, { font: fontValue, border: borderThin, alignment: alignLeft });
+  setStyle(r, 4, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 6, { font: fontValue, border: borderThin, alignment: alignLeft });
   r++;
 
-  // Row 8: CARGO
+  // CARGO
   rows.push(['CARGO', solicitante.cargo, '', '', 'CENTRO DE COSTO', '', project.centroCostos || '-', '']);
   merges.push({ s: { r, c: 1 }, e: { r, c: 3 } });
   merges.push({ s: { r, c: 4 }, e: { r, c: 5 } });
   merges.push({ s: { r, c: 6 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 1, { font: fontValue, border: borderThin, alignment: alignLeft });
+  setStyle(r, 4, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 6, { font: fontValue, border: borderThin, alignment: alignLeft });
   r++;
 
-  // Row 9: empty separator
+  // Empty separator
   rows.push([]);
   r++;
 
-  // Row 10: VALOR SOLICITADO
+  // VALOR SOLICITADO
   rows.push(['VALOR SOLICITADO', `$ ${totalValor.toLocaleString('es-CO')}`, 'BANCO', solicitante.banco, 'No CUENTA', solicitante.numeroCuenta, '', '']);
-  merges.push({ s: { r, c: 5 }, e: { r, c: 7 } }); // account number spans
+  merges.push({ s: { r, c: 5 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 1, { font: { name: 'Arial', sz: 10, bold: true }, border: borderThin, alignment: alignLeft });
+  setStyle(r, 2, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 3, { font: fontValue, border: borderThin, alignment: alignLeft });
+  setStyle(r, 4, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 5, { font: fontValue, border: borderThin, alignment: alignLeft });
   r++;
 
-  // Row 11: FECHA SOLICITUD
+  // FECHA SOLICITUD
   rows.push(['FECHA SOLICITUD', fechaHoy, 'TIPO', solicitante.tipoCuenta === 'Ahorros' ? 'AH' : solicitante.tipoCuenta === 'Corriente' ? 'CTE' : solicitante.tipoCuenta, '', '', '', '']);
   merges.push({ s: { r, c: 4 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 1, { font: fontValue, border: borderThin, alignment: alignLeft });
+  setStyle(r, 2, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 3, { font: fontValue, border: borderThin, alignment: alignLeft });
+  setStyle(r, 4, { border: borderThin });
   r++;
 
-  // Row 12: FECHA A LEGALIZAR
+  // FECHA A LEGALIZAR
   rows.push(['FECHA A LEGALIZAR', fechaLegalizacion, '', '', '', '', '', '']);
   merges.push({ s: { r, c: 1 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 1, { font: fontValue, border: borderThin, alignment: alignLeft });
   r++;
 
-  // Row 13: empty separator
+  // Empty separator
   rows.push([]);
   r++;
 
   // === RELACIÓN DE GASTOS ===
-  // Row 14: Section title
   rows.push(['RELACIÓN DE GASTOS', '', '', '', '', '', '', '']);
   merges.push({ s: { r, c: 0 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontSubtitle, fill: fillHeader, border: borderThin, alignment: alignLeft });
   r++;
 
   // Build expense entries grouped by category
@@ -1477,19 +1540,30 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
     if (hasMultipleCategories) {
       rows.push([`📁 ${cat}`, '', '', '', '', '', '', '']);
       merges.push({ s: { r, c: 0 }, e: { r, c: 7 } });
+      setStyle(r, 0, { font: { name: 'Arial', sz: 10, bold: true, color: { rgb: 'C2410C' } }, fill: fillCategoryHeader, border: borderThin, alignment: alignLeft });
       r++;
     }
 
-    // Column headers for this category
+    // Column headers
     rows.push(['NOMBRE DE TERCEROS', '', 'NIT/CÉDULA', 'CONCEPTO', '', 'VALOR', '', '']);
     merges.push({ s: { r, c: 0 }, e: { r, c: 1 } });
     merges.push({ s: { r, c: 3 }, e: { r, c: 4 } });
+    setStyle(r, 0, { font: fontSmallBold, fill: fillDarkHeader, border: borderThin, alignment: alignLeft });
+    setStyle(r, 2, { font: fontSmallBold, fill: fillDarkHeader, border: borderThin, alignment: alignLeft });
+    setStyle(r, 3, { font: fontSmallBold, fill: fillDarkHeader, border: borderThin, alignment: alignLeft });
+    setStyle(r, 5, { font: fontSmallBold, fill: fillDarkHeader, border: borderThin, alignment: alignRight });
+    for (const c2 of [1, 4, 6, 7]) setStyle(r, c2, { fill: fillDarkHeader, border: borderThin });
     r++;
 
     catEntries.forEach(entry => {
       rows.push([entry.comercio, '', entry.nitCedula, entry.concepto, '', entry.valor, '', '']);
       merges.push({ s: { r, c: 0 }, e: { r, c: 1 } });
       merges.push({ s: { r, c: 3 }, e: { r, c: 4 } });
+      setStyle(r, 0, { font: fontSmall, border: borderThin, alignment: alignLeft });
+      setStyle(r, 2, { font: fontSmall, border: borderThin, alignment: alignLeft });
+      setStyle(r, 3, { font: fontSmall, border: borderThin, alignment: alignLeft });
+      setStyle(r, 5, { font: { name: 'Arial', sz: 9, color: { rgb: 'C2410C' } }, border: borderThin, alignment: alignRight, numFmt: '$ #,##0' });
+      for (const c2 of [1, 4, 6, 7]) setStyle(r, c2, { border: borderThin });
       r++;
     });
 
@@ -1497,6 +1571,9 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
       rows.push(['', '', '', `Subtotal ${cat}`, '', catTotal, '', '']);
       merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
       merges.push({ s: { r, c: 3 }, e: { r, c: 4 } });
+      setStyle(r, 3, { font: fontSmallBold, border: borderThin, alignment: alignRight });
+      setStyle(r, 5, { font: fontSmallBold, border: borderThin, alignment: alignRight, numFmt: '$ #,##0' });
+      for (const c2 of [0, 1, 2, 4, 6, 7]) setStyle(r, c2, { border: borderThin });
       r++;
     }
   });
@@ -1506,6 +1583,7 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
   const emptyRowsCount = Math.max(0, 8 - totalExpenseCount);
   for (let i = 0; i < emptyRowsCount; i++) {
     rows.push(['', '', '', '', '', '', '', '']);
+    setRowStyle(r, 8, { border: borderThin });
     r++;
   }
 
@@ -1513,6 +1591,10 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
   rows.push(['', '', '', 'TOTAL', '', allExpenseTotal, '', '']);
   merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
   merges.push({ s: { r, c: 3 }, e: { r, c: 4 } });
+  setStyle(r, 0, { border: borderThin, fill: fillHeader });
+  setStyle(r, 3, { font: fontSubtitle, fill: fillHeader, border: borderThin, alignment: alignRight });
+  setStyle(r, 5, { font: { name: 'Arial', sz: 11, bold: true, color: { rgb: 'C2410C' } }, fill: fillHeader, border: borderThin, alignment: alignRight, numFmt: '$ #,##0' });
+  for (const c2 of [1, 2, 4, 6, 7]) setStyle(r, c2, { fill: fillHeader, border: borderThin });
   r++;
 
   // DIFERENCIA row
@@ -1520,21 +1602,26 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
   rows.push(['', '', '', 'DIFERENCIA', '', diferencia, '', '']);
   merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
   merges.push({ s: { r, c: 3 }, e: { r, c: 4 } });
+  setStyle(r, 3, { font: fontSubtitle, border: borderThin, alignment: alignRight });
+  setStyle(r, 5, { font: fontSubtitle, border: borderThin, alignment: alignRight, numFmt: '$ #,##0' });
+  for (const c2 of [0, 1, 2, 4, 6, 7]) setStyle(r, c2, { border: borderThin });
   r++;
 
-  // Row: empty separator
+  // Empty separator
   rows.push([]);
   r++;
 
   // === OBSERVACIONES ===
   rows.push(['OBSERVACIONES', '', '', '', '', '', '', '']);
   merges.push({ s: { r, c: 0 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontLabel, border: borderThin, alignment: alignLeft });
   r++;
   rows.push(['', '', '', '', '', '', '', '']);
   merges.push({ s: { r, c: 0 }, e: { r, c: 7 } });
+  setStyle(r, 0, { border: borderThin });
   r++;
 
-  // Row: empty separator
+  // Empty separator
   rows.push([]);
   r++;
 
@@ -1542,25 +1629,31 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
   rows.push(['TESORERÍA', '', '', '', 'ANTICIPOS VENCIDOS', '', '', '']);
   merges.push({ s: { r, c: 0 }, e: { r, c: 3 } });
   merges.push({ s: { r, c: 4 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 4, { font: fontLabel, border: borderThin, alignment: alignCenter });
   r++;
   rows.push(['FECHA DE PAGO', '', '', '', 'SI ☐     NO ☐', '', '', '']);
   merges.push({ s: { r, c: 0 }, e: { r, c: 3 } });
   merges.push({ s: { r, c: 4 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontLabel, border: borderThin, alignment: alignLeft });
+  setStyle(r, 4, { font: fontValue, border: borderThin, alignment: alignCenter });
   r++;
 
-  // Row: empty separator
+  // Empty separator
   rows.push([]);
   r++;
 
   // === NOTA ACLARATORIA ===
   rows.push(['NOTA ACLARATORIA', '', '', '', '', '', '', '']);
   merges.push({ s: { r, c: 0 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontLabel, border: borderThin, alignment: alignLeft });
   r++;
   rows.push(['COMO SOLICITANTE DEL PRESENTE ANTICIPO, MANIFIESTO QUE CONOZCO EL REGLAMENTO QUE RIGE PARA LOS ANTICIPOS Y POR CONSIGUIENTE AUTORIZO A LA COMPAÑÍA PARA QUE EN CASO DE NO HACER LAS LEGALIZACIONES DENTRO DEL PLAZO ESTIPULADO (5 DÍAS HÁBILES) LAS DIFERENCIAS SEAN DESCONTADAS DE LOS PAGOS QUE ME CORRESPONDAN', '', '', '', '', '', '', '']);
   merges.push({ s: { r, c: 0 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontSmall, border: borderThin, alignment: { ...alignLeft, wrapText: true } });
   r++;
 
-  // Row: empty separator
+  // Empty separator
   rows.push([]);
   r++;
 
@@ -1569,20 +1662,27 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
   merges.push({ s: { r, c: 0 }, e: { r, c: 1 } });
   merges.push({ s: { r, c: 3 }, e: { r, c: 4 } });
   merges.push({ s: { r, c: 5 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontLabel, border: borderThin, alignment: alignCenter });
+  setStyle(r, 3, { font: fontLabel, border: borderThin, alignment: alignCenter });
+  setStyle(r, 5, { font: fontLabel, border: borderThin, alignment: alignCenter });
   r++;
   rows.push([solicitante.nombre, '', '', '', '', '', '', '']);
   merges.push({ s: { r, c: 0 }, e: { r, c: 1 } });
   merges.push({ s: { r, c: 3 }, e: { r, c: 4 } });
   merges.push({ s: { r, c: 5 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: fontValue, border: borderThin, alignment: alignCenter });
+  setStyle(r, 3, { border: borderThin });
+  setStyle(r, 5, { border: borderThin });
   r++;
 
-  // Row: empty separator
+  // Empty separator
   rows.push([]);
   r++;
 
   // Footer
   rows.push([`PRODUCCIÓN DE EVENTOS - Sistema de Gestión | Generado: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: es })}`, '', '', '', '', '', '', '']);
   merges.push({ s: { r, c: 0 }, e: { r, c: 7 } });
+  setStyle(r, 0, { font: { name: 'Arial', sz: 8, color: { rgb: '999999' } }, alignment: alignCenter });
 
   // Create workbook
   const workbook = XLSX.utils.book_new();
@@ -1591,21 +1691,37 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
     { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 15 }
   ];
   sheet['!merges'] = merges;
+
+  // Apply cell styles
+  Object.entries(cellStyles).forEach(([key, style]) => {
+    const [rowStr, colStr] = key.split(',');
+    const cellRef = XLSX.utils.encode_cell({ r: parseInt(rowStr), c: parseInt(colStr) });
+    if (!sheet[cellRef]) sheet[cellRef] = { v: '', t: 's' };
+    sheet[cellRef].s = style;
+  });
+
   const sheetName = solicitudAnticipoNum ? `Solicitud No.${solicitudAnticipoNum}` : 'Solicitud Presupuesto';
   XLSX.utils.book_append_sheet(workbook, sheet, sheetName);
 
   if (includeLegalizacion) {
     const legRows: any[][] = [];
     const legMerges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [];
+    const legStyles: Record<string, any> = {};
+    const setLegStyle = (row: number, col: number, style: any) => { legStyles[`${row},${col}`] = style; };
     let lr = 0;
 
     legRows.push(['LEGALIZACIÓN', '', '', '', '', '', '', '']);
     legMerges.push({ s: { r: lr, c: 0 }, e: { r: lr, c: 7 } });
+    setLegStyle(lr, 0, { font: fontSubtitle, fill: fillHeader, border: borderThin, alignment: alignCenter });
     lr++;
 
     legRows.push(['NOMBRE DE TERCEROS', '', 'NIT/CÉDULA', 'CONCEPTO', '', 'VALOR', '', '']);
     legMerges.push({ s: { r: lr, c: 0 }, e: { r: lr, c: 1 } });
     legMerges.push({ s: { r: lr, c: 3 }, e: { r: lr, c: 4 } });
+    setLegStyle(lr, 0, { font: fontSmallBold, fill: fillDarkHeader, border: borderThin, alignment: alignLeft });
+    setLegStyle(lr, 2, { font: fontSmallBold, fill: fillDarkHeader, border: borderThin, alignment: alignLeft });
+    setLegStyle(lr, 3, { font: fontSmallBold, fill: fillDarkHeader, border: borderThin, alignment: alignLeft });
+    setLegStyle(lr, 5, { font: fontSmallBold, fill: fillDarkHeader, border: borderThin, alignment: alignRight });
     lr++;
 
     const manualLeg = ((project.legalizacion as any[]) || []).filter(l => !l.id.startsWith('leg-'));
@@ -1620,6 +1736,10 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
       legRows.push([emp.nombre, '', emp.cedula, l.concepto || '-', '', l.valor || 0, '', '']);
       legMerges.push({ s: { r: lr, c: 0 }, e: { r: lr, c: 1 } });
       legMerges.push({ s: { r: lr, c: 3 }, e: { r: lr, c: 4 } });
+      setLegStyle(lr, 0, { font: fontSmall, border: borderThin, alignment: alignLeft });
+      setLegStyle(lr, 2, { font: fontSmall, border: borderThin, alignment: alignLeft });
+      setLegStyle(lr, 3, { font: fontSmall, border: borderThin, alignment: alignLeft });
+      setLegStyle(lr, 5, { font: fontSmall, border: borderThin, alignment: alignRight, numFmt: '$ #,##0' });
       lr++;
     });
     legRows.push([]);
@@ -1627,14 +1747,24 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
     legRows.push(['', '', '', 'TOTAL LEGALIZADO', '', legTotal, '', '']);
     legMerges.push({ s: { r: lr, c: 0 }, e: { r: lr, c: 2 } });
     legMerges.push({ s: { r: lr, c: 3 }, e: { r: lr, c: 4 } });
+    setLegStyle(lr, 3, { font: fontSubtitle, fill: fillHeader, border: borderThin, alignment: alignRight });
+    setLegStyle(lr, 5, { font: fontSubtitle, fill: fillHeader, border: borderThin, alignment: alignRight, numFmt: '$ #,##0' });
     lr++;
     legRows.push(['', '', '', 'DIFERENCIA', '', totalValor - legTotal, '', '']);
     legMerges.push({ s: { r: lr, c: 0 }, e: { r: lr, c: 2 } });
     legMerges.push({ s: { r: lr, c: 3 }, e: { r: lr, c: 4 } });
+    setLegStyle(lr, 3, { font: fontSubtitle, border: borderThin, alignment: alignRight });
+    setLegStyle(lr, 5, { font: fontSubtitle, border: borderThin, alignment: alignRight, numFmt: '$ #,##0' });
 
     const legSheet = XLSX.utils.aoa_to_sheet(legRows);
     legSheet['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 15 }];
     legSheet['!merges'] = legMerges;
+    Object.entries(legStyles).forEach(([key, style]) => {
+      const [rowStr, colStr] = key.split(',');
+      const cellRef = XLSX.utils.encode_cell({ r: parseInt(rowStr), c: parseInt(colStr) });
+      if (!legSheet[cellRef]) legSheet[cellRef] = { v: '', t: 's' };
+      legSheet[cellRef].s = style;
+    });
     XLSX.utils.book_append_sheet(workbook, legSheet, 'Legalización');
   }
 
@@ -1645,7 +1775,7 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
 
 // Export ONLY Legalizacion to Excel
 export const exportLegalizacionToExcel = async (project: Project, empleados: EmpleadoBasic[] = [], includeSolicitud: boolean = false) => {
-  const XLSX = await import('xlsx');
+  const XLSX = await import('xlsx-js-style');
   const cajaMenor = project.cajaMenor || [];
   
   // Create workbook
@@ -1726,7 +1856,7 @@ export const exportLegalizacionToExcel = async (project: Project, empleados: Emp
 
 // Legacy: Export Caja Menor to Excel (real .xlsx file) - kept for backward compatibility
 export const exportCajaMenorToExcel = async (project: Project, empleados: EmpleadoBasic[] = []) => {
-  const XLSX = await import('xlsx');
+  const XLSX = await import('xlsx-js-style');
   const cajaMenor = project.cajaMenor || [];
   
   // Header row

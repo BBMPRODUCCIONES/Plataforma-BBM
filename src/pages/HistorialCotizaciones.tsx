@@ -44,7 +44,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 
 interface CotizacionHistoryRecord {
   id: string;

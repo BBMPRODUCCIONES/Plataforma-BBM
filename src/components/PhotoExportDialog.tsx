@@ -99,7 +99,7 @@ export function PhotoExportDialog({ open, onOpenChange, title, subtitle, photos 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle className="text-lg">{title}</DialogTitle>
           <p className="text-sm text-muted-foreground">{subtitle}</p>

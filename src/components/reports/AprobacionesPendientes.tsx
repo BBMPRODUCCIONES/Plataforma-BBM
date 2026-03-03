@@ -769,7 +769,16 @@ export default function AprobacionesPendientes() {
       }
 
       // Restore each selected row - batch by project to avoid stale data overwrites
-      const rowsToRestore = resolvedRows.filter(r => selectedForRestore.has(`${r.projectId}-${r.item.id}`));
+      // Use unfiltered rows to find items to restore (search filter may hide them from resolvedRows)
+      const allResolved = rows.filter(r => r.item.estado === "Aprobado" || r.item.estado === "No aprobado");
+      const rowsToRestore = allResolved.filter(r => selectedForRestore.has(`${r.projectId}-${r.item.id}`));
+      if (rowsToRestore.length === 0) {
+        toast.error("No se encontraron solicitudes para restaurar");
+        setIsRestoring(false);
+        setShowPasswordDialog(false);
+        setPasswordInput("");
+        return;
+      }
       
       // Group rows by projectId to batch updates
       const gastoMenorRows = rowsToRestore.filter(r => r.source === 'gastoMenor' && r.gastoMenorId);

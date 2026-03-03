@@ -47,21 +47,21 @@ const PanelGeneral = () => {
   const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
   // Initialize with base columns - persisted to localStorage
   const defaultColumns: ColumnConfig[] = [
-    { key: "centroCostos", header: "Centro de Costos", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
-    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 1 },
-    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 2 },
-    { key: "evento", header: "Evento", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 3 },
-    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 4, options: ["No se hizo", "Se hizo", "No es necesario"] },
-    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 5 },
-    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 6 },
-    { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 7 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "140px", visible: true, isCustom: false, order: 8 },
-    { key: "jefeOperaciones", header: "Jefe Operaciones", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 9 },
-    { key: "aCargoDe", header: "A Cargo De", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 10 },
-    { key: "productor", header: "Productor", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 11 },
-    { key: "ubicacion", header: "Ubicación", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 12 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 13 },
-    { key: "panelDirectivo", header: "Panel Directivo", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 14 },
+    { key: "centroCostos", header: "CC", type: "text" as CellType, width: "70px", visible: true, isCustom: false, order: 0 },
+    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 1 },
+    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 2 },
+    { key: "evento", header: "Evento", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 3 },
+    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 4, options: ["No se hizo", "Se hizo", "No es necesario"] },
+    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 5 },
+    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 6 },
+    { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "95px", visible: true, isCustom: false, order: 7 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 8 },
+    { key: "jefeOperaciones", header: "Jefe Ops", type: "text" as CellType, width: "95px", visible: true, isCustom: false, order: 9 },
+    { key: "aCargoDe", header: "A Cargo", type: "text" as CellType, width: "85px", visible: true, isCustom: false, order: 10 },
+    { key: "productor", header: "Productor", type: "text" as CellType, width: "90px", visible: true, isCustom: false, order: 11 },
+    { key: "ubicacion", header: "Ubicación", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 12 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 13 },
+    { key: "panelDirectivo", header: "Panel", type: "text" as CellType, width: "65px", visible: true, isCustom: false, order: 14 },
   ];
   const { columns: managedColumns, setColumns: setManagedColumns, loading: columnsLoading, isAdmin: canModifyStructure } = useGlobalColumns("panel-general", defaultColumns);
   
@@ -135,15 +135,15 @@ const PanelGeneral = () => {
 
   // Define base columns
   const baseColumnDefs: ColumnConfig[] = useMemo(() => [
-    { key: "centroCostos", header: "Centro de Costos", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
-    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "100px", visible: true, isCustom: false, order: 1 },
-    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "200px", visible: true, isCustom: false, order: 2 },
-    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 3 },
-    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 4 },
-    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 5 },
-    { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "130px", visible: true, isCustom: false, order: 6 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 7 },
-    { key: "ordenCompra", header: "OC + OCR", type: "file" as CellType, width: "130px", visible: true, isCustom: false, order: 8 },
+    { key: "centroCostos", header: "CC", type: "text" as CellType, width: "70px", visible: true, isCustom: false, order: 0 },
+    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 1 },
+    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 2 },
+    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 3 },
+    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 4 },
+    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 5 },
+    { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "95px", visible: true, isCustom: false, order: 6 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 7 },
+    { key: "ordenCompra", header: "OC + OCR", type: "file" as CellType, width: "90px", visible: true, isCustom: false, order: 8 },
   ], []);
 
   // Get all columns - direct calculation for immediate updates

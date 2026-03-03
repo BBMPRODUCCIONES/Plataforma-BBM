@@ -460,7 +460,9 @@ export default function AprobacionesPendientes() {
   }, [rows, mesFilter, anioFilter, estadoFilter, searchQuery]);
 
   // Split into pending and resolved
-  // For type S (anticipos), "Aprobado" stays pending until legalization is "Legalizado"
+  // Pending: "Pendiente" OR (Aprobado type S with legalization not yet complete)
+  // All R, C, and S with estado "Pendiente" stay pending
+  // S "Aprobado" stays pending until legalization is "Legalizado"
   const pendingRows = useMemo(() => filteredRows.filter(r => {
     if (r.item.estado === "Pendiente") return true;
     if (r.item.estado === "Aprobado") {
@@ -477,7 +479,7 @@ export default function AprobacionesPendientes() {
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
       // Type S only resolved when legalization is complete
       if (isTypeS) return r.legalizacionEstado === "Legalizado";
-      return true; // R and C go to history immediately when approved
+      return true; // R and C go to history when approved (their process is done)
     }
     return false;
   }), [filteredRows]);
@@ -1170,7 +1172,9 @@ export default function AprobacionesPendientes() {
               <TableHead className="text-xs text-right">Valor Total</TableHead>
               <TableHead className="text-xs text-center">Cant.</TableHead>
               <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
+              <TableHead className="text-xs">Aprobado por</TableHead>
               <TableHead className="text-xs text-right">Legalización</TableHead>
+              <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>
               <TableHead className="text-xs text-right">Saldo</TableHead>
               <TableHead className="text-xs w-[80px]"></TableHead>
             </TableRow>
@@ -1178,7 +1182,7 @@ export default function AprobacionesPendientes() {
           <TableBody>
             {groupedPendingRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground py-8 text-sm">
+                <TableCell colSpan={12} className="text-center text-muted-foreground py-8 text-sm">
                   No hay solicitudes pendientes
                 </TableCell>
               </TableRow>
@@ -1189,9 +1193,30 @@ export default function AprobacionesPendientes() {
                   group.tipo === "S" ? "bg-blue-500/20 text-blue-400 border-blue-500/40" :
                   group.tipo === "R" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
                   "bg-amber-500/20 text-amber-400 border-amber-500/40";
-                // Find first projectId for "Ver más"
                 const firstProjectRow = group.rows.find(r => r.projectId);
                 const isTypeS = group.tipo === "S";
+
+                // Determine common estado for the group
+                const allEstados = [...new Set(group.rows.map(r => r.item.estado))];
+                const commonEstado = allEstados.length === 1 ? allEstados[0] : "Pendiente";
+
+                // Determine aprobado por
+                const aprobadores = [...new Set(group.rows
+                  .map(r => {
+                    if (r.source === 'gastoMenor') {
+                      const gm = gastosMenores.find(g => g.id === r.gastoMenorId);
+                      return gm?.aprobado_por_nombre || "";
+                    }
+                    return r.item.revisadoPor || "";
+                  })
+                  .filter(Boolean)
+                )];
+                const aprobadoPorDisplay = aprobadores.length === 1 ? aprobadores[0] : aprobadores.length > 1 ? aprobadores.join(", ") : "—";
+
+                // Determine legalization estado for type S
+                const legEstados = isTypeS ? [...new Set(group.rows.map(r => r.legalizacionEstado || "Revisando"))] : [];
+                const commonLegEstado = legEstados.length === 1 ? legEstados[0] : legEstados.length > 1 ? "Mixto" : "";
+
                 return (
                   <TableRow key={group.key}>
                     <TableCell className="text-xs text-center">
@@ -1215,15 +1240,40 @@ export default function AprobacionesPendientes() {
                     <TableCell className="text-xs">
                       {canApproveCajaMenor() ? (
                         <CajaMenorEstadoSelect
-                          value="Pendiente"
+                          value={commonEstado}
                           onChange={(v) => handleGroupedEstadoChange(group, v)}
                         />
                       ) : (
-                        <CajaMenorEstadoSelect value="Pendiente" onChange={() => {}} readOnly />
+                        <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />
                       )}
+                    </TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      {aprobadoPorDisplay}
                     </TableCell>
                     <TableCell className="text-xs text-right">
                       {isTypeS ? formatCurrency(group.totalLegalizacion) : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {(() => {
+                        if (!isTypeS) return <span className="text-muted-foreground">—</span>;
+                        // If all items have same legalization estado, show it
+                        if (commonEstado === "No aprobado") {
+                          return (
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>
+                              {LEGALIZACION_NO_APROBADO.label}
+                            </span>
+                          );
+                        }
+                        if (commonLegEstado === "Mixto") {
+                          return <span className="text-xs text-muted-foreground">Mixto</span>;
+                        }
+                        const legOption = LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === commonLegEstado);
+                        return (
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded ${legOption?.className || "bg-yellow-500/20 text-yellow-400"}`}>
+                            {commonLegEstado || "Revisando"}
+                          </span>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className={`text-xs text-right font-medium ${
                       isTypeS ? (group.totalSaldo > 0 ? "text-green-400" : group.totalSaldo < 0 ? "text-red-400" : "") : ""

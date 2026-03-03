@@ -25,6 +25,7 @@ interface InventarioResponsablesSelectorProps {
   onResponsableSalidaChange: (data: ResponsableAutoLog) => void;
   onResponsableEntradaChange: (data: ResponsableAutoLog) => void;
   onResponsableEventoChange: (data: ResponsableAutoLog) => void;
+  highlightMissing?: boolean;
 }
 
 const UNDO_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -238,6 +239,7 @@ export function InventarioResponsablesSelector({
   onResponsableSalidaChange,
   onResponsableEntradaChange,
   onResponsableEventoChange,
+  highlightMissing = false,
 }: InventarioResponsablesSelectorProps) {
   const { user } = useAuth();
   const { canEditStructure, canCrearAnticipos } = useUserRole();
@@ -277,8 +279,10 @@ export function InventarioResponsablesSelector({
     onChange({ userId: undefined, nombre: undefined, timestamp: undefined });
   };
 
+  const hasMissing = highlightMissing && (!responsableSalida.nombre || !responsableEntrada.nombre || !responsableEvento.nombre);
+
   return (
-    <Card className="mt-4 border-dashed">
+    <Card className={cn("mt-4 border-dashed transition-colors", hasMissing && "border-destructive border-2 ring-2 ring-destructive/30")}>
       <CardHeader className="py-3">
         <CardTitle className="text-sm flex items-center gap-2">
           <Users className="h-4 w-4" />

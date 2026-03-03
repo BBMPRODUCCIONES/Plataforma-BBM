@@ -356,6 +356,7 @@ const PanelOperaciones = () => {
   const [selectedSection, setSelectedSection] = useState<"plantilla" | "cajaMenor" | null>(null);
   const [localNotasImagenes, setLocalNotasImagenes] = useState<Array<{id: string; url: string; name: string}>>([]);
   const [localFeedbackAdjuntos, setLocalFeedbackAdjuntos] = useState<Attachment[]>([]);
+  const [highlightResponsables, setHighlightResponsables] = useState(false);
   const [horarioFormOpen, setHorarioFormOpen] = useState(false);
   const [photoExportOpen, setPhotoExportOpen] = useState(false);
   const [photoExportData, setPhotoExportData] = useState<{ title: string; subtitle: string; photos: PhotoExportItem[] }>({ title: "", subtitle: "", photos: [] });
@@ -2775,6 +2776,7 @@ const PanelOperaciones = () => {
               if (!currentProjectData.inventarioResponsableEntradaNombre) faltanResponsables.push("Responsable de Entrada");
               if (!currentProjectData.inventarioResponsableEventoNombre) faltanResponsables.push("Responsable durante el Evento");
               if (faltanResponsables.length > 0) {
+                setHighlightResponsables(true);
                 toast.error(`Debe asignar: ${faltanResponsables.join(", ")}`, {
                   description: "Los responsables del inventario son obligatorios.",
                   duration: 5000,
@@ -2892,6 +2894,7 @@ const PanelOperaciones = () => {
           }
           // Limpiar errores de validación al cerrar
           setCajaMenorValidationErrors([]);
+          setHighlightResponsables(false);
           setSelectedProject(null);
           setSelectedSection(null);
         }}>
@@ -3080,6 +3083,7 @@ const PanelOperaciones = () => {
 
                           {/* Responsables del Inventario */}
                           <InventarioResponsablesSelector
+                            highlightMissing={highlightResponsables}
                             responsableSalida={{
                               userId: currentProjectData.inventarioResponsableSalidaUserId,
                               nombre: currentProjectData.inventarioResponsableSalidaNombre,

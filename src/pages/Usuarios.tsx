@@ -950,7 +950,8 @@ const Usuarios = () => {
                 </div>
               )}
 
-              {/* Crear Anticipos Permission - available for ALL roles */}
+              {/* Crear Anticipos Permission - available for admin and operativo */}
+              {(editRole === "administrador" || editRole === "operativo") && (
               <div className="space-y-2">
                 <Label>Permisos de Solicitud de Anticipos</Label>
                 <div className="space-y-2 p-3 border rounded-md bg-blue-500/10 border-blue-500/30">
@@ -973,6 +974,7 @@ const Usuarios = () => {
                   </p>
                 </div>
               </div>
+              )}
 
               {/* Feedback Permissions - only for non-admin roles */}
               {editRole !== "administrador" && (

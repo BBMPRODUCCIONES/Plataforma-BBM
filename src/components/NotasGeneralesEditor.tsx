@@ -20,6 +20,7 @@ interface NotasGeneralesEditorProps {
   onBlur?: () => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 export const NotasGeneralesEditor: React.FC<NotasGeneralesEditorProps> = ({
@@ -30,6 +31,7 @@ export const NotasGeneralesEditor: React.FC<NotasGeneralesEditorProps> = ({
   onBlur,
   placeholder = "Escriba notas generales del evento...",
   className = "",
+  disabled = false,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -117,10 +119,11 @@ export const NotasGeneralesEditor: React.FC<NotasGeneralesEditorProps> = ({
           ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onPaste={handlePaste}
+          onPaste={disabled ? undefined : handlePaste}
           onBlur={onBlur}
           placeholder={placeholder}
           className="min-h-[80px] text-sm"
+          disabled={disabled}
         />
         {isUploading && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md">

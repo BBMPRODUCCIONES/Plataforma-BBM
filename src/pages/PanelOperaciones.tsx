@@ -303,7 +303,7 @@ const PanelOperaciones = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
-  const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor, canCrearAnticipos } = useUserRole();
+  const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor, canCrearAnticipos, canEditOperaciones } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { empleados } = useEmpleados();
@@ -470,6 +470,8 @@ const PanelOperaciones = () => {
 
   // Check if user is admin
   const isAdmin = role?.toLowerCase() === "administrador";
+  // Operativos without productor permission are read-only (except Recursos propios)
+  const operativoReadOnly = !canEditOperaciones();
   
   // Find the current user's linked employee using RPC (works for all roles)
   const currentUserEmail = user?.email?.toLowerCase();
@@ -663,6 +665,7 @@ const PanelOperaciones = () => {
               type="text"
               onChange={(value) => updateProject(p.id, "centroCostos", value)}
               className="font-mono"
+              disabled={operativoReadOnly}
             />
           );
         case "numFactura":
@@ -672,10 +675,13 @@ const PanelOperaciones = () => {
               type="text"
               onChange={(value) => updateProject(p.id, "numFactura", value)}
               className="font-mono"
+              disabled={operativoReadOnly}
             />
           );
         case "cliente":
-          return (
+          return operativoReadOnly ? (
+            <span className="text-sm truncate">{p.cliente || "-"}</span>
+          ) : (
             <ClienteAutocomplete
               value={p.cliente}
               onChange={(value) => updateProject(p.id, "cliente", value)}
@@ -688,17 +694,25 @@ const PanelOperaciones = () => {
               type="text"
               onChange={(value) => updateProject(p.id, "evento", value)}
               className="font-medium"
+              disabled={operativoReadOnly}
             />
           );
         case "avanzada":
-          return (
+          return operativoReadOnly ? (
+            <span className="text-xs">{p.avanzada || "-"}</span>
+          ) : (
             <AvanzadaSelect
               value={p.avanzada}
               onChange={(value) => updateProject(p.id, "avanzada", value)}
             />
           );
         case "fechaMontaje":
-          return (
+          return operativoReadOnly ? (
+            <div className="text-xs flex items-center gap-1">
+              <div className="w-2 h-2 rounded-sm bg-gantt-montaje" />
+              {format(parseISO(p.fechaMontajeInicio), "dd/MM")}
+            </div>
+          ) : (
             <DateTimeRangeEditor
               type="montaje"
               value={{
@@ -724,7 +738,12 @@ const PanelOperaciones = () => {
             />
           );
         case "fechaEjecucion":
-          return (
+          return operativoReadOnly ? (
+            <div className="text-xs flex items-center gap-1">
+              <div className="w-2 h-2 rounded-sm bg-gantt-ejecucion" />
+              {format(parseISO(p.fechaEjecucionInicio), "dd/MM")}
+            </div>
+          ) : (
             <DateTimeRangeEditor
               type="ejecucion"
               value={{
@@ -750,7 +769,16 @@ const PanelOperaciones = () => {
             />
           );
         case "fechaDesmontaje":
-          return (
+          return operativoReadOnly ? (
+            p.fechaDesmontajeInicio && p.fechaDesmontajeFin ? (
+              <div className="text-xs flex items-center gap-1">
+                <div className="w-2 h-2 rounded-sm bg-gantt-desmontaje" />
+                {format(parseISO(p.fechaDesmontajeInicio), "dd/MM")}
+              </div>
+            ) : (
+              <span className="text-muted-foreground text-xs">—</span>
+            )
+          ) : (
             <DateTimeRangeEditor
               type="desmontaje"
               value={{
@@ -780,7 +808,9 @@ const PanelOperaciones = () => {
             />
           );
         case "estado":
-          return (
+          return operativoReadOnly ? (
+            <Badge variant="outline" className="text-[10px]">{p.estado.replace(/_/g, ' ')}</Badge>
+          ) : (
             <StatusSelect
               value={p.estado}
               onChange={(value) => updateProject(p.id, "estado", value)}
@@ -792,6 +822,7 @@ const PanelOperaciones = () => {
               value={p.jefeOperaciones}
               type="text"
               onChange={(value) => updateProject(p.id, "jefeOperaciones", value)}
+              disabled={operativoReadOnly}
             />
           );
         case "aCargoDe":
@@ -800,6 +831,7 @@ const PanelOperaciones = () => {
               value={p.aCargoDe}
               type="text"
               onChange={(value) => updateProject(p.id, "aCargoDe", value)}
+              disabled={operativoReadOnly}
             />
           );
         case "productor":
@@ -808,6 +840,7 @@ const PanelOperaciones = () => {
               value={p.productor}
               type="text"
               onChange={(value) => updateProject(p.id, "productor", value)}
+              disabled={operativoReadOnly}
             />
           );
         case "ubicacion":
@@ -816,10 +849,13 @@ const PanelOperaciones = () => {
               value={p.ubicacion}
               type="text"
               onChange={(value) => updateProject(p.id, "ubicacion", value)}
+              disabled={operativoReadOnly}
             />
           );
         case "formatoPreproduccion":
-          return (
+          return operativoReadOnly ? (
+            <span className="text-xs text-muted-foreground">{(p.formatoPreproduccion || []).length || "—"}</span>
+          ) : (
             <AttachmentButton
               attachments={p.formatoPreproduccion || []}
               onAttachmentsChange={(attachments) => updateProject(p.id, "formatoPreproduccion", attachments)}
@@ -845,7 +881,9 @@ const PanelOperaciones = () => {
             </Button>
           );
         case "cotizacionProveedor":
-          return (
+          return operativoReadOnly ? (
+            <span className="text-xs text-muted-foreground">{(p.cotizacionesProveedor || []).length || "—"}</span>
+          ) : (
             <AttachmentButton
               attachments={p.cotizacionesProveedor || []}
               onAttachmentsChange={(attachments) => updateProject(p.id, "cotizacionesProveedor", attachments)}
@@ -855,7 +893,9 @@ const PanelOperaciones = () => {
             />
           );
         case "ordenCompraOCR":
-          return (
+          return operativoReadOnly ? (
+            <span className="text-xs text-muted-foreground">{((p as any).ordenesCompra || []).length || "—"}</span>
+          ) : (
             <div className="flex items-center gap-1">
               <AttachmentButton
                 attachments={(p as any).ordenesCompra || []}
@@ -868,7 +908,6 @@ const PanelOperaciones = () => {
                 currentIngresoBruto={p.ingresoBruto}
                 currentIngresoTotal={p.ingresoTotal}
                 onDataExtracted={(ingresoBruto, ingresoTotal, inventarioItems) => {
-                  // Merge new inventory items with existing ones
                   const existingInventario = p.inventario || [];
                   const mergedInventario = inventarioItems && inventarioItems.length > 0
                     ? [...existingInventario, ...inventarioItems]
@@ -891,6 +930,7 @@ const PanelOperaciones = () => {
                 type="text"
                 onChange={(value) => updateProject(p.id, "notas", value)}
                 className="truncate text-xs flex-1 min-w-0"
+                disabled={operativoReadOnly}
               />
               {p.notas && p.notas.trim() && (
                 <button
@@ -961,6 +1001,7 @@ const PanelOperaciones = () => {
               type={col.type || "text"}
               options={col.options}
               onChange={(newValue) => updateProject(p.id, col.key, newValue)}
+              disabled={operativoReadOnly}
             />
           );
       }
@@ -2869,10 +2910,14 @@ const PanelOperaciones = () => {
                   <DialogTitle className="flex items-center gap-2 min-w-0 flex-wrap">
                     {selectedProject?.evento}
                     {selectedProject && (
-                      <StatusSelect
-                        value={selectedProject.estado}
-                        onChange={(value) => updateProject(selectedProject.id, "estado", value)}
-                      />
+                      operativoReadOnly ? (
+                        <Badge variant="outline" className="text-xs">{selectedProject.estado.replace(/_/g, ' ')}</Badge>
+                      ) : (
+                        <StatusSelect
+                          value={selectedProject.estado}
+                          onChange={(value) => updateProject(selectedProject.id, "estado", value)}
+                        />
+                      )
                     )}
                   </DialogTitle>
                   {selectedSection === "plantilla" && currentProjectData && (
@@ -2936,6 +2981,7 @@ const PanelOperaciones = () => {
                             <Users className="h-4 w-4" />
                             Personal ({(currentProjectData.personal || []).length})
                           </CardTitle>
+                          {!operativoReadOnly && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -2960,6 +3006,7 @@ const PanelOperaciones = () => {
                             <Plus className="h-3 w-3 mr-1" />
                             Agregar Personal
                           </Button>
+                          )}
                         </CardHeader>
                         <CardContent className="pt-0 overflow-hidden">
                           {(currentProjectData.personal || []).length > 0 ? (
@@ -2980,6 +3027,7 @@ const PanelOperaciones = () => {
                             <Package className="h-4 w-4" />
                             Inventario ({(currentProjectData.inventario || []).length})
                           </CardTitle>
+                          {!operativoReadOnly && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -3005,6 +3053,7 @@ const PanelOperaciones = () => {
                             <Plus className="h-3 w-3 mr-1" />
                             Agregar Material
                           </Button>
+                          )}
                         </CardHeader>
                         <CardContent className="pt-0 inventario-mobile-scroll">
                           {(currentProjectData.inventario || []).length > 0 ? (
@@ -3089,7 +3138,7 @@ const PanelOperaciones = () => {
                                 }}
                                 placeholder="Comentarios y feedback del evento..."
                                 className="min-h-[100px]"
-                                disabled={!canEditFeedback()}
+                                disabled={operativoReadOnly || !canEditFeedback()}
                               />
                             </div>
                             <div>
@@ -3103,7 +3152,7 @@ const PanelOperaciones = () => {
                                 projectId={currentProjectData.id}
                                 fieldName="feedbackAdjuntos"
                                 multiple
-                                disabled={!canEditFeedback()}
+                                disabled={operativoReadOnly || !canEditFeedback()}
                               />
                             </div>
                           </CardContent>
@@ -3133,6 +3182,7 @@ const PanelOperaciones = () => {
                               }
                             }}
                             placeholder="Notas generales del evento (puedes pegar imágenes con Ctrl+V)..."
+                            disabled={operativoReadOnly}
                           />
                         </CardContent>
                       </Card>
@@ -3678,7 +3728,7 @@ const PanelOperaciones = () => {
                                 })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
-                            {canCrearAnticipos() && (
+                            {(role?.toLowerCase() === "administrador" || role?.toLowerCase() === "operativo") && (
                             <Button 
                               variant="outline"
                               size="sm" 

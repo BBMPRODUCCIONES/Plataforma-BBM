@@ -108,9 +108,10 @@ const MONTHS = [
 const LEGALIZACION_ESTADO_OPTIONS = [
   { value: "Revisando", label: "Revisando", className: "bg-yellow-500/20 text-yellow-400" },
   { value: "Legalizado", label: "Legalizado", className: "bg-green-500/20 text-green-400" },
-  { value: "Rechazado", label: "Rechazado", className: "bg-red-500/20 text-red-400" },
+  { value: "No legalizable", label: "No legalizable", className: "bg-red-500/20 text-red-400" },
 ];
 
+const LEGALIZACION_EN_REVISION = { value: "En revisión", label: "En revisión", className: "bg-cyan-500/20 text-cyan-400" };
 const LEGALIZACION_NO_APROBADO = { value: "No legalizable", label: "No legalizable", className: "bg-red-500/20 text-red-400" };
 
 const KNOWN_ESTADOS = ["Pendiente", "Aprobado", "No aprobado"];
@@ -997,7 +998,11 @@ export default function AprobacionesPendientes() {
               return <span className="text-xs text-muted-foreground">—</span>;
             }
             if (row.item.estado === "Pendiente") {
-              return <span className="text-xs text-muted-foreground">Sin aprobar</span>;
+              return (
+                <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_EN_REVISION.className}`}>
+                  {LEGALIZACION_EN_REVISION.label}
+                </span>
+              );
             }
             if (row.item.estado === "No aprobado") {
               return (
@@ -1315,7 +1320,11 @@ export default function AprobacionesPendientes() {
                       {(() => {
                         if (!isTypeS) return <span className="text-muted-foreground">—</span>;
                         if (commonEstado === "Pendiente") {
-                          return <span className="text-xs text-muted-foreground">Sin aprobar</span>;
+                          return (
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_EN_REVISION.className}`}>
+                              {LEGALIZACION_EN_REVISION.label}
+                            </span>
+                          );
                         }
                         if (commonEstado === "No aprobado") {
                           return (

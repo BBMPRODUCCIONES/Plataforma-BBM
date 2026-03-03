@@ -3652,6 +3652,12 @@ const PanelOperaciones = () => {
                               <DropdownMenuContent align="start" className="min-w-[300px]">
                                 {(() => {
                                   const hasApprovedSolicitud = (currentProjectData.cajaMenor || []).some(cm => cm.estado === 'Aprobado');
+                                  const anticipoIdsExport = new Set((currentProjectData.cajaMenor || []).map((cm: CajaMenorItem) => `leg-${cm.id}`));
+                                  const independentLegExport = (currentProjectData.legalizacion || []).filter((l: LegalizacionItem) => !anticipoIdsExport.has(l.id));
+                                  const allLegImages = independentLegExport.flatMap((l: LegalizacionItem) =>
+                                    (l.imagenes || []).map(img => ({ url: img.url, concepto: l.concepto || "Sin concepto", empleado: l.empleadoNombre || "" }))
+                                  );
+                                  const hasImages = allLegImages.length > 0;
                                   return (
                                     <>
                                       <DropdownMenuCheckboxItem
@@ -3670,6 +3676,56 @@ const PanelOperaciones = () => {
                                       <DropdownMenuItem onClick={() => exportLegalizacionToExcel(currentProjectData, empleados, includeSolicitudInExport)}>
                                         <FileSpreadsheet className="h-4 w-4 mr-2" />
                                         Descargar Excel
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        disabled={!hasImages}
+                                        className={!hasImages ? "opacity-50" : ""}
+                                        onClick={() => {
+                                          if (!hasImages) return;
+                                          const eventoName = currentProjectData.evento || "Evento";
+                                          const printWindow = window.open("", "_blank");
+                                          if (!printWindow) return;
+                                          const html = `<!DOCTYPE html><html><head><title>Fotos Recursos Propios - ${eventoName}</title>
+                                          <style>
+                                            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+                                            .header { text-align: center; margin-bottom: 30px; padding: 20px; background: #1a1a2e; color: white; border-radius: 8px; }
+                                            .header h1 { margin: 0 0 5px; font-size: 22px; }
+                                            .header p { margin: 0; font-size: 14px; opacity: 0.8; }
+                                            .photo-item { background: white; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); page-break-inside: avoid; }
+                                            .photo-item h3 { margin: 0 0 4px; font-size: 15px; color: #333; }
+                                            .photo-item p { margin: 0 0 10px; font-size: 12px; color: #666; }
+                                            .photo-item img { max-width: 100%; max-height: 500px; border-radius: 6px; display: block; }
+                                            .total { text-align: center; margin-top: 20px; font-size: 14px; color: #666; }
+                                            .action-bar { text-align: center; margin-top: 24px; }
+                                            .btn-back, .btn-pdf { padding: 10px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; margin: 0 8px; }
+                                            .btn-back { background: #e2e8f0; color: #334155; }
+                                            .btn-pdf { background: #3b82f6; color: white; }
+                                            @media print { .action-bar { display: none; } body { background: white; } .photo-item { box-shadow: none; border: 1px solid #ddd; } }
+                                          </style></head><body>
+                                          <div class="header">
+                                            <h1>Registro Fotográfico - Recursos Propios</h1>
+                                            <p>${eventoName} · ${currentProjectData.cliente || ""}</p>
+                                          </div>
+                                          ${allLegImages.map((img, i) => `
+                                            <div class="photo-item">
+                                              <h3>${i + 1}. ${img.concepto}</h3>
+                                              <p>Empleado: ${img.empleado}</p>
+                                              <img src="${img.url}" alt="Foto ${i + 1}" />
+                                            </div>
+                                          `).join("")}
+                                          <div class="total">Total de fotos: ${allLegImages.length}</div>
+                                          <div class="action-bar">
+                                            <button class="btn-back" onclick="window.close()">← Volver</button>
+                                            <button class="btn-pdf" onclick="window.print()">📄 Guardar PDF</button>
+                                          </div>
+                                          </body></html>`;
+                                          printWindow.document.write(html);
+                                          printWindow.document.close();
+                                        }}
+                                      >
+                                        <Image className="h-4 w-4 mr-2" />
+                                        Exportar Fotos (PDF)
                                       </DropdownMenuItem>
                                     </>
                                   );

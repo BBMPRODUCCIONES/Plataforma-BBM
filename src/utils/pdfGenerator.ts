@@ -1210,8 +1210,7 @@ const generateCorporateFormatoHTML = (
           <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${fechaHoy}</td>
           <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">TIPO</td>
           <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${solicitante.tipoCuenta === 'Ahorros' ? 'AH' : solicitante.tipoCuenta === 'Corriente' ? 'CTE' : solicitante.tipoCuenta}</td>
-          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">CATEGORÍA</td>
-          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;">${categoriaAnticipo}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:10px;" colspan="2"></td>
         </tr>
         <tr>
           <td style="border:1px solid #000;padding:4px 8px;font-size:10px;font-weight:bold;">FECHA A LEGALIZAR</td>
@@ -1429,8 +1428,8 @@ export const exportSolicitudToExcel = async (project: Project, empleados: Emplea
   r++;
 
   // Row 11: FECHA SOLICITUD
-  rows.push(['FECHA SOLICITUD', fechaHoy, 'TIPO', solicitante.tipoCuenta === 'Ahorros' ? 'AH' : solicitante.tipoCuenta === 'Corriente' ? 'CTE' : solicitante.tipoCuenta, 'CATEGORÍA', categoriaAnticipo, '', '']);
-  merges.push({ s: { r, c: 5 }, e: { r, c: 7 } });
+  rows.push(['FECHA SOLICITUD', fechaHoy, 'TIPO', solicitante.tipoCuenta === 'Ahorros' ? 'AH' : solicitante.tipoCuenta === 'Corriente' ? 'CTE' : solicitante.tipoCuenta, '', '', '', '']);
+  merges.push({ s: { r, c: 4 }, e: { r, c: 7 } });
   r++;
 
   // Row 12: FECHA A LEGALIZAR

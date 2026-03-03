@@ -809,7 +809,8 @@ export default function AprobacionesPendientes() {
       }
 
       // Collect individual rows to restore from selectedForRestore keys (projectId-itemId)
-      const rowsToRestore: FlattenedRow[] = resolvedRows.filter(r => {
+      // Use unfiltered `rows` to avoid search/filter interference
+      const rowsToRestore: FlattenedRow[] = rows.filter(r => {
         const rowKey = `${r.projectId}-${r.item.id}`;
         return selectedForRestore.has(rowKey);
       });

@@ -27,7 +27,8 @@ import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus, ExternalLink, Settings, Loader2, Trash2, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Plus, ExternalLink, Settings, Loader2, Trash2, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
@@ -74,6 +75,7 @@ const PanelDirectivo = () => {
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [hideDeleted, setHideDeleted] = useState(false);
+  const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
   
   // Smart search state
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -643,12 +645,23 @@ const PanelDirectivo = () => {
         );
       case "notas":
         return (p: Project) => (
-          <EditableCell
-            value={p.notas}
-            type="text"
-            onChange={(value) => updateProject(p.id, "notas", value)}
-            className="max-w-[150px] truncate text-xs"
-          />
+          <div className="flex items-center gap-1 max-w-[150px]">
+            <EditableCell
+              value={p.notas}
+              type="text"
+              onChange={(value) => updateProject(p.id, "notas", value)}
+              className="truncate text-xs flex-1 min-w-0"
+            />
+            {p.notas && p.notas.trim() && (
+              <button
+                onClick={() => setNotaExpandida({ evento: p.evento, nota: p.notas })}
+                className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                title="Ver nota completa"
+              >
+                <Eye className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         );
       default:
         // Custom columns use EditableCell
@@ -947,6 +960,18 @@ const PanelDirectivo = () => {
           readOnly={!canModifyStructure}
         />
       </div>
+
+      {/* Dialog para ver nota completa */}
+      <Dialog open={!!notaExpandida} onOpenChange={(open) => !open && setNotaExpandida(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Nota — {notaExpandida?.evento}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm whitespace-pre-wrap text-foreground/80 max-h-[60vh] overflow-y-auto">
+            {notaExpandida?.nota}
+          </p>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

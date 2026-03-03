@@ -521,6 +521,31 @@ export default function AprobacionesPendientes() {
     return Array.from(groups.values());
   }, [pendingRows]);
 
+  // Group resolved rows by (centroCostos, tipo) - same as pending
+  const groupedResolvedRows = useMemo((): GroupedPendingRow[] => {
+    const groups = new Map<string, GroupedPendingRow>();
+    resolvedRows.forEach(row => {
+      const r = (row.item.recursos as string) || "";
+      const tipo: 'S' | 'R' | 'C' = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
+      const key = `${row.centroCostos || "sin-cc"}-${tipo}`;
+      if (!groups.has(key)) {
+        groups.set(key, { key, tipo, centroCostos: row.centroCostos, evento: row.evento, totalValor: 0, totalLegalizacion: 0, totalSaldo: 0, latestDate: undefined, rows: [] });
+      }
+      const group = groups.get(key)!;
+      group.totalValor += (row.item.valor || 0);
+      group.totalLegalizacion += row.legalizacionTotal;
+      group.totalSaldo += row.saldoAFavor;
+      group.rows.push(row);
+      const d = parseDateSafe(row.item.createdAt);
+      if (d) {
+        const currentLatest = group.latestDate ? parseDateSafe(group.latestDate) : null;
+        if (!currentLatest || d > currentLatest) group.latestDate = row.item.createdAt;
+      }
+      if (!group.evento && row.evento) group.evento = row.evento;
+    });
+    return Array.from(groups.values());
+  }, [resolvedRows]);
+
   const handleEstadoChange = async (row: FlattenedRow, newEstado: string) => {
     if (!canApproveCajaMenor()) {
       toast.error("No tienes permisos para cambiar el estado");
@@ -768,10 +793,24 @@ export default function AprobacionesPendientes() {
         return;
       }
 
-      // Restore each selected row - batch by project to avoid stale data overwrites
-      // Use unfiltered rows to find items to restore (search filter may hide them from resolvedRows)
-      const allResolved = rows.filter(r => r.item.estado === "Aprobado" || r.item.estado === "No aprobado");
-      const rowsToRestore = allResolved.filter(r => selectedForRestore.has(`${r.projectId}-${r.item.id}`));
+      // Resolve selected group keys to individual rows
+      const allResolvedUnfiltered = rows.filter(r => r.item.estado === "Aprobado" || r.item.estado === "No aprobado");
+      // Build groups from unfiltered resolved rows to match group keys
+      const resolvedGroupMap = new Map<string, FlattenedRow[]>();
+      allResolvedUnfiltered.forEach(row => {
+        const r = (row.item.recursos as string) || "";
+        const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
+        const key = `${row.centroCostos || "sin-cc"}-${tipo}`;
+        const existing = resolvedGroupMap.get(key) || [];
+        existing.push(row);
+        resolvedGroupMap.set(key, existing);
+      });
+      // Collect all individual rows from selected groups
+      const rowsToRestore: FlattenedRow[] = [];
+      selectedForRestore.forEach(groupKey => {
+        const groupRows = resolvedGroupMap.get(groupKey);
+        if (groupRows) rowsToRestore.push(...groupRows);
+      });
       if (rowsToRestore.length === 0) {
         toast.error("No se encontraron solicitudes para restaurar");
         setIsRestoring(false);
@@ -1327,7 +1366,7 @@ export default function AprobacionesPendientes() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="w-5 h-5 text-primary" />
-              Historial de Solicitudes ({resolvedRows.length})
+              Historial de Solicitudes ({groupedResolvedRows.length} grupo{groupedResolvedRows.length !== 1 ? "s" : ""})
             </DialogTitle>
             <DialogDescription>
               Solicitudes aprobadas y rechazadas
@@ -1360,8 +1399,17 @@ export default function AprobacionesPendientes() {
                   {canApproveCajaMenor() && (
                     <TableHead className="text-xs w-[40px]">
                       <Checkbox
-                        checked={resolvedRows.length > 0 && resolvedRows.every(r => selectedForRestore.has(`${r.projectId}-${r.item.id}`))}
-                        onCheckedChange={() => toggleSelectAll(resolvedRows)}
+                        checked={groupedResolvedRows.length > 0 && groupedResolvedRows.every(g => selectedForRestore.has(g.key))}
+                        onCheckedChange={() => {
+                          const keys = groupedResolvedRows.map(g => g.key);
+                          const allSelected = keys.every(k => selectedForRestore.has(k));
+                          setSelectedForRestore(prev => {
+                            const next = new Set(prev);
+                            if (allSelected) keys.forEach(k => next.delete(k));
+                            else keys.forEach(k => next.add(k));
+                            return next;
+                          });
+                        }}
                         className="h-4 w-4"
                       />
                     </TableHead>
@@ -1370,7 +1418,8 @@ export default function AprobacionesPendientes() {
                   <TableHead className="text-xs">Fecha</TableHead>
                   <TableHead className="text-xs">CC</TableHead>
                   <TableHead className="text-xs">Relación de eventos</TableHead>
-                  <TableHead className="text-xs text-right">Valor</TableHead>
+                  <TableHead className="text-xs text-right">Valor Total</TableHead>
+                  <TableHead className="text-xs text-center">Cant.</TableHead>
                   <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
                   <TableHead className="text-xs">Aprobado por</TableHead>
                   <TableHead className="text-xs text-right">Legalización</TableHead>
@@ -1380,14 +1429,117 @@ export default function AprobacionesPendientes() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {resolvedRows.length === 0 ? (
+                {groupedResolvedRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center text-muted-foreground py-8 text-sm">
+                    <TableCell colSpan={13} className="text-center text-muted-foreground py-8 text-sm">
                       No hay solicitudes en el historial
                     </TableCell>
                   </TableRow>
                 ) : (
-                  resolvedRows.map((row) => renderRow(row, true, true))
+                  groupedResolvedRows.map((group) => {
+                    const d = group.latestDate ? parseDateSafe(group.latestDate) : null;
+                    const colorClass =
+                      group.tipo === "S" ? "bg-blue-500/20 text-blue-400 border-blue-500/40" :
+                      group.tipo === "R" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
+                      "bg-amber-500/20 text-amber-400 border-amber-500/40";
+                    const firstProjectRow = group.rows.find(r => r.projectId);
+                    const isTypeS = group.tipo === "S";
+                    const allEstados = [...new Set(group.rows.map(r => r.item.estado))];
+                    const commonEstado = allEstados.length === 1 ? allEstados[0] : "Mixto";
+                    const aprobadores = [...new Set(group.rows
+                      .map(r => {
+                        if (r.source === 'gastoMenor') {
+                          const gm = gastosMenores.find(g => g.id === r.gastoMenorId);
+                          return gm?.aprobado_por_nombre || "";
+                        }
+                        return r.item.revisadoPor || "";
+                      })
+                      .filter(Boolean)
+                    )];
+                    const aprobadoPorDisplay = aprobadores.length === 1 ? aprobadores[0] : aprobadores.length > 1 ? aprobadores.join(", ") : "—";
+                    const legEstados = isTypeS ? [...new Set(group.rows.map(r => r.legalizacionEstado || "Revisando"))] : [];
+                    const commonLegEstado = legEstados.length === 1 ? legEstados[0] : legEstados.length > 1 ? "Mixto" : "";
+
+                    return (
+                      <TableRow key={group.key}>
+                        {canApproveCajaMenor() && (
+                          <TableCell className="text-xs">
+                            <Checkbox
+                              checked={selectedForRestore.has(group.key)}
+                              onCheckedChange={() => {
+                                setSelectedForRestore(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(group.key)) next.delete(group.key);
+                                  else next.add(group.key);
+                                  return next;
+                                });
+                              }}
+                              className="h-4 w-4"
+                            />
+                          </TableCell>
+                        )}
+                        <TableCell className="text-xs text-center">
+                          <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
+                            {group.tipo}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {d ? format(d, "dd/MM/yyyy") : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs">{group.centroCostos || "—"}</TableCell>
+                        <TableCell className="text-xs">{group.evento || "—"}</TableCell>
+                        <TableCell className="text-xs text-right font-medium">
+                          {formatCurrency(group.totalValor)}
+                        </TableCell>
+                        <TableCell className="text-xs text-center">
+                          <Badge variant="outline" className="text-[10px]">
+                            {group.rows.length}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{aprobadoPorDisplay}</TableCell>
+                        <TableCell className="text-xs text-right">
+                          {isTypeS ? formatCurrency(group.totalLegalizacion) : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {isTypeS ? (
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                              LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === commonLegEstado)?.className || "bg-yellow-500/20 text-yellow-400"
+                            }`}>
+                              {commonLegEstado || "Revisando"}
+                            </span>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell className={`text-xs text-right font-medium ${
+                          isTypeS ? (group.totalSaldo > 0 ? "text-green-400" : group.totalSaldo < 0 ? "text-red-400" : "") : ""
+                        }`}>
+                          {isTypeS ? formatCurrency(Math.abs(group.totalSaldo)) : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {firstProjectRow && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-7 px-1 text-xs text-primary underline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const params = new URLSearchParams({
+                                  eventId: firstProjectRow.projectId,
+                                  eventName: firstProjectRow.evento,
+                                  source: "aprobaciones",
+                                });
+                                window.open(`/panel-operaciones?${params.toString()}`, "_blank");
+                              }}
+                            >
+                              Ver más
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

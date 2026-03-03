@@ -154,6 +154,12 @@ export default function AprobacionesPendientes() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
 
+  // Clear stale selections when history dialog opens or resolved rows change
+  const openHistoryDialog = useCallback(() => {
+    setSelectedForRestore(new Set());
+    setShowHistoryDialog(true);
+  }, []);
+
   // Unique values for autocomplete suggestions
   const uniqueEmpleados = useMemo(() => {
     const set = new Set<string>();
@@ -476,6 +482,8 @@ export default function AprobacionesPendientes() {
   }), [filteredRows]);
   const resolvedRows = useMemo(() => filteredRows.filter(r => {
     if (r.item.estado === "No aprobado") return true;
+    // "Legalizado" and "Reembolsado" are terminal states for C type
+    if ((r.item.estado as string) === "Legalizado" || (r.item.estado as string) === "Reembolsado") return true;
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
@@ -1265,7 +1273,7 @@ export default function AprobacionesPendientes() {
             variant="outline"
             size="sm"
             className="gap-2 text-xs"
-            onClick={() => setShowHistoryDialog(true)}
+            onClick={openHistoryDialog}
           >
             <History className="w-3.5 h-3.5" />
             Historial ({resolvedRows.length})

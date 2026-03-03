@@ -212,18 +212,6 @@ function ResponsableSection({
             onSelect={onAssign}
             placeholder="Seleccionar responsable..."
           />
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-full h-8 text-xs text-muted-foreground"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onRegister();
-            }}
-          >
-            O registrarme yo mismo
-          </Button>
         </div>
       ) : (
         <Button

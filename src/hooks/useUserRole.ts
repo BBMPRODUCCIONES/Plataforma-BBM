@@ -100,9 +100,7 @@ export function useUserRole(): UseUserRoleReturn {
 
   const canCrearAnticipos = (): boolean => {
     if (!role) return false;
-    // Administrador always can
-    if (role.toLowerCase() === "administrador") return true;
-    // For other roles, check specific permission
+    // All roles must have the explicit permission flag
     return cajaMenorPermissions?.puedeCrearAnticipos ?? false;
   };
 

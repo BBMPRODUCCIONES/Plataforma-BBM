@@ -421,7 +421,7 @@ const Usuarios = () => {
     }
     // Caja Menor permission - only for admins, stored value
     setEditPuedeAprobarCajaMenor(user.puede_aprobar_caja_menor);
-    // Crear anticipos permission
+    // Crear anticipos permission - uses stored value for all roles
     setEditPuedeCrearAnticipos(user.puede_crear_anticipos);
   };
 
@@ -957,21 +957,19 @@ const Usuarios = () => {
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="edit-puede-crear-anticipos"
-                      checked={editRole === "administrador" ? true : editPuedeCrearAnticipos}
+                      checked={editPuedeCrearAnticipos}
                       onCheckedChange={(checked) => setEditPuedeCrearAnticipos(checked as boolean)}
-                      disabled={isSaving || editRole === "administrador"}
+                      disabled={isSaving}
                     />
                     <Label 
                       htmlFor="edit-puede-crear-anticipos"
                       className="text-sm font-normal cursor-pointer"
                     >
-                      Puede crear solicitudes de anticipos y registros de caja menor
+                      Permitir realizar solicitudes de anticipos
                     </Label>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {editRole === "administrador" 
-                      ? "Los administradores siempre tienen este permiso." 
-                      : "Solo los usuarios con este permiso pueden agregar nuevos registros en Solicitud de Anticipos y Caja Menor."}
+                    Solo los usuarios con este permiso pueden crear, editar y gestionar solicitudes de anticipos.
                   </p>
                 </div>
               </div>

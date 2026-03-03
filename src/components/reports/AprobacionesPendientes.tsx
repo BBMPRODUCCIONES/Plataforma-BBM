@@ -974,19 +974,27 @@ export default function AprobacionesPendientes() {
           {formatCurrency(row.item.valor || 0)}
         </TableCell>
         <TableCell className="text-xs">
-          {canApproveCajaMenor() && !readOnly ? (
-            <CajaMenorEstadoSelect
-              value={row.item.estado}
-              onChange={(v) => handleEstadoChange(row, v)}
-              allowedValues={["Pendiente", "Aprobado", "No aprobado"]}
-            />
-          ) : (
-            <CajaMenorEstadoSelect
-              value={row.item.estado}
-              onChange={() => {}}
-              readOnly
-            />
-          )}
+          {(() => {
+            const r = (row.item.recursos as string) || "";
+            const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
+            const isTypeSAndDecided = tipo === "S" && row.item.estado !== "Pendiente";
+            if (canApproveCajaMenor() && !readOnly && !isTypeSAndDecided) {
+              return (
+                <CajaMenorEstadoSelect
+                  value={row.item.estado}
+                  onChange={(v) => handleEstadoChange(row, v)}
+                  allowedValues={["Pendiente", "Aprobado", "No aprobado"]}
+                />
+              );
+            }
+            return (
+              <CajaMenorEstadoSelect
+                value={row.item.estado}
+                onChange={() => {}}
+                readOnly
+              />
+            );
+          })()}
         </TableCell>
         <TableCell className="text-xs whitespace-nowrap">
           {(() => {
@@ -1323,15 +1331,21 @@ export default function AprobacionesPendientes() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {canApproveCajaMenor() ? (
-                        <CajaMenorEstadoSelect
-                          value={commonEstado}
-                          onChange={(v) => handleGroupedEstadoChange(group, v)}
-                          allowedValues={["Pendiente", "Aprobado", "No aprobado"]}
-                        />
-                      ) : (
-                        <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />
-                      )}
+                      {(() => {
+                        const isTypeSAndDecided = isTypeS && commonEstado !== "Pendiente";
+                        if (canApproveCajaMenor() && !isTypeSAndDecided) {
+                          return (
+                            <CajaMenorEstadoSelect
+                              value={commonEstado}
+                              onChange={(v) => handleGroupedEstadoChange(group, v)}
+                              allowedValues={["Pendiente", "Aprobado", "No aprobado"]}
+                            />
+                          );
+                        }
+                        return (
+                          <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
                       {aprobadoPorDisplay}

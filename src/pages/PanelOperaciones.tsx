@@ -51,7 +51,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, X, Paperclip, Upload, Image, AlertTriangle } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, X, Paperclip, Upload, Image, AlertTriangle, Eye } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printSolicitudPresupuesto, printLegalizacion, exportSolicitudToExcel, exportLegalizacionToExcel } from "@/utils/pdfGenerator";
@@ -296,6 +296,7 @@ const PanelOperaciones = () => {
   // Calendar filter state - using global context
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
   const [hideDeleted, setHideDeleted] = useState(false);
+  const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
   // Computed dateRange from global context
   const dateRange = globalDateRange?.from && globalDateRange?.to 
     ? { start: globalDateRange.from, end: globalDateRange.to } 
@@ -835,11 +836,23 @@ const PanelOperaciones = () => {
           );
         case "notas":
           return (
-            <EditableCell
-              value={p.notas}
-              type="text"
-              onChange={(value) => updateProject(p.id, "notas", value)}
-            />
+            <div className="flex items-center gap-1 max-w-[150px]">
+              <EditableCell
+                value={p.notas}
+                type="text"
+                onChange={(value) => updateProject(p.id, "notas", value)}
+                className="truncate text-xs flex-1 min-w-0"
+              />
+              {p.notas && p.notas.trim() && (
+                <button
+                  onClick={() => setNotaExpandida({ evento: p.evento, nota: p.notas })}
+                  className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title="Ver nota completa"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           );
         case "inventario":
           return (
@@ -3821,6 +3834,18 @@ const PanelOperaciones = () => {
           defaultEmpleadoId={currentUserEmpleado?.id}
         />
       </div>
+
+      {/* Dialog para ver nota completa */}
+      <Dialog open={!!notaExpandida} onOpenChange={(open) => !open && setNotaExpandida(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Nota — {notaExpandida?.evento}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm whitespace-pre-wrap text-foreground/80 max-h-[60vh] overflow-y-auto">
+            {notaExpandida?.nota}
+          </p>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

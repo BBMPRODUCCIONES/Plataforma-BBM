@@ -520,7 +520,22 @@ export default function AprobacionesPendientes() {
       }
       if (!group.evento && row.evento) group.evento = row.evento;
     });
-    return Array.from(groups.values());
+    // Sort: Pendiente groups first, then Aprobado; within same estado by date desc
+    const result = Array.from(groups.values());
+    const estadoOrder: Record<string, number> = { "Pendiente": 0, "Aprobado": 1, "No aprobado": 2 };
+    result.sort((a, b) => {
+      const allEstadosA = [...new Set(a.rows.map(r => r.item.estado))];
+      const allEstadosB = [...new Set(b.rows.map(r => r.item.estado))];
+      const commonA = allEstadosA.length === 1 ? allEstadosA[0] : "Pendiente";
+      const commonB = allEstadosB.length === 1 ? allEstadosB[0] : "Pendiente";
+      const orderA = estadoOrder[commonA] ?? 1;
+      const orderB = estadoOrder[commonB] ?? 1;
+      if (orderA !== orderB) return orderA - orderB;
+      const da = a.latestDate ? parseDateSafe(a.latestDate)?.getTime() || 0 : 0;
+      const db = b.latestDate ? parseDateSafe(b.latestDate)?.getTime() || 0 : 0;
+      return db - da;
+    });
+    return result;
   }, [pendingRows]);
 
   // Group resolved rows by (centroCostos, tipo) - same as pending

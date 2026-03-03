@@ -730,6 +730,19 @@ export default function AprobacionesPendientes() {
     toast.success(`Estado de legalización actualizado a "${newEstado}"`);
   };
 
+  // Handle grouped legalization estado change - updates all items in a group
+  const handleGroupedLegalizacionChange = async (group: GroupedPendingRow, newEstado: string) => {
+    if (!canApproveCajaMenor()) {
+      toast.error("No tienes permisos para cambiar el estado de legalización");
+      return;
+    }
+    // Update each row's legalization individually
+    for (const row of group.rows) {
+      if (row.item.estado !== "Aprobado") continue; // Only update legalization for approved items
+      await handleLegalizacionEstadoChange(row, newEstado);
+    }
+  };
+
   // Handle delete
   const handleDelete = async (row: FlattenedRow) => {
     if (!canApproveCajaMenor()) {
@@ -1308,7 +1321,6 @@ export default function AprobacionesPendientes() {
                     <TableCell className="text-xs">
                       {(() => {
                         if (!isTypeS) return <span className="text-muted-foreground">—</span>;
-                        // If all items have same legalization estado, show it
                         if (commonEstado === "No aprobado") {
                           return (
                             <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>
@@ -1316,8 +1328,35 @@ export default function AprobacionesPendientes() {
                             </span>
                           );
                         }
-                        if (commonLegEstado === "Mixto") {
-                          return <span className="text-xs text-muted-foreground">Mixto</span>;
+                        // Editable selector when approved and user has permission
+                        const hasApproved = group.rows.some(r => r.item.estado === "Aprobado");
+                        if (canApproveCajaMenor() && hasApproved) {
+                          return (
+                            <Select
+                              value={commonLegEstado === "Mixto" ? "Revisando" : (commonLegEstado || "Revisando")}
+                              onValueChange={(v) => handleGroupedLegalizacionChange(group, v)}
+                            >
+                              <SelectTrigger
+                                className={`h-7 text-xs w-full border font-medium ${
+                                  LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (commonLegEstado === "Mixto" ? "Revisando" : commonLegEstado || "Revisando"))?.className || "bg-yellow-500/20 text-yellow-400"
+                                }`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span>{commonLegEstado === "Mixto" ? "Mixto" : (LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (commonLegEstado || "Revisando"))?.label || "Revisando")}</span>
+                              </SelectTrigger>
+                              <SelectContent className="bg-popover border-border z-[9999]">
+                                {LEGALIZACION_ESTADO_OPTIONS.map((option) => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                    className={`text-xs font-medium ${option.className}`}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          );
                         }
                         const legOption = LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === commonLegEstado);
                         return (

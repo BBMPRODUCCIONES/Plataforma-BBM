@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Search, Download, Image as ImageIcon, Loader2, Eye, DownloadIcon } from "lucide-react";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import { CajaMenorItem, Project, Attachment } from "@/types";
 import CajaMenorDashboard from "./CajaMenorDashboard";
 import { toast } from "sonner";

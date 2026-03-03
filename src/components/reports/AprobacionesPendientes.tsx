@@ -470,7 +470,7 @@ export default function AprobacionesPendientes() {
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
-      if (isTypeS && r.legalizacionEstado !== "Legalizado") return true;
+      if (isTypeS && r.legalizacionEstado !== "Legalizado" && r.legalizacionEstado !== "No legalizable") return true;
     }
     return false;
   }), [filteredRows]);
@@ -479,8 +479,8 @@ export default function AprobacionesPendientes() {
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
-      // Type S only resolved when legalization is complete
-      if (isTypeS) return r.legalizacionEstado === "Legalizado";
+      // Type S resolved when legalization is "Legalizado" or "No legalizable"
+      if (isTypeS) return r.legalizacionEstado === "Legalizado" || r.legalizacionEstado === "No legalizable";
       return true; // R and C go to history when approved (their process is done)
     }
     return false;
@@ -857,14 +857,15 @@ export default function AprobacionesPendientes() {
         );
         
         if (cajaMenorIdsToRestore.size > 0) {
+          // For type S: keep the approval estado, only mark as restaurada
           const updatedCajaMenor = (project.cajaMenor || []).map(item =>
             cajaMenorIdsToRestore.has(item.id)
-              ? { ...item, estado: "Pendiente", revisadoPor: "", restaurada: true }
+              ? { ...item, restaurada: true }
               : item
           );
           await updateProject(projectId, "cajaMenor", updatedCajaMenor);
           
-          // Also reset linked legalization items to "Revisando" for type S
+          // Reset linked legalization items to "Revisando" for type S
           const legIdsLinkedToCajaMenor = new Set(
             (project.legalizacion || [])
               .filter(l => l.id && cajaMenorIdsToRestore.has(l.id.replace("leg-", "")))
@@ -879,7 +880,7 @@ export default function AprobacionesPendientes() {
             await updateProject(projectId, "legalizacion", updatedLegForS);
           }
           
-          cajaMenorIdsToRestore.forEach(() => toast.info("Solicitud de anticipo restaurada a Pendiente"));
+          cajaMenorIdsToRestore.forEach(() => toast.info("Solicitud de anticipo restaurada con legalización en Revisando"));
         }
         
         if (legIdsToRestore.size > 0) {

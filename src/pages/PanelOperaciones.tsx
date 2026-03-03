@@ -894,7 +894,7 @@ const PanelOperaciones = () => {
               />
               {p.notas && p.notas.trim() && (
                 <button
-                  onClick={() => setNotaExpandida({ evento: p.evento, nota: p.notas })}
+                  onClick={(e) => { e.stopPropagation(); setNotaExpandida({ evento: p.evento, nota: p.notas }); }}
                   className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   title="Ver nota completa"
                 >

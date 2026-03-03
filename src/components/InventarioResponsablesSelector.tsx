@@ -84,7 +84,6 @@ function EmpleadoSelectorPopover({
         side="bottom"
         sideOffset={4}
         onOpenAutoFocus={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
       >
         <div className="p-2 border-b border-border">
           <div className="relative">

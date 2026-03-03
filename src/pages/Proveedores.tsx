@@ -23,7 +23,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Phone, Mail, FileText, Tag, Columns, Loader2, History, FileImage } from "lucide-react";
+import { Search, Plus, Phone, Mail, FileText, Tag, Columns, Loader2, History, FileImage, Trash2 } from "lucide-react";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { EditableCell } from "@/components/EditableCell";
@@ -48,7 +48,7 @@ const baseColumnDefs = [
 
 const Proveedores = () => {
   const navigate = useNavigate();
-  const { proveedores, loading, addProveedor, updateProveedor } = useProveedores();
+  const { proveedores, loading, addProveedor, updateProveedor, deleteProveedor } = useProveedores();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("todas");
   const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(null);
@@ -106,6 +106,16 @@ const Proveedores = () => {
       await updateProveedor(id, field, value);
     } catch (err) {
       toast.error("Error al actualizar proveedor");
+    }
+  };
+
+  const handleDeleteProveedor = async (p: Proveedor) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar al proveedor "${p.nombre}"? Esta acción no se puede deshacer.`)) return;
+    try {
+      await deleteProveedor(p.id);
+      toast.success(`Proveedor "${p.nombre}" eliminado exitosamente`);
+    } catch (err) {
+      toast.error("Error al eliminar proveedor");
     }
   };
 
@@ -373,6 +383,29 @@ const Proveedores = () => {
       ),
     };
   });
+
+  // Add delete column for admins
+  if (isAdmin) {
+    columns.push({
+      key: "_delete",
+      header: "",
+      width: "50px",
+      render: (p: Proveedor) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteProveedor(p);
+          }}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      ),
+    });
+  }
+
 
   if (loading) {
     return (

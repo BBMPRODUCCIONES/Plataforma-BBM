@@ -161,7 +161,7 @@ const PanelReportes = () => {
             <CardTitle className="text-lg text-muted-foreground">Hola</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground/70">Apartado de prueba.</p>
+            <p className="text-sm text-muted-foreground/70">Apartado de prueba (sync test).</p>
           </CardContent>
         </Card>
       </div>

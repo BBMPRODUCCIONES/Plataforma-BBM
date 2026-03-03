@@ -460,8 +460,27 @@ export default function AprobacionesPendientes() {
   }, [rows, mesFilter, anioFilter, estadoFilter, searchQuery]);
 
   // Split into pending and resolved
-  const pendingRows = useMemo(() => filteredRows.filter(r => r.item.estado === "Pendiente"), [filteredRows]);
-  const resolvedRows = useMemo(() => filteredRows.filter(r => r.item.estado === "Aprobado" || r.item.estado === "No aprobado"), [filteredRows]);
+  // For type S (anticipos), "Aprobado" stays pending until legalization is "Legalizado"
+  const pendingRows = useMemo(() => filteredRows.filter(r => {
+    if (r.item.estado === "Pendiente") return true;
+    if (r.item.estado === "Aprobado") {
+      const recursos = (r.item.recursos as string) || "";
+      const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
+      if (isTypeS && r.legalizacionEstado !== "Legalizado") return true;
+    }
+    return false;
+  }), [filteredRows]);
+  const resolvedRows = useMemo(() => filteredRows.filter(r => {
+    if (r.item.estado === "No aprobado") return true;
+    if (r.item.estado === "Aprobado") {
+      const recursos = (r.item.recursos as string) || "";
+      const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
+      // Type S only resolved when legalization is complete
+      if (isTypeS) return r.legalizacionEstado === "Legalizado";
+      return true; // R and C go to history immediately when approved
+    }
+    return false;
+  }), [filteredRows]);
 
   // Group pending rows by (centroCostos, tipo)
   const groupedPendingRows = useMemo((): GroupedPendingRow[] => {

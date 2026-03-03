@@ -158,7 +158,7 @@ export function MatrixTable<T extends { id: string }>({
             {columns.map((col) => (
               <th
                 key={col.key}
-                style={{ width: col.width, minWidth: col.width }}
+                style={{ width: col.width, minWidth: col.width, maxWidth: col.width }}
                 className={cn(col.className)}
               >
                 {col.header}
@@ -181,7 +181,7 @@ export function MatrixTable<T extends { id: string }>({
               {columns.map((col) => (
                 <td 
                   key={col.key} 
-                  style={{ width: col.width }}
+                  style={{ width: col.width, maxWidth: col.width, overflow: 'hidden' }}
                   className={cn("touch-manipulation", col.className)}
                 >
                   {col.render

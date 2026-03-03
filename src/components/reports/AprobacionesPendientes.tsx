@@ -35,7 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
-import { Search, RotateCcw, Lock, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, RotateCcw, Lock, History } from "lucide-react";
 import AprobacionesKPIs from "@/components/reports/AprobacionesKPIs";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -139,7 +139,7 @@ export default function AprobacionesPendientes() {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [isRestoring, setIsRestoring] = useState(false);
-  const [showResolvedSection, setShowResolvedSection] = useState(true);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
 
   // Unique values for autocomplete suggestions
   const uniqueEmpleados = useMemo(() => {
@@ -969,12 +969,24 @@ export default function AprobacionesPendientes() {
         </div>
       </div>
 
-      {/* KPIs */}
-      <AprobacionesKPIs rows={filteredRows} />
+      {/* KPIs - only count pending rows */}
+      <AprobacionesKPIs rows={pendingRows} />
 
-      <div className="text-xs text-muted-foreground flex-shrink-0">
-        {pendingRows.length} solicitud{pendingRows.length !== 1 ? "es" : ""} pendiente{pendingRows.length !== 1 ? "s" : ""}
-        {resolvedRows.length > 0 && ` · ${resolvedRows.length} procesada${resolvedRows.length !== 1 ? "s" : ""}`}
+      <div className="flex items-center justify-between flex-shrink-0">
+        <div className="text-xs text-muted-foreground">
+          {pendingRows.length} solicitud{pendingRows.length !== 1 ? "es" : ""} pendiente{pendingRows.length !== 1 ? "s" : ""}
+        </div>
+        {resolvedRows.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 text-xs"
+            onClick={() => setShowHistoryDialog(true)}
+          >
+            <History className="w-3.5 h-3.5" />
+            Historial ({resolvedRows.length})
+          </Button>
+        )}
       </div>
 
       {/* Pending Solicitudes Table */}
@@ -1016,18 +1028,20 @@ export default function AprobacionesPendientes() {
         </Table>
       </div>
 
-      {/* Resolved Solicitudes Section */}
-      {resolvedRows.length > 0 && (
-        <div className="space-y-3 mt-2">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setShowResolvedSection(!showResolvedSection)}
-              className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showResolvedSection ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              Solicitudes Procesadas ({resolvedRows.length})
-            </button>
-            {showResolvedSection && canApproveCajaMenor() && (
+      {/* History Dialog */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="sm:max-w-[90vw] max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-primary" />
+              Historial de Solicitudes ({resolvedRows.length})
+            </DialogTitle>
+            <DialogDescription>
+              Solicitudes aprobadas y rechazadas
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-end gap-2">
+            {canApproveCajaMenor() && (
               <Button
                 variant="outline"
                 size="sm"
@@ -1040,49 +1054,53 @@ export default function AprobacionesPendientes() {
               </Button>
             )}
           </div>
-
-          {showResolvedSection && (
-            <div
-              className="border rounded-md overflow-auto border-muted-foreground/20"
-              style={{
-                maxHeight: "clamp(240px, 35vh, 400px)",
-                scrollbarWidth: "auto",
-                scrollbarColor: "hsl(var(--muted-foreground) / 0.3) transparent",
-              }}
-            >
-              <Table>
-                <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
+          <div
+            className="border rounded-md overflow-auto flex-1"
+            style={{
+              scrollbarWidth: "auto",
+              scrollbarColor: "hsl(var(--muted-foreground) / 0.3) transparent",
+            }}
+          >
+            <Table>
+              <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
+                <TableRow>
+                  {canApproveCajaMenor() && (
+                    <TableHead className="text-xs w-[40px]">
+                      <Checkbox
+                        checked={resolvedRows.length > 0 && resolvedRows.every(r => selectedForRestore.has(`${r.projectId}-${r.item.id}`))}
+                        onCheckedChange={() => toggleSelectAll(resolvedRows)}
+                        className="h-4 w-4"
+                      />
+                    </TableHead>
+                  )}
+                  <TableHead className="text-xs w-[40px]">Tipo</TableHead>
+                  <TableHead className="text-xs">Fecha</TableHead>
+                  <TableHead className="text-xs">CC</TableHead>
+                  <TableHead className="text-xs">Relación de eventos</TableHead>
+                  <TableHead className="text-xs text-right">Valor</TableHead>
+                  <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
+                  <TableHead className="text-xs">Aprobado por</TableHead>
+                  <TableHead className="text-xs text-right">Legalización</TableHead>
+                  <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>
+                  <TableHead className="text-xs text-right">Saldo</TableHead>
+                  <TableHead className="text-xs w-[80px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {resolvedRows.length === 0 ? (
                   <TableRow>
-                    {canApproveCajaMenor() && (
-                      <TableHead className="text-xs w-[40px]">
-                        <Checkbox
-                          checked={resolvedRows.length > 0 && resolvedRows.every(r => selectedForRestore.has(`${r.projectId}-${r.item.id}`))}
-                          onCheckedChange={() => toggleSelectAll(resolvedRows)}
-                          className="h-4 w-4"
-                        />
-                      </TableHead>
-                    )}
-                    <TableHead className="text-xs w-[40px]">Tipo</TableHead>
-                    <TableHead className="text-xs">Fecha</TableHead>
-                    <TableHead className="text-xs">CC</TableHead>
-                    <TableHead className="text-xs">Relación de eventos</TableHead>
-                    <TableHead className="text-xs text-right">Valor</TableHead>
-                    <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
-                    <TableHead className="text-xs">Aprobado por</TableHead>
-                    <TableHead className="text-xs text-right">Legalización</TableHead>
-                    <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>
-                    <TableHead className="text-xs text-right">Saldo</TableHead>
-                    <TableHead className="text-xs w-[80px]"></TableHead>
+                    <TableCell colSpan={12} className="text-center text-muted-foreground py-8 text-sm">
+                      No hay solicitudes en el historial
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {resolvedRows.map((row) => renderRow(row, true))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </div>
-      )}
+                ) : (
+                  resolvedRows.map((row) => renderRow(row, true))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Password Confirmation Dialog */}
       <Dialog open={showPasswordDialog} onOpenChange={(open) => { if (!open) { setShowPasswordDialog(false); setPasswordInput(""); } }}>

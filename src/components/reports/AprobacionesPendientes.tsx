@@ -52,6 +52,18 @@ interface FlattenedRow {
   gastoMenorId?: string; // DB id for gastos_menores
 }
 
+interface GroupedPendingRow {
+  key: string;
+  tipo: 'S' | 'R' | 'C';
+  centroCostos: string;
+  evento: string;
+  totalValor: number;
+  totalLegalizacion: number;
+  totalSaldo: number;
+  latestDate: string | undefined;
+  rows: FlattenedRow[];
+}
+
 interface Suggestion {
   type: 'estado' | 'categoria' | 'empleado' | 'evento' | 'cc' | 'legalizacion' | 'tipo' | 'aprobadoPor' | 'estadoLeg';
   label: string;
@@ -451,6 +463,43 @@ export default function AprobacionesPendientes() {
   const pendingRows = useMemo(() => filteredRows.filter(r => r.item.estado === "Pendiente"), [filteredRows]);
   const resolvedRows = useMemo(() => filteredRows.filter(r => r.item.estado === "Aprobado" || r.item.estado === "No aprobado"), [filteredRows]);
 
+  // Group pending rows by (centroCostos, tipo)
+  const groupedPendingRows = useMemo((): GroupedPendingRow[] => {
+    const groups = new Map<string, GroupedPendingRow>();
+    pendingRows.forEach(row => {
+      const r = (row.item.recursos as string) || "";
+      const tipo: 'S' | 'R' | 'C' = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
+      const key = `${row.centroCostos || "sin-cc"}-${tipo}`;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          tipo,
+          centroCostos: row.centroCostos,
+          evento: row.evento,
+          totalValor: 0,
+          totalLegalizacion: 0,
+          totalSaldo: 0,
+          latestDate: undefined,
+          rows: [],
+        });
+      }
+      const group = groups.get(key)!;
+      group.totalValor += (row.item.valor || 0);
+      group.totalLegalizacion += row.legalizacionTotal;
+      group.totalSaldo += row.saldoAFavor;
+      group.rows.push(row);
+      const d = parseDateSafe(row.item.createdAt);
+      if (d) {
+        const currentLatest = group.latestDate ? parseDateSafe(group.latestDate) : null;
+        if (!currentLatest || d > currentLatest) {
+          group.latestDate = row.item.createdAt;
+        }
+      }
+      if (!group.evento && row.evento) group.evento = row.evento;
+    });
+    return Array.from(groups.values());
+  }, [pendingRows]);
+
   const handleEstadoChange = async (row: FlattenedRow, newEstado: string) => {
     if (!canApproveCajaMenor()) {
       toast.error("No tienes permisos para cambiar el estado");
@@ -520,6 +569,71 @@ export default function AprobacionesPendientes() {
     }
 
     toast.success(`Estado de solicitud actualizado a "${newEstado}"`);
+  };
+
+  // Batch estado change for grouped rows
+  const handleGroupedEstadoChange = async (group: GroupedPendingRow, newEstado: string) => {
+    if (!canApproveCajaMenor()) {
+      toast.error("No tienes permisos para cambiar el estado");
+      return;
+    }
+
+    // Handle gastos_menores rows
+    const gastoRows = group.rows.filter(r => r.source === 'gastoMenor' && r.gastoMenorId);
+    for (const row of gastoRows) {
+      const { data: userData } = await supabase.auth.getUser();
+      const updateData = newEstado === "Pendiente"
+        ? { estado: newEstado, aprobado_por_id: null, aprobado_por_nombre: "" }
+        : { estado: newEstado, aprobado_por_id: userData?.user?.id || null, aprobado_por_nombre: currentUserName || "Admin" };
+      await supabase.from("gastos_menores").update(updateData as any).eq("id", row.gastoMenorId!);
+    }
+    if (gastoRows.length > 0) refetchGastos();
+
+    // Group project rows by projectId to batch updates
+    const projectGroups = new Map<string, FlattenedRow[]>();
+    group.rows.filter(r => !(r.source === 'gastoMenor' && r.gastoMenorId)).forEach(row => {
+      const existing = projectGroups.get(row.projectId) || [];
+      existing.push(row);
+      projectGroups.set(row.projectId, existing);
+    });
+
+    for (const [projectId, pRows] of projectGroups) {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) continue;
+
+      const cajaMenorRows = pRows.filter(r => (r.item.recursos as string) !== "Recursos propios");
+      const recursosPropiosRows = pRows.filter(r => (r.item.recursos as string) === "Recursos propios");
+
+      if (cajaMenorRows.length > 0) {
+        const ids = new Set(cajaMenorRows.map(r => r.item.id));
+        const updatedCajaMenor = (project.cajaMenor || []).map(item =>
+          ids.has(item.id)
+            ? { ...item, estado: newEstado, revisadoPor: newEstado === "Pendiente" ? "" : currentUserName || "Admin" }
+            : item
+        );
+        await updateProject(projectId, "cajaMenor", updatedCajaMenor);
+
+        if (newEstado === "No aprobado") {
+          const employeeNames = new Set(cajaMenorRows.map(r => r.item.empleadoNombre?.toLowerCase()));
+          const updatedLeg = (project.legalizacion || []).map(l =>
+            employeeNames.has(l.empleadoNombre?.toLowerCase()) ? { ...l, estado: "No legalizable" } : l
+          );
+          await updateProject(projectId, "legalizacion", updatedLeg);
+        }
+      }
+
+      if (recursosPropiosRows.length > 0) {
+        const ids = new Set(recursosPropiosRows.map(r => r.item.id));
+        const updatedLeg = (project.legalizacion || []).map(l =>
+          ids.has(l.id)
+            ? { ...l, estado: newEstado, revisadoPor: newEstado === "Pendiente" ? "" : currentUserName || "Admin" }
+            : l
+        );
+        await updateProject(projectId, "legalizacion", updatedLeg);
+      }
+    }
+
+    toast.success(`Estado actualizado a "${newEstado}" para ${group.rows.length} solicitud(es)`);
   };
 
   // Handle legalizacion estado change
@@ -1003,7 +1117,7 @@ export default function AprobacionesPendientes() {
 
       <div className="flex items-center justify-between flex-shrink-0">
         <div className="text-xs text-muted-foreground">
-          {pendingRows.length} solicitud{pendingRows.length !== 1 ? "es" : ""} pendiente{pendingRows.length !== 1 ? "s" : ""}
+          {groupedPendingRows.length} grupo{groupedPendingRows.length !== 1 ? "s" : ""} ({pendingRows.length} solicitud{pendingRows.length !== 1 ? "es" : ""}) pendiente{pendingRows.length !== 1 ? "s" : ""}
         </div>
         {resolvedRows.length > 0 && (
           <Button
@@ -1018,7 +1132,7 @@ export default function AprobacionesPendientes() {
         )}
       </div>
 
-      {/* Pending Solicitudes Table */}
+      {/* Pending Solicitudes Table - Grouped */}
       <div
         className="border rounded-md overflow-auto"
         style={{
@@ -1034,24 +1148,92 @@ export default function AprobacionesPendientes() {
               <TableHead className="text-xs">Fecha</TableHead>
               <TableHead className="text-xs">CC</TableHead>
               <TableHead className="text-xs">Relación de eventos</TableHead>
-              <TableHead className="text-xs text-right">Valor</TableHead>
+              <TableHead className="text-xs text-right">Valor Total</TableHead>
+              <TableHead className="text-xs text-center">Cant.</TableHead>
               <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
-              <TableHead className="text-xs">Aprobado por</TableHead>
               <TableHead className="text-xs text-right">Legalización</TableHead>
-              <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>
               <TableHead className="text-xs text-right">Saldo</TableHead>
               <TableHead className="text-xs w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {pendingRows.length === 0 ? (
+            {groupedPendingRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center text-muted-foreground py-8 text-sm">
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-8 text-sm">
                   No hay solicitudes pendientes
                 </TableCell>
               </TableRow>
             ) : (
-              pendingRows.map((row) => renderRow(row, false))
+              groupedPendingRows.map((group) => {
+                const d = group.latestDate ? parseDateSafe(group.latestDate) : null;
+                const colorClass =
+                  group.tipo === "S" ? "bg-blue-500/20 text-blue-400 border-blue-500/40" :
+                  group.tipo === "R" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
+                  "bg-amber-500/20 text-amber-400 border-amber-500/40";
+                // Find first projectId for "Ver más"
+                const firstProjectRow = group.rows.find(r => r.projectId);
+                const isTypeS = group.tipo === "S";
+                return (
+                  <TableRow key={group.key}>
+                    <TableCell className="text-xs text-center">
+                      <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
+                        {group.tipo}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      {d ? format(d, "dd/MM/yyyy") : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs">{group.centroCostos || "—"}</TableCell>
+                    <TableCell className="text-xs">{group.evento || "—"}</TableCell>
+                    <TableCell className="text-xs text-right font-medium">
+                      {formatCurrency(group.totalValor)}
+                    </TableCell>
+                    <TableCell className="text-xs text-center">
+                      <Badge variant="outline" className="text-[10px]">
+                        {group.rows.length}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {canApproveCajaMenor() ? (
+                        <CajaMenorEstadoSelect
+                          value="Pendiente"
+                          onChange={(v) => handleGroupedEstadoChange(group, v)}
+                        />
+                      ) : (
+                        <CajaMenorEstadoSelect value="Pendiente" onChange={() => {}} readOnly />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-right">
+                      {isTypeS ? formatCurrency(group.totalLegalizacion) : "—"}
+                    </TableCell>
+                    <TableCell className={`text-xs text-right font-medium ${
+                      isTypeS ? (group.totalSaldo > 0 ? "text-green-400" : group.totalSaldo < 0 ? "text-red-400" : "") : ""
+                    }`}>
+                      {isTypeS ? formatCurrency(Math.abs(group.totalSaldo)) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {firstProjectRow && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-7 px-1 text-xs text-primary underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const params = new URLSearchParams({
+                              eventId: firstProjectRow.projectId,
+                              eventName: firstProjectRow.evento,
+                              source: "aprobaciones",
+                            });
+                            window.open(`/panel-operaciones?${params.toString()}`, "_blank");
+                          }}
+                        >
+                          Ver más
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

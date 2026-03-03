@@ -78,9 +78,12 @@ interface RelacionGastosEditorProps {
   canEdit: boolean;
   valorAnticipo: number;
   onUpdate: (updated: RelacionGastoEntry[]) => void;
+  projectId?: string;
+  cmId?: string;
+  isSolicitudAprobada?: boolean;
 }
 
-function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, onUpdate }: RelacionGastosEditorProps) {
+function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, onUpdate, projectId, cmId, isSolicitudAprobada }: RelacionGastosEditorProps) {
   const [localEntries, setLocalEntries] = useState<RelacionGastoEntry[]>(entries);
   const [newComercio, setNewComercio] = useState("");
   const [newNit, setNewNit] = useState("");
@@ -99,7 +102,7 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
   const currentSum = localEntries.reduce((s, e) => s + (e.valor || 0), 0);
   const exceedsLimit = valorAnticipo > 0 && currentSum > valorAnticipo;
 
-  const updateEntry = (idx: number, field: keyof RelacionGastoEntry, value: string | number) => {
+  const updateEntry = (idx: number, field: keyof RelacionGastoEntry, value: string | number | undefined) => {
     const updated = localEntries.map((e, i) => i === idx ? { ...e, [field]: value } : e);
     setLocalEntries(updated);
     onUpdate(updated);
@@ -127,66 +130,109 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
     setNewValor("");
   };
 
+  const handleImageUpload = async (idx: number, file: File) => {
+    const ext = file.name.split('.').pop();
+    const path = `relacion-gastos/${projectId}/${cmId}/${idx}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("notes-images").upload(path, file);
+    if (error) { toast.error("Error al subir imagen"); return; }
+    const { data: urlData } = supabase.storage.from("notes-images").getPublicUrl(path);
+    updateEntry(idx, "imagen_url", urlData.publicUrl);
+  };
+
   return (
     <div className="flex flex-col gap-1.5 min-w-[300px]">
       {localEntries.map((entry, idx) => (
-        <div key={idx} className="flex items-center gap-1 text-xs border-b border-border/40 pb-1">
-          {!isFullyLocked && canEdit ? (
-            <div className="flex-1 grid grid-cols-4 gap-1">
-              <Input
-                className="h-6 text-xs px-1"
-                value={entry.comercio || ""}
-                placeholder="Comercio"
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => updateEntry(idx, "comercio", e.target.value)}
-              />
-              <Input
-                className="h-6 text-xs px-1"
-                value={entry.nitCedula || ""}
-                placeholder="NIT/Cédula"
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => updateEntry(idx, "nitCedula", e.target.value)}
-              />
-              <Input
-                className="h-6 text-xs px-1"
-                value={entry.concepto || ""}
-                placeholder="Concepto"
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => updateEntry(idx, "concepto", e.target.value)}
-              />
-              <div className="relative">
-                <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">$</span>
+        <div key={idx} className="flex flex-col gap-0.5 border-b border-border/40 pb-1">
+          <div className="flex items-center gap-1 text-xs">
+            {!isFullyLocked && canEdit ? (
+              <div className="flex-1 grid grid-cols-4 gap-1">
                 <Input
-                  className="h-6 text-xs pl-4 pr-1 font-mono text-right"
-                  type="text"
-                  inputMode="numeric"
-                  value={entry.valor ? entry.valor.toLocaleString('es-CO') : ""}
-                  placeholder="0"
+                  className="h-6 text-xs px-1"
+                  value={entry.comercio || ""}
+                  placeholder="Comercio"
                   onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^0-9\-]/g, "");
-                    updateEntry(idx, "valor", parseInt(raw) || 0);
-                  }}
+                  onChange={(e) => updateEntry(idx, "comercio", e.target.value)}
                 />
+                <Input
+                  className="h-6 text-xs px-1"
+                  value={entry.nitCedula || ""}
+                  placeholder="NIT/Cédula"
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => updateEntry(idx, "nitCedula", e.target.value)}
+                />
+                <Input
+                  className="h-6 text-xs px-1"
+                  value={entry.concepto || ""}
+                  placeholder="Concepto"
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => updateEntry(idx, "concepto", e.target.value)}
+                />
+                <div className="relative">
+                  <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">$</span>
+                  <Input
+                    className="h-6 text-xs pl-4 pr-1 font-mono text-right"
+                    type="text"
+                    inputMode="numeric"
+                    value={entry.valor ? entry.valor.toLocaleString('es-CO') : ""}
+                    placeholder="0"
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^0-9\-]/g, "");
+                      updateEntry(idx, "valor", parseInt(raw) || 0);
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex-1 grid grid-cols-4 gap-1">
-              <span className="truncate" title={entry.comercio}>{entry.comercio || "—"}</span>
-              <span className="truncate" title={entry.nitCedula}>{entry.nitCedula || "—"}</span>
-              <span className="truncate" title={entry.concepto}>{entry.concepto || "—"}</span>
-              <span className="truncate text-right font-mono">$ {(entry.valor || 0).toLocaleString('es-CO')}</span>
-            </div>
-          )}
-          {!isFullyLocked && canEdit && (
-            <button
-              type="button"
-              className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-destructive shrink-0"
-              onClick={(e) => { e.stopPropagation(); deleteEntry(idx); }}
-            >
-              <X className="h-3 w-3" />
-            </button>
-          )}
+            ) : (
+              <div className="flex-1 grid grid-cols-4 gap-1">
+                <span className="truncate" title={entry.comercio}>{entry.comercio || "—"}</span>
+                <span className="truncate" title={entry.nitCedula}>{entry.nitCedula || "—"}</span>
+                <span className="truncate" title={entry.concepto}>{entry.concepto || "—"}</span>
+                <span className="truncate text-right font-mono">$ {(entry.valor || 0).toLocaleString('es-CO')}</span>
+              </div>
+            )}
+            {/* Image attachment inline */}
+            {isSolicitudAprobada && (
+              <div className="shrink-0">
+                {entry.imagen_url ? (
+                  <div className="flex items-center gap-0.5">
+                    <a href={entry.imagen_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                      <Paperclip className="h-3 w-3" />
+                    </a>
+                    {!isFullyLocked && canEdit && (
+                      <button
+                        type="button"
+                        className="h-4 w-4 flex items-center justify-center text-muted-foreground hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); updateEntry(idx, "imagen_url", undefined); }}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ) : !isFullyLocked && canEdit ? (
+                  <label className={`flex items-center gap-0.5 cursor-pointer text-xs text-muted-foreground hover:text-primary transition-colors ${!entry.imagen_url ? "text-destructive" : ""}`}>
+                    <Upload className="h-3 w-3" />
+                    <input type="file" accept="image/*" className="hidden" onClick={(e) => e.stopPropagation()} onChange={async (e) => {
+                      e.stopPropagation();
+                      const file = e.target.files?.[0];
+                      if (file) await handleImageUpload(idx, file);
+                    }} />
+                  </label>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
+              </div>
+            )}
+            {!isFullyLocked && canEdit && (
+              <button
+                type="button"
+                className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-destructive shrink-0"
+                onClick={(e) => { e.stopPropagation(); deleteEntry(idx); }}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
         </div>
       ))}
 
@@ -3180,7 +3226,7 @@ const PanelOperaciones = () => {
                                           relEntries.forEach((entry) => {
                                             if (entry.imagen_url) {
                                               allImages.push({
-                                                concepto: cm.concepto || "Sin concepto",
+                                                concepto: entry.concepto || cm.concepto || "Sin concepto",
                                                 comercio: entry.comercio || "Sin comercio",
                                                 url: entry.imagen_url,
                                               });
@@ -3418,8 +3464,7 @@ const PanelOperaciones = () => {
                                    <th style={{ width: '200px', minWidth: '200px' }}>Concepto solicitud</th>
                                    <th style={{ width: '130px', minWidth: '130px' }}>Categoría *</th>
                                    <th style={{ width: '130px', minWidth: '130px' }}>Valor anticipo *</th>
-                                    <th style={{ width: '380px', minWidth: '380px' }}>Relación de Gastos</th>
-                                    <th style={{ width: '110px', minWidth: '110px' }}>Imagen *</th>
+                                    <th style={{ width: '450px', minWidth: '450px' }}>Relación de Gastos</th>
                                     <th style={{ width: '130px', minWidth: '130px' }}>Valor legalización</th>
                                     <th style={{ width: '130px', minWidth: '130px' }}>Diferencia</th>
                                   <th style={{ width: '50px', minWidth: '50px' }}></th>
@@ -3515,7 +3560,7 @@ const PanelOperaciones = () => {
                                           );
                                         })()}
                                       </td>
-                                      {/* Relación de Gastos */}
+                                      {/* Relación de Gastos (with inline image upload) */}
                                       <td>
                                         <div className="flex flex-col gap-1.5">
                                           {!isSolicitudAprobada ? (
@@ -3526,6 +3571,9 @@ const PanelOperaciones = () => {
                                               isFullyLocked={isFullyLocked}
                                               canEdit={!isFullyLocked && isCreatorOfRecord(cm)}
                                               valorAnticipo={cm.valor || 0}
+                                              projectId={currentProjectData?.id}
+                                              cmId={cm.id}
+                                              isSolicitudAprobada={isSolicitudAprobada}
                                               onUpdate={(updated) => {
                                                 if (currentProjectData?.id) {
                                                   updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
@@ -3536,75 +3584,6 @@ const PanelOperaciones = () => {
                                             />
                                           )}
                                         </div>
-                                      </td>
-                                      {/* Imagen (per relacion_gastos row) */}
-                                      <td>
-                                        {(() => {
-                                          if (!isSolicitudAprobada) {
-                                            return <span className="text-sm text-muted-foreground">—</span>;
-                                          }
-                                          const relEntries: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
-                                          const imgDisabled = isFullyLocked || !isCreatorOfRecord(cm);
-                                          if (relEntries.length === 0) {
-                                            return <span className="text-xs text-muted-foreground">Agrega gastos</span>;
-                                          }
-                                          return (
-                                            <div className="flex flex-col gap-1.5">
-                                              {relEntries.map((entry: RelacionGastoEntry, idx: number) => {
-                                                const hasImg = !!entry.imagen_url;
-                                                return (
-                                                  <div key={idx} className={`flex items-center gap-1 ${!hasImg && !imgDisabled ? "ring-1 ring-destructive/50 rounded bg-destructive/5 p-0.5" : "p-0.5"}`}>
-                                                    {hasImg ? (
-                                                      <div className="flex items-center gap-1">
-                                                        <a href={entry.imagen_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline flex items-center gap-1">
-                                                          <Paperclip className="h-3 w-3" />
-                                                          Ver
-                                                        </a>
-                                                        {!imgDisabled && (
-                                                          <button
-                                                            type="button"
-                                                            className="h-4 w-4 flex items-center justify-center text-muted-foreground hover:text-destructive"
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              const updated = [...relEntries];
-                                                              updated[idx] = { ...updated[idx], imagen_url: undefined };
-                                                              if (currentProjectData?.id) {
-                                                                updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
-                                                              }
-                                                            }}
-                                                          >
-                                                            <X className="h-3 w-3" />
-                                                          </button>
-                                                        )}
-                                                      </div>
-                                                    ) : imgDisabled ? (
-                                                      <span className="text-xs text-muted-foreground">—</span>
-                                                    ) : (
-                                                      <label className="flex items-center gap-1 cursor-pointer text-xs text-muted-foreground hover:text-primary transition-colors">
-                                                        <Upload className="h-3 w-3" />
-                                                        Subir
-                                                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                                                          const file = e.target.files?.[0];
-                                                          if (!file) return;
-                                                          const ext = file.name.split('.').pop();
-                                                          const path = `relacion-gastos/${currentProjectData?.id}/${cm.id}/${idx}-${Date.now()}.${ext}`;
-                                                          const { error } = await supabase.storage.from("notes-images").upload(path, file);
-                                                          if (error) { toast.error("Error al subir imagen"); return; }
-                                                          const { data: urlData } = supabase.storage.from("notes-images").getPublicUrl(path);
-                                                          const updated = [...relEntries];
-                                                          updated[idx] = { ...updated[idx], imagen_url: urlData.publicUrl };
-                                                          if (currentProjectData?.id) {
-                                                            updateCajaMenorItem(currentProjectData.id, cm.id, "relacion_gastos", updated);
-                                                          }
-                                                        }} />
-                                                      </label>
-                                                    )}
-                                                  </div>
-                                                );
-                                              })}
-                                            </div>
-                                          );
-                                        })()}
                                       </td>
                                       {/* Valor legalización (read-only: sum of relacion_gastos) */}
                                       <td>

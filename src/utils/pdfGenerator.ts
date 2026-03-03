@@ -929,43 +929,75 @@ const generateCorporateFormatoHTML = (
     }
   }
   
-  // Build expense rows (RELACION DE GASTOS) from relacion_gastos entries
-   const allExpenseEntries: { comercio: string; nitCedula: string; concepto: string; valor: number }[] = [];
+  // Build expense rows (RELACION DE GASTOS) grouped by category
+  const entriesByCategory: Record<string, { comercio: string; nitCedula: string; concepto: string; valor: number }[]> = {};
+  let totalExpenseCount = 0;
   cajaMenor.forEach(c => {
+    const cat = c.categoria || 'Sin categoría';
+    if (!entriesByCategory[cat]) entriesByCategory[cat] = [];
     const entries = (c as any).relacion_gastos || [];
     if (entries.length > 0) {
       entries.forEach((entry: any) => {
-        allExpenseEntries.push({
+        entriesByCategory[cat].push({
           comercio: entry.comercio || '',
           nitCedula: entry.nitCedula || '',
           concepto: entry.concepto || '',
           valor: entry.valor || 0,
         });
+        totalExpenseCount++;
       });
     } else {
-      // Fallback: use legacy concepto + employee info
       const emp = getEmpleadoFullInfo(c.empleadoId, empleados);
       const notas: string[] = (c as any).notas_comentarios || [];
       const notasHTML = notas.filter((n: string) => n && n.trim()).map((n: string) => `<br><span style="color:#555;font-size:9px;">• ${n}</span>`).join('');
-      allExpenseEntries.push({
+      entriesByCategory[cat].push({
         comercio: emp.nombre,
         nitCedula: emp.cedula,
         concepto: (c.concepto || '-') + notasHTML,
         valor: c.valor || 0,
       });
+      totalExpenseCount++;
     }
   });
-  
-  const expenseRows = allExpenseEntries.map(entry => `
-      <tr>
-        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${entry.comercio}</td>
-        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${entry.nitCedula}</td>
-        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${entry.concepto}</td>
-        <td style="border:1px solid #000;padding:4px 6px;font-size:10px;text-align:right;">$ ${(entry.valor || 0).toLocaleString('es-CO')}</td>
-      </tr>`).join('');
 
-  // Empty rows to fill table (minimum 12 rows like the original format)
-  const emptyRowsCount = Math.max(0, 12 - allExpenseEntries.length);
+  const categories = Object.keys(entriesByCategory);
+  const hasMultipleCategories = categories.length > 1;
+
+  let expenseRows = '';
+  let allExpenseTotal = 0;
+  categories.forEach(cat => {
+    const catEntries = entriesByCategory[cat];
+    const catTotal = catEntries.reduce((s, e) => s + (e.valor || 0), 0);
+    allExpenseTotal += catTotal;
+    
+    if (hasMultipleCategories) {
+      expenseRows += `
+        <tr>
+          <td colspan="4" style="border:1px solid #000;padding:5px 8px;font-size:10px;font-weight:bold;background:#eef2ff;color:#3730a3;">📁 ${cat}</td>
+        </tr>`;
+    }
+    
+    catEntries.forEach(entry => {
+      expenseRows += `
+        <tr>
+          <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${entry.comercio}</td>
+          <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${entry.nitCedula}</td>
+          <td style="border:1px solid #000;padding:4px 6px;font-size:10px;">${entry.concepto}</td>
+          <td style="border:1px solid #000;padding:4px 6px;font-size:10px;text-align:right;">$ ${(entry.valor || 0).toLocaleString('es-CO')}</td>
+        </tr>`;
+    });
+
+    if (hasMultipleCategories) {
+      expenseRows += `
+        <tr style="background:#f8fafc;">
+          <td colspan="3" style="border:1px solid #000;padding:4px 8px;font-size:9px;text-align:right;font-style:italic;color:#64748b;">Subtotal ${cat}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:9px;text-align:right;font-style:italic;color:#64748b;">$ ${catTotal.toLocaleString('es-CO')}</td>
+        </tr>`;
+    }
+  });
+
+  // Empty rows to fill table (minimum 8 rows)
+  const emptyRowsCount = Math.max(0, 8 - totalExpenseCount);
   const emptyRows = Array(emptyRowsCount).fill(0).map(() => `
     <tr>
       <td style="border:1px solid #000;padding:4px 6px;height:20px;">&nbsp;</td>
@@ -1203,11 +1235,11 @@ const generateCorporateFormatoHTML = (
         ${emptyRows}
         <tr style="font-weight:bold;background:#f3f4f6;">
           <td colspan="3" style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">TOTAL</td>
-          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">$ ${allExpenseEntries.reduce((s, e) => s + (e.valor || 0), 0).toLocaleString('es-CO')}</td>
+          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">$ ${allExpenseTotal.toLocaleString('es-CO')}</td>
         </tr>
         <tr style="font-weight:bold;">
           <td colspan="3" style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">DIFERENCIA</td>
-          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">${(() => { const totalGastos = allExpenseEntries.reduce((s, e) => s + (e.valor || 0), 0); const diff = totalValor - totalGastos; return diff >= 0 ? `$ ${diff.toLocaleString('es-CO')}` : `$ (${Math.abs(diff).toLocaleString('es-CO')})`; })()}</td>
+          <td style="border:1px solid #000;padding:5px 8px;font-size:10px;text-align:right;">${(() => { const diff = totalValor - allExpenseTotal; return diff >= 0 ? `$ ${diff.toLocaleString('es-CO')}` : `$ (${Math.abs(diff).toLocaleString('es-CO')})`; })()}</td>
         </tr>
       </table>
 

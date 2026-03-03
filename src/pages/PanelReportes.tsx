@@ -147,6 +147,25 @@ const PanelReportes = () => {
         </Card>
       </div>
 
+      {/* Hola Section */}
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold text-foreground">Hola</h2>
+        <p className="text-sm text-muted-foreground">Sección de prueba</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card className="opacity-50 cursor-not-allowed">
+          <CardHeader className="pb-2">
+            <div className="w-14 h-14 rounded-xl bg-purple-500/10 flex items-center justify-center mb-3">
+              <FileBarChart className="w-7 h-7 text-purple-500" />
+            </div>
+            <CardTitle className="text-lg text-muted-foreground">Hola</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground/70">Apartado de prueba.</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Financial Reports */}
       <div className="space-y-2">
         <h2 className="text-lg font-semibold text-foreground">Reportes</h2>

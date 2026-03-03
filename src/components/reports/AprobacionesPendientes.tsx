@@ -1098,6 +1098,10 @@ export default function AprobacionesPendientes() {
               onKeyDown={handleKeyDown}
               onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
               className="pl-9 h-9 text-xs"
+              autoComplete="off"
+              name="aprobaciones-search-nofill"
+              data-form-type="other"
+              data-lpignore="true"
             />
             {/* Autocomplete Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
@@ -1410,6 +1414,10 @@ export default function AprobacionesPendientes() {
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") confirmRestore(); }}
+              autoComplete="new-password"
+              name="restore-password-nofill"
+              data-form-type="other"
+              data-lpignore="true"
               autoFocus
             />
           </div>

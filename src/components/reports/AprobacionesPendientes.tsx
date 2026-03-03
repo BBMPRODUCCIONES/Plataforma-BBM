@@ -823,11 +823,27 @@ export default function AprobacionesPendientes() {
         return;
       }
 
-      // Collect individual rows to restore from selectedForRestore keys (projectId-itemId)
-      // Use unfiltered `rows` to avoid search/filter interference
+      // Resolve group keys to individual rows
+      // selectedForRestore now contains group keys like "40-000-R"
+      // Find all resolved rows that belong to selected groups
       const rowsToRestore: FlattenedRow[] = rows.filter(r => {
-        const rowKey = `${r.projectId}-${r.item.id}`;
-        return selectedForRestore.has(rowKey);
+        // Check if this row is in a resolved state
+        const isResolved = (() => {
+          if (r.item.estado === "No aprobado") return true;
+          if (r.item.estado === "Aprobado") {
+            const recursos = (r.item.recursos as string) || "";
+            const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
+            if (isTypeS) return r.legalizacionEstado === "Legalizado" || r.legalizacionEstado === "No legalizable";
+            return true;
+          }
+          return false;
+        })();
+        if (!isResolved) return false;
+        
+        const recursos = (r.item.recursos as string) || "";
+        const tipo = recursos === "Recursos propios" ? "R" : recursos === "BBM" ? "C" : "S";
+        const groupKey = `${r.centroCostos || "sin-cc"}-${tipo}`;
+        return selectedForRestore.has(groupKey);
       });
 
       if (rowsToRestore.length === 0) {
@@ -1497,9 +1513,9 @@ export default function AprobacionesPendientes() {
                   {canApproveCajaMenor() && (
                     <TableHead className="text-xs w-[40px]">
                       <Checkbox
-                        checked={resolvedRows.length > 0 && resolvedRows.every(r => selectedForRestore.has(`${r.projectId}-${r.item.id}`))}
+                        checked={groupedResolvedRows.length > 0 && groupedResolvedRows.every(g => selectedForRestore.has(g.key))}
                         onCheckedChange={() => {
-                          const keys = resolvedRows.map(r => `${r.projectId}-${r.item.id}`);
+                          const keys = groupedResolvedRows.map(g => g.key);
                           const allSelected = keys.every(k => selectedForRestore.has(k));
                           setSelectedForRestore(prev => {
                             const next = new Set(prev);
@@ -1516,7 +1532,8 @@ export default function AprobacionesPendientes() {
                   <TableHead className="text-xs">Fecha</TableHead>
                   <TableHead className="text-xs">CC</TableHead>
                   <TableHead className="text-xs">Relación de eventos</TableHead>
-                  <TableHead className="text-xs text-right">Valor</TableHead>
+                  <TableHead className="text-xs text-right">Valor Total</TableHead>
+                  <TableHead className="text-xs text-center">Cant.</TableHead>
                   <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
                   <TableHead className="text-xs">Aprobado por</TableHead>
                   <TableHead className="text-xs text-right">Legalización</TableHead>
@@ -1526,38 +1543,51 @@ export default function AprobacionesPendientes() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {resolvedRows.length === 0 ? (
+                {groupedResolvedRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center text-muted-foreground py-8 text-sm">
+                    <TableCell colSpan={13} className="text-center text-muted-foreground py-8 text-sm">
                       No hay solicitudes en el historial
                     </TableCell>
                   </TableRow>
                 ) : (
-                  resolvedRows.map((row) => {
-                    const d = parseDateSafe(row.item.createdAt);
-                    const rowKey = `${row.projectId}-${row.item.id}`;
-                    const recursos = (row.item.recursos as string) || "";
-                    const tipo = recursos === "Recursos propios" ? "R" : recursos === "BBM" ? "C" : "S";
-                    const isTypeS = tipo === "S";
+                  groupedResolvedRows.map((group) => {
+                    const d = group.latestDate ? parseDateSafe(group.latestDate) : null;
                     const colorClass =
-                      tipo === "S" ? "bg-blue-500/20 text-blue-400 border-blue-500/40" :
-                      tipo === "R" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
+                      group.tipo === "S" ? "bg-blue-500/20 text-blue-400 border-blue-500/40" :
+                      group.tipo === "R" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
                       "bg-amber-500/20 text-amber-400 border-amber-500/40";
-                    const aprobadoPor = row.source === 'gastoMenor'
-                      ? (gastosMenores.find(g => g.id === row.gastoMenorId)?.aprobado_por_nombre || "—")
-                      : (row.item.revisadoPor || "—");
+                    const isTypeS = group.tipo === "S";
+                    const firstProjectRow = group.rows.find(r => r.projectId);
+
+                    const allEstados = [...new Set(group.rows.map(r => r.item.estado))];
+                    const commonEstado = allEstados.length === 1 ? allEstados[0] : "Mixto";
+
+                    const aprobadores = [...new Set(group.rows
+                      .map(r => {
+                        if (r.source === 'gastoMenor') {
+                          const gm = gastosMenores.find(g => g.id === r.gastoMenorId);
+                          return gm?.aprobado_por_nombre || "";
+                        }
+                        return r.item.revisadoPor || "";
+                      })
+                      .filter(Boolean)
+                    )];
+                    const aprobadoPorDisplay = aprobadores.length === 1 ? aprobadores[0] : aprobadores.length > 1 ? aprobadores.join(", ") : "—";
+
+                    const legEstados = isTypeS ? [...new Set(group.rows.map(r => r.legalizacionEstado || "Revisando"))] : [];
+                    const commonLegEstado = legEstados.length === 1 ? legEstados[0] : legEstados.length > 1 ? "Mixto" : "";
 
                     return (
-                      <TableRow key={rowKey}>
+                      <TableRow key={group.key}>
                         {canApproveCajaMenor() && (
                           <TableCell className="text-xs">
                             <Checkbox
-                              checked={selectedForRestore.has(rowKey)}
+                              checked={selectedForRestore.has(group.key)}
                               onCheckedChange={() => {
                                 setSelectedForRestore(prev => {
                                   const next = new Set(prev);
-                                  if (next.has(rowKey)) next.delete(rowKey);
-                                  else next.add(rowKey);
+                                  if (next.has(group.key)) next.delete(group.key);
+                                  else next.add(group.key);
                                   return next;
                                 });
                               }}
@@ -1567,55 +1597,62 @@ export default function AprobacionesPendientes() {
                         )}
                         <TableCell className="text-xs text-center">
                           <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
-                            {tipo}
+                            {group.tipo}
                           </span>
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">
                           {d ? format(d, "dd/MM/yyyy") : "—"}
                         </TableCell>
-                        <TableCell className="text-xs">{row.centroCostos || "—"}</TableCell>
-                        <TableCell className="text-xs">{row.evento || "—"}</TableCell>
+                        <TableCell className="text-xs">{group.centroCostos || "—"}</TableCell>
+                        <TableCell className="text-xs">{group.evento || "—"}</TableCell>
                         <TableCell className="text-xs text-right font-medium">
-                          {formatCurrency(row.item.valor || 0)}
+                          {formatCurrency(group.totalValor)}
+                        </TableCell>
+                        <TableCell className="text-xs text-center">
+                          <Badge variant="outline" className="text-[10px]">
+                            {group.rows.length}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-xs">
-                          <CajaMenorEstadoSelect value={row.item.estado} onChange={() => {}} readOnly />
+                          <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />
                         </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{aprobadoPor}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{aprobadoPorDisplay}</TableCell>
                         <TableCell className="text-xs text-right">
-                          {isTypeS ? formatCurrency(row.legalizacionTotal) : "—"}
+                          {isTypeS ? formatCurrency(group.totalLegalizacion) : "—"}
                         </TableCell>
                         <TableCell className="text-xs">
                           {isTypeS ? (
                             <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                              LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === row.legalizacionEstado)?.className || "bg-yellow-500/20 text-yellow-400"
+                              LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === commonLegEstado)?.className || "bg-yellow-500/20 text-yellow-400"
                             }`}>
-                              {row.legalizacionEstado || "Revisando"}
+                              {commonLegEstado || "Revisando"}
                             </span>
                           ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className={`text-xs text-right font-medium ${
-                          isTypeS ? (row.saldoAFavor > 0 ? "text-green-400" : row.saldoAFavor < 0 ? "text-red-400" : "") : ""
+                          isTypeS ? (group.totalSaldo > 0 ? "text-green-400" : group.totalSaldo < 0 ? "text-red-400" : "") : ""
                         }`}>
-                          {isTypeS ? formatCurrency(Math.abs(row.saldoAFavor)) : "—"}
+                          {isTypeS ? formatCurrency(Math.abs(group.totalSaldo)) : "—"}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-7 px-1 text-xs text-primary underline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const params = new URLSearchParams({
-                                eventId: row.projectId,
-                                eventName: row.evento,
-                                source: "aprobaciones",
-                              });
-                              window.open(`/panel-operaciones?${params.toString()}`, "_blank");
-                            }}
-                          >
-                            Ver más
-                          </Button>
+                          {firstProjectRow && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-7 px-1 text-xs text-primary underline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const params = new URLSearchParams({
+                                  eventId: firstProjectRow.projectId,
+                                  eventName: firstProjectRow.evento,
+                                  source: "aprobaciones",
+                                });
+                                window.open(`/panel-operaciones?${params.toString()}`, "_blank");
+                              }}
+                            >
+                              Ver más
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );

@@ -15,6 +15,7 @@ import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { EventLink } from "@/components/EventLink";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjects } from "@/contexts/ProjectsContext";
@@ -23,7 +24,7 @@ import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, ExternalLink, Settings, Loader2 } from "lucide-react";
+import { Search, ExternalLink, Settings, Loader2, Eye } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
@@ -43,6 +44,7 @@ const PanelGeneral = () => {
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [hideDeleted, setHideDeleted] = useState(false);
+  const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
   // Initialize with base columns - persisted to localStorage
   const defaultColumns: ColumnConfig[] = [
     { key: "centroCostos", header: "Centro de Costos", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
@@ -339,6 +341,26 @@ const PanelGeneral = () => {
             />
           </div>
         );
+      case "notas":
+        return (p: Project) => (
+          <div className="flex items-center gap-1 max-w-[200px]">
+            <EditableCell
+              value={p.notas}
+              type="text"
+              onChange={(value) => updateProject(p.id, "notas", value)}
+              className="truncate text-xs flex-1 min-w-0"
+            />
+            {p.notas && p.notas.trim() && (
+              <button
+                onClick={() => setNotaExpandida({ evento: p.evento, nota: p.notas })}
+                className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                title="Ver nota completa"
+              >
+                <Eye className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        );
       default:
         return (p: Project) => (
           <EditableCell
@@ -511,6 +533,18 @@ const PanelGeneral = () => {
           panelName="Panel General"
           readOnly={!canModifyStructure}
         />
+
+        {/* Dialog para ver nota completa */}
+        <Dialog open={!!notaExpandida} onOpenChange={(open) => !open && setNotaExpandida(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-sm">Nota — {notaExpandida?.evento}</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm whitespace-pre-wrap text-foreground/80 max-h-[60vh] overflow-y-auto">
+              {notaExpandida?.nota}
+            </p>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

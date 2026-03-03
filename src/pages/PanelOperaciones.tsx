@@ -2054,6 +2054,7 @@ const PanelOperaciones = () => {
                   placeholder="+ Agregar nota..."
                   className="h-6 text-xs border-dashed border-primary/30 bg-transparent focus:border-primary"
                   onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                   onChange={(e) => {
                     if (projectId) {
                       updateCajaMenorItem(projectId, c.id, "notaAdicional", e.target.value);
@@ -2288,7 +2289,8 @@ const PanelOperaciones = () => {
                         value={nota}
                         placeholder="Nota..."
                         className="h-6 text-xs border-dashed border-primary/30 bg-transparent focus:border-primary"
-                        onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                         onChange={(e) => {
                           if (projectId) {
                             const updated = [...notas];

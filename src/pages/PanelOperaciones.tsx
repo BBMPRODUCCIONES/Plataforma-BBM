@@ -1460,6 +1460,29 @@ const PanelOperaciones = () => {
     return selectedProject ? projects.find(p => p.id === selectedProject.id) : null;
   }, [selectedProject, projects]);
 
+  // Auto-assign Karen Gomez as default "Responsable de Salida" when opening a project without one
+  useEffect(() => {
+    if (!currentProjectData || !selectedProject) return;
+    if (selectedSection !== "plantilla") return;
+    // Only assign if no responsable de salida is set
+    if (currentProjectData.inventarioResponsableSalidaNombre) return;
+    
+    const DEFAULT_RESPONSABLE_ID = "3e4e34d2-da96-4bd2-b549-e44e77f44799";
+    const DEFAULT_RESPONSABLE_NOMBRE = "auxiliar.administrativo";
+    
+    // Auto-assign
+    const assignDefault = async () => {
+      try {
+        await contextUpdateProject(currentProjectData.id, 'inventarioResponsableSalidaUserId', DEFAULT_RESPONSABLE_ID);
+        await contextUpdateProject(currentProjectData.id, 'inventarioResponsableSalidaNombre', DEFAULT_RESPONSABLE_NOMBRE);
+        await contextUpdateProject(currentProjectData.id, 'inventarioResponsableSalidaTimestamp', new Date().toISOString());
+      } catch (err) {
+        console.error('[Inventario] Error auto-assigning default responsable salida:', err);
+      }
+    };
+    assignDefault();
+  }, [currentProjectData?.id, selectedSection]);
+
   const personalColumns = useMemo(() => {
     const projectId = selectedProject?.id;
     const hasTransporte = currentProjectData?.personal?.some(p => p.tipoPersonal === "Transporte");

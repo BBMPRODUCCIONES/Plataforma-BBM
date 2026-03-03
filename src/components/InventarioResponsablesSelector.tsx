@@ -67,24 +67,24 @@ function EmpleadoSelectorPopover({
   }, [empleados, search]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         <Button
           type="button"
           variant="outline"
           className="w-full h-10 text-sm justify-between font-normal"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
         >
           <span className="text-muted-foreground">{placeholder}</span>
           <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[320px] p-0"
+        className="w-[320px] p-0 z-[9999]"
         align="start"
         side="bottom"
         sideOffset={4}
         onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <div className="p-2 border-b border-border">
           <div className="relative">
@@ -103,14 +103,17 @@ function EmpleadoSelectorPopover({
             <div className="p-4 text-center text-sm text-muted-foreground">Sin resultados</div>
           ) : (
             filtered.map((emp) => (
-              <div
+              <button
                 key={emp.id}
-                onClick={() => {
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   onSelect(emp.nombre, undefined);
                   setSearch("");
                   setOpen(false);
                 }}
-                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-accent transition-colors border-b border-border/50 last:border-b-0"
+                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-accent transition-colors border-b border-border/50 last:border-b-0 w-full text-left"
               >
                 <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
                   <Users className="h-3.5 w-3.5 text-primary" />
@@ -119,7 +122,7 @@ function EmpleadoSelectorPopover({
                   <p className="text-sm font-medium truncate">{emp.nombre}</p>
                   <p className="text-xs text-muted-foreground truncate">{emp.cargo || "Sin cargo"}</p>
                 </div>
-              </div>
+              </button>
             ))
           )}
         </div>

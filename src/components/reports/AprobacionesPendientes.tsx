@@ -996,6 +996,9 @@ export default function AprobacionesPendientes() {
             if (row.source === 'gastoMenor' || isR) {
               return <span className="text-xs text-muted-foreground">—</span>;
             }
+            if (row.item.estado === "Pendiente") {
+              return <span className="text-xs text-muted-foreground">Sin aprobar</span>;
+            }
             if (row.item.estado === "No aprobado") {
               return (
                 <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>
@@ -1311,6 +1314,9 @@ export default function AprobacionesPendientes() {
                     <TableCell className="text-xs">
                       {(() => {
                         if (!isTypeS) return <span className="text-muted-foreground">—</span>;
+                        if (commonEstado === "Pendiente") {
+                          return <span className="text-xs text-muted-foreground">Sin aprobar</span>;
+                        }
                         if (commonEstado === "No aprobado") {
                           return (
                             <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>

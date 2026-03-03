@@ -972,6 +972,7 @@ export default function AprobacionesPendientes() {
             <CajaMenorEstadoSelect
               value={row.item.estado}
               onChange={(v) => handleEstadoChange(row, v)}
+              allowedValues={["Pendiente", "Aprobado", "No aprobado"]}
             />
           ) : (
             <CajaMenorEstadoSelect
@@ -1307,6 +1308,7 @@ export default function AprobacionesPendientes() {
                         <CajaMenorEstadoSelect
                           value={commonEstado}
                           onChange={(v) => handleGroupedEstadoChange(group, v)}
+                          allowedValues={["Pendiente", "Aprobado", "No aprobado"]}
                         />
                       ) : (
                         <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />

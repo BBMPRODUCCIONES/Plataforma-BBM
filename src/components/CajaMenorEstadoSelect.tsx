@@ -13,6 +13,7 @@ interface CajaMenorEstadoSelectProps {
   onChange: (value: string) => void;
   className?: string;
   readOnly?: boolean;
+  allowedValues?: string[];
 }
 
 const ESTADO_OPTIONS = [
@@ -23,7 +24,8 @@ const ESTADO_OPTIONS = [
   { value: 'Reembolsado', label: 'Reembolsado', className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
 ] as const;
 
-export function CajaMenorEstadoSelect({ value, onChange, className, readOnly }: CajaMenorEstadoSelectProps) {
+export function CajaMenorEstadoSelect({ value, onChange, className, readOnly, allowedValues }: CajaMenorEstadoSelectProps) {
+  const filteredOptions = allowedValues ? ESTADO_OPTIONS.filter(o => allowedValues.includes(o.value)) : ESTADO_OPTIONS;
   const safeValue = ESTADO_OPTIONS.some(o => o.value === value) ? value : "Pendiente";
   const [optimisticValue, setOptimisticValue] = useState(safeValue);
 
@@ -67,7 +69,7 @@ export function CajaMenorEstadoSelect({ value, onChange, className, readOnly }: 
         <span>{currentOption?.label || "Pendiente"}</span>
       </SelectTrigger>
       <SelectContent className="bg-popover border-border z-[9999]">
-        {ESTADO_OPTIONS.map((option) => (
+        {filteredOptions.map((option) => (
           <SelectItem 
             key={option.value} 
             value={option.value}

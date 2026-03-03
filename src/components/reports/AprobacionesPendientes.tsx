@@ -633,36 +633,65 @@ export default function AprobacionesPendientes() {
         return;
       }
 
-      // Restore each selected row
+      // Restore each selected row - batch by project to avoid stale data overwrites
       const rowsToRestore = resolvedRows.filter(r => selectedForRestore.has(`${r.projectId}-${r.item.id}`));
       
-      for (const row of rowsToRestore) {
-        if (row.source === 'gastoMenor' && row.gastoMenorId) {
-          await supabase
-            .from("gastos_menores")
-            .update({ estado: "Pendiente", aprobado_por_id: null, aprobado_por_nombre: "" } as any)
-            .eq("id", row.gastoMenorId);
-        } else {
-          const project = projects.find(p => p.id === row.projectId);
-          if (!project) continue;
-
-          const isRecursosPropios = (row.item.recursos as string) === "Recursos propios";
-          if (isRecursosPropios) {
-            const updatedLeg = (project.legalizacion || []).map(l =>
-              l.id === row.item.id ? { ...l, estado: "Pendiente", revisadoPor: "", restaurada: true } : l
-            );
-            await updateProject(row.projectId, "legalizacion", updatedLeg);
-          } else {
-            const updatedCajaMenor = (project.cajaMenor || []).map(item =>
-              item.id === row.item.id ? { ...item, estado: "Pendiente", revisadoPor: "", restaurada: true } : item
-            );
-            await updateProject(row.projectId, "cajaMenor", updatedCajaMenor);
-          }
+      // Group rows by projectId to batch updates
+      const gastoMenorRows = rowsToRestore.filter(r => r.source === 'gastoMenor' && r.gastoMenorId);
+      const projectRows = rowsToRestore.filter(r => !(r.source === 'gastoMenor' && r.gastoMenorId));
+      
+      // Handle gastos_menores (DB rows)
+      for (const row of gastoMenorRows) {
+        await supabase
+          .from("gastos_menores")
+          .update({ estado: "Pendiente", aprobado_por_id: null, aprobado_por_nombre: "" } as any)
+          .eq("id", row.gastoMenorId!);
+        toast.info(`Solicitud de caja menor restaurada a Pendiente`);
+      }
+      
+      // Group project rows by projectId
+      const byProject = new Map<string, FlattenedRow[]>();
+      for (const row of projectRows) {
+        const existing = byProject.get(row.projectId) || [];
+        existing.push(row);
+        byProject.set(row.projectId, existing);
+      }
+      
+      // Apply all changes per project in one batch
+      for (const [projectId, rows] of byProject) {
+        const project = projects.find(p => p.id === projectId);
+        if (!project) continue;
+        
+        const cajaMenorIdsToRestore = new Set(
+          rows.filter(r => (r.item.recursos as string) !== "Recursos propios").map(r => r.item.id)
+        );
+        const legIdsToRestore = new Set(
+          rows.filter(r => (r.item.recursos as string) === "Recursos propios").map(r => r.item.id)
+        );
+        
+        if (cajaMenorIdsToRestore.size > 0) {
+          const updatedCajaMenor = (project.cajaMenor || []).map(item =>
+            cajaMenorIdsToRestore.has(item.id)
+              ? { ...item, estado: "Pendiente", revisadoPor: "", restaurada: true }
+              : item
+          );
+          await updateProject(projectId, "cajaMenor", updatedCajaMenor);
+          cajaMenorIdsToRestore.forEach(() => toast.info("Solicitud de anticipo restaurada a Pendiente"));
+        }
+        
+        if (legIdsToRestore.size > 0) {
+          const updatedLeg = (project.legalizacion || []).map(l =>
+            legIdsToRestore.has(l.id)
+              ? { ...l, estado: "Pendiente", revisadoPor: "", restaurada: true }
+              : l
+          );
+          await updateProject(projectId, "legalizacion", updatedLeg);
+          legIdsToRestore.forEach(() => toast.info("Solicitud de recursos propios restaurada a Pendiente"));
         }
       }
 
       refetchGastos();
-      toast.success(`${rowsToRestore.length} solicitud(es) restaurada(s) a Pendiente`);
+      toast.success(`✅ ${rowsToRestore.length} solicitud(es) restaurada(s) a Pendiente`);
       setSelectedForRestore(new Set());
       setShowPasswordDialog(false);
       setPasswordInput("");

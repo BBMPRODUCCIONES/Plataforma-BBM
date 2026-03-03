@@ -172,6 +172,7 @@ export type Database = {
           imagen_url: string | null
           nit_cc: string | null
           nombre_comercio: string | null
+          restaurada: boolean | null
           tipo_centro: string | null
           updated_at: string
           usuario_id: string
@@ -191,6 +192,7 @@ export type Database = {
           imagen_url?: string | null
           nit_cc?: string | null
           nombre_comercio?: string | null
+          restaurada?: boolean | null
           tipo_centro?: string | null
           updated_at?: string
           usuario_id: string
@@ -210,6 +212,7 @@ export type Database = {
           imagen_url?: string | null
           nit_cc?: string | null
           nombre_comercio?: string | null
+          restaurada?: boolean | null
           tipo_centro?: string | null
           updated_at?: string
           usuario_id?: string

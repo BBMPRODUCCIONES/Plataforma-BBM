@@ -1,0 +1,1 @@
+ALTER TABLE public.gastos_menores ADD COLUMN IF NOT EXISTS restaurada boolean DEFAULT false;

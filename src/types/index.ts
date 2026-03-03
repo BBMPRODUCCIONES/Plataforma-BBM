@@ -162,6 +162,8 @@ export interface CajaMenorItem {
   createdAt?: string; // Fecha de creación del registro
   relacion_gastos?: RelacionGastoEntry[]; // Datos para RELACIÓN DE GASTOS en PDF
   restaurada?: boolean; // Indica si fue restaurada desde aprobadas/rechazadas
+  restauradaPor?: string; // Nombre de quien restauró
+  restauradaEn?: string; // Fecha/hora de la restauración (ISO string)
 }
 
 // Legalización item - estructura independiente para justificar gastos
@@ -181,6 +183,8 @@ export interface LegalizacionItem {
   revisadoPor?: string; // Nombre de quien aprobó/rechazó
   createdAt?: string;
   restaurada?: boolean; // Indica si fue restaurada desde aprobadas/rechazadas
+  restauradaPor?: string; // Nombre de quien restauró
+  restauradaEn?: string; // Fecha/hora de la restauración (ISO string)
 }
 
 export interface Proveedor {

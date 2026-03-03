@@ -39,6 +39,12 @@ import { Search, RotateCcw, Lock, History } from "lucide-react";
 import AprobacionesKPIs from "@/components/reports/AprobacionesKPIs";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface FlattenedRow {
   projectId: string;
@@ -874,6 +880,9 @@ export default function AprobacionesPendientes() {
       const gastoMenorRows = rowsToRestore.filter(r => r.source === 'gastoMenor' && r.gastoMenorId);
       const projectRows = rowsToRestore.filter(r => !(r.source === 'gastoMenor' && r.gastoMenorId));
       
+      const restoreTimestamp = new Date().toISOString();
+      const restoreBy = currentUserName || "Administrador";
+
       // Handle gastos_menores (DB rows)
       for (const row of gastoMenorRows) {
         await supabase
@@ -907,7 +916,7 @@ export default function AprobacionesPendientes() {
           // For type S: keep the approval estado, only mark as restaurada
           const updatedCajaMenor = (project.cajaMenor || []).map(item =>
             cajaMenorIdsToRestore.has(item.id)
-              ? { ...item, restaurada: true }
+              ? { ...item, restaurada: true, restauradaPor: restoreBy, restauradaEn: restoreTimestamp }
               : item
           );
           await updateProject(projectId, "cajaMenor", updatedCajaMenor);
@@ -933,7 +942,7 @@ export default function AprobacionesPendientes() {
         if (legIdsToRestore.size > 0) {
           const updatedLeg = (project.legalizacion || []).map(l =>
             legIdsToRestore.has(l.id)
-              ? { ...l, estado: "Pendiente", revisadoPor: "", restaurada: true }
+              ? { ...l, estado: "Pendiente", revisadoPor: "", restaurada: true, restauradaPor: restoreBy, restauradaEn: restoreTimestamp }
               : l
           );
           await updateProject(projectId, "legalizacion", updatedLeg);
@@ -997,7 +1006,22 @@ export default function AprobacionesPendientes() {
         <TableCell className="text-xs text-center">
           <div className="flex items-center gap-1 justify-center">
             {isRestored && (
-              <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0" />
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs max-w-[220px]">
+                    <p className="font-semibold">Restaurada</p>
+                    {row.item.restauradaPor && (
+                      <p>Por: {row.item.restauradaPor}</p>
+                    )}
+                    {row.item.restauradaEn && (
+                      <p>{format(parseISO(row.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             {(() => {
               const r = (row.item.recursos as string) || "";
@@ -1358,9 +1382,27 @@ export default function AprobacionesPendientes() {
                   <TableRow key={group.key} className={hasRestoredRows ? "bg-cyan-500/5 border-l-2 border-l-cyan-500" : ""}>
                     <TableCell className="text-xs text-center">
                       <div className="flex items-center gap-1 justify-center">
-                        {group.rows.some(r => r.item.restaurada === true) && (
-                          <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0" />
-                        )}
+                        {group.rows.some(r => r.item.restaurada === true) && (() => {
+                          const restoredRow = group.rows.find(r => r.item.restaurada && r.item.restauradaPor);
+                          return (
+                            <TooltipProvider delayDuration={200}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs max-w-[220px]">
+                                  <p className="font-semibold">Restaurada</p>
+                                  {restoredRow?.item.restauradaPor && (
+                                    <p>Por: {restoredRow.item.restauradaPor}</p>
+                                  )}
+                                  {restoredRow?.item.restauradaEn && (
+                                    <p>{format(parseISO(restoredRow.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })()}
                         <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
                           {group.tipo}
                         </span>

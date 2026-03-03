@@ -10,6 +10,7 @@ interface UseUserRoleReturn {
   canAccessPanel: (panel: string) => boolean;
   canEdit: () => boolean;
   canEditStructure: () => boolean;
+  canEditOperaciones: () => boolean;
   isAdminOnly: (section: string) => boolean;
   canViewFeedback: () => boolean;
   canEditFeedback: () => boolean;
@@ -74,6 +75,15 @@ export function useUserRole(): UseUserRoleReturn {
     return ADMIN_ONLY_SECTIONS.includes(section.toLowerCase());
   };
 
+  // Can edit operations panel: admin or operativo with productor permission
+  const canEditOperaciones = (): boolean => {
+    if (!role) return false;
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole === "administrador") return true;
+    if (normalizedRole === "operativo") return cajaMenorPermissions?.puedeCrearAnticipos ?? false;
+    return false;
+  };
+
   const canViewFeedback = (): boolean => {
     if (!role) return false;
     // Administrador always has access
@@ -113,6 +123,7 @@ export function useUserRole(): UseUserRoleReturn {
     canAccessPanel,
     canEdit,
     canEditStructure,
+    canEditOperaciones,
     isAdminOnly,
     canViewFeedback,
     canEditFeedback,

@@ -68,6 +68,7 @@ import { HorarioFormDialog } from "@/components/HorarioFormDialog";
 import { CajaMenorStatusIcon } from "@/components/CajaMenorStatusIcon";
 import { useGastosMenores } from "@/hooks/useGastosMenores";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PhotoExportDialog, PhotoExportItem } from "@/components/PhotoExportDialog";
 
 // (Legacy responsable helpers removed - now using auto-login system)
 
@@ -356,6 +357,8 @@ const PanelOperaciones = () => {
   const [localNotasImagenes, setLocalNotasImagenes] = useState<Array<{id: string; url: string; name: string}>>([]);
   const [localFeedbackAdjuntos, setLocalFeedbackAdjuntos] = useState<Attachment[]>([]);
   const [horarioFormOpen, setHorarioFormOpen] = useState(false);
+  const [photoExportOpen, setPhotoExportOpen] = useState(false);
+  const [photoExportData, setPhotoExportData] = useState<{ title: string; subtitle: string; photos: PhotoExportItem[] }>({ title: "", subtitle: "", photos: [] });
   // Estado para errores inline de Caja Menor (visible en el modal)
   const [cajaMenorValidationErrors, setCajaMenorValidationErrors] = useState<string[]>([]);
   // Estados para opciones de exportación - checkboxes
@@ -3218,16 +3221,15 @@ const PanelOperaciones = () => {
                                       </DropdownMenuItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem onClick={() => {
-                                        // Collect all images from relacion_gastos entries
                                         const cajaMenorItems = currentProjectData.cajaMenor || [];
-                                        const allImages: { concepto: string; comercio: string; url: string }[] = [];
+                                        const allImages: PhotoExportItem[] = [];
                                         cajaMenorItems.forEach((cm: CajaMenorItem) => {
                                           const relEntries: RelacionGastoEntry[] = (cm as any).relacion_gastos || [];
                                           relEntries.forEach((entry) => {
                                             if (entry.imagen_url) {
                                               allImages.push({
-                                                concepto: entry.concepto || cm.concepto || "Sin concepto",
                                                 comercio: entry.comercio || "Sin comercio",
+                                                concepto: entry.concepto || cm.concepto || "Sin concepto",
                                                 url: entry.imagen_url,
                                               });
                                             }
@@ -3237,45 +3239,13 @@ const PanelOperaciones = () => {
                                           toast.error("No hay imágenes para exportar");
                                           return;
                                         }
-                                        // Generate printable HTML with all photos
-                                        const printWindow = window.open("", "_blank");
-                                        if (!printWindow) { toast.error("No se pudo abrir la ventana"); return; }
                                         const eventoName = currentProjectData.evento || "Evento";
-                                        const html = `<!DOCTYPE html><html><head><title>Fotos - ${eventoName}</title><style>
-                                          @media print { .no-print { display: none !important; } @page { margin: 10mm; } }
-                                          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #fff; color: #000; }
-                                          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
-                                          .header h1 { margin: 0 0 5px; font-size: 20px; }
-                                          .header p { margin: 0; color: #666; font-size: 14px; }
-                                          .photo-item { page-break-inside: avoid; margin-bottom: 25px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; }
-                                          .photo-item h3 { margin: 0 0 5px; font-size: 14px; }
-                                          .photo-item p { margin: 0 0 10px; font-size: 12px; color: #666; }
-                                          .photo-item img { max-width: 100%; max-height: 600px; display: block; margin: 0 auto; border-radius: 4px; }
-                                          .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 12px 20px; display: flex; gap: 10px; justify-content: center; z-index: 999; }
-                                          .action-bar button { padding: 8px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600; }
-                                          .btn-back { background: #555; color: #fff; }
-                                          .btn-pdf { background: #3b82f6; color: #fff; }
-                                          .total { text-align: center; margin: 20px 0 60px; font-size: 13px; color: #666; }
-                                        </style></head><body>
-                                          <div class="header">
-                                            <h1>Registro Fotográfico - Anticipos</h1>
-                                            <p>${eventoName} · ${currentProjectData.cliente || ""}</p>
-                                          </div>
-                                          ${allImages.map((img, i) => `
-                                            <div class="photo-item">
-                                              <h3>${i + 1}. ${img.concepto}</h3>
-                                              <p>Comercio: ${img.comercio}</p>
-                                              <img src="${img.url}" alt="Foto ${i + 1}" />
-                                            </div>
-                                          `).join("")}
-                                          <div class="total">Total de fotos: ${allImages.length}</div>
-                                          <div class="action-bar no-print">
-                                            <button class="btn-back" onclick="window.close()">← Volver</button>
-                                            <button class="btn-pdf" onclick="window.print()">📄 Guardar PDF</button>
-                                          </div>
-                                        </body></html>`;
-                                        printWindow.document.write(html);
-                                        printWindow.document.close();
+                                        setPhotoExportData({
+                                          title: "Registro Fotográfico - Anticipos",
+                                          subtitle: `${eventoName} · ${currentProjectData.cliente || ""}`,
+                                          photos: allImages,
+                                        });
+                                        setPhotoExportOpen(true);
                                       }}>
                                         <Image className="h-4 w-4 mr-2" />
                                         Exportar Fotos (PDF)
@@ -3684,44 +3654,16 @@ const PanelOperaciones = () => {
                                         onClick={() => {
                                           if (!hasImages) return;
                                           const eventoName = currentProjectData.evento || "Evento";
-                                          const printWindow = window.open("", "_blank");
-                                          if (!printWindow) return;
-                                          const html = `<!DOCTYPE html><html><head><title>Fotos Recursos Propios - ${eventoName}</title>
-                                          <style>
-                                            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
-                                            .header { text-align: center; margin-bottom: 30px; padding: 20px; background: #1a1a2e; color: white; border-radius: 8px; }
-                                            .header h1 { margin: 0 0 5px; font-size: 22px; }
-                                            .header p { margin: 0; font-size: 14px; opacity: 0.8; }
-                                            .photo-item { background: white; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); page-break-inside: avoid; }
-                                            .photo-item h3 { margin: 0 0 4px; font-size: 15px; color: #333; }
-                                            .photo-item p { margin: 0 0 10px; font-size: 12px; color: #666; }
-                                            .photo-item img { max-width: 100%; max-height: 500px; border-radius: 6px; display: block; }
-                                            .total { text-align: center; margin-top: 20px; font-size: 14px; color: #666; }
-                                            .action-bar { text-align: center; margin-top: 24px; }
-                                            .btn-back, .btn-pdf { padding: 10px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; margin: 0 8px; }
-                                            .btn-back { background: #e2e8f0; color: #334155; }
-                                            .btn-pdf { background: #3b82f6; color: white; }
-                                            @media print { .action-bar { display: none; } body { background: white; } .photo-item { box-shadow: none; border: 1px solid #ddd; } }
-                                          </style></head><body>
-                                          <div class="header">
-                                            <h1>Registro Fotográfico - Recursos Propios</h1>
-                                            <p>${eventoName} · ${currentProjectData.cliente || ""}</p>
-                                          </div>
-                                          ${allLegImages.map((img, i) => `
-                                            <div class="photo-item">
-                                              <h3>${i + 1}. ${img.concepto}</h3>
-                                              <p>Empleado: ${img.empleado}</p>
-                                              <img src="${img.url}" alt="Foto ${i + 1}" />
-                                            </div>
-                                          `).join("")}
-                                          <div class="total">Total de fotos: ${allLegImages.length}</div>
-                                          <div class="action-bar">
-                                            <button class="btn-back" onclick="window.close()">← Volver</button>
-                                            <button class="btn-pdf" onclick="window.print()">📄 Guardar PDF</button>
-                                          </div>
-                                          </body></html>`;
-                                          printWindow.document.write(html);
-                                          printWindow.document.close();
+                                          setPhotoExportData({
+                                            title: "Registro Fotográfico - Recursos Propios",
+                                            subtitle: `${eventoName} · ${currentProjectData.cliente || ""}`,
+                                            photos: allLegImages.map(img => ({
+                                              comercio: img.empleado || "Sin empleado",
+                                              concepto: img.concepto || "Sin concepto",
+                                              url: img.url,
+                                            })),
+                                          });
+                                          setPhotoExportOpen(true);
                                         }}
                                       >
                                         <Image className="h-4 w-4 mr-2" />
@@ -3881,6 +3823,13 @@ const PanelOperaciones = () => {
           </p>
         </DialogContent>
       </Dialog>
+      <PhotoExportDialog
+        open={photoExportOpen}
+        onOpenChange={setPhotoExportOpen}
+        title={photoExportData.title}
+        subtitle={photoExportData.subtitle}
+        photos={photoExportData.photos}
+      />
     </Layout>
   );
 };

@@ -292,11 +292,7 @@ const PanelReportes = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    {canApproveCajaMenor() ? (
-                      <CajaMenorEstadoSelect value={g.estado} onChange={(v) => handleEstadoChange(g.id, v)} />
-                    ) : (
-                      <CajaMenorEstadoSelect value={g.estado} onChange={() => {}} readOnly />
-                    )}
+                    <CajaMenorEstadoSelect value={g.estado} onChange={() => {}} readOnly />
                   </TableCell>
                   <TableCell className="text-xs whitespace-nowrap">{g.aprobado_por_nombre || "—"}</TableCell>
                   <TableCell>

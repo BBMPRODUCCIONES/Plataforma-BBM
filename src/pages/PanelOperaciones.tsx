@@ -3625,7 +3625,7 @@ const PanelOperaciones = () => {
                                   const anticipoIdsExport = new Set((currentProjectData.cajaMenor || []).map((cm: CajaMenorItem) => `leg-${cm.id}`));
                                   const independentLegExport = (currentProjectData.legalizacion || []).filter((l: LegalizacionItem) => !anticipoIdsExport.has(l.id));
                                   const allLegImages = independentLegExport.flatMap((l: LegalizacionItem) =>
-                                    (l.imagenes || []).map(img => ({ url: img.url, concepto: l.concepto || "Sin concepto", empleado: l.empleadoNombre || "" }))
+                                    (l.imagenes || []).map(img => ({ url: img.url, concepto: l.concepto || "Sin concepto", empleado: l.empleadoNombre || "", bucket: img.bucket, filePath: img.filePath }))
                                   );
                                   const hasImages = allLegImages.length > 0;
                                   return (
@@ -3657,10 +3657,12 @@ const PanelOperaciones = () => {
                                           setPhotoExportData({
                                             title: "Registro Fotográfico - Recursos Propios",
                                             subtitle: `${eventoName} · ${currentProjectData.cliente || ""}`,
-                                            photos: allLegImages.map(img => ({
+                                          photos: allLegImages.map(img => ({
                                               comercio: img.empleado || "Sin empleado",
                                               concepto: img.concepto || "Sin concepto",
                                               url: img.url,
+                                              bucket: img.bucket,
+                                              filePath: img.filePath,
                                             })),
                                           });
                                           setPhotoExportOpen(true);

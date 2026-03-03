@@ -449,7 +449,7 @@ export default function AprobacionesPendientes() {
 
   // Split into pending and resolved
   const pendingRows = useMemo(() => filteredRows.filter(r => r.item.estado === "Pendiente"), [filteredRows]);
-  const resolvedRows = useMemo(() => filteredRows.filter(r => r.item.estado !== "Pendiente"), [filteredRows]);
+  const resolvedRows = useMemo(() => filteredRows.filter(r => r.item.estado === "Aprobado" || r.item.estado === "No aprobado"), [filteredRows]);
 
   const handleEstadoChange = async (row: FlattenedRow, newEstado: string) => {
     if (!canApproveCajaMenor()) {
@@ -699,7 +699,7 @@ export default function AprobacionesPendientes() {
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(value);
 
-  const renderRow = (row: FlattenedRow, showCheckbox: boolean) => {
+  const renderRow = (row: FlattenedRow, showCheckbox: boolean, readOnly: boolean = false) => {
     const d = parseDateSafe(row.item.createdAt);
     const rowKey = `${row.projectId}-${row.item.id}`;
     const isRestored = row.item.restaurada === true;
@@ -743,7 +743,7 @@ export default function AprobacionesPendientes() {
           {formatCurrency(row.item.valor || 0)}
         </TableCell>
         <TableCell className="text-xs">
-          {canApproveCajaMenor() ? (
+          {canApproveCajaMenor() && !readOnly ? (
             <CajaMenorEstadoSelect
               value={row.item.estado}
               onChange={(v) => handleEstadoChange(row, v)}
@@ -789,7 +789,7 @@ export default function AprobacionesPendientes() {
                 </span>
               );
             }
-            if (canApproveCajaMenor() && row.item.estado === "Aprobado") {
+            if (canApproveCajaMenor() && row.item.estado === "Aprobado" && !readOnly) {
               return (
                 <Select
                   value={row.legalizacionEstado || "Revisando"}
@@ -1094,7 +1094,7 @@ export default function AprobacionesPendientes() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  resolvedRows.map((row) => renderRow(row, true))
+                  resolvedRows.map((row) => renderRow(row, true, true))
                 )}
               </TableBody>
             </Table>

@@ -11,6 +11,7 @@ interface UseUserRoleReturn {
   canEdit: () => boolean;
   canEditStructure: () => boolean;
   canEditOperaciones: () => boolean;
+  canEditGeneral: () => boolean;
   isAdminOnly: (section: string) => boolean;
   canViewFeedback: () => boolean;
   canEditFeedback: () => boolean;
@@ -29,7 +30,7 @@ const ADMIN_ONLY_SECTIONS = [
 ];
 
 export function useUserRole(): UseUserRoleReturn {
-  const { role, allowedPanels, loading, roleLoading, roleError, feedbackPermissions, cajaMenorPermissions } = useAuth();
+  const { role, allowedPanels, loading, roleLoading, roleError, feedbackPermissions, cajaMenorPermissions, panelEditPermissions } = useAuth();
 
   const canAccessPanel = (panel: string): boolean => {
     // If still loading, don't deny access yet
@@ -75,12 +76,21 @@ export function useUserRole(): UseUserRoleReturn {
     return ADMIN_ONLY_SECTIONS.includes(section.toLowerCase());
   };
 
-  // Can edit operations panel: admin or operativo with productor permission
+  // Can edit Panel General: admin always, operativo only with explicit permission
+  const canEditGeneral = (): boolean => {
+    if (!role) return false;
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole === "administrador") return true;
+    if (normalizedRole === "operativo") return panelEditPermissions?.puedeEditarGeneral ?? false;
+    return false;
+  };
+
+  // Can edit operations panel: admin or operativo with explicit permission
   const canEditOperaciones = (): boolean => {
     if (!role) return false;
     const normalizedRole = role.toLowerCase();
     if (normalizedRole === "administrador") return true;
-    if (normalizedRole === "operativo") return cajaMenorPermissions?.puedeCrearAnticipos ?? false;
+    if (normalizedRole === "operativo") return panelEditPermissions?.puedeEditarOperaciones ?? false;
     return false;
   };
 
@@ -124,6 +134,7 @@ export function useUserRole(): UseUserRoleReturn {
     canEdit,
     canEditStructure,
     canEditOperaciones,
+    canEditGeneral,
     isAdminOnly,
     canViewFeedback,
     canEditFeedback,

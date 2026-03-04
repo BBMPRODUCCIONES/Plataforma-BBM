@@ -55,6 +55,8 @@ interface UserWithRole {
   puede_editar_feedback: boolean;
   puede_aprobar_caja_menor: boolean;
   puede_crear_anticipos: boolean;
+  puede_editar_general: boolean;
+  puede_editar_operaciones: boolean;
   created_at: string | null;
 }
 
@@ -107,6 +109,8 @@ const Usuarios = () => {
   const [editPuedeEditarFeedback, setEditPuedeEditarFeedback] = useState(false);
   const [editPuedeAprobarCajaMenor, setEditPuedeAprobarCajaMenor] = useState(false);
   const [editPuedeCrearAnticipos, setEditPuedeCrearAnticipos] = useState(false);
+  const [editPuedeEditarGeneral, setEditPuedeEditarGeneral] = useState(false);
+  const [editPuedeEditarOperaciones, setEditPuedeEditarOperaciones] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Delete user state
@@ -139,7 +143,7 @@ const Usuarios = () => {
       // Fetch users with roles and panels (now includes email and feedback permissions)
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos");
+        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones");
 
       if (rolesError) throw rolesError;
 
@@ -164,6 +168,8 @@ const Usuarios = () => {
           puede_editar_feedback: roleRecord.puede_editar_feedback ?? false,
           puede_aprobar_caja_menor: roleRecord.puede_aprobar_caja_menor ?? false,
           puede_crear_anticipos: roleRecord.puede_crear_anticipos ?? false,
+          puede_editar_general: (roleRecord as any).puede_editar_general ?? false,
+          puede_editar_operaciones: (roleRecord as any).puede_editar_operaciones ?? false,
           created_at: profile?.created_at || null,
         };
       });
@@ -416,6 +422,8 @@ const Usuarios = () => {
     setEditPuedeEditarFeedback(user.puede_editar_feedback);
     setEditPuedeAprobarCajaMenor(user.puede_aprobar_caja_menor);
     setEditPuedeCrearAnticipos(user.puede_crear_anticipos);
+    setEditPuedeEditarGeneral(user.puede_editar_general);
+    setEditPuedeEditarOperaciones(user.puede_editar_operaciones);
   };
 
   const handleSaveUser = async () => {
@@ -433,6 +441,8 @@ const Usuarios = () => {
       const finalPuedeEditarFeedback = editPuedeEditarFeedback;
       const finalPuedeAprobarCajaMenor = editPuedeAprobarCajaMenor;
       const finalPuedeCrearAnticipos = editPuedeCrearAnticipos;
+      const finalPuedeEditarGeneral = editPuedeEditarGeneral;
+      const finalPuedeEditarOperaciones = editPuedeEditarOperaciones;
 
       // Update user roles with all permissions
       const { error: roleError } = await supabase
@@ -443,8 +453,10 @@ const Usuarios = () => {
           puede_ver_feedback: finalPuedeVerFeedback,
           puede_editar_feedback: finalPuedeEditarFeedback,
           puede_aprobar_caja_menor: finalPuedeAprobarCajaMenor,
-          puede_crear_anticipos: finalPuedeCrearAnticipos
-        })
+          puede_crear_anticipos: finalPuedeCrearAnticipos,
+          puede_editar_general: finalPuedeEditarGeneral,
+          puede_editar_operaciones: finalPuedeEditarOperaciones,
+        } as any)
         .eq("user_id", editingUser.id);
 
       if (roleError) throw roleError;
@@ -911,6 +923,44 @@ const Usuarios = () => {
                   Los administradores tienen acceso completo a todos los paneles.
                 </p>
               )}
+
+              {/* Per-panel edit permissions */}
+              <div className="space-y-2">
+                <Label>Permisos de Edición por Panel</Label>
+                <div className="space-y-2 p-3 border rounded-md bg-emerald-500/10 border-emerald-500/30">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-puede-editar-general"
+                      checked={editPuedeEditarGeneral}
+                      onCheckedChange={(checked) => setEditPuedeEditarGeneral(checked as boolean)}
+                      disabled={isSaving}
+                    />
+                    <Label 
+                      htmlFor="edit-puede-editar-general"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Puede editar en Panel General
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-puede-editar-operaciones"
+                      checked={editPuedeEditarOperaciones}
+                      onCheckedChange={(checked) => setEditPuedeEditarOperaciones(checked as boolean)}
+                      disabled={isSaving}
+                    />
+                    <Label 
+                      htmlFor="edit-puede-editar-operaciones"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Puede editar en Panel Operaciones
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Sin estos permisos, el usuario solo podrá visualizar la información del panel correspondiente sin realizar cambios.
+                  </p>
+                </div>
+              </div>
 
               {/* Caja Menor Approval Permission - all roles */}
               <div className="space-y-2">

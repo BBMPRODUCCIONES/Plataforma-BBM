@@ -16,11 +16,17 @@ interface CajaMenorPermissions {
   puedeCrearAnticipos: boolean;
 }
 
+interface PanelEditPermissions {
+  puedeEditarGeneral: boolean;
+  puedeEditarOperaciones: boolean;
+}
+
 interface UserRoleData {
   role: AppRole;
   allowedPanels: string[];
   feedbackPermissions: FeedbackPermissions;
   cajaMenorPermissions: CajaMenorPermissions;
+  panelEditPermissions: PanelEditPermissions;
 }
 
 interface AuthContextType {
@@ -30,6 +36,7 @@ interface AuthContextType {
   allowedPanels: string[];
   feedbackPermissions: FeedbackPermissions;
   cajaMenorPermissions: CajaMenorPermissions;
+  panelEditPermissions: PanelEditPermissions;
   loading: boolean;
   roleLoading: boolean;
   roleError: string | null;
@@ -50,6 +57,11 @@ const defaultCajaMenorPermissions: CajaMenorPermissions = {
   puedeCrearAnticipos: false,
 };
 
+const defaultPanelEditPermissions: PanelEditPermissions = {
+  puedeEditarGeneral: false,
+  puedeEditarOperaciones: false,
+};
+
 // Cache key for localStorage
 const ROLE_CACHE_KEY = "bbm_user_role_cache";
 
@@ -59,6 +71,7 @@ interface CachedRoleData {
   allowedPanels: string[];
   feedbackPermissions: FeedbackPermissions;
   cajaMenorPermissions: CajaMenorPermissions;
+  panelEditPermissions: PanelEditPermissions;
   timestamp: number;
 }
 
@@ -82,6 +95,7 @@ function getCachedRole(userId: string): UserRoleData | null {
         allowedPanels: data.allowedPanels,
         feedbackPermissions: data.feedbackPermissions,
         cajaMenorPermissions: data.cajaMenorPermissions || { puedeAprobarCajaMenor: false, puedeCrearAnticipos: false },
+        panelEditPermissions: data.panelEditPermissions || { puedeEditarGeneral: false, puedeEditarOperaciones: false },
       };
     }
     
@@ -102,6 +116,7 @@ function setCachedRole(userId: string, roleData: UserRoleData): void {
       allowedPanels: roleData.allowedPanels,
       feedbackPermissions: roleData.feedbackPermissions,
       cajaMenorPermissions: roleData.cajaMenorPermissions,
+      panelEditPermissions: roleData.panelEditPermissions,
       timestamp: Date.now(),
     };
     localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify(cacheData));
@@ -125,6 +140,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [allowedPanels, setAllowedPanels] = useState<string[]>([]);
   const [feedbackPermissions, setFeedbackPermissions] = useState<FeedbackPermissions>(defaultFeedbackPermissions);
   const [cajaMenorPermissions, setCajaMenorPermissions] = useState<CajaMenorPermissions>(defaultCajaMenorPermissions);
+  const [panelEditPermissions, setPanelEditPermissions] = useState<PanelEditPermissions>(defaultPanelEditPermissions);
   const [loading, setLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
   const [roleError, setRoleError] = useState<string | null>(null);
@@ -137,7 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role, allowed_panels, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos")
+        .select("role, allowed_panels, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -158,6 +174,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         cajaMenorPermissions: {
           puedeAprobarCajaMenor: data.puede_aprobar_caja_menor ?? false,
           puedeCrearAnticipos: data.puede_crear_anticipos ?? false,
+        },
+        panelEditPermissions: {
+          puedeEditarGeneral: (data as any).puede_editar_general ?? false,
+          puedeEditarOperaciones: (data as any).puede_editar_operaciones ?? false,
         }
       };
       
@@ -194,12 +214,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setAllowedPanels(roleData.allowedPanels);
       setFeedbackPermissions(roleData.feedbackPermissions);
       setCajaMenorPermissions(roleData.cajaMenorPermissions);
+      setPanelEditPermissions(roleData.panelEditPermissions);
       setRoleError(null);
     } else {
       setRole(null);
       setAllowedPanels([]);
       setFeedbackPermissions(defaultFeedbackPermissions);
       setCajaMenorPermissions(defaultCajaMenorPermissions);
+      setPanelEditPermissions(defaultPanelEditPermissions);
     }
   };
 
@@ -392,6 +414,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAllowedPanels([]);
     setFeedbackPermissions(defaultFeedbackPermissions);
     setCajaMenorPermissions(defaultCajaMenorPermissions);
+    setPanelEditPermissions(defaultPanelEditPermissions);
   };
 
   return (
@@ -402,6 +425,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       allowedPanels,
       feedbackPermissions,
       cajaMenorPermissions,
+      panelEditPermissions,
       loading, 
       roleLoading,
       roleError,

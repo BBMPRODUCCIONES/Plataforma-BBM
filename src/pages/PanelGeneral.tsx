@@ -35,11 +35,12 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const PanelGeneral = () => {
   const navigate = useNavigate();
-  const { canEditStructure, role } = useUserRole();
+  const { canEditStructure, role, canEditGeneral } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const isAdmin = role?.toLowerCase() === "administrador";
+  const generalReadOnly = !canEditGeneral();
   const [searchTerm, setSearchTerm] = useState("");
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
@@ -166,7 +167,9 @@ const PanelGeneral = () => {
   const getColumnRender = (colConfig: ColumnConfig) => {
     switch (colConfig.key) {
       case "centroCostos":
-        return (p: Project) => (
+        return (p: Project) => generalReadOnly ? (
+          <span className="text-sm font-mono">{p.centroCostos || "-"}</span>
+        ) : (
           <EditableCell
             value={p.centroCostos}
             type="text"
@@ -175,7 +178,9 @@ const PanelGeneral = () => {
           />
         );
       case "numFactura":
-        return (p: Project) => (
+        return (p: Project) => generalReadOnly ? (
+          <span className="text-sm font-mono">{p.numFactura || "-"}</span>
+        ) : (
           <EditableCell
             value={p.numFactura}
             type="text"
@@ -184,7 +189,9 @@ const PanelGeneral = () => {
           />
         );
       case "cliente":
-        return (p: Project) => (
+        return (p: Project) => generalReadOnly ? (
+          <span className="text-sm truncate">{p.cliente || "-"}</span>
+        ) : (
           <ClienteAutocomplete
             value={p.cliente}
             onChange={(value) => updateProject(p.id, "cliente", value)}
@@ -201,14 +208,26 @@ const PanelGeneral = () => {
           />
         );
       case "avanzada":
-        return (p: Project) => (
+        return (p: Project) => generalReadOnly ? (
+          <span className="text-xs">{p.avanzada || "-"}</span>
+        ) : (
           <AvanzadaSelect
             value={p.avanzada}
             onChange={(value) => updateProject(p.id, "avanzada", value)}
           />
         );
       case "fechaMontaje":
-        return (p: Project) => (
+        return (p: Project) => generalReadOnly ? (
+          <div className="text-xs space-y-0.5">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-sm bg-gantt-montaje" />
+              {format(parseISO(p.fechaMontajeInicio), "dd/MM", { locale: es })}
+            </div>
+            <div className="text-muted-foreground pl-3">
+              → {format(parseISO(p.fechaMontajeFin), "dd/MM", { locale: es })}
+            </div>
+          </div>
+        ) : (
           <DateTimeRangeEditor
             type="montaje"
             value={{
@@ -239,7 +258,17 @@ const PanelGeneral = () => {
           />
         );
       case "fechaEjecucion":
-        return (p: Project) => (
+        return (p: Project) => generalReadOnly ? (
+          <div className="text-xs space-y-0.5">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-sm bg-gantt-ejecucion" />
+              {format(parseISO(p.fechaEjecucionInicio), "dd/MM", { locale: es })}
+            </div>
+            <div className="text-muted-foreground pl-3">
+              → {format(parseISO(p.fechaEjecucionFin), "dd/MM", { locale: es })}
+            </div>
+          </div>
+        ) : (
           <DateTimeRangeEditor
             type="ejecucion"
             value={{
@@ -270,7 +299,21 @@ const PanelGeneral = () => {
           />
         );
       case "fechaDesmontaje":
-        return (p: Project) => (
+        return (p: Project) => generalReadOnly ? (
+          p.fechaDesmontajeInicio && p.fechaDesmontajeFin ? (
+            <div className="text-xs space-y-0.5">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-sm bg-gantt-desmontaje" />
+                {format(parseISO(p.fechaDesmontajeInicio), "dd/MM", { locale: es })}
+              </div>
+              <div className="text-muted-foreground pl-3">
+                → {format(parseISO(p.fechaDesmontajeFin), "dd/MM", { locale: es })}
+              </div>
+            </div>
+          ) : (
+            <span className="text-muted-foreground text-xs">—</span>
+          )
+        ) : (
           <DateTimeRangeEditor
             type="desmontaje"
             value={{
@@ -305,14 +348,18 @@ const PanelGeneral = () => {
           />
         );
       case "estado":
-        return (p: Project) => (
+        return (p: Project) => generalReadOnly ? (
+          <Badge variant="outline" className="text-[10px]">{p.estado.replace(/_/g, ' ')}</Badge>
+        ) : (
           <StatusSelect
             value={p.estado}
             onChange={(value) => updateProject(p.id, "estado", value)}
           />
         );
       case "ordenCompra":
-        return (p: Project) => (
+        return (p: Project) => generalReadOnly ? (
+          <span className="text-xs text-muted-foreground">{((p as any).ordenesCompra || []).length || "—"}</span>
+        ) : (
           <div className="flex items-center gap-1">
             <AttachmentButton
               attachments={(p as any).ordenesCompra || []}
@@ -349,6 +396,7 @@ const PanelGeneral = () => {
               type="text"
               onChange={(value) => updateProject(p.id, "notas", value)}
               className="truncate text-xs flex-1 min-w-0"
+              disabled={generalReadOnly}
             />
             {p.notas && p.notas.trim() && (
               <button
@@ -362,7 +410,9 @@ const PanelGeneral = () => {
           </div>
         );
       default:
-        return (p: Project) => (
+        return (p: Project) => generalReadOnly ? (
+          <span className="text-sm truncate">{(p as any)[colConfig.key] || "-"}</span>
+        ) : (
           <EditableCell
             value={(p as any)[colConfig.key]}
             type={colConfig.type}

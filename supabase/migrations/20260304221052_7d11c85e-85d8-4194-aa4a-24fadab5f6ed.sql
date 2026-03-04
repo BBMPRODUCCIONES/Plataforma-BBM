@@ -1,0 +1,1 @@
+ALTER TABLE public.user_roles ADD COLUMN puede_editar_directivo boolean DEFAULT false;

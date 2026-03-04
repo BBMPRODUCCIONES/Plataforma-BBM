@@ -64,7 +64,7 @@ const KNOWN_AVANZADA = ["No se hizo", "Se hizo", "No es necesario"];
 
 const PanelDirectivo = () => {
   const navigate = useNavigate();
-  const { canEditStructure, role } = useUserRole();
+  const { canEditStructure, role, canEditDirectivo } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple, addProject, softDeleteProject, restoreProject } = useProjects();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
@@ -417,8 +417,76 @@ const PanelDirectivo = () => {
   };
 
   // Build render functions for columns
+  const canEditDir = canEditDirectivo();
   const getColumnRender = (colConfig: ColumnConfig) => {
     // Special render functions for specific columns
+    if (!canEditDir) {
+      // Read-only mode for users without directivo edit permission
+      switch (colConfig.key) {
+        case "centroCostos":
+          return (p: Project) => <span className="text-xs font-mono">{p.centroCostos || "—"}</span>;
+        case "numFactura":
+          return (p: Project) => <span className="text-xs font-mono">{p.numFactura || "—"}</span>;
+        case "cliente":
+          return (p: Project) => <span className="text-xs">{p.cliente || "—"}</span>;
+        case "evento":
+          return (p: Project) => (
+            <EventLink eventId={p.id} eventName={p.evento} isDeleted={p.isDeleted} className="font-medium" source="directivo" />
+          );
+        case "avanzada":
+          return (p: Project) => {
+            const labels: Record<string, string> = { "NO_SE_HIZO": "No se hizo", "SE_HIZO": "Se hizo", "NO_ES_NECESARIO": "No es necesario" };
+            return <Badge variant="outline" className="text-xs">{labels[p.avanzada] || p.avanzada || "—"}</Badge>;
+          };
+        case "fechaMontaje":
+          return (p: Project) => p.fechaMontajeInicio ? (
+            <div className="text-xs">
+              <div>{format(parseISO(p.fechaMontajeInicio), "dd MMM", { locale: es })}</div>
+              <div className="text-muted-foreground">- {format(parseISO(p.fechaMontajeFin), "dd MMM", { locale: es })}</div>
+            </div>
+          ) : <span className="text-xs text-muted-foreground">—</span>;
+        case "fechaEjecucion":
+          return (p: Project) => p.fechaEjecucionInicio ? (
+            <div className="text-xs">
+              <div>{format(parseISO(p.fechaEjecucionInicio), "dd MMM", { locale: es })}</div>
+              <div className="text-muted-foreground">- {format(parseISO(p.fechaEjecucionFin), "dd MMM", { locale: es })}</div>
+            </div>
+          ) : <span className="text-xs text-muted-foreground">—</span>;
+        case "fechaDesmontaje":
+          return (p: Project) => p.fechaDesmontajeInicio && p.fechaDesmontajeFin ? (
+            <div className="text-xs">
+              <div>{format(parseISO(p.fechaDesmontajeInicio), "dd MMM", { locale: es })}</div>
+              <div className="text-muted-foreground">- {format(parseISO(p.fechaDesmontajeFin), "dd MMM", { locale: es })}</div>
+            </div>
+          ) : <span className="text-xs text-muted-foreground">—</span>;
+        case "estado":
+          return (p: Project) => {
+            const statusLabels: Record<string, string> = { por_planear: "Por Planear", por_ejecutar: "Por Ejecutar", en_progreso: "En Progreso", terminado: "Terminado", facturado: "Facturado" };
+            return <Badge variant="outline" className="text-xs">{statusLabels[p.estado] || p.estado}</Badge>;
+          };
+        case "ingresoBruto":
+          return (p: Project) => <span className="text-xs font-mono">{p.ingresoBruto ? `$ ${p.ingresoBruto.toLocaleString("es-CO")}` : "—"}</span>;
+        case "ingresoTotal":
+          return (p: Project) => <span className="text-xs font-mono text-primary">{p.ingresoTotal ? `$ ${p.ingresoTotal.toLocaleString("es-CO")}` : "—"}</span>;
+        case "cotizaciones":
+          return (p: Project) => <span className="text-xs">{(p.cotizaciones || []).length > 0 ? `${(p.cotizaciones || []).length} archivo(s)` : "—"}</span>;
+        case "ordenCompra":
+          return (p: Project) => <span className="text-xs">{(p.ordenesCompra || []).length > 0 ? `${(p.ordenesCompra || []).length} archivo(s)` : "—"}</span>;
+        case "notas":
+          return (p: Project) => (
+            <div className="flex items-center gap-1 max-w-[150px]">
+              <span className="text-xs truncate">{p.notas || "—"}</span>
+              {p.notas && p.notas.trim() && (
+                <button onClick={() => setNotaExpandida({ evento: p.evento, nota: p.notas })} className="shrink-0 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Ver nota completa">
+                  <Eye className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          );
+        default:
+          return (p: Project) => <span className="text-xs">{(p as any)[colConfig.key] || "—"}</span>;
+      }
+    }
     switch (colConfig.key) {
       case "centroCostos":
         return (p: Project) => (

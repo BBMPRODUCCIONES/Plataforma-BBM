@@ -19,6 +19,7 @@ interface CajaMenorPermissions {
 interface PanelEditPermissions {
   puedeEditarGeneral: boolean;
   puedeEditarOperaciones: boolean;
+  puedeEditarDirectivo: boolean;
 }
 
 interface UserRoleData {
@@ -60,6 +61,7 @@ const defaultCajaMenorPermissions: CajaMenorPermissions = {
 const defaultPanelEditPermissions: PanelEditPermissions = {
   puedeEditarGeneral: false,
   puedeEditarOperaciones: false,
+  puedeEditarDirectivo: false,
 };
 
 // Cache key for localStorage
@@ -95,7 +97,7 @@ function getCachedRole(userId: string): UserRoleData | null {
         allowedPanels: data.allowedPanels,
         feedbackPermissions: data.feedbackPermissions,
         cajaMenorPermissions: data.cajaMenorPermissions || { puedeAprobarCajaMenor: false, puedeCrearAnticipos: false },
-        panelEditPermissions: data.panelEditPermissions || { puedeEditarGeneral: false, puedeEditarOperaciones: false },
+        panelEditPermissions: data.panelEditPermissions || { puedeEditarGeneral: false, puedeEditarOperaciones: false, puedeEditarDirectivo: false },
       };
     }
     
@@ -153,7 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role, allowed_panels, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones")
+        .select("role, allowed_panels, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -178,6 +180,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         panelEditPermissions: {
           puedeEditarGeneral: (data as any).puede_editar_general ?? false,
           puedeEditarOperaciones: (data as any).puede_editar_operaciones ?? false,
+          puedeEditarDirectivo: (data as any).puede_editar_directivo ?? false,
         }
       };
       

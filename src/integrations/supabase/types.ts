@@ -173,6 +173,8 @@ export type Database = {
           nit_cc: string | null
           nombre_comercio: string | null
           restaurada: boolean | null
+          restaurada_en: string | null
+          restaurada_por: string | null
           tipo_centro: string | null
           updated_at: string
           usuario_id: string
@@ -193,6 +195,8 @@ export type Database = {
           nit_cc?: string | null
           nombre_comercio?: string | null
           restaurada?: boolean | null
+          restaurada_en?: string | null
+          restaurada_por?: string | null
           tipo_centro?: string | null
           updated_at?: string
           usuario_id: string
@@ -213,6 +217,8 @@ export type Database = {
           nit_cc?: string | null
           nombre_comercio?: string | null
           restaurada?: boolean | null
+          restaurada_en?: string | null
+          restaurada_por?: string | null
           tipo_centro?: string | null
           updated_at?: string
           usuario_id?: string

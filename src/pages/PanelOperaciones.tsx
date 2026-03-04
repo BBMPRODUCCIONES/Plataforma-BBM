@@ -51,7 +51,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, X, Paperclip, Upload, Image, AlertTriangle, Eye, Camera } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, X, Paperclip, Upload, Image, AlertTriangle, Eye, Camera, HelpCircle, Timer } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printSolicitudPresupuesto, printLegalizacion, exportSolicitudToExcel, exportLegalizacionToExcel } from "@/utils/pdfGenerator";
@@ -3519,6 +3519,29 @@ const PanelOperaciones = () => {
                             }
                           }
 
+                          // Calculate deadline: fecha_desmontaje_fin + 2 days
+                          const fechaDesmontajeFin = currentProjectData.fechaDesmontajeFin;
+                          let deadlineDate: Date | null = null;
+                          let isExpired = false;
+                          let timeRemaining = "";
+                          if (estadoSolicitud === "Aprobado" && fechaDesmontajeFin && estadoLegalizacion !== "Legalizado") {
+                            try {
+                              const desmontaje = parseISO(fechaDesmontajeFin);
+                              deadlineDate = new Date(desmontaje.getTime() + 2 * 24 * 60 * 60 * 1000);
+                              const now = new Date();
+                              const diffMs = deadlineDate.getTime() - now.getTime();
+                              if (diffMs <= 0) {
+                                isExpired = true;
+                                timeRemaining = "Vencido";
+                              } else {
+                                const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                                const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                                timeRemaining = days > 0 ? `${days}d ${hours}h ${mins}m` : `${hours}h ${mins}m`;
+                              }
+                            } catch { /* invalid date */ }
+                          }
+
                           return (
                             <div className="flex items-center gap-3 flex-wrap">
                               {/* Step 1: Solicitud */}
@@ -3553,6 +3576,33 @@ const PanelOperaciones = () => {
                                   )}
                                 </div>
                               </div>
+
+                              {/* Countdown timer */}
+                              {estadoSolicitud === "Aprobado" && deadlineDate && estadoLegalizacion !== "Legalizado" && (
+                                <div className="flex items-center gap-1.5">
+                                  <div className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border ${isExpired ? "bg-red-500/20 border-red-500/40" : "bg-amber-500/15 border-amber-500/30"}`}>
+                                    <Timer className={`h-3.5 w-3.5 ${isExpired ? "text-red-400" : "text-amber-400"}`} />
+                                    <div className="flex flex-col">
+                                      <span className="text-[10px] text-muted-foreground leading-none mb-0.5">Plazo legalización</span>
+                                      <span className={`text-xs font-bold font-mono ${isExpired ? "text-red-400" : "text-amber-300"}`}>
+                                        {timeRemaining}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
+                                      </TooltipTrigger>
+                                      <TooltipContent side="bottom" className="max-w-[280px]">
+                                        <p className="text-xs">
+                                          Tienes hasta <strong>{deadlineDate ? format(deadlineDate, "dd/MM/yyyy HH:mm", { locale: es }) : ""}</strong> (2 días después del desmontaje) para presentar la legalización de este anticipo. Si el plazo vence, no podrás agregar información de legalización.
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                              )}
                             </div>
                           );
                         })()}
@@ -3587,6 +3637,16 @@ const PanelOperaciones = () => {
                                   const isLegAprobada = legEstado === "Aprobado" || legEstado === "Legalizado";
                                   // Fully locked: both solicitud AND legalización are approved/legalized
                                   const isFullyLocked = isSolicitudAprobada && isLegAprobada;
+                                  // Check if legalization deadline expired
+                                  const fechaDesmFin = currentProjectData.fechaDesmontajeFin;
+                                  let isLegalizacionExpired = false;
+                                  if (isSolicitudAprobada && !isLegAprobada && fechaDesmFin) {
+                                    try {
+                                      const desmFin = parseISO(fechaDesmFin);
+                                      const deadline = new Date(desmFin.getTime() + 2 * 24 * 60 * 60 * 1000);
+                                      isLegalizacionExpired = new Date() > deadline;
+                                    } catch { /* */ }
+                                  }
                                   // Partially editable: solicitud "Aprobado" but legalización NOT approved yet
                                   // In this state, Relacion de gastos, Imagen, Valor legalización remain editable
                                   const isPartiallyEditable = isSolicitudAprobada && !isLegAprobada;
@@ -3667,6 +3727,16 @@ const PanelOperaciones = () => {
                                         <div className="flex flex-col gap-1.5">
                                           {!isSolicitudAprobada ? (
                                             <span className="text-sm text-muted-foreground">—</span>
+                                          ) : isLegalizacionExpired ? (
+                                            <div className="flex flex-col gap-1 p-2 rounded-md bg-red-500/10 border border-red-500/30">
+                                              <div className="flex items-center gap-1.5">
+                                                <Lock className="h-3.5 w-3.5 text-red-400" />
+                                                <span className="text-xs font-medium text-red-400">Plazo vencido</span>
+                                              </div>
+                                              <p className="text-[10px] text-red-300/80 leading-tight">
+                                                El plazo para presentar la legalización ha expirado. Dirígete al área administrativa para solucionar este problema y solicitar una extensión del plazo.
+                                              </p>
+                                            </div>
                                           ) : (
                                             <RelacionGastosEditor
                                               entries={(cm as any).relacion_gastos || []}

@@ -64,6 +64,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { HorarioFormDialog } from "@/components/HorarioFormDialog";
 import { CajaMenorStatusIcon } from "@/components/CajaMenorStatusIcon";
 import { useGastosMenores } from "@/hooks/useGastosMenores";
@@ -3615,18 +3616,18 @@ const PanelOperaciones = () => {
                                           </span>
                                         </div>
                                       </div>
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <button type="button" className="inline-flex items-center justify-center">
                                             <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
-                                          </TooltipTrigger>
-                                          <TooltipContent side="bottom" className="max-w-[280px]">
-                                            <p className="text-xs">
-                                              Tienes hasta <strong>{deadlineDate ? format(deadlineDate, "dd/MM/yyyy HH:mm", { locale: es }) : ""}</strong> (2 días después del desmontaje) para presentar la legalización de este anticipo. Si el plazo vence, no podrás agregar información de legalización.
-                                            </p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
+                                          </button>
+                                        </PopoverTrigger>
+                                        <PopoverContent side="bottom" className="max-w-[280px] p-3">
+                                          <p className="text-xs">
+                                            Tienes hasta <strong>{deadlineDate ? format(deadlineDate, "dd/MM/yyyy HH:mm", { locale: es }) : ""}</strong> (2 días después del desmontaje) para presentar la legalización de este anticipo. Si el plazo vence, no podrás agregar información de legalización.
+                                          </p>
+                                        </PopoverContent>
+                                      </Popover>
                                     </div>
                                   );
                                 }

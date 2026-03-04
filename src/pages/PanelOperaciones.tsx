@@ -214,23 +214,32 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
                     )}
                   </div>
                 ) : !isFullyLocked && canEdit ? (
-                  <div className="flex items-center gap-0.5">
-                    <label className={`flex items-center gap-0.5 cursor-pointer text-xs text-muted-foreground hover:text-primary transition-colors ${!entry.imagen_url ? "text-destructive" : ""}`}>
-                      <Upload className="h-3 w-3" />
-                      <input type="file" accept="image/*" className="hidden" onClick={(e) => e.stopPropagation()} onChange={async (e) => {
-                        e.stopPropagation();
-                        const file = e.target.files?.[0];
-                        if (file) await handleImageUpload(idx, file);
-                      }} />
-                    </label>
-                    <button
-                      type="button"
-                      className={`flex items-center justify-center cursor-pointer text-xs text-muted-foreground hover:text-primary transition-colors ${!entry.imagen_url ? "text-destructive" : ""}`}
-                      title="Tomar foto"
-                      onClick={(e) => { e.stopPropagation(); setCameraTargetIdx(idx); setCameraOpen(true); }}
-                    >
-                      <Camera className="h-3 w-3" />
-                    </button>
+                  <div className="flex items-center gap-1.5">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <label className={`flex items-center justify-center cursor-pointer rounded-md p-1.5 transition-colors hover:bg-accent ${!entry.imagen_url ? "text-destructive" : "text-muted-foreground hover:text-primary"}`}>
+                          <Upload className="h-5 w-5" />
+                          <input type="file" accept="image/*" className="hidden" onClick={(e) => e.stopPropagation()} onChange={async (e) => {
+                            e.stopPropagation();
+                            const file = e.target.files?.[0];
+                            if (file) await handleImageUpload(idx, file);
+                          }} />
+                        </label>
+                      </TooltipTrigger>
+                      <TooltipContent side="top"><p>Subir archivo</p></TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className={`flex items-center justify-center cursor-pointer rounded-md p-1.5 transition-colors hover:bg-accent ${!entry.imagen_url ? "text-destructive" : "text-muted-foreground hover:text-primary"}`}
+                          onClick={(e) => { e.stopPropagation(); setCameraTargetIdx(idx); setCameraOpen(true); }}
+                        >
+                          <Camera className="h-5 w-5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top"><p>Tomar foto</p></TooltipContent>
+                    </Tooltip>
                   </div>
                 ) : (
                   <span className="text-xs text-muted-foreground">—</span>

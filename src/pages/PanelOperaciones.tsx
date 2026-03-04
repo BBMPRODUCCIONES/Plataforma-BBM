@@ -3624,7 +3624,7 @@ const PanelOperaciones = () => {
                                         </PopoverTrigger>
                                         <PopoverContent side="bottom" className="max-w-[280px] p-3">
                                           <p className="text-xs">
-                                            Tienes hasta <strong>{deadlineDate ? format(deadlineDate, "dd/MM/yyyy HH:mm", { locale: es }) : ""}</strong> (2 días después del desmontaje) para presentar la legalización de este anticipo. Si el plazo vence, no podrás agregar información de legalización.
+                                            Tienes hasta <strong>{deadlineDate ? format(deadlineDate, "dd/MM/yyyy HH:mm", { locale: es }) : ""}</strong> (2 días después del desmontaje) para presentar la legalización de este anticipo. Si el plazo vence, la solicitud se marcará como legalización tardía en Aprobaciones Pendientes.
                                           </p>
                                         </PopoverContent>
                                       </Popover>
@@ -3770,16 +3770,6 @@ const PanelOperaciones = () => {
                                         <div className="flex flex-col gap-1.5">
                                           {!isSolicitudAprobada ? (
                                             <span className="text-sm text-muted-foreground">—</span>
-                                          ) : isLegalizacionExpired ? (
-                                            <div className="flex flex-col gap-1 p-2 rounded-md bg-red-500/10 border border-red-500/30">
-                                              <div className="flex items-center gap-1.5">
-                                                <Lock className="h-3.5 w-3.5 text-red-400" />
-                                                <span className="text-xs font-medium text-red-400">Plazo vencido</span>
-                                              </div>
-                                              <p className="text-[10px] text-red-300/80 leading-tight">
-                                                El plazo para presentar la legalización ha expirado. Dirígete al área administrativa para solucionar este problema y solicitar una extensión del plazo.
-                                              </p>
-                                            </div>
                                           ) : (
                                             <RelacionGastosEditor
                                               entries={(cm as any).relacion_gastos || []}

@@ -5,7 +5,7 @@ import { Project, CajaMenorItem, LegalizacionItem } from "@/types";
 import { useGastosMenores, GastoMenor } from "@/hooks/useGastosMenores";
 import { supabase } from "@/integrations/supabase/client";
 
-import { format, parseISO, getMonth, getYear, differenceInMinutes, differenceInSeconds } from "date-fns";
+import { format, parseISO, getMonth, getYear, differenceInMinutes, differenceInSeconds, differenceInDays, differenceInHours } from "date-fns";
 
 interface UndoLogEntry {
   id: string;
@@ -49,7 +49,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
-import { Search, RotateCcw, Lock, History, Undo2 } from "lucide-react";
+import { Search, RotateCcw, Lock, History, Undo2, Clock, AlertTriangle } from "lucide-react";
 import AprobacionesKPIs from "@/components/reports/AprobacionesKPIs";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -70,6 +70,7 @@ interface FlattenedRow {
   saldoAFavor: number;
   source: 'cajaMenor' | 'gastoMenor';
   gastoMenorId?: string; // DB id for gastos_menores
+  fechaDesmontajeFin?: string; // For deadline calculation
 }
 
 interface GroupedPendingRow {
@@ -82,6 +83,7 @@ interface GroupedPendingRow {
   totalSaldo: number;
   latestDate: string | undefined;
   rows: FlattenedRow[];
+  fechaDesmontajeFin?: string;
 }
 
 interface Suggestion {
@@ -404,6 +406,7 @@ export default function AprobacionesPendientes() {
           legalizacionEstado: leg.estado,
           saldoAFavor: (item.valor || 0) - leg.total,
           source: 'cajaMenor',
+          fechaDesmontajeFin: project.fechaDesmontajeFin,
         });
       });
       // Recursos propios: legalizacion items NOT linked to an anticipo
@@ -442,7 +445,8 @@ export default function AprobacionesPendientes() {
           legalizacionTotal: 0,
           legalizacionEstado: "",
           saldoAFavor: leg.valor,
-          source: 'cajaMenor', // use cajaMenor source so estado changes update legalizacion array
+          source: 'cajaMenor',
+          fechaDesmontajeFin: project.fechaDesmontajeFin,
         });
       });
     });
@@ -589,6 +593,9 @@ export default function AprobacionesPendientes() {
       group.totalLegalizacion += row.legalizacionTotal;
       group.totalSaldo += row.saldoAFavor;
       group.rows.push(row);
+      if (!group.fechaDesmontajeFin && row.fechaDesmontajeFin) {
+        group.fechaDesmontajeFin = row.fechaDesmontajeFin;
+      }
       const d = parseDateSafe(row.item.createdAt);
       if (d) {
         const currentLatest = group.latestDate ? parseDateSafe(group.latestDate) : null;
@@ -1432,6 +1439,7 @@ export default function AprobacionesPendientes() {
               <TableHead className="text-xs text-right">Legalización</TableHead>
               <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>
               <TableHead className="text-xs text-right">Saldo</TableHead>
+              <TableHead className="text-xs w-[130px]">Plazo Leg.</TableHead>
               <TableHead className="text-xs w-[100px]">Deshacer</TableHead>
               <TableHead className="text-xs w-[80px]"></TableHead>
             </TableRow>
@@ -1439,7 +1447,7 @@ export default function AprobacionesPendientes() {
           <TableBody>
             {groupedPendingRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={13} className="text-center text-muted-foreground py-8 text-sm">
+                <TableCell colSpan={14} className="text-center text-muted-foreground py-8 text-sm">
                   No hay solicitudes pendientes
                 </TableCell>
               </TableRow>
@@ -1600,6 +1608,44 @@ export default function AprobacionesPendientes() {
                       isTypeS ? (group.totalSaldo > 0 ? "text-green-400" : group.totalSaldo < 0 ? "text-red-400" : "") : ""
                     }`}>
                       {isTypeS ? formatCurrency(Math.abs(group.totalSaldo)) : "—"}
+                    </TableCell>
+                    {/* Plazo Legalización */}
+                    <TableCell className="text-xs">
+                      {(() => {
+                        if (!isTypeS || commonEstado === "Pendiente") return <span className="text-muted-foreground">—</span>;
+                        if (!group.fechaDesmontajeFin) return <span className="text-muted-foreground text-[10px]">Sin fecha desm.</span>;
+                        try {
+                          const desmFin = parseISO(group.fechaDesmontajeFin);
+                          const deadline = new Date(desmFin.getTime() + 2 * 24 * 60 * 60 * 1000);
+                          const now = new Date();
+                          const diffMs = deadline.getTime() - now.getTime();
+                          const isLate = diffMs <= 0;
+                          if (isLate) {
+                            const daysLate = Math.ceil(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
+                            return (
+                              <div className="flex items-center gap-1">
+                                <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                                <span className="text-[10px] font-semibold text-red-400 leading-tight">
+                                  Tardía ({daysLate}d vencido)
+                                </span>
+                              </div>
+                            );
+                          } else {
+                            const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                            const hoursLeft = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            return (
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                                <span className="text-[10px] font-medium text-green-400 leading-tight">
+                                  {daysLeft > 0 ? `${daysLeft}d ${hoursLeft}h` : `${hoursLeft}h`}
+                                </span>
+                              </div>
+                            );
+                          }
+                        } catch {
+                          return <span className="text-muted-foreground">—</span>;
+                        }
+                      })()}
                     </TableCell>
                     <TableCell className="text-xs">
                       {(() => {

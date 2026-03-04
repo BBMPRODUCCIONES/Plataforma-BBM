@@ -29,6 +29,7 @@ import Clientes from "./pages/Clientes";
 import Empleados from "./pages/Empleados";
 import NotFound from "./pages/NotFound";
 import InstalarApp from "./pages/InstalarApp";
+import Hola from "./pages/Hola";
 import PanelReportes from "./pages/PanelReportes";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,11 @@ const App = () => (
                   <Route path="/panel-operaciones" element={
                     <ProtectedRoute requiredPanel="operaciones">
                       <PanelOperaciones />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/hola" element={
+                    <ProtectedRoute requiredPanel="hola">
+                      <Hola />
                     </ProtectedRoute>
                   } />
                   <Route path="/proveedores" element={

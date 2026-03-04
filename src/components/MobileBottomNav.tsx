@@ -17,6 +17,7 @@ const mainNavItems = [
   { title: "Directivo", url: "/panel-directivo", icon: Briefcase, panel: "directivo" },
   { title: "General", url: "/panel-general", icon: Grid3X3, panel: "general" },
   { title: "Operaciones", url: "/panel-operaciones", icon: Wrench, panel: "operaciones" },
+  { title: "Hola", url: "/hola", icon: Grid3X3, panel: "hola" },
   { title: "Proveedores", url: "/proveedores", icon: Users, panel: "proveedores" },
 ];
 

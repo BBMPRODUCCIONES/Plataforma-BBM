@@ -2857,9 +2857,10 @@ const PanelOperaciones = () => {
                   // Relación de gastos obligatoria si el anticipo está aprobado pero legalización no aprobada aún
                   const relEntries: RelacionGastoEntry[] = (item as any).relacion_gastos || [];
                   const sinRelacion = isAprobado && !isLegAprobadaItem && relEntries.length === 0;
-                  // Cada entrada de relación de gastos debe tener imagen
+                  // Cada entrada de relación de gastos debe tener imagen, comercio, nit y concepto
                   const sinImagenEnRelacion = isAprobado && !isLegAprobadaItem && relEntries.length > 0 && relEntries.some((e: RelacionGastoEntry) => !e.imagen_url);
-                  return sinValor || sinCategoria || sinConcepto || sinRelacion || sinImagenEnRelacion;
+                  const sinCamposRelacion = isAprobado && !isLegAprobadaItem && relEntries.length > 0 && relEntries.some((e: RelacionGastoEntry) => !e.comercio?.trim() || !e.nitCedula?.trim() || !e.concepto?.trim() || !e.valor || e.valor === 0);
+                  return sinValor || sinCategoria || sinConcepto || sinRelacion || sinImagenEnRelacion || sinCamposRelacion;
                 });
                 
                 if (registrosIncompletos.length > 0) {
@@ -2879,6 +2880,14 @@ const PanelOperaciones = () => {
                     if (isAprobado && !isLegAprobadaItem && relEntries2.length > 0) {
                       const sinImg = relEntries2.filter((e: RelacionGastoEntry) => !e.imagen_url).length;
                       if (sinImg > 0) faltantes.push(`imagen en ${sinImg} entrada(s) de relación de gastos`);
+                      const sinComercio = relEntries2.filter((e: RelacionGastoEntry) => !e.comercio?.trim()).length;
+                      if (sinComercio > 0) faltantes.push(`comercio en ${sinComercio} entrada(s) de relación de gastos`);
+                      const sinNit = relEntries2.filter((e: RelacionGastoEntry) => !e.nitCedula?.trim()).length;
+                      if (sinNit > 0) faltantes.push(`NIT/Cédula en ${sinNit} entrada(s) de relación de gastos`);
+                      const sinConceptoRel = relEntries2.filter((e: RelacionGastoEntry) => !e.concepto?.trim()).length;
+                      if (sinConceptoRel > 0) faltantes.push(`concepto en ${sinConceptoRel} entrada(s) de relación de gastos`);
+                      const sinValorRel = relEntries2.filter((e: RelacionGastoEntry) => !e.valor || e.valor === 0).length;
+                      if (sinValorRel > 0) faltantes.push(`valor en ${sinValorRel} entrada(s) de relación de gastos`);
                     }
                     if (faltantes.length > 0) {
                       errores.push(`Anticipo #${idx + 1}: falta ${faltantes.join(", ")}`);

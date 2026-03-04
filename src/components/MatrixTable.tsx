@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -36,6 +36,37 @@ export function MatrixTable<T extends { id: string }>({
   const isMobile = useIsMobile();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasScrolledRight, setHasScrolledRight] = useState(false);
+
+  // --- Sticky horizontal scrollbar refs/state (desktop only, but hooks must be top-level) ---
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const stickyScrollRef = useRef<HTMLDivElement>(null);
+  const isSyncingRef = useRef(false);
+  const [tableContentWidth, setTableContentWidth] = useState(0);
+
+  const syncScroll = useCallback((source: "table" | "sticky") => {
+    if (isSyncingRef.current) return;
+    isSyncingRef.current = true;
+    const from = source === "table" ? tableScrollRef.current : stickyScrollRef.current;
+    const to = source === "table" ? stickyScrollRef.current : tableScrollRef.current;
+    if (from && to) {
+      to.scrollLeft = from.scrollLeft;
+    }
+    requestAnimationFrame(() => { isSyncingRef.current = false; });
+  }, []);
+
+  // Measure table content width (desktop)
+  useEffect(() => {
+    if (isMobile || noHorizontalScroll) return;
+    const el = tableScrollRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      setTableContentWidth(el.scrollWidth);
+    });
+    observer.observe(el);
+    const table = el.querySelector("table");
+    if (table) observer.observe(table);
+    return () => observer.disconnect();
+  }, [isMobile, noHorizontalScroll, columns.length, data.length]);
 
   // Calculate minimum table width for proper horizontal scroll
   // Mobile uses mobileWidth if available, desktop ALWAYS uses width only
@@ -143,56 +174,74 @@ export function MatrixTable<T extends { id: string }>({
     );
   }
 
+
   // Desktop render - when noHorizontalScroll, columns distribute proportionally (no fixed widths)
   return (
-    <div className={cn(
-      noHorizontalScroll ? "overflow-hidden w-full" : "overflow-x-auto scrollbar-thin", 
-      className
-    )}>
-      <table className={cn(
-        "matrix-table",
-        noHorizontalScroll && "w-full table-fixed"
-      )}>
-        <thead>
-          <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                style={{ width: col.width, minWidth: col.width }}
-                className={cn(col.className)}
-              >
-                {col.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((item, idx) => (
-            <tr
-              key={item.id}
-              data-project-id={item.id}
-              onClick={() => onRowClick?.(item)}
-              className={cn(
-                onRowClick && "cursor-pointer touch-manipulation",
-                highlightedId === item.id && "bg-primary/20 ring-2 ring-primary ring-inset animate-pulse",
-                getRowClassName?.(item)
-              )}
-            >
+    <div className="matrix-table-sticky-wrapper">
+      <div
+        ref={tableScrollRef}
+        className={cn(
+          noHorizontalScroll ? "overflow-hidden w-full" : "matrix-table-main-scroll",
+          className
+        )}
+        onScroll={() => !noHorizontalScroll && syncScroll("table")}
+      >
+        <table className={cn(
+          "matrix-table",
+          noHorizontalScroll && "w-full table-fixed"
+        )}>
+          <thead>
+            <tr>
               {columns.map((col) => (
-                <td 
-                  key={col.key} 
+                <th
+                  key={col.key}
                   style={{ width: col.width, minWidth: col.width }}
-                  className={cn("touch-manipulation", col.className)}
+                  className={cn(col.className)}
                 >
-                  {col.render
-                    ? col.render(item, idx)
-                    : (item as Record<string, unknown>)[col.key]?.toString() || "-"}
-                </td>
+                  {col.header}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((item, idx) => (
+              <tr
+                key={item.id}
+                data-project-id={item.id}
+                onClick={() => onRowClick?.(item)}
+                className={cn(
+                  onRowClick && "cursor-pointer touch-manipulation",
+                  highlightedId === item.id && "bg-primary/20 ring-2 ring-primary ring-inset animate-pulse",
+                  getRowClassName?.(item)
+                )}
+              >
+                {columns.map((col) => (
+                  <td
+                    key={col.key}
+                    style={{ width: col.width, minWidth: col.width }}
+                    className={cn("touch-manipulation", col.className)}
+                  >
+                    {col.render
+                      ? col.render(item, idx)
+                      : (item as Record<string, unknown>)[col.key]?.toString() || "-"}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Sticky horizontal scrollbar - only when horizontal scroll is needed */}
+      {!noHorizontalScroll && tableContentWidth > 0 && (
+        <div
+          ref={stickyScrollRef}
+          className="matrix-table-sticky-scrollbar"
+          onScroll={() => syncScroll("sticky")}
+        >
+          <div style={{ width: tableContentWidth, height: 1 }} />
+        </div>
+      )}
     </div>
   );
 }

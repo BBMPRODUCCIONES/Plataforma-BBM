@@ -51,7 +51,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, X, Paperclip, Upload, Image, AlertTriangle, Eye } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, X, Paperclip, Upload, Image, AlertTriangle, Eye, Camera } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printSolicitudPresupuesto, printLegalizacion, exportSolicitudToExcel, exportLegalizacionToExcel } from "@/utils/pdfGenerator";
@@ -69,6 +69,7 @@ import { CajaMenorStatusIcon } from "@/components/CajaMenorStatusIcon";
 import { useGastosMenores } from "@/hooks/useGastosMenores";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PhotoExportDialog, PhotoExportItem } from "@/components/PhotoExportDialog";
+import { CameraCapture } from "@/components/CameraCapture";
 
 // (Legacy responsable helpers removed - now using auto-login system)
 
@@ -91,6 +92,8 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
   const [newConcepto, setNewConcepto] = useState("");
   const [newValor, setNewValor] = useState("");
   const prevEntriesRef = useRef<string>("");
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraTargetIdx, setCameraTargetIdx] = useState<number | null>(null);
 
   useEffect(() => {
     const serialized = JSON.stringify(entries);
@@ -211,14 +214,24 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
                     )}
                   </div>
                 ) : !isFullyLocked && canEdit ? (
-                  <label className={`flex items-center gap-0.5 cursor-pointer text-xs text-muted-foreground hover:text-primary transition-colors ${!entry.imagen_url ? "text-destructive" : ""}`}>
-                    <Upload className="h-3 w-3" />
-                    <input type="file" accept="image/*" className="hidden" onClick={(e) => e.stopPropagation()} onChange={async (e) => {
-                      e.stopPropagation();
-                      const file = e.target.files?.[0];
-                      if (file) await handleImageUpload(idx, file);
-                    }} />
-                  </label>
+                  <div className="flex items-center gap-0.5">
+                    <label className={`flex items-center gap-0.5 cursor-pointer text-xs text-muted-foreground hover:text-primary transition-colors ${!entry.imagen_url ? "text-destructive" : ""}`}>
+                      <Upload className="h-3 w-3" />
+                      <input type="file" accept="image/*" className="hidden" onClick={(e) => e.stopPropagation()} onChange={async (e) => {
+                        e.stopPropagation();
+                        const file = e.target.files?.[0];
+                        if (file) await handleImageUpload(idx, file);
+                      }} />
+                    </label>
+                    <button
+                      type="button"
+                      className={`flex items-center justify-center cursor-pointer text-xs text-muted-foreground hover:text-primary transition-colors ${!entry.imagen_url ? "text-destructive" : ""}`}
+                      title="Tomar foto"
+                      onClick={(e) => { e.stopPropagation(); setCameraTargetIdx(idx); setCameraOpen(true); }}
+                    >
+                      <Camera className="h-3 w-3" />
+                    </button>
+                  </div>
                 ) : (
                   <span className="text-xs text-muted-foreground">—</span>
                 )}
@@ -295,6 +308,16 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
         <span className="text-xs text-muted-foreground">Sin datos de relación de gastos</span>
       )}
 
+      {cameraOpen && cameraTargetIdx !== null && (
+        <CameraCapture
+          open={cameraOpen}
+          onOpenChange={setCameraOpen}
+          onCapture={async (file) => {
+            await handleImageUpload(cameraTargetIdx, file);
+            setCameraTargetIdx(null);
+          }}
+        />
+      )}
     </div>
   );
 }

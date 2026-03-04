@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      aprobacion_undo_log: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          expires_at: string
+          id: string
+          item_id: string
+          new_estado: string
+          previous_estado: string
+          previous_revisado_por: string | null
+          project_id: string | null
+          source: string
+          undone: boolean
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          expires_at?: string
+          id?: string
+          item_id: string
+          new_estado: string
+          previous_estado: string
+          previous_revisado_por?: string | null
+          project_id?: string | null
+          source: string
+          undone?: boolean
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          expires_at?: string
+          id?: string
+          item_id?: string
+          new_estado?: string
+          previous_estado?: string
+          previous_revisado_por?: string | null
+          project_id?: string | null
+          source?: string
+          undone?: boolean
+        }
+        Relationships: []
+      }
       caja_menor_cierres: {
         Row: {
           cambios_base: string | null

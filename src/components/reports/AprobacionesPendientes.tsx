@@ -5,7 +5,21 @@ import { Project, CajaMenorItem, LegalizacionItem } from "@/types";
 import { useGastosMenores, GastoMenor } from "@/hooks/useGastosMenores";
 import { supabase } from "@/integrations/supabase/client";
 
-import { format, parseISO, getMonth, getYear } from "date-fns";
+import { format, parseISO, getMonth, getYear, differenceInMinutes, differenceInSeconds } from "date-fns";
+
+interface UndoLogEntry {
+  id: string;
+  project_id: string | null;
+  item_id: string;
+  source: string;
+  previous_estado: string;
+  new_estado: string;
+  previous_revisado_por: string;
+  changed_by: string;
+  changed_at: string;
+  expires_at: string;
+  undone: boolean;
+}
 import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,7 +49,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
-import { Search, RotateCcw, Lock, History } from "lucide-react";
+import { Search, RotateCcw, Lock, History, Undo2 } from "lucide-react";
 import AprobacionesKPIs from "@/components/reports/AprobacionesKPIs";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -143,6 +157,49 @@ export default function AprobacionesPendientes() {
     });
   }, []);
   
+  // Undo log state
+  const [undoLog, setUndoLog] = useState<UndoLogEntry[]>([]);
+  const [, setUndoTick] = useState(0); // force re-render for countdown
+
+  const fetchUndoLog = useCallback(async () => {
+    const { data } = await supabase
+      .from("aprobacion_undo_log")
+      .select("*")
+      .eq("undone", false)
+      .gte("expires_at", new Date().toISOString())
+      .order("changed_at", { ascending: false });
+    setUndoLog((data as UndoLogEntry[]) || []);
+  }, []);
+
+  useEffect(() => {
+    fetchUndoLog();
+  }, [fetchUndoLog]);
+
+  // Tick every 30s to update countdown badges
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setUndoTick(t => t + 1);
+      // Also prune expired entries
+      setUndoLog(prev => prev.filter(e => new Date(e.expires_at) > new Date()));
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getUndoEntryForGroup = useCallback((groupKey: string, groupRows: FlattenedRow[]) => {
+    // Find the most recent non-expired undo entry for any item in this group
+    const itemIds = new Set(groupRows.map(r => r.item.id));
+    return undoLog.find(entry => itemIds.has(entry.item_id) && !entry.undone && new Date(entry.expires_at) > new Date());
+  }, [undoLog]);
+
+  const formatTimeRemaining = (expiresAt: string) => {
+    const now = new Date();
+    const expires = new Date(expiresAt);
+    const mins = differenceInMinutes(expires, now);
+    if (mins <= 0) return null;
+    const hours = Math.floor(mins / 60);
+    const remainMins = mins % 60;
+    return hours > 0 ? `${hours}h ${remainMins}m` : `${remainMins}m`;
+  };
 
   const [mesFilter, setMesFilter] = useState("Todos");
   const [anioFilter, setAnioFilter] = useState("Todos");
@@ -584,6 +641,65 @@ export default function AprobacionesPendientes() {
     return Array.from(groups.values());
   }, [resolvedRows]);
 
+  // Log a change to the undo log
+  const logUndoEntry = async (row: FlattenedRow, previousEstado: string, newEstado: string, previousRevisadoPor: string) => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user?.id) return;
+    const source = row.source === 'gastoMenor' ? 'gastoMenor' : (row.item.recursos as string) === "Recursos propios" ? 'legalizacion' : 'cajaMenor';
+    await supabase.from("aprobacion_undo_log").insert({
+      project_id: row.projectId || null,
+      item_id: row.item.id,
+      source,
+      previous_estado: previousEstado,
+      new_estado: newEstado,
+      previous_revisado_por: previousRevisadoPor,
+      changed_by: userData.user.id,
+    } as any);
+    await fetchUndoLog();
+  };
+
+  // Undo a change from the undo log
+  const handleUndoFromLog = async (entry: UndoLogEntry) => {
+    try {
+      if (entry.source === 'gastoMenor') {
+        const dbId = entry.item_id.replace('gm-', '');
+        const revertData = entry.previous_estado === "Pendiente"
+          ? { estado: entry.previous_estado, aprobado_por_id: null, aprobado_por_nombre: "" }
+          : { estado: entry.previous_estado, aprobado_por_nombre: entry.previous_revisado_por };
+        await supabase.from("gastos_menores").update(revertData as any).eq("id", dbId);
+        refetchGastos();
+      } else {
+        const proj = projects.find(p => p.id === entry.project_id);
+        if (!proj) { toast.error("Proyecto no encontrado"); return; }
+        if (entry.source === 'legalizacion') {
+          const revertedLeg = (proj.legalizacion || []).map(l =>
+            l.id === entry.item_id ? { ...l, estado: entry.previous_estado, revisadoPor: entry.previous_revisado_por } : l
+          );
+          await updateProject(entry.project_id!, "legalizacion", revertedLeg);
+        } else {
+          const revertedCM = (proj.cajaMenor || []).map(item =>
+            item.id === entry.item_id ? { ...item, estado: entry.previous_estado, revisadoPor: entry.previous_revisado_por } : item
+          );
+          await updateProject(entry.project_id!, "cajaMenor", revertedCM);
+        }
+      }
+      await supabase.from("aprobacion_undo_log").update({ undone: true } as any).eq("id", entry.id);
+      await fetchUndoLog();
+      toast.success("Cambio deshecho exitosamente");
+    } catch (err) {
+      toast.error("Error al deshacer el cambio");
+    }
+  };
+
+  // Undo all entries for a group
+  const handleUndoGroup = async (groupRows: FlattenedRow[]) => {
+    const itemIds = new Set(groupRows.map(r => r.item.id));
+    const entries = undoLog.filter(e => itemIds.has(e.item_id) && !e.undone && new Date(e.expires_at) > new Date());
+    for (const entry of entries) {
+      await handleUndoFromLog(entry);
+    }
+  };
+
   const handleEstadoChange = async (row: FlattenedRow, newEstado: string) => {
     if (!canApproveCajaMenor()) {
       toast.error("No tienes permisos para cambiar el estado");
@@ -593,35 +709,6 @@ export default function AprobacionesPendientes() {
     const previousEstado = row.item.estado;
     const previousRevisadoPor = row.item.revisadoPor || "";
 
-    // Helper to revert
-    const undoChange = async () => {
-      if (row.source === 'gastoMenor' && row.gastoMenorId) {
-        const revertData = previousEstado === "Pendiente"
-          ? { estado: previousEstado, aprobado_por_id: null, aprobado_por_nombre: "" }
-          : { estado: previousEstado, aprobado_por_id: null, aprobado_por_nombre: previousRevisadoPor };
-        await supabase.from("gastos_menores").update(revertData as any).eq("id", row.gastoMenorId);
-        refetchGastos();
-        toast.success("Cambio deshecho");
-        return;
-      }
-      const proj = projects.find((p) => p.id === row.projectId);
-      if (!proj) return;
-      const isRP = (row.item.recursos as string) === "Recursos propios";
-      if (isRP) {
-        const revertedLeg = (proj.legalizacion || []).map((l) =>
-          l.id === row.item.id ? { ...l, estado: previousEstado, revisadoPor: previousRevisadoPor } : l
-        );
-        await updateProject(row.projectId, "legalizacion", revertedLeg);
-      } else {
-        const revertedCM = (proj.cajaMenor || []).map((item) =>
-          item.id === row.item.id ? { ...item, estado: previousEstado, revisadoPor: previousRevisadoPor } : item
-        );
-        await updateProject(row.projectId, "cajaMenor", revertedCM);
-      }
-      toast.success("Cambio deshecho");
-    };
-
-    // For gastos_menores (source: gastoMenor), update DB directly
     if (row.source === 'gastoMenor' && row.gastoMenorId) {
       const { data: userData } = await supabase.auth.getUser();
       const updateData = newEstado === "Pendiente"
@@ -636,10 +723,8 @@ export default function AprobacionesPendientes() {
         return;
       }
       refetchGastos();
-      toast.success(`Estado actualizado a "${newEstado}"`, {
-        action: { label: "Deshacer", onClick: undoChange },
-        duration: 6000,
-      });
+      await logUndoEntry(row, previousEstado, newEstado, previousRevisadoPor);
+      toast.success(`Estado actualizado a "${newEstado}"`);
       return;
     }
 
@@ -654,10 +739,8 @@ export default function AprobacionesPendientes() {
           : l
       );
       await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
-      toast.success(`Estado actualizado a "${newEstado}"`, {
-        action: { label: "Deshacer", onClick: undoChange },
-        duration: 6000,
-      });
+      await logUndoEntry(row, previousEstado, newEstado, previousRevisadoPor);
+      toast.success(`Estado actualizado a "${newEstado}"`);
       return;
     }
 
@@ -678,10 +761,8 @@ export default function AprobacionesPendientes() {
       await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
     }
 
-    toast.success(`Estado de solicitud actualizado a "${newEstado}"`, {
-      action: { label: "Deshacer", onClick: undoChange },
-      duration: 6000,
-    });
+    await logUndoEntry(row, previousEstado, newEstado, previousRevisadoPor);
+    toast.success(`Estado de solicitud actualizado a "${newEstado}"`);
   };
 
   // Batch estado change for grouped rows
@@ -744,20 +825,13 @@ export default function AprobacionesPendientes() {
         );
         await updateProject(projectId, "legalizacion", updatedLeg);
       }
+      // Log undo entries for each row in this project group
+      for (const row of pRows) {
+        await logUndoEntry(row, row.item.estado, newEstado, row.item.revisadoPor || "");
+      }
     }
 
-    toast.success(`Estado actualizado a "${newEstado}" para ${group.rows.length} solicitud(es)`, {
-      action: {
-        label: "Deshacer",
-        onClick: async () => {
-          // Revert all rows to previous estado
-          for (const row of group.rows) {
-            await handleEstadoChange(row, "Pendiente");
-          }
-        },
-      },
-      duration: 6000,
-    });
+    toast.success(`Estado actualizado a "${newEstado}" para ${group.rows.length} solicitud(es)`);
   };
 
   // Handle legalizacion estado change
@@ -1358,13 +1432,14 @@ export default function AprobacionesPendientes() {
               <TableHead className="text-xs text-right">Legalización</TableHead>
               <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>
               <TableHead className="text-xs text-right">Saldo</TableHead>
+              <TableHead className="text-xs w-[100px]">Deshacer</TableHead>
               <TableHead className="text-xs w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {groupedPendingRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} className="text-center text-muted-foreground py-8 text-sm">
+                <TableCell colSpan={13} className="text-center text-muted-foreground py-8 text-sm">
                   No hay solicitudes pendientes
                 </TableCell>
               </TableRow>
@@ -1525,6 +1600,28 @@ export default function AprobacionesPendientes() {
                       isTypeS ? (group.totalSaldo > 0 ? "text-green-400" : group.totalSaldo < 0 ? "text-red-400" : "") : ""
                     }`}>
                       {isTypeS ? formatCurrency(Math.abs(group.totalSaldo)) : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {(() => {
+                        const undoEntry = getUndoEntryForGroup(group.key, group.rows);
+                        if (!undoEntry) return null;
+                        const timeLeft = formatTimeRemaining(undoEntry.expires_at);
+                        if (!timeLeft) return null;
+                        return (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUndoGroup(group.rows);
+                            }}
+                          >
+                            <Undo2 className="w-3 h-3" />
+                            {timeLeft}
+                          </Button>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       {firstProjectRow && (

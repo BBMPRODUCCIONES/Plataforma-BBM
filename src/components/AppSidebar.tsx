@@ -37,7 +37,7 @@ const mainNavItems = [
   { title: "Panel Directivo", url: "/panel-directivo", icon: Briefcase, panel: "directivo" },
   { title: "Panel General", url: "/panel-general", icon: Grid3X3, panel: "general" },
   { title: "Panel Operaciones", url: "/panel-operaciones", icon: Wrench, panel: "operaciones" },
-  { title: "Hola", url: "/hola", icon: Grid3X3, panel: "hola" },
+  
   { title: "Panel de Reportes", url: "/panel-reportes", icon: FileBarChart, panel: "reportes", adminOnly: true },
   { title: "Proveedores", url: "/proveedores", icon: Users, panel: "proveedores" },
 ];

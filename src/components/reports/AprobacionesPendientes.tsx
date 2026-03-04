@@ -484,28 +484,22 @@ export default function AprobacionesPendientes() {
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
-      const isTypeC = recursos === "BBM";
       // Type S stays pending until legalization is complete
       if (isTypeS && r.legalizacionEstado !== "Legalizado" && r.legalizacionEstado !== "No legalizable") return true;
-      // Type C stays pending until Legalizado or Reembolsado
-      if (isTypeC) return true;
+      // Type R and C go to history once approved
     }
     return false;
   }), [filteredRows]);
   const resolvedRows = useMemo(() => filteredRows.filter(r => {
     if (r.item.estado === "No aprobado") return true;
-    // "Legalizado" and "Reembolsado" are terminal states
     if ((r.item.estado as string) === "Legalizado" || (r.item.estado as string) === "Reembolsado") return true;
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
-      const isTypeR = recursos === "Recursos propios";
       // Type S resolved when legalization is "Legalizado" or "No legalizable"
       if (isTypeS) return r.legalizacionEstado === "Legalizado" || r.legalizacionEstado === "No legalizable";
-      // Type R goes to history when approved
-      if (isTypeR) return true;
-      // Type C (BBM) only goes to history when Legalizado or Reembolsado (handled above)
-      return false;
+      // Type R and C go to history when approved
+      return true;
     }
     return false;
   }), [filteredRows]);
@@ -978,7 +972,7 @@ export default function AprobacionesPendientes() {
     const rowKey = `${row.projectId}-${row.item.id}`;
     const isRestored = row.item.restaurada === true;
     return (
-      <TableRow key={rowKey} className={isRestored ? "bg-cyan-500/5 border-l-2 border-l-cyan-500" : ""}>
+      <TableRow key={rowKey}>
         {showCheckbox && canApproveCajaMenor() && (
           <TableCell className="text-xs">
             <Checkbox
@@ -1364,7 +1358,7 @@ export default function AprobacionesPendientes() {
                 const hasRestoredRows = group.rows.some(r => r.item.restaurada === true);
 
                 return (
-                  <TableRow key={group.key} className={hasRestoredRows ? "bg-cyan-500/5 border-l-2 border-l-cyan-500" : ""}>
+                  <TableRow key={group.key}>
                     <TableCell className="text-xs text-center">
                       <div className="flex items-center gap-1 justify-center">
                         {group.rows.some(r => r.item.restaurada === true) && (() => {
@@ -1620,6 +1614,9 @@ export default function AprobacionesPendientes() {
                     const legEstados = isTypeS ? [...new Set(group.rows.map(r => r.legalizacionEstado || "Revisando"))] : [];
                     const commonLegEstado = legEstados.length === 1 ? legEstados[0] : legEstados.length > 1 ? "Mixto" : "";
 
+                    const hasRestoredRows = group.rows.some(r => r.item.restaurada === true);
+                    const restoredRow = hasRestoredRows ? group.rows.find(r => r.item.restaurada && r.item.restauradaPor) : null;
+
                     return (
                       <TableRow key={group.key}>
                         {canApproveCajaMenor() && (
@@ -1639,9 +1636,29 @@ export default function AprobacionesPendientes() {
                           </TableCell>
                         )}
                         <TableCell className="text-xs text-center">
-                          <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
-                            {group.tipo}
-                          </span>
+                          <div className="flex items-center gap-1 justify-center">
+                            {hasRestoredRows && (
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs max-w-[220px]">
+                                    <p className="font-semibold">Restaurada</p>
+                                    {restoredRow?.item.restauradaPor && (
+                                      <p>Por: {restoredRow.item.restauradaPor}</p>
+                                    )}
+                                    {restoredRow?.item.restauradaEn && (
+                                      <p>{format(parseISO(restoredRow.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
+                                    )}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
+                              {group.tipo}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">
                           {d ? format(d, "dd/MM/yyyy") : "—"}
@@ -1720,6 +1737,8 @@ export default function AprobacionesPendientes() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
+            {/* Hidden dummy field to prevent username autofill */}
+            <input type="text" name="dummy-user-nofill" autoComplete="username" style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }} tabIndex={-1} />
             <Input
               type="password"
               placeholder="Contraseña"

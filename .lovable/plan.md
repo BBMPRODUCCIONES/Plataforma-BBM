@@ -1,25 +1,41 @@
 
 
-## Plan: Barra de scroll horizontal siempre visible
+## Plan: Ventana de deshacer de 2 horas + Reset de solicitudes
 
 ### Problema
-Cuando hay muchos eventos, la barra de scroll horizontal queda al final de la tabla y hay que bajar hasta allí para poder desplazarse lateralmente.
+Un toast de 6 segundos es insuficiente. Se necesita una ventana de 2 horas para deshacer cambios de estado. Un toast no puede permanecer visible 2 horas, por lo que se necesita un mecanismo persistente.
 
-### Solución propuesta
-Implementar una **barra de scroll horizontal fija (sticky)** que se mantenga visible en la parte inferior del viewport mientras la tabla esté en pantalla. Esto aplica a los 3 paneles principales: Panel Directivo, Panel General y Panel Operaciones.
+### Diseño propuesto
 
-### Enfoque técnico
+**1. Mecanismo de deshacer persistente (2 horas)**
 
-1. **Modificar `MatrixTable.tsx`** — Agregar un div sincronizado de scroll que se posicione como `position: sticky; bottom: 0` dentro del contenedor. Este div replica el ancho total de la tabla y su scrollbar se sincroniza bidireccionalmente con el contenedor real de la tabla mediante eventos `onScroll`.
+En lugar de un toast efímero, se implementará:
 
-2. **Agregar estilos en `src/index.css`** — CSS para la barra sticky:
-   - `position: sticky; bottom: 0; z-index: 10`
-   - Scrollbar estilizada y siempre visible
-   - Ocultar la scrollbar del contenedor principal (ya que la sticky la reemplaza)
-   - Solo en desktop (en móvil el scroll táctil funciona diferente)
+- **Tabla en base de datos** `aprobacion_undo_log` para registrar cada cambio de estado con: `id`, `project_id`, `item_id`, `source` (cajaMenor/gastoMenor), `previous_estado`, `new_estado`, `previous_revisado_por`, `changed_by`, `changed_at`, `expires_at` (changed_at + 2h), `undone` (boolean).
 
-3. **Sin cambios en los paneles** — La solución vive dentro de `MatrixTable`, por lo que los 3 paneles se benefician automáticamente sin modificar `PanelDirectivo.tsx`, `PanelGeneral.tsx` ni `PanelOperaciones.tsx`.
+- **UI persistente**: Un botón "Deshacer" visible en cada fila que haya sido modificada en las últimas 2 horas (por el usuario actual). El botón desaparece automáticamente al vencer el plazo. Se mostrará un badge con el tiempo restante junto al botón.
 
-### Resultado
-Al hacer scroll vertical por la lista de eventos, la barra horizontal permanece anclada en la parte inferior visible de la pantalla, permitiendo desplazarse lateralmente en cualquier momento sin tener que bajar hasta el final de la tabla.
+- **Toast inmediato**: Se mantiene un toast breve confirmando el cambio, pero ahora solo informativo (sin acción de deshacer en el toast).
+
+**2. Reset global de solicitudes a Pendiente**
+
+Migración SQL para:
+- Actualizar `gastos_menores` → `estado = 'Pendiente'`, limpiar campos de aprobación
+- Actualizar `projects.caja_menor` y `projects.legalizacion` (JSONB) → estados a `Pendiente`/`Revisando`
+
+### Cambios técnicos
+
+| Archivo/Recurso | Cambio |
+|---|---|
+| **Nueva migración SQL** | Crear tabla `aprobacion_undo_log` + reset masivo de estados |
+| **AprobacionesPendientes.tsx** | Reemplazar toast-undo por consulta al undo_log; mostrar botón "Deshacer" en filas con cambios recientes (<2h); implementar lógica de reversión al hacer clic |
+| **RLS en undo_log** | INSERT para authenticated, SELECT/UPDATE solo para el propio `changed_by`, DELETE solo admin |
+
+### Flujo de usuario
+
+1. Admin cambia estado → se guarda registro en `aprobacion_undo_log` con `expires_at = now() + 2h`
+2. Toast informativo aparece brevemente
+3. En la tabla, la fila muestra un botón "Deshacer (1h 45m)" mientras esté dentro del plazo
+4. Al hacer clic en "Deshacer", se revierte el estado y se marca `undone = true`
+5. Pasadas las 2 horas, el botón desaparece automáticamente
 

@@ -3577,32 +3577,65 @@ const PanelOperaciones = () => {
                                 </div>
                               </div>
 
-                              {/* Countdown timer */}
-                              {estadoSolicitud === "Aprobado" && deadlineDate && estadoLegalizacion !== "Legalizado" && (
-                                <div className="flex items-center gap-1.5">
-                                  <div className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border ${isExpired ? "bg-red-500/20 border-red-500/40" : "bg-amber-500/15 border-amber-500/30"}`}>
-                                    <Timer className={`h-3.5 w-3.5 ${isExpired ? "text-red-400" : "text-amber-400"}`} />
-                                    <div className="flex flex-col">
-                                      <span className="text-[10px] text-muted-foreground leading-none mb-0.5">Plazo legalización</span>
-                                      <span className={`text-xs font-bold font-mono ${isExpired ? "text-red-400" : "text-amber-300"}`}>
-                                        {timeRemaining}
-                                      </span>
+                              {/* Countdown timer - always visible */}
+                              {(() => {
+                                const isActive = estadoSolicitud === "Aprobado" && deadlineDate && estadoLegalizacion !== "Legalizado";
+                                const isCompleted = estadoLegalizacion === "Legalizado";
+                                if (isCompleted) {
+                                  return (
+                                    <div className="flex items-center gap-1.5">
+                                      <div className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 border bg-green-500/15 border-green-500/30">
+                                        <Timer className="h-3.5 w-3.5 text-green-400" />
+                                        <div className="flex flex-col">
+                                          <span className="text-[10px] text-muted-foreground leading-none mb-0.5">Plazo legalización</span>
+                                          <span className="text-xs font-bold font-mono text-green-400">Completado</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                if (isActive) {
+                                  return (
+                                    <div className="flex items-center gap-1.5">
+                                      <div className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border ${isExpired ? "bg-red-500/20 border-red-500/40" : "bg-amber-500/15 border-amber-500/30"}`}>
+                                        <Timer className={`h-3.5 w-3.5 ${isExpired ? "text-red-400" : "text-amber-400"}`} />
+                                        <div className="flex flex-col">
+                                          <span className="text-[10px] text-muted-foreground leading-none mb-0.5">Plazo legalización</span>
+                                          <span className={`text-xs font-bold font-mono ${isExpired ? "text-red-400" : "text-amber-300"}`}>
+                                            {timeRemaining}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
+                                          </TooltipTrigger>
+                                          <TooltipContent side="bottom" className="max-w-[280px]">
+                                            <p className="text-xs">
+                                              Tienes hasta <strong>{deadlineDate ? format(deadlineDate, "dd/MM/yyyy HH:mm", { locale: es }) : ""}</strong> (2 días después del desmontaje) para presentar la legalización de este anticipo. Si el plazo vence, no podrás agregar información de legalización.
+                                            </p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </div>
+                                  );
+                                }
+                                // Inactive/placeholder state
+                                return (
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 border border-border/50 bg-muted/30 opacity-50">
+                                      <Timer className="h-3.5 w-3.5 text-muted-foreground" />
+                                      <div className="flex flex-col">
+                                        <span className="text-[10px] text-muted-foreground leading-none mb-0.5">Plazo legalización</span>
+                                        <span className="text-xs font-medium text-muted-foreground">
+                                          {!deadlineDate ? "Sin fecha desmontaje" : "Pendiente de aprobación"}
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
-                                      </TooltipTrigger>
-                                      <TooltipContent side="bottom" className="max-w-[280px]">
-                                        <p className="text-xs">
-                                          Tienes hasta <strong>{deadlineDate ? format(deadlineDate, "dd/MM/yyyy HH:mm", { locale: es }) : ""}</strong> (2 días después del desmontaje) para presentar la legalización de este anticipo. Si el plazo vence, no podrás agregar información de legalización.
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
-                              )}
+                                );
+                              })()}
                             </div>
                           );
                         })()}

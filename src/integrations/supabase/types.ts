@@ -866,6 +866,7 @@ export type Database = {
           id: string
           puede_aprobar_caja_menor: boolean | null
           puede_crear_anticipos: boolean | null
+          puede_editar_directivo: boolean | null
           puede_editar_feedback: boolean | null
           puede_editar_general: boolean | null
           puede_editar_operaciones: boolean | null
@@ -879,6 +880,7 @@ export type Database = {
           id?: string
           puede_aprobar_caja_menor?: boolean | null
           puede_crear_anticipos?: boolean | null
+          puede_editar_directivo?: boolean | null
           puede_editar_feedback?: boolean | null
           puede_editar_general?: boolean | null
           puede_editar_operaciones?: boolean | null
@@ -892,6 +894,7 @@ export type Database = {
           id?: string
           puede_aprobar_caja_menor?: boolean | null
           puede_crear_anticipos?: boolean | null
+          puede_editar_directivo?: boolean | null
           puede_editar_feedback?: boolean | null
           puede_editar_general?: boolean | null
           puede_editar_operaciones?: boolean | null

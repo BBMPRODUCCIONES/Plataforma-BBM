@@ -57,6 +57,7 @@ interface UserWithRole {
   puede_crear_anticipos: boolean;
   puede_editar_general: boolean;
   puede_editar_operaciones: boolean;
+  puede_editar_directivo: boolean;
   created_at: string | null;
 }
 
@@ -111,6 +112,7 @@ const Usuarios = () => {
   const [editPuedeCrearAnticipos, setEditPuedeCrearAnticipos] = useState(false);
   const [editPuedeEditarGeneral, setEditPuedeEditarGeneral] = useState(false);
   const [editPuedeEditarOperaciones, setEditPuedeEditarOperaciones] = useState(false);
+  const [editPuedeEditarDirectivo, setEditPuedeEditarDirectivo] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Delete user state
@@ -143,7 +145,7 @@ const Usuarios = () => {
       // Fetch users with roles and panels (now includes email and feedback permissions)
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones");
+        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo");
 
       if (rolesError) throw rolesError;
 
@@ -170,6 +172,7 @@ const Usuarios = () => {
           puede_crear_anticipos: roleRecord.puede_crear_anticipos ?? false,
           puede_editar_general: (roleRecord as any).puede_editar_general ?? false,
           puede_editar_operaciones: (roleRecord as any).puede_editar_operaciones ?? false,
+          puede_editar_directivo: (roleRecord as any).puede_editar_directivo ?? false,
           created_at: profile?.created_at || null,
         };
       });
@@ -424,6 +427,7 @@ const Usuarios = () => {
     setEditPuedeCrearAnticipos(user.puede_crear_anticipos);
     setEditPuedeEditarGeneral(user.puede_editar_general);
     setEditPuedeEditarOperaciones(user.puede_editar_operaciones);
+    setEditPuedeEditarDirectivo(user.puede_editar_directivo);
   };
 
   const handleSaveUser = async () => {
@@ -443,6 +447,7 @@ const Usuarios = () => {
       const finalPuedeCrearAnticipos = editPuedeCrearAnticipos;
       const finalPuedeEditarGeneral = editPuedeEditarGeneral;
       const finalPuedeEditarOperaciones = editPuedeEditarOperaciones;
+      const finalPuedeEditarDirectivo = editPuedeEditarDirectivo;
 
       // Update user roles with all permissions
       const { error: roleError } = await supabase
@@ -456,6 +461,7 @@ const Usuarios = () => {
           puede_crear_anticipos: finalPuedeCrearAnticipos,
           puede_editar_general: finalPuedeEditarGeneral,
           puede_editar_operaciones: finalPuedeEditarOperaciones,
+          puede_editar_directivo: finalPuedeEditarDirectivo,
         } as any)
         .eq("user_id", editingUser.id);
 
@@ -954,6 +960,20 @@ const Usuarios = () => {
                       className="text-sm font-normal cursor-pointer"
                     >
                       Puede editar en Panel Operaciones
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-puede-editar-directivo"
+                      checked={editPuedeEditarDirectivo}
+                      onCheckedChange={(checked) => setEditPuedeEditarDirectivo(checked as boolean)}
+                      disabled={isSaving}
+                    />
+                    <Label 
+                      htmlFor="edit-puede-editar-directivo"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Puede editar en Panel Directivo
                     </Label>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">

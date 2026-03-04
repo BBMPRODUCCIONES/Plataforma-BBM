@@ -12,6 +12,7 @@ interface UseUserRoleReturn {
   canEditStructure: () => boolean;
   canEditOperaciones: () => boolean;
   canEditGeneral: () => boolean;
+  canEditDirectivo: () => boolean;
   isAdminOnly: (section: string) => boolean;
   canViewFeedback: () => boolean;
   canEditFeedback: () => boolean;
@@ -94,6 +95,15 @@ export function useUserRole(): UseUserRoleReturn {
     return false;
   };
 
+  // Can edit Panel Directivo: admin always, operativo only with explicit permission
+  const canEditDirectivo = (): boolean => {
+    if (!role) return false;
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole === "administrador") return true;
+    if (normalizedRole === "operativo") return panelEditPermissions?.puedeEditarDirectivo ?? false;
+    return false;
+  };
+
   const canViewFeedback = (): boolean => {
     if (!role) return false;
     // Administrador always has access
@@ -135,6 +145,7 @@ export function useUserRole(): UseUserRoleReturn {
     canEditStructure,
     canEditOperaciones,
     canEditGeneral,
+    canEditDirectivo,
     isAdminOnly,
     canViewFeedback,
     canEditFeedback,

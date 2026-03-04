@@ -590,6 +590,37 @@ export default function AprobacionesPendientes() {
       return;
     }
 
+    const previousEstado = row.item.estado;
+    const previousRevisadoPor = row.item.revisadoPor || "";
+
+    // Helper to revert
+    const undoChange = async () => {
+      if (row.source === 'gastoMenor' && row.gastoMenorId) {
+        const revertData = previousEstado === "Pendiente"
+          ? { estado: previousEstado, aprobado_por_id: null, aprobado_por_nombre: "" }
+          : { estado: previousEstado, aprobado_por_id: null, aprobado_por_nombre: previousRevisadoPor };
+        await supabase.from("gastos_menores").update(revertData as any).eq("id", row.gastoMenorId);
+        refetchGastos();
+        toast.success("Cambio deshecho");
+        return;
+      }
+      const proj = projects.find((p) => p.id === row.projectId);
+      if (!proj) return;
+      const isRP = (row.item.recursos as string) === "Recursos propios";
+      if (isRP) {
+        const revertedLeg = (proj.legalizacion || []).map((l) =>
+          l.id === row.item.id ? { ...l, estado: previousEstado, revisadoPor: previousRevisadoPor } : l
+        );
+        await updateProject(row.projectId, "legalizacion", revertedLeg);
+      } else {
+        const revertedCM = (proj.cajaMenor || []).map((item) =>
+          item.id === row.item.id ? { ...item, estado: previousEstado, revisadoPor: previousRevisadoPor } : item
+        );
+        await updateProject(row.projectId, "cajaMenor", revertedCM);
+      }
+      toast.success("Cambio deshecho");
+    };
+
     // For gastos_menores (source: gastoMenor), update DB directly
     if (row.source === 'gastoMenor' && row.gastoMenorId) {
       const { data: userData } = await supabase.auth.getUser();
@@ -604,44 +635,39 @@ export default function AprobacionesPendientes() {
         toast.error("Error al actualizar estado: " + error.message);
         return;
       }
-      toast.success(`Estado actualizado a "${newEstado}"`);
-      // Explicitly refetch to ensure KPIs update immediately
       refetchGastos();
+      toast.success(`Estado actualizado a "${newEstado}"`, {
+        action: { label: "Deshacer", onClick: undoChange },
+        duration: 6000,
+      });
       return;
     }
 
     const project = projects.find((p) => p.id === row.projectId);
     if (!project) return;
 
-    // Check if this is a "Recursos propios" item (lives in legalizacion array)
     const isRecursosPropios = (row.item.recursos as string) === "Recursos propios";
     if (isRecursosPropios) {
       const updatedLegalizacion = (project.legalizacion || []).map((l) =>
         l.id === row.item.id
-          ? {
-              ...l,
-              estado: newEstado,
-              revisadoPor: newEstado === "Pendiente" ? "" : currentUserName || "Admin",
-            }
+          ? { ...l, estado: newEstado, revisadoPor: newEstado === "Pendiente" ? "" : currentUserName || "Admin" }
           : l
       );
       await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
-      toast.success(`Estado actualizado a "${newEstado}"`);
+      toast.success(`Estado actualizado a "${newEstado}"`, {
+        action: { label: "Deshacer", onClick: undoChange },
+        duration: 6000,
+      });
       return;
     }
 
     const updatedCajaMenor = (project.cajaMenor || []).map((item) =>
       item.id === row.item.id
-        ? {
-            ...item,
-            estado: newEstado,
-            revisadoPor: newEstado === "Pendiente" ? "" : currentUserName || "Admin",
-          }
+        ? { ...item, estado: newEstado, revisadoPor: newEstado === "Pendiente" ? "" : currentUserName || "Admin" }
         : item
     );
     await updateProject(row.projectId, "cajaMenor", updatedCajaMenor);
 
-    // If "No aprobado", auto-set legalizacion to "No legalizable"
     if (newEstado === "No aprobado") {
       const updatedLegalizacion = (project.legalizacion || []).map((l) => {
         if (l.empleadoNombre?.toLowerCase() === row.item.empleadoNombre?.toLowerCase()) {
@@ -652,7 +678,10 @@ export default function AprobacionesPendientes() {
       await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
     }
 
-    toast.success(`Estado de solicitud actualizado a "${newEstado}"`);
+    toast.success(`Estado de solicitud actualizado a "${newEstado}"`, {
+      action: { label: "Deshacer", onClick: undoChange },
+      duration: 6000,
+    });
   };
 
   // Batch estado change for grouped rows
@@ -717,7 +746,18 @@ export default function AprobacionesPendientes() {
       }
     }
 
-    toast.success(`Estado actualizado a "${newEstado}" para ${group.rows.length} solicitud(es)`);
+    toast.success(`Estado actualizado a "${newEstado}" para ${group.rows.length} solicitud(es)`, {
+      action: {
+        label: "Deshacer",
+        onClick: async () => {
+          // Revert all rows to previous estado
+          for (const row of group.rows) {
+            await handleEstadoChange(row, "Pendiente");
+          }
+        },
+      },
+      duration: 6000,
+    });
   };
 
   // Handle legalizacion estado change

@@ -411,17 +411,10 @@ const Usuarios = () => {
     setEditRole(user.role);
     setEditPanels(user.allowed_panels);
     setEditName(user.full_name || "");
-    // For admin, always show true for feedback; for others, use stored values
-    if (user.role === "administrador") {
-      setEditPuedeVerFeedback(true);
-      setEditPuedeEditarFeedback(true);
-    } else {
-      setEditPuedeVerFeedback(user.puede_ver_feedback);
-      setEditPuedeEditarFeedback(user.puede_editar_feedback);
-    }
-    // Caja Menor permission - only for admins, stored value
+    // All permissions use stored values for all roles
+    setEditPuedeVerFeedback(user.puede_ver_feedback);
+    setEditPuedeEditarFeedback(user.puede_editar_feedback);
     setEditPuedeAprobarCajaMenor(user.puede_aprobar_caja_menor);
-    // Crear anticipos permission - uses stored value for all roles
     setEditPuedeCrearAnticipos(user.puede_crear_anticipos);
   };
 
@@ -435,14 +428,10 @@ const Usuarios = () => {
         ? ALL_PANELS 
         : editPanels;
 
-      // Determine feedback permissions based on role
-      const finalPuedeVerFeedback = editRole === "administrador" ? true : editPuedeVerFeedback;
-      const finalPuedeEditarFeedback = editRole === "administrador" ? true : editPuedeEditarFeedback;
-      
-      // Caja Menor permission - only admins can have this
-      const finalPuedeAprobarCajaMenor = editRole === "administrador" ? editPuedeAprobarCajaMenor : false;
-      
-      // Crear anticipos permission - any role can have it
+      // All permissions use their stored/edited values directly for all roles
+      const finalPuedeVerFeedback = editPuedeVerFeedback;
+      const finalPuedeEditarFeedback = editPuedeEditarFeedback;
+      const finalPuedeAprobarCajaMenor = editPuedeAprobarCajaMenor;
       const finalPuedeCrearAnticipos = editPuedeCrearAnticipos;
 
       // Update user roles with all permissions
@@ -918,40 +907,36 @@ const Usuarios = () => {
               )}
 
               {editRole === "administrador" && (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground p-3 bg-muted/20 rounded-md">
-                    Los administradores tienen acceso completo a todos los paneles y funciones, incluyendo Feedback.
-                  </p>
-                  
-                  {/* Caja Menor Approval Permission - only for admins */}
-                  <div className="space-y-2">
-                    <Label>Permisos Especiales de Caja Menor</Label>
-                    <div className="space-y-2 p-3 border rounded-md bg-amber-500/10 border-amber-500/30">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="edit-puede-aprobar-caja-menor"
-                          checked={editPuedeAprobarCajaMenor}
-                          onCheckedChange={(checked) => setEditPuedeAprobarCajaMenor(checked as boolean)}
-                          disabled={isSaving}
-                        />
-                        <Label 
-                          htmlFor="edit-puede-aprobar-caja-menor"
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          Puede aprobar/desaprobar registros de Caja Menor
-                        </Label>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Solo los usuarios con este permiso pueden cambiar el estado (Aprobado/No aprobado) de los registros de Caja Menor.
-                      </p>
-                    </div>
-                  </div>
-
-                </div>
+                <p className="text-sm text-muted-foreground p-3 bg-muted/20 rounded-md">
+                  Los administradores tienen acceso completo a todos los paneles.
+                </p>
               )}
 
-              {/* Crear Anticipos Permission - available for admin and operativo */}
-              {(editRole === "administrador" || editRole === "operativo") && (
+              {/* Caja Menor Approval Permission - all roles */}
+              <div className="space-y-2">
+                <Label>Permisos Especiales de Caja Menor</Label>
+                <div className="space-y-2 p-3 border rounded-md bg-amber-500/10 border-amber-500/30">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-puede-aprobar-caja-menor"
+                      checked={editPuedeAprobarCajaMenor}
+                      onCheckedChange={(checked) => setEditPuedeAprobarCajaMenor(checked as boolean)}
+                      disabled={isSaving}
+                    />
+                    <Label 
+                      htmlFor="edit-puede-aprobar-caja-menor"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Puede aprobar/desaprobar registros de Caja Menor
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Solo los usuarios con este permiso pueden cambiar el estado (Aprobado/No aprobado) de los registros de Caja Menor.
+                  </p>
+                </div>
+              </div>
+
+              {/* Crear Anticipos Permission - all roles */}
               <div className="space-y-2">
                 <Label>Permisos de Solicitud de Anticipos</Label>
                 <div className="space-y-2 p-3 border rounded-md bg-blue-500/10 border-blue-500/30">
@@ -974,59 +959,54 @@ const Usuarios = () => {
                   </p>
                 </div>
               </div>
-              )}
 
-              {/* Feedback Permissions - only for non-admin roles */}
-              {editRole !== "administrador" && (
-                <div className="space-y-2">
-                  <Label>Permisos de Feedback</Label>
-                  <div className="space-y-2 p-3 border rounded-md bg-muted/20">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-puede-ver-feedback"
-                        checked={editPuedeVerFeedback}
-                        onCheckedChange={(checked) => {
-                          setEditPuedeVerFeedback(checked as boolean);
-                          // If removing view permission, also remove edit permission
-                          if (!checked) {
-                            setEditPuedeEditarFeedback(false);
-                          }
-                        }}
-                        disabled={isSaving}
-                      />
-                      <Label 
-                        htmlFor="edit-puede-ver-feedback"
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        Puede ver Feedback
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-puede-editar-feedback"
-                        checked={editPuedeEditarFeedback}
-                        onCheckedChange={(checked) => {
-                          setEditPuedeEditarFeedback(checked as boolean);
-                          // If enabling edit permission, also enable view permission
-                          if (checked) {
-                            setEditPuedeVerFeedback(true);
-                          }
-                        }}
-                        disabled={isSaving || !editPuedeVerFeedback}
-                      />
-                      <Label 
-                        htmlFor="edit-puede-editar-feedback"
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        Puede editar Feedback
-                      </Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Activa estos permisos para dar acceso a la sección Feedback en proyectos.
-                    </p>
+              {/* Feedback Permissions - all roles */}
+              <div className="space-y-2">
+                <Label>Permisos de Feedback</Label>
+                <div className="space-y-2 p-3 border rounded-md bg-muted/20">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-puede-ver-feedback"
+                      checked={editPuedeVerFeedback}
+                      onCheckedChange={(checked) => {
+                        setEditPuedeVerFeedback(checked as boolean);
+                        if (!checked) {
+                          setEditPuedeEditarFeedback(false);
+                        }
+                      }}
+                      disabled={isSaving}
+                    />
+                    <Label 
+                      htmlFor="edit-puede-ver-feedback"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Puede ver Feedback
+                    </Label>
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-puede-editar-feedback"
+                      checked={editPuedeEditarFeedback}
+                      onCheckedChange={(checked) => {
+                        setEditPuedeEditarFeedback(checked as boolean);
+                        if (checked) {
+                          setEditPuedeVerFeedback(true);
+                        }
+                      }}
+                      disabled={isSaving || !editPuedeVerFeedback}
+                    />
+                    <Label 
+                      htmlFor="edit-puede-editar-feedback"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Puede editar Feedback
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Activa estos permisos para dar acceso a la sección Feedback en proyectos.
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
 
             <DialogFooter>

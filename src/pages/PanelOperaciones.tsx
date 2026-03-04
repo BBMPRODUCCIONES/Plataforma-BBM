@@ -2991,7 +2991,7 @@ const PanelOperaciones = () => {
                       )
                     )}
                   </DialogTitle>
-                  {selectedSection === "plantilla" && currentProjectData && (
+                  {selectedSection === "plantilla" && currentProjectData && isAdmin && (
                     <div className="self-end sm:self-auto">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -3300,7 +3300,14 @@ const PanelOperaciones = () => {
                             SOLICITUD DE ANTICIPOS ({(currentProjectData.cajaMenor || []).length})
                           </CardTitle>
                           {/* Buttons: Export + Add (right side) */}
-                          <div className="flex gap-2 flex-wrap">
+                          <div className="flex gap-2 flex-wrap items-center">
+                            {!canCrearAnticipos() && !isAdmin && (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-1.5">
+                                <Lock className="h-3.5 w-3.5" />
+                                <span>No tienes permisos para agregar o editar solicitudes de anticipos</span>
+                              </div>
+                            )}
+                            {isAdmin && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm">
@@ -3379,6 +3386,7 @@ const PanelOperaciones = () => {
                                 })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
+                            )}
                             {(() => {
                               const hasPermission = canCrearAnticipos();
                               if (!hasPermission) return null;
@@ -3735,6 +3743,7 @@ const PanelOperaciones = () => {
                           </CardTitle>
                           </div>
                           <div className="flex gap-2 flex-wrap justify-start w-full sm:w-auto">
+                            {isAdmin && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm">
@@ -3800,6 +3809,7 @@ const PanelOperaciones = () => {
                                 })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
+                            )}
                             {(role?.toLowerCase() === "administrador" || role?.toLowerCase() === "operativo") && (
                             <Button 
                               variant="outline"

@@ -398,6 +398,8 @@ export default function AprobacionesPendientes() {
         contingencia: "No",
         estado: g.estado as CajaMenorItem["estado"],
         restaurada: (g as any).restaurada === true,
+        restauradaPor: (g as any).restaurada_por || "",
+        restauradaEn: (g as any).restaurada_en || "",
         imagenes: g.imagen_url ? [{ id: "img", name: "imagen", url: g.imagen_url, type: "image", uploadedAt: g.created_at }] : [],
         createdAt: g.created_at,
       };
@@ -870,7 +872,7 @@ export default function AprobacionesPendientes() {
       for (const row of gastoMenorRows) {
         await supabase
           .from("gastos_menores")
-          .update({ estado: "Pendiente", aprobado_por_id: null, aprobado_por_nombre: "", restaurada: true } as any)
+          .update({ estado: "Pendiente", aprobado_por_id: null, aprobado_por_nombre: "", restaurada: true, restaurada_por: restoreBy, restaurada_en: restoreTimestamp } as any)
           .eq("id", row.gastoMenorId!);
         toast.info(`Solicitud de caja menor restaurada a Pendiente`);
       }

@@ -797,6 +797,67 @@
     @apply max-w-full;
   }
 
+  /* Sticky horizontal scrollbar system (desktop only) */
+  .matrix-table-sticky-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .matrix-table-main-scroll {
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox: hide native scrollbar */
+  }
+
+  .matrix-table-main-scroll::-webkit-scrollbar {
+    display: none; /* Chrome/Safari: hide native scrollbar */
+  }
+
+  .matrix-table-sticky-scrollbar {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: hsl(var(--card));
+    border-top: 1px solid hsl(var(--border));
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.4) hsl(var(--muted) / 0.3);
+  }
+
+  .matrix-table-sticky-scrollbar::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  .matrix-table-sticky-scrollbar::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.3);
+    border-radius: 5px;
+  }
+
+  .matrix-table-sticky-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.4);
+    border-radius: 5px;
+  }
+
+  .matrix-table-sticky-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.6);
+  }
+
+  /* On mobile, disable sticky scrollbar (touch scroll is native) */
+  @media (max-width: 767px) {
+    .matrix-table-sticky-scrollbar {
+      display: none;
+    }
+
+    .matrix-table-main-scroll {
+      scrollbar-width: auto;
+    }
+
+    .matrix-table-main-scroll::-webkit-scrollbar {
+      display: block;
+    }
+  }
+
   .gantt-bar {
     @apply h-6 rounded-sm transition-all duration-200;
   }

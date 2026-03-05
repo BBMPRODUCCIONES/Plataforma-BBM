@@ -796,10 +796,13 @@ export default function AprobacionesPendientes() {
     const gastoRows = group.rows.filter(r => r.source === 'gastoMenor' && r.gastoMenorId);
     for (const row of gastoRows) {
       const { data: userData } = await supabase.auth.getUser();
+      const previousEstado = row.item.estado;
+      const previousRevisadoPor = row.item.revisadoPor || "";
       const updateData = newEstado === "Pendiente"
         ? { estado: newEstado, aprobado_por_id: null, aprobado_por_nombre: "" }
         : { estado: newEstado, aprobado_por_id: userData?.user?.id || null, aprobado_por_nombre: currentUserName || "Admin" };
       await supabase.from("gastos_menores").update(updateData as any).eq("id", row.gastoMenorId!);
+      await logUndoEntry(row, previousEstado, newEstado, previousRevisadoPor);
     }
     if (gastoRows.length > 0) refetchGastos();
 

@@ -1424,7 +1424,7 @@ export default function AprobacionesPendientes() {
             onClick={openHistoryDialog}
           >
             <History className="w-3.5 h-3.5" />
-            Historial ({resolvedRows.length})
+            Historial ({groupedResolvedRows.length})
           </Button>
         )}
       </div>
@@ -1716,7 +1716,7 @@ export default function AprobacionesPendientes() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="w-5 h-5 text-primary" />
-              Historial de Solicitudes ({resolvedRows.length})
+              Historial de Solicitudes ({groupedResolvedRows.length})
             </DialogTitle>
             <DialogDescription>
               Solicitudes aprobadas y rechazadas

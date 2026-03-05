@@ -965,11 +965,24 @@ export default function AprobacionesPendientes() {
         return;
       }
 
-      // Match selected rows by their individual row keys (projectId-itemId)
-      const rowsToRestore: FlattenedRow[] = rows.filter(r => {
-        const rowKey = `${r.projectId}-${r.item.id}`;
-        return selectedForRestore.has(rowKey);
-      });
+      // Match selected rows - selections can be group keys (from history dialog) or individual row keys
+      const rowsToRestore: FlattenedRow[] = [];
+      const selectedKeys = selectedForRestore;
+      
+      // Check if selections are group keys (from grouped history view)
+      for (const group of groupedResolvedRows) {
+        if (selectedKeys.has(group.key)) {
+          rowsToRestore.push(...group.rows);
+        }
+      }
+      
+      // Also check individual row keys (projectId-itemId) as fallback
+      if (rowsToRestore.length === 0) {
+        rows.forEach(r => {
+          const rowKey = `${r.projectId}-${r.item.id}`;
+          if (selectedKeys.has(rowKey)) rowsToRestore.push(r);
+        });
+      }
 
       if (rowsToRestore.length === 0) {
         toast.error("No se encontraron solicitudes para restaurar");

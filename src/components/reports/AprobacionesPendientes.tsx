@@ -543,30 +543,43 @@ export default function AprobacionesPendientes() {
   // Pending: "Pendiente" OR (Aprobado type S with legalization not yet complete)
   // All R, C, and S with estado "Pendiente" stay pending
   // S "Aprobado" stays pending until legalization is "Legalizado"
+  // Helper: check if item has active undo entry
+  const hasActiveUndo = useCallback((itemId: string) => {
+    return undoLog.some(e => e.item_id === itemId && !e.undone && new Date(e.expires_at) > new Date());
+  }, [undoLog]);
+
   const pendingRows = useMemo(() => filteredRows.filter(r => {
     if (r.item.estado === "Pendiente") return true;
+    if (r.item.estado === "No aprobado") {
+      // Keep "No aprobado" in pending if undo is still active
+      return hasActiveUndo(r.item.id);
+    }
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
       // Type S stays pending until legalization is complete
       if (isTypeS && r.legalizacionEstado !== "Legalizado" && r.legalizacionEstado !== "No legalizable") return true;
-      // Type R and C go to history once approved
+      // Type R and C: stay in pending while undo window is active
+      if (!isTypeS) return hasActiveUndo(r.item.id);
     }
     return false;
-  }), [filteredRows]);
+  }), [filteredRows, hasActiveUndo]);
   const resolvedRows = useMemo(() => filteredRows.filter(r => {
-    if (r.item.estado === "No aprobado") return true;
+    if (r.item.estado === "No aprobado") {
+      // Only go to history if undo window has expired
+      return !hasActiveUndo(r.item.id);
+    }
     if ((r.item.estado as string) === "Legalizado" || (r.item.estado as string) === "Reembolsado") return true;
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
       // Type S resolved when legalization is "Legalizado" or "No legalizable"
       if (isTypeS) return r.legalizacionEstado === "Legalizado" || r.legalizacionEstado === "No legalizable";
-      // Type R and C go to history when approved
-      return true;
+      // Type R and C go to history only when undo window has expired
+      return !hasActiveUndo(r.item.id);
     }
     return false;
-  }), [filteredRows]);
+  }), [filteredRows, hasActiveUndo]);
 
   // Group pending rows by (centroCostos, tipo)
   const groupedPendingRows = useMemo((): GroupedPendingRow[] => {

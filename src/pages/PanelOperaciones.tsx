@@ -2842,10 +2842,12 @@ const PanelOperaciones = () => {
             }
             
             // Validación de Caja Menor - TODOS los campos son BLOQUEANTES
+            // Solo validar anticipos si el usuario puede editarlos
+            const canEditAnticiposHere = isAdmin || canCrearAnticipos();
             if (selectedSection === "cajaMenor") {
-              // Validación de SOLICITUD DE ANTICIPOS - Imagen OBLIGATORIA
+              // Validación de SOLICITUD DE ANTICIPOS - Imagen OBLIGATORIA (solo si el usuario puede editar)
               const cajaMenorItems = currentProjectData.cajaMenor || [];
-              if (cajaMenorItems.length > 0) {
+              if (cajaMenorItems.length > 0 && canEditAnticiposHere) {
                 const legalizacionData2 = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
                 const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
                   const sinValor = !item.valor || item.valor === 0;
@@ -2855,10 +2857,8 @@ const PanelOperaciones = () => {
                   const linkedLegItem = legalizacionData2.find(l => l.id === `leg-${item.id}`);
                   const legItemEstado = linkedLegItem?.estado as string | undefined;
                   const isLegAprobadaItem = legItemEstado === "Aprobado" || legItemEstado === "Legalizado";
-                  // Relación de gastos obligatoria si el anticipo está aprobado pero legalización no aprobada aún
                   const relEntries: RelacionGastoEntry[] = (item as any).relacion_gastos || [];
                   const sinRelacion = isAprobado && !isLegAprobadaItem && relEntries.length === 0;
-                  // Cada entrada de relación de gastos debe tener imagen, comercio, nit y concepto
                   const sinImagenEnRelacion = isAprobado && !isLegAprobadaItem && relEntries.length > 0 && relEntries.some((e: RelacionGastoEntry) => !e.imagen_url);
                   const sinCamposRelacion = isAprobado && !isLegAprobadaItem && relEntries.length > 0 && relEntries.some((e: RelacionGastoEntry) => !e.comercio?.trim() || !e.nitCedula?.trim() || !e.concepto?.trim() || !e.valor || e.valor === 0);
                   return sinValor || sinCategoria || sinConcepto || sinRelacion || sinImagenEnRelacion || sinCamposRelacion;

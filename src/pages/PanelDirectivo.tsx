@@ -649,6 +649,7 @@ const PanelDirectivo = () => {
             type="number"
             onChange={(value) => updateProject(p.id, "ingresoTotal", value)}
             className="text-primary"
+            placeholder="$ Ingreso total"
           />
         );
       case "ingresoBruto":

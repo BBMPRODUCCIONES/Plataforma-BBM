@@ -1754,12 +1754,23 @@ export default function AprobacionesPendientes() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-              className="pl-9 h-9 text-xs"
+              className={`pl-9 ${globalSearch ? 'pr-28' : 'pr-3'} h-9 text-xs`}
               autoComplete="off"
               name="aprobaciones-search-nofill"
               data-form-type="other"
               data-lpignore="true"
             />
+            <Button
+              type="button"
+              variant={globalSearch ? "default" : "outline"}
+              size="sm"
+              className={`absolute right-1 top-1 h-7 text-[10px] gap-1 px-2 ${globalSearch ? '' : 'opacity-70'}`}
+              onClick={() => setGlobalSearch(g => !g)}
+              title={globalSearch ? "Búsqueda global activa: busca en todas las pestañas" : "Activar búsqueda global"}
+            >
+              <Globe className="w-3 h-3" />
+              Global
+            </Button>
             {/* Autocomplete Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
               <div

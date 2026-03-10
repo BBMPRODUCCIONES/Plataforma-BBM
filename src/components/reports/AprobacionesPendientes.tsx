@@ -1525,11 +1525,14 @@ export default function AprobacionesPendientes() {
                     <TableCell className="text-xs whitespace-nowrap">
                       {d ? format(d, "dd/MM/yyyy") : "—"}
                     </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {(() => {
-                        const names = [...new Set(group.rows.map(r => r.item.empleadoNombre).filter(Boolean))];
-                        return names.length > 0 ? names.join(", ") : "—";
-                      })()}
+                    <TableCell className="text-xs">
+                      <TruncatedCellWithEye
+                        text={(() => {
+                          const names = [...new Set(group.rows.map(r => r.item.empleadoNombre).filter(Boolean))];
+                          return names.length > 0 ? names.join(", ") : "—";
+                        })()}
+                        label="Solicitante"
+                      />
                     </TableCell>
                     <TableCell className="text-xs">{group.centroCostos || "—"}</TableCell>
                     <TableCell className="text-xs">{group.evento || "—"}</TableCell>

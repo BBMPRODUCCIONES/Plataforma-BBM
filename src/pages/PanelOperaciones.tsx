@@ -3151,7 +3151,7 @@ const PanelOperaciones = () => {
                             <Package className="h-4 w-4" />
                             Inventario ({(currentProjectData.inventario || []).length})
                           </CardTitle>
-                          {!operativoReadOnly && (
+                          {!operativoReadOnly && canEditInventario() && (
                           <Button
                             variant="outline"
                             size="sm"

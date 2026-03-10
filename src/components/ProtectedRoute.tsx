@@ -10,6 +10,7 @@ interface ProtectedRouteProps {
   children: ReactNode;
   requiredPanel?: string;
   adminOnly?: boolean;
+  adminPage?: string; // granular admin page permission key
 }
 
 export function ProtectedRoute({ children, requiredPanel, adminOnly = false }: ProtectedRouteProps) {

@@ -210,6 +210,8 @@ function ResponsableSection({
             </Button>
           )}
         </div>
+      ) : readOnly ? (
+        <p className="text-sm text-muted-foreground italic px-3 py-2">Sin asignar</p>
       ) : isProductor || isAdmin ? (
         <div className="space-y-2">
           <EmpleadoSelectorPopover

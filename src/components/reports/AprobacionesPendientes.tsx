@@ -1932,7 +1932,7 @@ export default function AprobacionesPendientes() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-end gap-2">
-            {canApproveCajaMenor() && (
+            {canRestaurarSolicitudes() && (
               <Button
                 variant="outline"
                 size="sm"

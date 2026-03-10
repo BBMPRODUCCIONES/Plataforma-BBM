@@ -1579,6 +1579,9 @@ const PanelOperaciones = () => {
         width: "200px",
         mobileWidth: "200px",
         render: (p: PersonalItem) => {
+          if (personalReadOnly) {
+            return <span className="text-sm truncate">{p.nombre || "-"}</span>;
+          }
           // BBM uses EmpleadoAutocomplete, Proveedor/Transporte use ProveedorAutocomplete
           if (p.tipoPersonal === "BBM") {
             return (

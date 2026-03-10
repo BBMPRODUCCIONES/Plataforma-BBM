@@ -651,7 +651,7 @@ const PanelOperaciones = () => {
     
     // Normal filter mode
     let result = projects.filter((p) => {
-      const matchesDeleted = !hideDeleted || !p.isDeleted;
+      const matchesDeleted = showDeleted || !p.isDeleted;
       const matchesSearch =
         p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -680,7 +680,7 @@ const PanelOperaciones = () => {
     }
 
     return result;
-  }, [focusedEventId, projects, hideDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
+  }, [focusedEventId, projects, showDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
 
   const handleGanttProjectClick = (projectId: string) => {
     // Find the project

@@ -443,6 +443,7 @@ const Usuarios = () => {
     setEditPuedeEditarPersonal(user.puede_editar_personal);
     setEditPuedeEditarInventario(user.puede_editar_inventario);
     setEditPuedeAsignarResponsables(user.puede_asignar_responsables);
+    setEditPuedeRestaurarSolicitudes(user.puede_restaurar_solicitudes);
   };
 
   const handleSaveUser = async () => {

@@ -219,6 +219,8 @@ export default function AprobacionesPendientes() {
   const [passwordInput, setPasswordInput] = useState("");
   const [isRestoring, setIsRestoring] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("S");
 
   // Clear stale selections when history dialog opens or resolved rows change
   const openHistoryDialog = useCallback(() => {

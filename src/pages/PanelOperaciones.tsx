@@ -2893,18 +2893,20 @@ const PanelOperaciones = () => {
                 return; // Prevent closing
               }
 
-              // Validar responsables de inventario obligatorios
-              const faltanResponsables: string[] = [];
-              if (!currentProjectData.inventarioResponsableSalidaNombre) faltanResponsables.push("Responsable de Salida");
-              if (!currentProjectData.inventarioResponsableEntradaNombre) faltanResponsables.push("Responsable de Entrada");
-              if (!currentProjectData.inventarioResponsableEventoNombre) faltanResponsables.push("Responsable durante el Evento");
-              if (faltanResponsables.length > 0) {
-                setHighlightResponsables(true);
-                toast.error(`Debe asignar: ${faltanResponsables.join(", ")}`, {
-                  description: "Los responsables del inventario son obligatorios.",
-                  duration: 5000,
-                });
-                return;
+              // Validar responsables de inventario obligatorios (solo si el usuario puede asignar responsables)
+              if (canAsignarResponsables()) {
+                const faltanResponsables: string[] = [];
+                if (!currentProjectData.inventarioResponsableSalidaNombre) faltanResponsables.push("Responsable de Salida");
+                if (!currentProjectData.inventarioResponsableEntradaNombre) faltanResponsables.push("Responsable de Entrada");
+                if (!currentProjectData.inventarioResponsableEventoNombre) faltanResponsables.push("Responsable durante el Evento");
+                if (faltanResponsables.length > 0) {
+                  setHighlightResponsables(true);
+                  toast.error(`Debe asignar: ${faltanResponsables.join(", ")}`, {
+                    description: "Los responsables del inventario son obligatorios.",
+                    duration: 5000,
+                  });
+                  return;
+                }
               }
             }
             

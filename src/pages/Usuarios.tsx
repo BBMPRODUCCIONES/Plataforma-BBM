@@ -179,6 +179,9 @@ const Usuarios = () => {
           puede_editar_general: (roleRecord as any).puede_editar_general ?? false,
           puede_editar_operaciones: (roleRecord as any).puede_editar_operaciones ?? false,
           puede_editar_directivo: (roleRecord as any).puede_editar_directivo ?? false,
+          puede_editar_personal: (roleRecord as any).puede_editar_personal ?? false,
+          puede_editar_inventario: (roleRecord as any).puede_editar_inventario ?? false,
+          puede_asignar_responsables: (roleRecord as any).puede_asignar_responsables ?? false,
           created_at: profile?.created_at || null,
         };
       });

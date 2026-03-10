@@ -878,8 +878,8 @@ const Usuarios = () => {
                     </Select>
                   </div>
                   
-                  {/* Panel access selection - only for non-admin roles */}
-                  {newRole !== "administrador" && (
+                  {/* Panel access selection - only for non-admin and non-visual roles */}
+                  {newRole !== "administrador" && newRole !== "visual" && (
                     <div className="space-y-2">
                       <Label>Acceso a Paneles</Label>
                       <div className="space-y-2 p-3 border rounded-md bg-muted/20">

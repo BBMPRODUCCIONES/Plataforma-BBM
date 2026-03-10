@@ -460,6 +460,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setFeedbackPermissions(defaultFeedbackPermissions);
     setCajaMenorPermissions(defaultCajaMenorPermissions);
     setPanelEditPermissions(defaultPanelEditPermissions);
+    setAdminPagePermissions(defaultAdminPagePermissions);
   };
 
   return (

@@ -897,6 +897,7 @@ const PanelOperaciones = () => {
               value={p.productor}
               type="text"
               onChange={(value) => updateProject(p.id, "productor", value)}
+              placeholder="Nombre productor"
               disabled={operativoReadOnly}
             />
           );

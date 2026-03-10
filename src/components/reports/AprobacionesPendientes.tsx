@@ -215,8 +215,12 @@ export default function AprobacionesPendientes() {
   }, []);
 
   const getUndoEntryForGroup = useCallback((groupKey: string, groupRows: FlattenedRow[]) => {
-    // Find the most recent non-expired undo entry for any item in this group
-    const itemIds = new Set(groupRows.map(r => r.item.id));
+    // Find the most recent non-expired undo entry for any item in this group (including legalization undos)
+    const itemIds = new Set<string>();
+    groupRows.forEach(r => {
+      itemIds.add(r.item.id);
+      itemIds.add(`leg-${r.item.id}`);
+    });
     return undoLog.find(entry => itemIds.has(entry.item_id) && !entry.undone && new Date(entry.expires_at) > new Date());
   }, [undoLog]);
 
@@ -589,8 +593,13 @@ export default function AprobacionesPendientes() {
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
-      // Type S stays pending until legalization is complete
-      if (isTypeS && r.legalizacionEstado !== "Legalizado" && r.legalizacionEstado !== "No legalizable") return true;
+      if (isTypeS) {
+        // Type S stays pending until legalization is complete
+        if (r.legalizacionEstado !== "Legalizado" && r.legalizacionEstado !== "No legalizable") return true;
+        // Even if legalized, stay pending while undo window for legalization is active
+        const legUndoId = `leg-${r.item.id}`;
+        if (hasActiveUndo(legUndoId)) return true;
+      }
       // Type R and C: stay in pending while undo window is active
       if (!isTypeS) return hasActiveUndo(r.item.id);
     }
@@ -605,8 +614,13 @@ export default function AprobacionesPendientes() {
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
-      // Type S resolved when legalization is "Legalizado" or "No legalizable"
-      if (isTypeS) return r.legalizacionEstado === "Legalizado" || r.legalizacionEstado === "No legalizable";
+      // Type S resolved when legalization is "Legalizado" or "No legalizable" AND undo window expired
+      if (isTypeS) {
+        const legResolved = r.legalizacionEstado === "Legalizado" || r.legalizacionEstado === "No legalizable";
+        if (!legResolved) return false;
+        const legUndoId = `leg-${r.item.id}`;
+        return !hasActiveUndo(legUndoId);
+      }
       // Type R and C go to history only when undo window has expired
       return !hasActiveUndo(r.item.id);
     }
@@ -769,7 +783,11 @@ export default function AprobacionesPendientes() {
 
   // Undo all entries for a group
   const handleUndoGroup = async (groupRows: FlattenedRow[]) => {
-    const itemIds = new Set(groupRows.map(r => r.item.id));
+    const itemIds = new Set<string>();
+    groupRows.forEach(r => {
+      itemIds.add(r.item.id);
+      itemIds.add(`leg-${r.item.id}`);
+    });
     const entries = undoLog.filter(e => itemIds.has(e.item_id) && !e.undone && new Date(e.expires_at) > new Date());
     for (const entry of entries) {
       await handleUndoFromLog(entry);
@@ -958,6 +976,25 @@ export default function AprobacionesPendientes() {
     }
 
     await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
+
+    // Log undo entry for legalization estado changes (Legalizado / No legalizable)
+    if (newEstado === "Legalizado" || newEstado === "No legalizable") {
+      const previousLegEstado = row.legalizacionEstado || "Revisando";
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user?.id) {
+        await supabase.from("aprobacion_undo_log").insert({
+          project_id: row.projectId || null,
+          item_id: `leg-${row.item.id}`,
+          source: "legalizacion",
+          previous_estado: previousLegEstado,
+          new_estado: newEstado,
+          previous_revisado_por: "",
+          changed_by: userData.user.id,
+        } as any);
+        await fetchUndoLog();
+      }
+    }
+
     toast.success(`Estado de legalización actualizado a "${newEstado}"`);
   };
 

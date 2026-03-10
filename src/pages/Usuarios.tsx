@@ -147,6 +147,9 @@ const Usuarios = () => {
   const [isReactivating, setIsReactivating] = useState(false);
   const [isDeletingOrphan, setIsDeletingOrphan] = useState(false);
 
+  // Invitations dialog state
+  const [showInvitationsDialog, setShowInvitationsDialog] = useState(false);
+
   const fetchData = async () => {
     setIsLoading(true);
     

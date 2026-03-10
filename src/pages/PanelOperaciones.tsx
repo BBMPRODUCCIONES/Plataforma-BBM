@@ -3631,7 +3631,7 @@ const PanelOperaciones = () => {
                                     </TooltipTrigger>
                                     {isBlocked && (
                                       <TooltipContent side="bottom" className="max-w-[250px]">
-                                        <p>Debes legalizar tus anticipos pendientes antes de solicitar uno nuevo.</p>
+                                        <p>Tus solicitudes anteriores deben estar aprobadas y legalizadas (o rechazadas) antes de crear una nueva.</p>
                                       </TooltipContent>
                                     )}
                                   </Tooltip>

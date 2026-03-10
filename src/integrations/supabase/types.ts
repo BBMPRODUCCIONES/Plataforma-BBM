@@ -421,6 +421,7 @@ export type Database = {
           email: string
           expires_at: string
           id: string
+          permissions: Json | null
           role: Database["public"]["Enums"]["app_role"]
           token: string
         }
@@ -432,6 +433,7 @@ export type Database = {
           email: string
           expires_at?: string
           id?: string
+          permissions?: Json | null
           role?: Database["public"]["Enums"]["app_role"]
           token?: string
         }
@@ -443,6 +445,7 @@ export type Database = {
           email?: string
           expires_at?: string
           id?: string
+          permissions?: Json | null
           role?: Database["public"]["Enums"]["app_role"]
           token?: string
         }

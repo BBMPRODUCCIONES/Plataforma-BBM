@@ -69,7 +69,7 @@ export function useUserRole(): UseUserRoleReturn {
   const canEdit = (): boolean => {
     if (!role) return false;
     const normalizedRole = role.toLowerCase();
-    // Visual role is read-only
+    // Visual role is always read-only; admin and operativo CAN edit (but specific sections require granular permissions)
     return normalizedRole === "administrador" || normalizedRole === "operativo";
   };
 

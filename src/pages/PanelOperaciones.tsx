@@ -3525,7 +3525,15 @@ const PanelOperaciones = () => {
                                 return isOwner;
                               });
 
-                              if (otherUserOwnsRecords) return null;
+                              if (otherUserOwnsRecords) {
+                                const ownerName = existingCajaMenor[0]?.empleadoNombre || "otro usuario";
+                                return (
+                                  <span className="text-xs text-muted-foreground italic flex items-center gap-1">
+                                    <Lock className="h-3 w-3" />
+                                    Solicitudes creadas por {ownerName}
+                                  </span>
+                                );
+                              }
 
                               const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
                               const hasPendingLeg = legalizacion.some(l => {

@@ -21,6 +21,7 @@ interface UseUserRoleReturn {
   canEditFeedback: () => boolean;
   canApproveCajaMenor: () => boolean;
   canCrearAnticipos: () => boolean;
+  canRestaurarSolicitudes: () => boolean;
 }
 
 // Admin-only sections that require administrador role

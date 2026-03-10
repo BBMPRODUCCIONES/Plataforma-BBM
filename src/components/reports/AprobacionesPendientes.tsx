@@ -1955,7 +1955,7 @@ export default function AprobacionesPendientes() {
             <Table>
               <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
                 <TableRow>
-                  {canApproveCajaMenor() && (
+                   {canRestaurarSolicitudes() && (
                     <TableHead className="text-xs w-[40px]">
                       <Checkbox
                         checked={groupedResolvedRows.length > 0 && groupedResolvedRows.every(g => selectedForRestore.has(g.key))}

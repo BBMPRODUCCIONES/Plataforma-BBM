@@ -907,6 +907,7 @@ const PanelOperaciones = () => {
               value={p.ubicacion}
               type="text"
               onChange={(value) => updateProject(p.id, "ubicacion", value)}
+              placeholder="Dirección o lugar"
               disabled={operativoReadOnly}
             />
           );

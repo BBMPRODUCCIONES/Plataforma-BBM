@@ -217,16 +217,18 @@ serve(async (req) => {
             continue;
           }
 
-          const startDateTime = `${project.fecha_montaje_inicio}T${project.hora_montaje_inicio || '08:00'}:00`;
-          const endDateTime = `${project.fecha_montaje_fin}T${project.hora_montaje_fin || '18:00'}:00`;
+          // All-day event: end date must be exclusive (next day)
+          const endDate = new Date(project.fecha_montaje_fin);
+          endDate.setDate(endDate.getDate() + 1);
+          const endDateStr = endDate.toISOString().split('T')[0];
 
           const eventData = {
             summary: `[MONTAJE] ${project.evento} - ${project.cliente}`,
             description: buildDescription(project, 'montaje'),
             location: project.ubicacion,
-            start: { dateTime: startDateTime, timeZone },
-            end: { dateTime: endDateTime, timeZone },
-            colorId: '8',
+            start: { date: project.fecha_montaje_inicio },
+            end: { date: endDateStr },
+            colorId: '2',
           };
 
           const result = await createOrUpdateEvent(

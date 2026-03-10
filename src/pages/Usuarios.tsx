@@ -58,6 +58,9 @@ interface UserWithRole {
   puede_editar_general: boolean;
   puede_editar_operaciones: boolean;
   puede_editar_directivo: boolean;
+  puede_editar_personal: boolean;
+  puede_editar_inventario: boolean;
+  puede_asignar_responsables: boolean;
   created_at: string | null;
 }
 

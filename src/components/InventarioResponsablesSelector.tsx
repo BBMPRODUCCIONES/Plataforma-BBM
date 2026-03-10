@@ -248,9 +248,9 @@ export function InventarioResponsablesSelector({
   readOnly = false,
 }: InventarioResponsablesSelectorProps) {
   const { user } = useAuth();
-  const { canEditStructure, canCrearAnticipos } = useUserRole();
+  const { canEditStructure, canAsignarResponsables } = useUserRole();
   const isAdmin = canEditStructure();
-  const isProductor = canCrearAnticipos();
+  const isProductor = canAsignarResponsables();
   const [employeeName, setEmployeeName] = useState<string | null>(null);
 
   useEffect(() => {

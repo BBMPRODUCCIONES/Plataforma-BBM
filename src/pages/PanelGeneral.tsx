@@ -426,7 +426,7 @@ const PanelGeneral = () => {
         );
       default:
         return (p: Project) => generalReadOnly ? (
-          <span className="text-sm truncate">{(p as any)[colConfig.key] || "-"}</span>
+          <span className="text-sm truncate">{(p as any)[colConfig.key] || "Sin datos"}</span>
         ) : (
           <EditableCell
             value={(p as any)[colConfig.key]}

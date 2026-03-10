@@ -754,7 +754,7 @@ const PanelOperaciones = () => {
           );
         case "avanzada":
           return operativoReadOnly ? (
-            <span className="text-xs">{p.avanzada || "-"}</span>
+            <span className="text-xs">{p.avanzada || "Sin asignar"}</span>
           ) : (
             <AvanzadaSelect
               value={p.avanzada}

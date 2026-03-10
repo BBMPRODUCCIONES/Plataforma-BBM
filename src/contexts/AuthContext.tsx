@@ -14,6 +14,7 @@ interface FeedbackPermissions {
 interface CajaMenorPermissions {
   puedeAprobarCajaMenor: boolean;
   puedeCrearAnticipos: boolean;
+  puedeRestaurarSolicitudes: boolean;
 }
 
 interface PanelEditPermissions {

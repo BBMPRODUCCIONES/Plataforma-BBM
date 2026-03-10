@@ -3129,7 +3129,7 @@ const PanelOperaciones = () => {
                             <Users className="h-4 w-4" />
                             Personal ({(currentProjectData.personal || []).length})
                           </CardTitle>
-                          {!operativoReadOnly && canEditPersonal() && (
+                          {canEditPersonal() && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -3175,7 +3175,7 @@ const PanelOperaciones = () => {
                             <Package className="h-4 w-4" />
                             Inventario ({(currentProjectData.inventario || []).length})
                           </CardTitle>
-                          {!operativoReadOnly && canEditInventario() && (
+                          {canEditInventario() && (
                           <Button
                             variant="outline"
                             size="sm"

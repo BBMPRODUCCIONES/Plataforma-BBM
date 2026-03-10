@@ -187,6 +187,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           puedeEditarGeneral: (data as any).puede_editar_general ?? false,
           puedeEditarOperaciones: (data as any).puede_editar_operaciones ?? false,
           puedeEditarDirectivo: (data as any).puede_editar_directivo ?? false,
+          puedeEditarPersonal: (data as any).puede_editar_personal ?? false,
+          puedeEditarInventario: (data as any).puede_editar_inventario ?? false,
+          puedeAsignarResponsables: (data as any).puede_asignar_responsables ?? false,
         }
       };
       

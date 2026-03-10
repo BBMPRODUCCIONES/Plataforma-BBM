@@ -1333,7 +1333,7 @@ export default function AprobacionesPendientes() {
 
   const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
     const showLeg = tipo === 'S';
-    const colCount = showLeg ? 12 : 8;
+    const colCount = showLeg ? 13 : 9;
 
     return (
       <div

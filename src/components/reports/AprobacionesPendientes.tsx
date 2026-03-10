@@ -1666,6 +1666,18 @@ export default function AprobacionesPendientes() {
             )}
           </TableBody>
         </Table>
+        </div>
+
+        {/* Sticky horizontal scrollbar */}
+        {!isMobile && contentWidth > 0 && (
+          <div
+            ref={(el) => { pendingStickyScrollRefs.current[tipo] = el; }}
+            className="matrix-table-sticky-scrollbar"
+            onScroll={() => syncPendingScroll(tipo, "sticky")}
+          >
+            <div style={{ width: contentWidth, height: 1 }} />
+          </div>
+        )}
       </div>
     );
   };

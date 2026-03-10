@@ -3511,9 +3511,31 @@ const PanelOperaciones = () => {
                               const hasPermission = canCrearAnticipos();
                               if (!hasPermission) return null;
                               
-                              const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
+                              // Block if another user already owns records in this section
+                              const existingCajaMenor = currentProjectData.cajaMenor || [];
                               const userEmail = currentUserEmail || "";
                               const userEmpId = currentUserEmpleado?.id || "";
+                              const otherUserOwnsRecords = existingCajaMenor.length > 0 && existingCajaMenor.some(cm => {
+                                const isOwner = (cm.empleadoEmail?.toLowerCase() === userEmail) || 
+                                  (userEmpId && cm.empleadoId === userEmpId);
+                                return !isOwner;
+                              }) && !existingCajaMenor.some(cm => {
+                                const isOwner = (cm.empleadoEmail?.toLowerCase() === userEmail) || 
+                                  (userEmpId && cm.empleadoId === userEmpId);
+                                return isOwner;
+                              });
+
+                              if (otherUserOwnsRecords) {
+                                const ownerName = existingCajaMenor[0]?.empleadoNombre || "otro usuario";
+                                return (
+                                  <span className="text-xs text-muted-foreground italic flex items-center gap-1">
+                                    <Lock className="h-3 w-3" />
+                                    Solicitudes creadas por {ownerName}
+                                  </span>
+                                );
+                              }
+
+                              const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
                               const hasPendingLeg = legalizacion.some(l => {
                                 const isOwner = (l.empleadoEmail?.toLowerCase() === userEmail) || 
                                   (userEmpId && l.empleadoId === userEmpId);

@@ -74,7 +74,7 @@ const PanelDirectivo = () => {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
-  const [hideDeleted, setHideDeleted] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
   
   // Smart search state
@@ -259,7 +259,7 @@ const PanelDirectivo = () => {
 
   const filteredProjects = useMemo(() => {
     let result = projects.filter((p) => {
-      const matchesDeleted = !hideDeleted || !p.isDeleted;
+      const matchesDeleted = showDeleted || !p.isDeleted;
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
       
       const range = getDateRange();
@@ -338,7 +338,7 @@ const PanelDirectivo = () => {
     }
 
     return result;
-  }, [projects, hideDeleted, statusFilter, searchTokens, sortColumn, sortDirection, emptyPlacement, globalSelectedDate, globalViewMode, globalDateRange]);
+  }, [projects, showDeleted, statusFilter, searchTokens, sortColumn, sortDirection, emptyPlacement, globalSelectedDate, globalViewMode, globalDateRange]);
 
   const handleColumnSort = (columnKey: string) => {
     if (sortColumn === columnKey) {
@@ -926,13 +926,13 @@ const PanelDirectivo = () => {
               </TabsList>
               <div className="flex items-center gap-2">
                 <Switch
-                  id="hide-deleted"
-                  checked={hideDeleted}
-                  onCheckedChange={setHideDeleted}
+                  id="show-deleted"
+                  checked={showDeleted}
+                  onCheckedChange={setShowDeleted}
                   className={isMobile ? 'scale-90' : ''}
                 />
-                <Label htmlFor="hide-deleted" className={`cursor-pointer whitespace-nowrap ${isMobile ? 'text-xs text-muted-foreground' : 'text-sm text-muted-foreground'}`}>
-                  Ocultar eliminados
+                <Label htmlFor="show-deleted" className={`cursor-pointer whitespace-nowrap ${isMobile ? 'text-xs text-muted-foreground' : 'text-sm text-muted-foreground'}`}>
+                  Mostrar eliminados
                 </Label>
               </div>
             </div>

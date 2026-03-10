@@ -44,7 +44,7 @@ const PanelGeneral = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
-  const [hideDeleted, setHideDeleted] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
   const [montajeSort, setMontajeSort] = useState<"asc" | "desc" | null>(null);
   // Initialize with base columns - persisted to localStorage
@@ -101,7 +101,7 @@ const PanelGeneral = () => {
 
   const filteredProjects = useMemo(() => {
     let result = projects.filter((p) => {
-      const matchesDeleted = !hideDeleted || !p.isDeleted;
+      const matchesDeleted = showDeleted || !p.isDeleted;
       const matchesSearch =
         p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -130,7 +130,7 @@ const PanelGeneral = () => {
     }
 
     return result;
-  }, [projects, hideDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
+  }, [projects, showDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
 
 
   const getRowClassName = (project: Project) => {
@@ -542,12 +542,12 @@ const PanelGeneral = () => {
               </TabsList>
               <div className="flex items-center gap-2">
                 <Switch
-                  id="hide-deleted-general"
-                  checked={hideDeleted}
-                  onCheckedChange={setHideDeleted}
+                  id="show-deleted-general"
+                  checked={showDeleted}
+                  onCheckedChange={setShowDeleted}
                 />
-                <Label htmlFor="hide-deleted-general" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
-                  Ocultar eliminados
+                <Label htmlFor="show-deleted-general" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
+                  Mostrar eliminados
                 </Label>
               </div>
               <Button

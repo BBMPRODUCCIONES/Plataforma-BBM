@@ -375,7 +375,7 @@ const PanelOperaciones = () => {
   
   // Calendar filter state - using global context
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
-  const [hideDeleted, setHideDeleted] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [montajeSort, setMontajeSort] = useState<"asc" | "desc" | null>(null);
   const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
   // Computed dateRange from global context
@@ -651,7 +651,7 @@ const PanelOperaciones = () => {
     
     // Normal filter mode
     let result = projects.filter((p) => {
-      const matchesDeleted = !hideDeleted || !p.isDeleted;
+      const matchesDeleted = showDeleted || !p.isDeleted;
       const matchesSearch =
         p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -680,7 +680,7 @@ const PanelOperaciones = () => {
     }
 
     return result;
-  }, [focusedEventId, projects, hideDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
+  }, [focusedEventId, projects, showDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
 
   const handleGanttProjectClick = (projectId: string) => {
     // Find the project
@@ -2790,15 +2790,15 @@ const PanelOperaciones = () => {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
               <div className="flex items-center gap-2">
                 <Switch
-                  id="hide-deleted-operaciones"
-                  checked={hideDeleted}
+                  id="show-deleted-operaciones"
+                  checked={showDeleted}
                   onCheckedChange={(checked) => {
                     exitFocusMode();
-                    setHideDeleted(checked);
+                    setShowDeleted(checked);
                   }}
                 />
-                <Label htmlFor="hide-deleted-operaciones" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
-                  Ocultar eliminados
+                <Label htmlFor="show-deleted-operaciones" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
+                  Mostrar eliminados
                 </Label>
               </div>
               <Button

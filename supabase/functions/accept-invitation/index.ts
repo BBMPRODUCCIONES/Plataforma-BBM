@@ -129,14 +129,31 @@ serve(async (req) => {
       allowedPanels = ['general', 'operaciones'];
     }
 
-    // Assign role with allowed_panels and email
+    // Assign role with allowed_panels, email, and granular permissions
+    const permissions = (invitation as any).permissions || {};
     const { error: roleError } = await supabase
       .from('user_roles')
       .insert({
         user_id: userId,
         role: invitation.role,
         allowed_panels: allowedPanels,
-        email: invitation.email
+        email: invitation.email,
+        puede_ver_feedback: permissions.puede_ver_feedback ?? false,
+        puede_editar_feedback: permissions.puede_editar_feedback ?? false,
+        puede_aprobar_caja_menor: permissions.puede_aprobar_caja_menor ?? false,
+        puede_crear_anticipos: permissions.puede_crear_anticipos ?? false,
+        puede_editar_general: permissions.puede_editar_general ?? false,
+        puede_editar_operaciones: permissions.puede_editar_operaciones ?? false,
+        puede_editar_directivo: permissions.puede_editar_directivo ?? false,
+        puede_editar_personal: permissions.puede_editar_personal ?? false,
+        puede_editar_inventario: permissions.puede_editar_inventario ?? false,
+        puede_asignar_responsables: permissions.puede_asignar_responsables ?? false,
+        puede_restaurar_solicitudes: permissions.puede_restaurar_solicitudes ?? false,
+        puede_acceder_usuarios: permissions.puede_acceder_usuarios ?? true,
+        puede_acceder_clientes: permissions.puede_acceder_clientes ?? true,
+        puede_acceder_empleados: permissions.puede_acceder_empleados ?? true,
+        puede_acceder_constructor: permissions.puede_acceder_constructor ?? true,
+        puede_acceder_agentes: permissions.puede_acceder_agentes ?? true,
       });
 
     if (roleError) {

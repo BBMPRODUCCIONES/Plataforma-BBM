@@ -671,7 +671,21 @@ const PanelOperaciones = () => {
 
       return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
     });
-  }, [focusedEventId, projects, hideDeleted, searchTerm, statusFilter, globalViewMode, globalSelectedDate, globalDateRange]);
+
+    if (montajeSort) {
+      result = [...result].sort((a, b) => {
+        const dateA = a.fechaMontajeInicio || "";
+        const dateB = b.fechaMontajeInicio || "";
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        const cmp = dateA.localeCompare(dateB);
+        return montajeSort === "asc" ? cmp : -cmp;
+      });
+    }
+
+    return result;
+  }, [focusedEventId, projects, hideDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
 
   const handleGanttProjectClick = (projectId: string) => {
     // Find the project

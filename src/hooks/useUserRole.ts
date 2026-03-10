@@ -156,6 +156,14 @@ export function useUserRole(): UseUserRoleReturn {
     return panelEditPermissions?.puedeAsignarResponsables ?? false;
   };
 
+  const canRestaurarSolicitudes = (): boolean => {
+    if (!role) return false;
+    if (role.toLowerCase() === "administrador") {
+      return cajaMenorPermissions?.puedeRestaurarSolicitudes ?? false;
+    }
+    return false;
+  };
+
   return {
     role: role as UserRole | null,
     loading,
@@ -176,5 +184,6 @@ export function useUserRole(): UseUserRoleReturn {
     canEditFeedback,
     canApproveCajaMenor,
     canCrearAnticipos,
+    canRestaurarSolicitudes,
   };
 }

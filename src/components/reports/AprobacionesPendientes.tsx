@@ -1158,7 +1158,7 @@ export default function AprobacionesPendientes() {
     const isRestored = row.item.restaurada === true;
     return (
       <TableRow key={rowKey}>
-        {showCheckbox && canApproveCajaMenor() && (
+        {showCheckbox && canRestaurarSolicitudes() && (
           <TableCell className="text-xs">
             <Checkbox
               checked={selectedForRestore.has(rowKey)}

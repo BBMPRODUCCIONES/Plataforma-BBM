@@ -1447,24 +1447,6 @@ const Usuarios = () => {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Pending Invitations */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Invitaciones Pendientes ({pendingInvitations.length})
-              </h3>
-              {pendingInvitations.length > 0 ? (
-                <MatrixTable
-                  columns={invitationColumns}
-                  data={pendingInvitations}
-                />
-              ) : (
-                <p className="text-muted-foreground text-sm">
-                  No hay invitaciones pendientes
-                </p>
-              )}
-            </div>
-
             {/* Registered Users */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">

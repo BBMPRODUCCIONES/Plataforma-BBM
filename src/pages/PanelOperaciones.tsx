@@ -3105,7 +3105,7 @@ const PanelOperaciones = () => {
                             <Users className="h-4 w-4" />
                             Personal ({(currentProjectData.personal || []).length})
                           </CardTitle>
-                          {!operativoReadOnly && (
+                          {!operativoReadOnly && canEditPersonal() && (
                           <Button
                             variant="outline"
                             size="sm"

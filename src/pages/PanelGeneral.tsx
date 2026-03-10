@@ -410,6 +410,7 @@ const PanelGeneral = () => {
               type="text"
               onChange={(value) => updateProject(p.id, "notas", value)}
               className="truncate text-xs flex-1 min-w-0"
+              placeholder="Agregar nota"
               disabled={generalReadOnly}
             />
             {p.notas && p.notas.trim() && (

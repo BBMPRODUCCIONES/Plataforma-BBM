@@ -989,6 +989,7 @@ const PanelOperaciones = () => {
                 type="text"
                 onChange={(value) => updateProject(p.id, "notas", value)}
                 className="truncate text-xs flex-1 min-w-0"
+                placeholder="Agregar nota"
                 disabled={operativoReadOnly}
               />
               {p.notas && p.notas.trim() && (

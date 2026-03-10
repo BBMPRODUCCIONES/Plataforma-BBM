@@ -51,6 +51,7 @@ interface AuthContextType {
   feedbackPermissions: FeedbackPermissions;
   cajaMenorPermissions: CajaMenorPermissions;
   panelEditPermissions: PanelEditPermissions;
+  adminPagePermissions: AdminPagePermissions;
   loading: boolean;
   roleLoading: boolean;
   roleError: string | null;

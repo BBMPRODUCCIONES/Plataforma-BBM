@@ -1077,7 +1077,7 @@ export default function AprobacionesPendientes() {
           // Reset estado to "Pendiente" and mark as restaurada
           const updatedCajaMenor = (project.cajaMenor || []).map(item =>
             cajaMenorIdsToRestore.has(item.id)
-              ? { ...item, estado: "Pendiente", revisadoPor: "", restaurada: true, restauradaPor: restoreBy, restauradaEn: restoreTimestamp }
+              ? { ...item, estado: "Pendiente", revisadoPor: "", restaurada: true, restauradaPor: restoreBy, restauradaEn: restoreTimestamp, restauradaRazon: restoreReasonInput }
               : item
           );
           await updateProject(projectId, "cajaMenor", updatedCajaMenor);

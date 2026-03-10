@@ -1050,6 +1050,7 @@ const Usuarios = () => {
                     Controla si el usuario puede modificar las secciones de Personal, Inventario y asignar responsables en los paneles.
                   </p>
                 </div>
+              </div>
 
               {/* Caja Menor Approval Permission - all roles */}
               <div className="space-y-2">

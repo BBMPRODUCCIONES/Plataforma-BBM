@@ -336,7 +336,7 @@ const PanelOperaciones = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
-  const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor, canCrearAnticipos, canEditOperaciones } = useUserRole();
+  const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor, canCrearAnticipos, canEditOperaciones, canEditPersonal, canEditInventario, canAsignarResponsables } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { empleados } = useEmpleados();

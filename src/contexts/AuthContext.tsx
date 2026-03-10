@@ -65,6 +65,9 @@ const defaultPanelEditPermissions: PanelEditPermissions = {
   puedeEditarGeneral: false,
   puedeEditarOperaciones: false,
   puedeEditarDirectivo: false,
+  puedeEditarPersonal: false,
+  puedeEditarInventario: false,
+  puedeAsignarResponsables: false,
 };
 
 // Cache key for localStorage

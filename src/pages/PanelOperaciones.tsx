@@ -1940,7 +1940,7 @@ const PanelOperaciones = () => {
     const inventarioReadOnly = !canEditInventario();
     
     return [
-      {
+      ...(!inventarioReadOnly ? [{
         key: "reorder",
         header: "",
         width: "40px",
@@ -1980,7 +1980,7 @@ const PanelOperaciones = () => {
             </Button>
           </div>
         ),
-      },
+      }] : []),
       { 
         key: "nombreMaterial", 
         header: "Material", 

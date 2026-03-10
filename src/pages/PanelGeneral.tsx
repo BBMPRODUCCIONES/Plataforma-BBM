@@ -130,7 +130,7 @@ const PanelGeneral = () => {
     }
 
     return result;
-  }, [projects, hideDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
+  }, [projects, showDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
 
 
   const getRowClassName = (project: Project) => {

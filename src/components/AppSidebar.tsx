@@ -62,7 +62,7 @@ function SidebarSkeleton() {
 }
 
 export function AppSidebar() {
-  const { canAccessPanel, canEditStructure, role, roleLoading } = useUserRole();
+  const { canAccessPanel, canEditStructure, canAccessAdminPage, role, roleLoading } = useUserRole();
   const { signOut } = useAuth();
   const navigate = useNavigate();
 

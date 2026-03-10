@@ -550,6 +550,20 @@ const PanelGeneral = () => {
                   Ocultar eliminados
                 </Label>
               </div>
+              <Button
+                variant={montajeSort ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  if (!montajeSort) setMontajeSort("asc");
+                  else if (montajeSort === "asc") setMontajeSort("desc");
+                  else setMontajeSort(null);
+                }}
+                className="h-9 text-xs whitespace-nowrap gap-1.5"
+                title={montajeSort === "asc" ? "Montaje: Más antiguo primero" : montajeSort === "desc" ? "Montaje: Más reciente primero" : "Ordenar por Montaje"}
+              >
+                {montajeSort === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : montajeSort === "desc" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUpDown className="h-3.5 w-3.5" />}
+                Montaje
+              </Button>
             </div>
 
             <div className="relative w-full sm:w-64">

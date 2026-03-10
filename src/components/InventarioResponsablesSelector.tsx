@@ -26,6 +26,7 @@ interface InventarioResponsablesSelectorProps {
   onResponsableEntradaChange: (data: ResponsableAutoLog) => void;
   onResponsableEventoChange: (data: ResponsableAutoLog) => void;
   highlightMissing?: boolean;
+  readOnly?: boolean;
 }
 
 const UNDO_WINDOW_MS = 5 * 60 * 1000; // 5 minutes

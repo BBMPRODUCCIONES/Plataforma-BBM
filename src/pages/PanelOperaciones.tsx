@@ -2066,7 +2066,7 @@ const PanelOperaciones = () => {
           />
         ),
       },
-      {
+      ...(canEditInventario() ? [{
         key: "acciones",
         header: "",
         width: "50px",
@@ -2087,7 +2087,7 @@ const PanelOperaciones = () => {
             <Trash2 className="h-3 w-3" />
           </Button>
         ),
-      },
+      }] : []),
   ];
   }, [currentProjectData?.id, currentProjectData?.inventario]);
 

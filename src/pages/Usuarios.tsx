@@ -184,6 +184,7 @@ const Usuarios = () => {
           puede_editar_personal: (roleRecord as any).puede_editar_personal ?? false,
           puede_editar_inventario: (roleRecord as any).puede_editar_inventario ?? false,
           puede_asignar_responsables: (roleRecord as any).puede_asignar_responsables ?? false,
+          puede_restaurar_solicitudes: (roleRecord as any).puede_restaurar_solicitudes ?? false,
           created_at: profile?.created_at || null,
         };
       });

@@ -269,15 +269,17 @@ serve(async (req) => {
             continue;
           }
 
-          const startDateTime = `${project.fecha_ejecucion_inicio}T${project.hora_ejecucion_inicio || '09:00'}:00`;
-          const endDateTime = `${project.fecha_ejecucion_fin}T${project.hora_ejecucion_fin || '22:00'}:00`;
+          // All-day event: end date must be exclusive (next day)
+          const endDate = new Date(project.fecha_ejecucion_fin);
+          endDate.setDate(endDate.getDate() + 1);
+          const endDateStr = endDate.toISOString().split('T')[0];
 
           const eventData = {
             summary: `[EJECUCIÓN] ${project.evento} - ${project.cliente}`,
             description: buildDescription(project, 'ejecucion'),
             location: project.ubicacion,
-            start: { dateTime: startDateTime, timeZone },
-            end: { dateTime: endDateTime, timeZone },
+            start: { date: project.fecha_ejecucion_inicio },
+            end: { date: endDateStr },
             colorId: '9',
           };
 

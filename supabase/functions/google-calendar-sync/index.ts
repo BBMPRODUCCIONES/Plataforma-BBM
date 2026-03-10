@@ -279,15 +279,17 @@ serve(async (req) => {
         const key = `${project.id}_ejecucion`;
         const existing = existingMap.get(key);
 
-        const startDateTime = `${project.fechaEjecucionInicio}T${project.horaEjecucionInicio || '09:00'}:00`;
-        const endDateTime = `${project.fechaEjecucionFin}T${project.horaEjecucionFin || '22:00'}:00`;
+        // All-day event: end date must be exclusive (next day)
+        const endDate = new Date(project.fechaEjecucionFin);
+        endDate.setDate(endDate.getDate() + 1);
+        const endDateStr = endDate.toISOString().split('T')[0];
 
         const eventData = {
           summary: `[EJECUCIÓN] ${project.evento} - ${project.cliente}`,
           description: buildDescription(project, 'ejecucion'),
           location: project.ubicacion,
-          start: { dateTime: startDateTime, timeZone },
-          end: { dateTime: endDateTime, timeZone },
+          start: { date: project.fechaEjecucionInicio },
+          end: { date: endDateStr },
           colorId: '9',
         };
 

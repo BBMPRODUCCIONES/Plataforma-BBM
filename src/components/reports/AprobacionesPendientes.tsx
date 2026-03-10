@@ -51,6 +51,7 @@ import {
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
 import { Search, RotateCcw, Lock, History, Undo2, Clock, AlertTriangle } from "lucide-react";
 import AprobacionesKPIs from "@/components/reports/AprobacionesKPIs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {

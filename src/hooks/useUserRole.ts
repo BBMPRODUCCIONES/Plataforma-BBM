@@ -82,51 +82,46 @@ export function useUserRole(): UseUserRoleReturn {
     return ADMIN_ONLY_SECTIONS.includes(section.toLowerCase());
   };
 
-  // Can edit Panel General: admin always, operativo only with explicit permission
+  // Can edit Panel General: requires explicit permission for ALL roles (including admin)
   const canEditGeneral = (): boolean => {
     if (!role) return false;
     const normalizedRole = role.toLowerCase();
-    if (normalizedRole === "administrador") return true;
+    if (normalizedRole === "administrador") return panelEditPermissions?.puedeEditarGeneral ?? false;
     if (normalizedRole === "operativo") return panelEditPermissions?.puedeEditarGeneral ?? false;
     return false;
   };
 
-  // Can edit operations panel: admin or operativo with explicit permission
+  // Can edit operations panel: requires explicit permission for ALL roles
   const canEditOperaciones = (): boolean => {
     if (!role) return false;
     const normalizedRole = role.toLowerCase();
-    if (normalizedRole === "administrador") return true;
+    if (normalizedRole === "administrador") return panelEditPermissions?.puedeEditarOperaciones ?? false;
     if (normalizedRole === "operativo") return panelEditPermissions?.puedeEditarOperaciones ?? false;
     return false;
   };
 
-  // Can edit Panel Directivo: admin always, operativo only with explicit permission
+  // Can edit Panel Directivo: requires explicit permission for ALL roles
   const canEditDirectivo = (): boolean => {
     if (!role) return false;
     const normalizedRole = role.toLowerCase();
-    if (normalizedRole === "administrador") return true;
+    if (normalizedRole === "administrador") return panelEditPermissions?.puedeEditarDirectivo ?? false;
     if (normalizedRole === "operativo") return panelEditPermissions?.puedeEditarDirectivo ?? false;
     return false;
   };
 
   const canViewFeedback = (): boolean => {
     if (!role) return false;
-    if (role.toLowerCase() === "administrador") return true;
     return feedbackPermissions?.puedeVerFeedback ?? false;
   };
 
   const canEditFeedback = (): boolean => {
     if (!role) return false;
-    if (role.toLowerCase() === "administrador") return true;
     return feedbackPermissions?.puedeEditarFeedback ?? false;
   };
 
   const canApproveCajaMenor = (): boolean => {
     if (!role) return false;
-    if (role.toLowerCase() === "administrador") {
-      return cajaMenorPermissions?.puedeAprobarCajaMenor ?? false;
-    }
-    return false;
+    return cajaMenorPermissions?.puedeAprobarCajaMenor ?? false;
   };
 
   const canCrearAnticipos = (): boolean => {
@@ -136,20 +131,29 @@ export function useUserRole(): UseUserRoleReturn {
 
   const canEditPersonal = (): boolean => {
     if (!role) return false;
-    if (role.toLowerCase() === "administrador") return true;
-    return panelEditPermissions?.puedeEditarPersonal ?? false;
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole === "administrador" || normalizedRole === "operativo") {
+      return panelEditPermissions?.puedeEditarPersonal ?? false;
+    }
+    return false;
   };
 
   const canEditInventario = (): boolean => {
     if (!role) return false;
-    if (role.toLowerCase() === "administrador") return true;
-    return panelEditPermissions?.puedeEditarInventario ?? false;
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole === "administrador" || normalizedRole === "operativo") {
+      return panelEditPermissions?.puedeEditarInventario ?? false;
+    }
+    return false;
   };
 
   const canAsignarResponsables = (): boolean => {
     if (!role) return false;
-    if (role.toLowerCase() === "administrador") return true;
-    return panelEditPermissions?.puedeAsignarResponsables ?? false;
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole === "administrador" || normalizedRole === "operativo") {
+      return panelEditPermissions?.puedeAsignarResponsables ?? false;
+    }
+    return false;
   };
 
   const canRestaurarSolicitudes = (): boolean => {

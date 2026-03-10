@@ -187,6 +187,7 @@ export interface LegalizacionItem {
   restaurada?: boolean; // Indica si fue restaurada desde aprobadas/rechazadas
   restauradaPor?: string; // Nombre de quien restauró
   restauradaEn?: string; // Fecha/hora de la restauración (ISO string)
+  restauradaRazon?: string; // Razón de la restauración
 }
 
 export interface Proveedor {

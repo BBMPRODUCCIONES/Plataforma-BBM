@@ -184,6 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         cajaMenorPermissions: {
           puedeAprobarCajaMenor: data.puede_aprobar_caja_menor ?? false,
           puedeCrearAnticipos: data.puede_crear_anticipos ?? false,
+          puedeRestaurarSolicitudes: (data as any).puede_restaurar_solicitudes ?? false,
         },
         panelEditPermissions: {
           puedeEditarGeneral: (data as any).puede_editar_general ?? false,

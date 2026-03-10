@@ -859,9 +859,10 @@ const Usuarios = () => {
                       value={newRole}
                       onValueChange={(value) => {
                         setNewRole(value as AppRole);
-                        // Auto-select all panels for admin
                         if (value === "administrador") {
                           setNewPanels(ALL_PANELS);
+                        } else if (value === "visual") {
+                          setNewPanels(["operaciones"]);
                         }
                       }}
                       disabled={isSubmitting}

@@ -677,6 +677,17 @@ export default function AprobacionesPendientes() {
     C: pendingByType.C.reduce((sum, g) => sum + g.rows.length, 0),
   }), [pendingByType]);
 
+  // Auto-switch tab when global search is active and current tab has no results
+  useEffect(() => {
+    if (!globalSearch || !searchQuery.trim()) return;
+    const currentType = activeTab as 'S' | 'R' | 'C';
+    if (pendingByType[currentType].length > 0) return;
+    // Find first tab with results
+    const order: ('S' | 'R' | 'C')[] = ['S', 'R', 'C'];
+    const found = order.find(t => pendingByType[t].length > 0);
+    if (found) setActiveTab(found);
+  }, [globalSearch, searchQuery, pendingByType, activeTab]);
+
   // Log a change to the undo log
   const logUndoEntry = async (row: FlattenedRow, previousEstado: string, newEstado: string, previousRevisadoPor: string) => {
     const { data: userData } = await supabase.auth.getUser();

@@ -46,6 +46,7 @@ const PanelGeneral = () => {
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [hideDeleted, setHideDeleted] = useState(false);
   const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
+  const [montajeSort, setMontajeSort] = useState<"asc" | "desc" | null>(null);
   // Initialize with base columns - persisted to localStorage
   const defaultColumns: ColumnConfig[] = [
     { key: "centroCostos", header: "CC", type: "text" as CellType, width: "70px", visible: true, isCustom: false, order: 0 },

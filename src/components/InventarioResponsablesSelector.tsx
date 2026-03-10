@@ -164,8 +164,8 @@ function ResponsableSection({
   const { canUndo, timeLeft } = useTimeLeft(data.timestamp);
   const isOwnRegistration = data.userId === currentUserId;
 
-  // Can clear if: admin always, productor always, or own registration within 5 min window
-  const canClear = isAdmin || isProductor || (isOwnRegistration && canUndo);
+  // Can clear if: not readOnly AND (admin always, productor always, or own registration within 5 min window)
+  const canClear = !readOnly && (isAdmin || isProductor || (isOwnRegistration && canUndo));
 
   const minutesLeft = Math.ceil(timeLeft / 60000);
 

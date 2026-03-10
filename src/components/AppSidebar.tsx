@@ -139,21 +139,26 @@ export function AppSidebar() {
                   Administración
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <SidebarMenu>
-                    {adminNavItems.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild>
-                          <NavLink
-                            to={item.url}
-                            className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-sidebar-accent"
-                            activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                          >
-                            <item.icon className="w-4 h-4" />
-                            <span className="text-sm">{item.title}</span>
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
+                   <SidebarMenu>
+                     {adminNavItems.map((item) => {
+                       // Check per-page admin permission
+                       if (!canAccessAdminPage(item.panel)) return null;
+                       
+                       return (
+                         <SidebarMenuItem key={item.title}>
+                           <SidebarMenuButton asChild>
+                             <NavLink
+                               to={item.url}
+                               className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-sidebar-accent"
+                               activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                             >
+                               <item.icon className="w-4 h-4" />
+                               <span className="text-sm">{item.title}</span>
+                             </NavLink>
+                           </SidebarMenuButton>
+                         </SidebarMenuItem>
+                       );
+                     })}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>

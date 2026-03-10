@@ -1183,6 +1183,9 @@ export default function AprobacionesPendientes() {
                     {row.item.restauradaEn && (
                       <p>{format(parseISO(row.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
                     )}
+                    {row.item.restauradaRazon && (
+                      <p className="mt-1 italic">Razón: {row.item.restauradaRazon}</p>
+                    )}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

@@ -104,8 +104,8 @@ interface CachedRoleData {
   timestamp: number;
 }
 
-// Cache duration: 5 minutes
-const CACHE_DURATION = 5 * 60 * 1000;
+// Cache duration: 1 minute (shorter to pick up permission changes faster)
+const CACHE_DURATION = 1 * 60 * 1000;
 
 // Timeout for role fetch: 5 seconds
 const ROLE_FETCH_TIMEOUT = 5000;

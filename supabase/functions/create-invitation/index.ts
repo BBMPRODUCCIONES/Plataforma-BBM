@@ -321,14 +321,15 @@ serve(async (req) => {
       }
     }
 
-    // Create invitation with allowed_panels
+    // Create invitation with allowed_panels and permissions
     const { data: invitation, error: invitationError } = await supabaseAdmin
       .from('invitations')
       .insert({
         email,
         role,
         allowed_panels: finalAllowedPanels,
-        created_by_admin_id: user.id
+        created_by_admin_id: user.id,
+        permissions: permissions || {}
       })
       .select()
       .single();

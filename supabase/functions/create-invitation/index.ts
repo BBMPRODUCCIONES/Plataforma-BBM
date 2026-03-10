@@ -116,7 +116,7 @@ serve(async (req) => {
       );
     }
 
-    const { email, role, allowed_panels } = validationResult.data;
+    const { email, role, allowed_panels, permissions } = validationResult.data;
 
     // Determine allowed panels based on role
     const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores'];

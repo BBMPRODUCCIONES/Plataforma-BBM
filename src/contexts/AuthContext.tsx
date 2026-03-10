@@ -472,6 +472,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       feedbackPermissions,
       cajaMenorPermissions,
       panelEditPermissions,
+      adminPagePermissions,
       loading, 
       roleLoading,
       roleError,

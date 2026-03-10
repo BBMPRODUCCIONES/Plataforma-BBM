@@ -813,6 +813,11 @@
     display: none; /* Chrome/Safari: hide native scrollbar */
   }
 
+  /* Prevent nested scroll containers inside sticky scroll system (e.g. shadcn Table wrapper) */
+  .matrix-table-main-scroll > .relative.overflow-auto {
+    overflow: visible !important;
+  }
+
   .matrix-table-sticky-scrollbar {
     position: sticky;
     bottom: 0;

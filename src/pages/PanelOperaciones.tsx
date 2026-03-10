@@ -911,18 +911,22 @@ const PanelOperaciones = () => {
               disabled={operativoReadOnly}
             />
           );
-        case "formatoPreproduccion":
+        case "formatoPreproduccion": {
+          const hasFormato = p.formatoPreproduccion && p.formatoPreproduccion.length > 0;
           return operativoReadOnly ? (
             <span className="text-xs text-muted-foreground">{(p.formatoPreproduccion || []).length || "—"}</span>
           ) : (
-            <AttachmentButton
-              attachments={p.formatoPreproduccion || []}
-              onAttachmentsChange={(attachments) => updateProject(p.id, "formatoPreproduccion", attachments)}
-              multiple
-              projectId={p.id}
-              fieldName="formatoPreproduccion"
-            />
+            <div className={cn(!hasFormato && "ring-2 ring-red-500 rounded")}>
+              <AttachmentButton
+                attachments={p.formatoPreproduccion || []}
+                onAttachmentsChange={(attachments) => updateProject(p.id, "formatoPreproduccion", attachments)}
+                multiple
+                projectId={p.id}
+                fieldName="formatoPreproduccion"
+              />
+            </div>
           );
+        }
         case "personal":
           return (
             <Button

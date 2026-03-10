@@ -62,6 +62,11 @@ interface UserWithRole {
   puede_editar_inventario: boolean;
   puede_asignar_responsables: boolean;
   puede_restaurar_solicitudes: boolean;
+  puede_acceder_usuarios: boolean;
+  puede_acceder_clientes: boolean;
+  puede_acceder_empleados: boolean;
+  puede_acceder_constructor: boolean;
+  puede_acceder_agentes: boolean;
   created_at: string | null;
 }
 

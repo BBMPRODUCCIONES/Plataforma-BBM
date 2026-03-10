@@ -1815,7 +1815,7 @@ export default function AprobacionesPendientes() {
       </div>
 
       {/* Tabs by type */}
-      <Tabs defaultValue="S" className="flex-1 flex flex-col min-h-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         <div className="flex items-center justify-between flex-shrink-0 gap-2">
           <TabsList className="h-auto p-1 flex-wrap">
             <TabsTrigger value="S" className="gap-1.5 text-xs px-3 py-1.5">

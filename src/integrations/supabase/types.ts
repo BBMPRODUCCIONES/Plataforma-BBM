@@ -217,6 +217,7 @@ export type Database = {
           restaurada: boolean | null
           restaurada_en: string | null
           restaurada_por: string | null
+          restaurada_razon: string | null
           tipo_centro: string | null
           updated_at: string
           usuario_id: string
@@ -239,6 +240,7 @@ export type Database = {
           restaurada?: boolean | null
           restaurada_en?: string | null
           restaurada_por?: string | null
+          restaurada_razon?: string | null
           tipo_centro?: string | null
           updated_at?: string
           usuario_id: string
@@ -261,6 +263,7 @@ export type Database = {
           restaurada?: boolean | null
           restaurada_en?: string | null
           restaurada_por?: string | null
+          restaurada_razon?: string | null
           tipo_centro?: string | null
           updated_at?: string
           usuario_id?: string
@@ -915,6 +918,7 @@ export type Database = {
           puede_editar_inventario: boolean | null
           puede_editar_operaciones: boolean | null
           puede_editar_personal: boolean | null
+          puede_restaurar_solicitudes: boolean | null
           puede_ver_feedback: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
@@ -932,6 +936,7 @@ export type Database = {
           puede_editar_inventario?: boolean | null
           puede_editar_operaciones?: boolean | null
           puede_editar_personal?: boolean | null
+          puede_restaurar_solicitudes?: boolean | null
           puede_ver_feedback?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
@@ -949,6 +954,7 @@ export type Database = {
           puede_editar_inventario?: boolean | null
           puede_editar_operaciones?: boolean | null
           puede_editar_personal?: boolean | null
+          puede_restaurar_solicitudes?: boolean | null
           puede_ver_feedback?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string

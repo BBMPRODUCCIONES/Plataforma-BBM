@@ -100,6 +100,7 @@ interface CachedRoleData {
   feedbackPermissions: FeedbackPermissions;
   cajaMenorPermissions: CajaMenorPermissions;
   panelEditPermissions: PanelEditPermissions;
+  adminPagePermissions: AdminPagePermissions;
   timestamp: number;
 }
 

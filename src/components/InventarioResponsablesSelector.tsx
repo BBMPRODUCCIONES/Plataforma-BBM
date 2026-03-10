@@ -147,6 +147,7 @@ function ResponsableSection({
   currentUserId,
   isAdmin,
   isProductor,
+  readOnly = false,
 }: {
   label: string;
   icon: React.ElementType;
@@ -157,6 +158,7 @@ function ResponsableSection({
   currentUserId?: string;
   isAdmin: boolean;
   isProductor: boolean;
+  readOnly?: boolean;
 }) {
   const isRegistered = !!data.nombre;
   const { canUndo, timeLeft } = useTimeLeft(data.timestamp);

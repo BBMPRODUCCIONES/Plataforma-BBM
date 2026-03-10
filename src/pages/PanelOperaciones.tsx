@@ -650,17 +650,13 @@ const PanelOperaciones = () => {
     }
     
     // Normal filter mode
-    return projects.filter((p) => {
-      // Show all by default, hide deleted only when hideDeleted is enabled
+    let result = projects.filter((p) => {
       const matchesDeleted = !hideDeleted || !p.isDeleted;
-      
       const matchesSearch =
         p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
-      
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
-      
       const range = getDateRange();
       const projectStart = parseISO(p.fechaMontajeInicio);
       const projectEnd = parseISO(p.fechaEjecucionFin);
@@ -668,7 +664,6 @@ const PanelOperaciones = () => {
         isWithinInterval(projectStart, range) ||
         isWithinInterval(projectEnd, range) ||
         (projectStart <= range.start && projectEnd >= range.end);
-
       return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
     });
 

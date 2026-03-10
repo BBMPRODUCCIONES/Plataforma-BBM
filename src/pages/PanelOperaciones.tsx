@@ -1629,18 +1629,16 @@ const PanelOperaciones = () => {
         width: "140px",
         mobileWidth: "140px",
         render: (p: PersonalItem) => {
-          // BBM: Auto-filled from employee, read-only
-          if (p.tipoPersonal === "BBM") {
+          if (personalReadOnly || p.tipoPersonal === "BBM") {
             return (
-              <div className="flex items-center gap-1" title="Cédula desde Creación de Empleados">
+              <div className="flex items-center gap-1" title={p.tipoPersonal === "BBM" ? "Cédula desde Creación de Empleados" : undefined}>
                 <span className={`text-sm truncate ${!p.cedula ? "text-muted-foreground italic" : ""}`}>
                   {p.cedula || "Sin cédula"}
                 </span>
-                <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                {p.tipoPersonal === "BBM" && <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />}
               </div>
             );
           }
-          // Proveedor/Transporte: Manual editable with validation
           return (
             <div className={`rounded ${!p.cedula ? "ring-2 ring-destructive/50" : ""}`}>
               <EditableCell
@@ -1666,7 +1664,9 @@ const PanelOperaciones = () => {
         header: "Cargo", 
         width: "120px",
         mobileWidth: "120px",
-        render: (p: PersonalItem) => (
+        render: (p: PersonalItem) => personalReadOnly ? (
+          <span className="text-sm truncate">{p.cargo || "-"}</span>
+        ) : (
           <EditableCell
             value={p.cargo}
             type="text"
@@ -1679,7 +1679,9 @@ const PanelOperaciones = () => {
         header: "Teléfono", 
         width: "130px",
         mobileWidth: "130px",
-        render: (p: PersonalItem) => (
+        render: (p: PersonalItem) => personalReadOnly ? (
+          <span className="text-sm truncate">{p.telefono || "-"}</span>
+        ) : (
           <EditableCell
             value={p.telefono}
             type="text"
@@ -1692,7 +1694,9 @@ const PanelOperaciones = () => {
         header: "Notas", 
         width: "200px",
         mobileWidth: "200px",
-        render: (p: PersonalItem) => (
+        render: (p: PersonalItem) => personalReadOnly ? (
+          <span className="text-sm truncate">{p.notas || "-"}</span>
+        ) : (
           <EditableCell
             value={p.notas}
             type="text"

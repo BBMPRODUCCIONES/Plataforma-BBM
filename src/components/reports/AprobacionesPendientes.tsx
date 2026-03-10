@@ -1349,6 +1349,7 @@ export default function AprobacionesPendientes() {
             <TableRow>
               <TableHead className="text-xs w-[30px]"></TableHead>
               <TableHead className="text-xs">Fecha</TableHead>
+              <TableHead className="text-xs">Solicitante</TableHead>
               <TableHead className="text-xs">CC</TableHead>
               <TableHead className="text-xs">Relación de eventos</TableHead>
               <TableHead className="text-xs text-right">Valor Total</TableHead>

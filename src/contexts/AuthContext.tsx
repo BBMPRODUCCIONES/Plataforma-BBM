@@ -147,6 +147,7 @@ function setCachedRole(userId: string, roleData: UserRoleData): void {
       feedbackPermissions: roleData.feedbackPermissions,
       cajaMenorPermissions: roleData.cajaMenorPermissions,
       panelEditPermissions: roleData.panelEditPermissions,
+      adminPagePermissions: roleData.adminPagePermissions,
       timestamp: Date.now(),
     };
     localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify(cacheData));

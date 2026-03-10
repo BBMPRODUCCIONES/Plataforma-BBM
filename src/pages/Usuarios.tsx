@@ -1035,10 +1035,12 @@ const Usuarios = () => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox id="new-puede-editar-feedback" checked={newPuedeEditarFeedback} onCheckedChange={(checked) => { setNewPuedeEditarFeedback(checked as boolean); if (checked) setNewPuedeVerFeedback(true); }} disabled={isSubmitting || !newPuedeVerFeedback} />
-                        <Label htmlFor="new-puede-editar-feedback" className="text-sm font-normal cursor-pointer">Puede editar Feedback</Label>
+                      <Label htmlFor="new-puede-editar-feedback" className="text-sm font-normal cursor-pointer">Puede editar Feedback</Label>
                       </div>
                     </div>
                   </div>
+                  </>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4 py-4">

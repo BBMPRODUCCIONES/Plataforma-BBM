@@ -170,6 +170,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [allowedPanels, setAllowedPanels] = useState<string[]>([]);
   const [feedbackPermissions, setFeedbackPermissions] = useState<FeedbackPermissions>(defaultFeedbackPermissions);
   const [cajaMenorPermissions, setCajaMenorPermissions] = useState<CajaMenorPermissions>(defaultCajaMenorPermissions);
+  const [adminPagePermissions, setAdminPagePermissions] = useState<AdminPagePermissions>(defaultAdminPagePermissions);
   const [panelEditPermissions, setPanelEditPermissions] = useState<PanelEditPermissions>(defaultPanelEditPermissions);
   const [loading, setLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);

@@ -2016,7 +2016,7 @@ const PanelOperaciones = () => {
       },
       {
         key: "recibido",
-        header: "Recibido",
+        header: "Entrada",
         width: "80px",
         mobileWidth: "80px",
         render: (i: InventarioItem) => (
@@ -2024,6 +2024,19 @@ const PanelOperaciones = () => {
             value={i.recibido}
             type="boolean"
             onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "recibido", value)}
+          />
+        ),
+      },
+      {
+        key: "salida",
+        header: "Salida",
+        width: "80px",
+        mobileWidth: "80px",
+        render: (i: InventarioItem) => (
+          <EditableCell
+            value={i.salida ?? false}
+            type="boolean"
+            onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "salida", value)}
           />
         ),
       },

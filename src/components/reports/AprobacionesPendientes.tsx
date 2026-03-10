@@ -50,7 +50,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
-import { Search, RotateCcw, Lock, History, Undo2, Clock, AlertTriangle, Globe } from "lucide-react";
+import { Search, RotateCcw, Lock, History, Undo2, Clock, AlertTriangle, Globe, Eye } from "lucide-react";
+
+const TruncatedCellWithEye = ({ text, label }: { text: string; label: string }) => {
+  if (!text || text === "—") return <span className="text-muted-foreground">—</span>;
+  return (
+    <div className="flex items-center gap-1 max-w-[100px]">
+      <span className="truncate text-xs">{text}</span>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button" className="shrink-0 focus:outline-none">
+            <Eye className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-pointer" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent side="top" className="text-xs max-w-[280px] p-3">
+          <p className="font-semibold mb-1">{label}</p>
+          <p className="whitespace-pre-wrap">{text}</p>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
 import AprobacionesKPIs from "@/components/reports/AprobacionesKPIs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -1242,16 +1262,19 @@ export default function AprobacionesPendientes() {
             );
           })()}
         </TableCell>
-        <TableCell className="text-xs whitespace-nowrap">
-          {(() => {
-            const r = (row.item.recursos as string) || "";
-            const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
-            if (tipo === "C") {
-              const gm = gastosMenores.find(g => g.id === row.gastoMenorId);
-              return gm?.aprobado_por_nombre || "—";
-            }
-            return row.item.revisadoPor || "—";
-          })()}
+        <TableCell className="text-xs">
+          <TruncatedCellWithEye
+            text={(() => {
+              const r = (row.item.recursos as string) || "";
+              const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
+              if (tipo === "C") {
+                const gm = gastosMenores.find(g => g.id === row.gastoMenorId);
+                return gm?.aprobado_por_nombre || "—";
+              }
+              return row.item.revisadoPor || "—";
+            })()}
+            label="Aprobado por"
+          />
         </TableCell>
         <TableCell className="text-xs text-right">
           {(() => {
@@ -1505,11 +1528,14 @@ export default function AprobacionesPendientes() {
                     <TableCell className="text-xs whitespace-nowrap">
                       {d ? format(d, "dd/MM/yyyy") : "—"}
                     </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {(() => {
-                        const names = [...new Set(group.rows.map(r => r.item.empleadoNombre).filter(Boolean))];
-                        return names.length > 0 ? names.join(", ") : "—";
-                      })()}
+                    <TableCell className="text-xs">
+                      <TruncatedCellWithEye
+                        text={(() => {
+                          const names = [...new Set(group.rows.map(r => r.item.empleadoNombre).filter(Boolean))];
+                          return names.length > 0 ? names.join(", ") : "—";
+                        })()}
+                        label="Solicitante"
+                      />
                     </TableCell>
                     <TableCell className="text-xs">{group.centroCostos || "—"}</TableCell>
                     <TableCell className="text-xs">{group.evento || "—"}</TableCell>
@@ -1538,8 +1564,8 @@ export default function AprobacionesPendientes() {
                         );
                       })()}
                     </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {aprobadoPorDisplay}
+                    <TableCell className="text-xs">
+                      <TruncatedCellWithEye text={aprobadoPorDisplay} label="Aprobado por" />
                     </TableCell>
                     {showLeg && (
                       <TableCell className="text-xs text-right">
@@ -2081,11 +2107,14 @@ export default function AprobacionesPendientes() {
                         <TableCell className="text-xs whitespace-nowrap">
                           {d ? format(d, "dd/MM/yyyy") : "—"}
                         </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">
-                          {(() => {
-                            const names = [...new Set(group.rows.map(r => r.item.empleadoNombre).filter(Boolean))];
-                            return names.length > 0 ? names.join(", ") : "—";
-                          })()}
+                        <TableCell className="text-xs">
+                          <TruncatedCellWithEye
+                            text={(() => {
+                              const names = [...new Set(group.rows.map(r => r.item.empleadoNombre).filter(Boolean))];
+                              return names.length > 0 ? names.join(", ") : "—";
+                            })()}
+                            label="Solicitante"
+                          />
                         </TableCell>
                         <TableCell className="text-xs">{group.centroCostos || "—"}</TableCell>
                         <TableCell className="text-xs">{group.evento || "—"}</TableCell>
@@ -2100,7 +2129,9 @@ export default function AprobacionesPendientes() {
                         <TableCell className="text-xs">
                           <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />
                         </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{aprobadoPorDisplay}</TableCell>
+                        <TableCell className="text-xs">
+                          <TruncatedCellWithEye text={aprobadoPorDisplay} label="Aprobado por" />
+                        </TableCell>
                         <TableCell className="text-xs text-right">
                           {isTypeS ? formatCurrency(group.totalLegalizacion) : "—"}
                         </TableCell>

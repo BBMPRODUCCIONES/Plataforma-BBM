@@ -137,6 +137,24 @@ export function useUserRole(): UseUserRoleReturn {
     return cajaMenorPermissions?.puedeCrearAnticipos ?? false;
   };
 
+  const canEditPersonal = (): boolean => {
+    if (!role) return false;
+    if (role.toLowerCase() === "administrador") return true;
+    return panelEditPermissions?.puedeEditarPersonal ?? false;
+  };
+
+  const canEditInventario = (): boolean => {
+    if (!role) return false;
+    if (role.toLowerCase() === "administrador") return true;
+    return panelEditPermissions?.puedeEditarInventario ?? false;
+  };
+
+  const canAsignarResponsables = (): boolean => {
+    if (!role) return false;
+    if (role.toLowerCase() === "administrador") return true;
+    return panelEditPermissions?.puedeAsignarResponsables ?? false;
+  };
+
   return {
     role: role as UserRole | null,
     loading,
@@ -149,6 +167,9 @@ export function useUserRole(): UseUserRoleReturn {
     canEditOperaciones,
     canEditGeneral,
     canEditDirectivo,
+    canEditPersonal,
+    canEditInventario,
+    canAsignarResponsables,
     isAdminOnly,
     canViewFeedback,
     canEditFeedback,

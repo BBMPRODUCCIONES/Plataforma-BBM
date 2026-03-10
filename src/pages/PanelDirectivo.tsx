@@ -639,6 +639,7 @@ const PanelDirectivo = () => {
             value={p.administrativoResponsable}
             type="text"
             onChange={(value) => updateProject(p.id, "administrativoResponsable", value)}
+            placeholder="Asignar responsable"
           />
         );
       case "ingresoTotal":

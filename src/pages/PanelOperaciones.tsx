@@ -340,7 +340,31 @@ const PanelOperaciones = () => {
   const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor, canCrearAnticipos, canEditOperaciones, canEditPersonal, canEditInventario, canAsignarResponsables } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
-  const { empleados } = useEmpleados();
+  const { empleados, refetch: refetchEmpleados } = useEmpleados();
+
+  // Fetch fresh employee data for exports (returns fresh array directly)
+  const getFreshEmpleados = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_employees_for_role');
+      if (!error && data) {
+        return data.map((row: any) => ({
+          id: row.id,
+          nombre: row.nombre || '',
+          cargo: row.cargo || '',
+          telefono: row.telefono || '',
+          correo: row.correo || '',
+          banco: row.banco || '',
+          tipoCuenta: row.tipo_cuenta || '',
+          numeroCuenta: row.numero_cuenta || '',
+          cedula: row.cedula || '',
+          createdAt: row.created_at,
+        }));
+      }
+    } catch (err) {
+      console.error('[PanelOperaciones] Error refreshing empleados for export:', err);
+    }
+    return empleados; // fallback to context data
+  };
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -3431,15 +3455,17 @@ const PanelOperaciones = () => {
                                       </DropdownMenuCheckboxItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem onClick={async () => {
+                                        const freshEmps = await getFreshEmpleados();
                                         const num = await getOrAssignSolicitudNum(currentProjectData.id);
-                                        printSolicitudPresupuesto(currentProjectData, empleados, includeLegalizacionInExport, num ?? undefined);
+                                        printSolicitudPresupuesto(currentProjectData, freshEmps, includeLegalizacionInExport, num ?? undefined);
                                       }}>
                                         <FileDown className="h-4 w-4 mr-2" />
                                         Descargar PDF
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={async () => {
+                                        const freshEmps = await getFreshEmpleados();
                                         const num = await getOrAssignSolicitudNum(currentProjectData.id);
-                                        await exportSolicitudToExcel(currentProjectData, empleados, includeLegalizacionInExport, num ?? undefined);
+                                        await exportSolicitudToExcel(currentProjectData, freshEmps, includeLegalizacionInExport, num ?? undefined);
                                       }}>
                                         <FileSpreadsheet className="h-4 w-4 mr-2" />
                                         Descargar Excel
@@ -3959,11 +3985,11 @@ const PanelOperaciones = () => {
                                         Agregar información de Solicitud de Anticipos
                                       </DropdownMenuCheckboxItem>
                                       <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={() => printLegalizacion(currentProjectData, empleados, includeSolicitudInExport)}>
+                                      <DropdownMenuItem onClick={async () => { const freshEmps = await getFreshEmpleados(); printLegalizacion(currentProjectData, freshEmps, includeSolicitudInExport); }}>
                                         <FileDown className="h-4 w-4 mr-2" />
                                         Descargar PDF
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => exportLegalizacionToExcel(currentProjectData, empleados, includeSolicitudInExport)}>
+                                      <DropdownMenuItem onClick={async () => { const freshEmps = await getFreshEmpleados(); await exportLegalizacionToExcel(currentProjectData, freshEmps, includeSolicitudInExport); }}>
                                         <FileSpreadsheet className="h-4 w-4 mr-2" />
                                         Descargar Excel
                                       </DropdownMenuItem>

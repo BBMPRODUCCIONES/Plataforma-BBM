@@ -1815,59 +1815,98 @@ export default function AprobacionesPendientes() {
       </div>
 
       {/* Tabs by type */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-        <div className="flex items-center justify-between flex-shrink-0 gap-2">
-          <TabsList className="h-auto p-1 flex-wrap">
-            <TabsTrigger value="S" className="gap-1.5 text-xs px-3 py-1.5">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] bg-blue-500/20 text-blue-400 border-blue-500/40">S</span>
-              Solicitud de anticipos
-              <Badge variant="outline" className="text-[10px] ml-1">{pendingCountByType.S}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="R" className="gap-1.5 text-xs px-3 py-1.5">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] bg-emerald-500/20 text-emerald-400 border-emerald-500/40">R</span>
-              Recursos propios
-              <Badge variant="outline" className="text-[10px] ml-1">{pendingCountByType.R}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="C" className="gap-1.5 text-xs px-3 py-1.5">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/40">C</span>
-              Caja menor
-              <Badge variant="outline" className="text-[10px] ml-1">{pendingCountByType.C}</Badge>
-            </TabsTrigger>
-          </TabsList>
-          {resolvedRows.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-xs shrink-0"
-              onClick={openHistoryDialog}
-            >
-              <History className="w-3.5 h-3.5" />
-              Historial ({groupedResolvedRows.length})
-            </Button>
+      {globalSearch && searchQuery.trim() ? (
+        /* Global search mode: show all types stacked */
+        <div className="flex-1 min-h-0 space-y-4">
+          <div className="flex items-center justify-between flex-shrink-0 gap-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Globe className="w-3.5 h-3.5 text-primary" />
+              Búsqueda global activa — mostrando resultados de todas las categorías
+            </div>
+            {resolvedRows.length > 0 && (
+              <Button variant="outline" size="sm" className="gap-2 text-xs shrink-0" onClick={openHistoryDialog}>
+                <History className="w-3.5 h-3.5" />
+                Historial ({groupedResolvedRows.length})
+              </Button>
+            )}
+          </div>
+          {(['S', 'R', 'C'] as const).map(tipo => {
+            const groups = pendingByType[tipo];
+            const count = pendingCountByType[tipo];
+            if (groups.length === 0) return null;
+            const labels = { S: 'Solicitud de anticipos', R: 'Recursos propios', C: 'Caja menor' };
+            const colors = { S: 'bg-blue-500/20 text-blue-400 border-blue-500/40', R: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40', C: 'bg-amber-500/20 text-amber-400 border-amber-500/40' };
+            return (
+              <div key={tipo} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] ${colors[tipo]}`}>{tipo}</span>
+                  <span className="text-xs font-medium text-foreground">{labels[tipo]}</span>
+                  <Badge variant="outline" className="text-[10px]">{count}</Badge>
+                  <span className="text-xs text-muted-foreground">
+                    ({groups.length} grupo{groups.length !== 1 ? "s" : ""})
+                  </span>
+                </div>
+                {renderPendingTable(tipo, groups)}
+              </div>
+            );
+          })}
+          {pendingByType.S.length === 0 && pendingByType.R.length === 0 && pendingByType.C.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              No se encontraron resultados para "{searchQuery.trim()}"
+            </div>
           )}
         </div>
-
-        <TabsContent value="S" className="flex-1 min-h-0 mt-3">
-          <div className="text-xs text-muted-foreground mb-2">
-            {pendingByType.S.length} grupo{pendingByType.S.length !== 1 ? "s" : ""} ({pendingCountByType.S} solicitud{pendingCountByType.S !== 1 ? "es" : ""})
+      ) : (
+        /* Normal tab mode */
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <div className="flex items-center justify-between flex-shrink-0 gap-2">
+            <TabsList className="h-auto p-1 flex-wrap">
+              <TabsTrigger value="S" className="gap-1.5 text-xs px-3 py-1.5">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] bg-blue-500/20 text-blue-400 border-blue-500/40">S</span>
+                Solicitud de anticipos
+                <Badge variant="outline" className="text-[10px] ml-1">{pendingCountByType.S}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="R" className="gap-1.5 text-xs px-3 py-1.5">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] bg-emerald-500/20 text-emerald-400 border-emerald-500/40">R</span>
+                Recursos propios
+                <Badge variant="outline" className="text-[10px] ml-1">{pendingCountByType.R}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="C" className="gap-1.5 text-xs px-3 py-1.5">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/40">C</span>
+                Caja menor
+                <Badge variant="outline" className="text-[10px] ml-1">{pendingCountByType.C}</Badge>
+              </TabsTrigger>
+            </TabsList>
+            {resolvedRows.length > 0 && (
+              <Button variant="outline" size="sm" className="gap-2 text-xs shrink-0" onClick={openHistoryDialog}>
+                <History className="w-3.5 h-3.5" />
+                Historial ({groupedResolvedRows.length})
+              </Button>
+            )}
           </div>
-          {renderPendingTable('S', pendingByType.S)}
-        </TabsContent>
 
-        <TabsContent value="R" className="flex-1 min-h-0 mt-3">
-          <div className="text-xs text-muted-foreground mb-2">
-            {pendingByType.R.length} grupo{pendingByType.R.length !== 1 ? "s" : ""} ({pendingCountByType.R} solicitud{pendingCountByType.R !== 1 ? "es" : ""})
-          </div>
-          {renderPendingTable('R', pendingByType.R)}
-        </TabsContent>
+          <TabsContent value="S" className="flex-1 min-h-0 mt-3">
+            <div className="text-xs text-muted-foreground mb-2">
+              {pendingByType.S.length} grupo{pendingByType.S.length !== 1 ? "s" : ""} ({pendingCountByType.S} solicitud{pendingCountByType.S !== 1 ? "es" : ""})
+            </div>
+            {renderPendingTable('S', pendingByType.S)}
+          </TabsContent>
 
-        <TabsContent value="C" className="flex-1 min-h-0 mt-3">
-          <div className="text-xs text-muted-foreground mb-2">
-            {pendingByType.C.length} grupo{pendingByType.C.length !== 1 ? "s" : ""} ({pendingCountByType.C} solicitud{pendingCountByType.C !== 1 ? "es" : ""})
-          </div>
-          {renderPendingTable('C', pendingByType.C)}
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="R" className="flex-1 min-h-0 mt-3">
+            <div className="text-xs text-muted-foreground mb-2">
+              {pendingByType.R.length} grupo{pendingByType.R.length !== 1 ? "s" : ""} ({pendingCountByType.R} solicitud{pendingCountByType.R !== 1 ? "es" : ""})
+            </div>
+            {renderPendingTable('R', pendingByType.R)}
+          </TabsContent>
+
+          <TabsContent value="C" className="flex-1 min-h-0 mt-3">
+            <div className="text-xs text-muted-foreground mb-2">
+              {pendingByType.C.length} grupo{pendingByType.C.length !== 1 ? "s" : ""} ({pendingCountByType.C} solicitud{pendingCountByType.C !== 1 ? "es" : ""})
+            </div>
+            {renderPendingTable('C', pendingByType.C)}
+          </TabsContent>
+        </Tabs>
+      )}
 
       {/* History Dialog */}
       <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>

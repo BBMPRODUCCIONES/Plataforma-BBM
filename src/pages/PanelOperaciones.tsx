@@ -51,7 +51,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, X, Paperclip, Upload, Image, AlertTriangle, Eye, Camera, HelpCircle, Timer } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, ArrowUpDown, X, Paperclip, Upload, Image, AlertTriangle, Eye, Camera, HelpCircle, Timer } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printSolicitudPresupuesto, printLegalizacion, exportSolicitudToExcel, exportLegalizacionToExcel } from "@/utils/pdfGenerator";
@@ -376,6 +376,7 @@ const PanelOperaciones = () => {
   // Calendar filter state - using global context
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
   const [hideDeleted, setHideDeleted] = useState(false);
+  const [montajeSort, setMontajeSort] = useState<"asc" | "desc" | null>(null);
   const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
   // Computed dateRange from global context
   const dateRange = globalDateRange?.from && globalDateRange?.to 
@@ -649,17 +650,13 @@ const PanelOperaciones = () => {
     }
     
     // Normal filter mode
-    return projects.filter((p) => {
-      // Show all by default, hide deleted only when hideDeleted is enabled
+    let result = projects.filter((p) => {
       const matchesDeleted = !hideDeleted || !p.isDeleted;
-      
       const matchesSearch =
         p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
-      
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
-      
       const range = getDateRange();
       const projectStart = parseISO(p.fechaMontajeInicio);
       const projectEnd = parseISO(p.fechaEjecucionFin);
@@ -667,10 +664,23 @@ const PanelOperaciones = () => {
         isWithinInterval(projectStart, range) ||
         isWithinInterval(projectEnd, range) ||
         (projectStart <= range.start && projectEnd >= range.end);
-
       return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
     });
-  }, [focusedEventId, projects, hideDeleted, searchTerm, statusFilter, globalViewMode, globalSelectedDate, globalDateRange]);
+
+    if (montajeSort) {
+      result = [...result].sort((a, b) => {
+        const dateA = a.fechaMontajeInicio || "";
+        const dateB = b.fechaMontajeInicio || "";
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        const cmp = dateA.localeCompare(dateB);
+        return montajeSort === "asc" ? cmp : -cmp;
+      });
+    }
+
+    return result;
+  }, [focusedEventId, projects, hideDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
 
   const handleGanttProjectClick = (projectId: string) => {
     // Find the project
@@ -2791,6 +2801,20 @@ const PanelOperaciones = () => {
                   Ocultar eliminados
                 </Label>
               </div>
+              <Button
+                variant={montajeSort ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  if (!montajeSort) setMontajeSort("asc");
+                  else if (montajeSort === "asc") setMontajeSort("desc");
+                  else setMontajeSort(null);
+                }}
+                className="h-9 text-xs whitespace-nowrap gap-1.5"
+                title={montajeSort === "asc" ? "Montaje: Más antiguo primero" : montajeSort === "desc" ? "Montaje: Más reciente primero" : "Ordenar por Montaje"}
+              >
+                {montajeSort === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : montajeSort === "desc" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUpDown className="h-3.5 w-3.5" />}
+                Montaje
+              </Button>
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input

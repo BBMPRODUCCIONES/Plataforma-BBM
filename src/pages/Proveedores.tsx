@@ -236,6 +236,7 @@ const Proveedores = () => {
             <EditableCell
               value={p.telefono || ""}
               type="text"
+              placeholder="Número de teléfono"
               onChange={(value) => handleUpdateProveedor(p.id, "telefono", value)}
             />
           </div>

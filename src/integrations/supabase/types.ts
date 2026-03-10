@@ -280,6 +280,47 @@ export type Database = {
           },
         ]
       }
+      google_calendar_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          google_event_id: string
+          id: string
+          last_synced_at: string
+          project_hash: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          google_event_id: string
+          id?: string
+          last_synced_at?: string
+          project_hash?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          google_event_id?: string
+          id?: string
+          last_synced_at?: string
+          project_hash?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_calendar_tokens: {
         Row: {
           access_token: string

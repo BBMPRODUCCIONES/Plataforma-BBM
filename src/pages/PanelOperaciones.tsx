@@ -3536,13 +3536,41 @@ const PanelOperaciones = () => {
                               }
 
                               const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
-                              const hasPendingLeg = legalizacion.some(l => {
-                                const isOwner = (l.empleadoEmail?.toLowerCase() === userEmail) || 
-                                  (userEmpId && l.empleadoId === userEmpId);
-                                const isPending = l.estado !== "Aprobado" && l.estado !== "No aprobado";
-                                return isOwner && isPending;
+                              
+                              // Check if user has any cajaMenor item not finalized
+                              // Finalized = (Aprobado AND its legalization is also Aprobado/Legalizado) OR Rechazado
+                              const userCajaMenorItems = existingCajaMenor.filter(cm => {
+                                const isOwner = (cm.empleadoEmail?.toLowerCase() === userEmail) || 
+                                  (userEmpId && cm.empleadoId === userEmpId);
+                                return isOwner;
                               });
-                              const isBlocked = hasPendingLeg && !isAdmin;
+                              
+                              const hasUnfinishedSolicitud = userCajaMenorItems.some(cm => {
+                                const estado = String(cm.estado || "Pendiente");
+                                // Rejected items are finalized
+                                if (estado === "Rechazado" || estado === "No aprobado") return false;
+                                
+                                // If solicitud not yet approved, it's unfinished
+                                if (estado !== "Aprobado") return true;
+                                
+                                // If solicitud is approved, check its legalization
+                                const linkedLeg = legalizacion.find(l => l.id === `leg-${cm.id}`);
+                                if (!linkedLeg) return true;
+                                
+                                const legEstado = String(linkedLeg.estado || "Pendiente");
+                                const recursos = String(cm.recursos || "");
+                                
+                                // For type R/C: just needs to be approved/rejected
+                                if (recursos === "Recursos propios" || recursos === "Caja menor") {
+                                  return legEstado !== "Aprobado" && legEstado !== "No aprobado" && legEstado !== "Rechazado";
+                                }
+                                
+                                // For type S (Anticipo BBM): needs legalization approved/legalizado
+                                return legEstado !== "Aprobado" && legEstado !== "Legalizado" && 
+                                       legEstado !== "No aprobado" && legEstado !== "Rechazado";
+                              });
+                              
+                              const isBlocked = hasUnfinishedSolicitud && !isAdmin;
                               
                               return (
                                 <TooltipProvider>
@@ -3603,7 +3631,7 @@ const PanelOperaciones = () => {
                                     </TooltipTrigger>
                                     {isBlocked && (
                                       <TooltipContent side="bottom" className="max-w-[250px]">
-                                        <p>Debes legalizar tus anticipos pendientes antes de solicitar uno nuevo.</p>
+                                        <p>Tus solicitudes anteriores deben estar aprobadas y legalizadas (o rechazadas) antes de crear una nueva.</p>
                                       </TooltipContent>
                                     )}
                                   </Tooltip>
@@ -4045,35 +4073,71 @@ const PanelOperaciones = () => {
                               </DropdownMenuContent>
                             </DropdownMenu>
                             )}
-                            {(role?.toLowerCase() === "administrador" || role?.toLowerCase() === "operativo") && (
-                            <Button 
-                              variant="outline"
-                              size="sm" 
-                              onClick={() => {
-                                if (!currentProjectData?.id) return;
-                                const newLeg: LegalizacionItem = {
-                                  id: `leg-${Date.now()}`,
-                                  empleadoId: currentUserEmpleado?.id || "",
-                                  empleadoNombre: currentUserEmpleado?.nombre || user?.email || "",
-                                  empleadoEmail: user?.email || "",
-                                  concepto: "",
-                                  imagenes: [],
-                                  valor: 0,
-                                  categoria: "",
-                                  recursos: "",
-                                  contingencia: "No",
-                                  estado: "Pendiente",
-                                  createdAt: new Date().toISOString(),
-                                };
-                                const updatedLeg = [...(currentProjectData.legalizacion || []), newLeg];
-                                contextUpdateProject(currentProjectData.id, 'legalizacion', updatedLeg);
-                                toast.success("Registro de recursos propios agregado");
-                              }}
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              AGREGAR REGISTRO
-                            </Button>
-                            )}
+                            {(() => {
+                              const canAdd = role?.toLowerCase() === "administrador" || role?.toLowerCase() === "operativo";
+                              if (!canAdd) return null;
+                              
+                              const isAdmin = role?.toLowerCase() === "administrador";
+                              const userEmail = (currentUserEmail || "").toLowerCase();
+                              const userEmpId = currentUserEmpleado?.id || "";
+                              const allLeg = (currentProjectData.legalizacion || []) as LegalizacionItem[];
+                              
+                              // Check if user has unfinished independent leg items (R/C type - not linked to cajaMenor)
+                              const userIndependentLeg = allLeg.filter(l => {
+                                const isOwner = (l.empleadoEmail?.toLowerCase() === userEmail) || (userEmpId && l.empleadoId === userEmpId);
+                                const isLinkedToCM = l.id?.startsWith("leg-cm");
+                                return isOwner && !isLinkedToCM;
+                              });
+                              const hasUnfinished = userIndependentLeg.some(l => {
+                                const estado = String(l.estado || "Pendiente");
+                                return estado !== "Aprobado" && estado !== "No aprobado" && estado !== "Rechazado";
+                              });
+                              const isBlocked = hasUnfinished && !isAdmin;
+                              
+                              return (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span>
+                                        <Button 
+                                          variant="outline"
+                                          size="sm"
+                                          disabled={isBlocked}
+                                          onClick={() => {
+                                            if (!currentProjectData?.id) return;
+                                            const newLeg: LegalizacionItem = {
+                                              id: `leg-${Date.now()}`,
+                                              empleadoId: currentUserEmpleado?.id || "",
+                                              empleadoNombre: currentUserEmpleado?.nombre || user?.email || "",
+                                              empleadoEmail: user?.email || "",
+                                              concepto: "",
+                                              imagenes: [],
+                                              valor: 0,
+                                              categoria: "",
+                                              recursos: "",
+                                              contingencia: "No",
+                                              estado: "Pendiente",
+                                              createdAt: new Date().toISOString(),
+                                            };
+                                            const updatedLeg = [...(currentProjectData.legalizacion || []), newLeg];
+                                            contextUpdateProject(currentProjectData.id, 'legalizacion', updatedLeg);
+                                            toast.success("Registro de recursos propios agregado");
+                                          }}
+                                        >
+                                          <Plus className="h-3 w-3 mr-1" />
+                                          AGREGAR REGISTRO
+                                        </Button>
+                                      </span>
+                                    </TooltipTrigger>
+                                    {isBlocked && (
+                                      <TooltipContent side="bottom" className="max-w-[250px]">
+                                        <p>Tus solicitudes anteriores deben estar aprobadas o rechazadas antes de crear una nueva.</p>
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            })()}
                           </div>
                         </div>
                       </CardHeader>

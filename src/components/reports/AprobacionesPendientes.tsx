@@ -1332,19 +1332,60 @@ export default function AprobacionesPendientes() {
     );
   };
 
+  // Sticky scrollbar refs and sync for pending tables
+  const pendingTableScrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const pendingStickyScrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const pendingSyncingRef = useRef(false);
+  const [pendingContentWidths, setPendingContentWidths] = useState<Record<string, number>>({});
+
+  const syncPendingScroll = useCallback((tipo: string, source: "table" | "sticky") => {
+    if (pendingSyncingRef.current) return;
+    pendingSyncingRef.current = true;
+    const from = source === "table" ? pendingTableScrollRefs.current[tipo] : pendingStickyScrollRefs.current[tipo];
+    const to = source === "table" ? pendingStickyScrollRefs.current[tipo] : pendingTableScrollRefs.current[tipo];
+    if (from && to) {
+      to.scrollLeft = from.scrollLeft;
+    }
+    requestAnimationFrame(() => { pendingSyncingRef.current = false; });
+  }, []);
+
+  // Measure content widths for each tab's table
+  useEffect(() => {
+    if (isMobile) return;
+    const observers: ResizeObserver[] = [];
+    (['S', 'R', 'C'] as const).forEach(tipo => {
+      const el = pendingTableScrollRefs.current[tipo];
+      if (!el) return;
+      const observer = new ResizeObserver(() => {
+        setPendingContentWidths(prev => {
+          const newW = el.scrollWidth;
+          if (prev[tipo] === newW) return prev;
+          return { ...prev, [tipo]: newW };
+        });
+      });
+      observer.observe(el);
+      const table = el.querySelector("table");
+      if (table) observer.observe(table);
+      observers.push(observer);
+    });
+    return () => observers.forEach(o => o.disconnect());
+  }, [isMobile, pendingByType]);
+
   const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
     const showLeg = tipo === 'S';
     const colCount = showLeg ? 13 : 9;
+    const contentWidth = pendingContentWidths[tipo] || 0;
 
     return (
-      <div
-        className="border rounded-md overflow-auto"
-        style={{
-          maxHeight: "clamp(280px, 50vh, 600px)",
-          scrollbarWidth: "auto",
-          scrollbarColor: "hsl(var(--muted-foreground) / 0.3) transparent",
-        }}
-      >
+      <div className="matrix-table-sticky-wrapper border rounded-md">
+        <div
+          ref={(el) => { pendingTableScrollRefs.current[tipo] = el; }}
+          className="matrix-table-main-scroll"
+          style={{
+            maxHeight: "clamp(280px, 50vh, 600px)",
+          }}
+          onScroll={() => syncPendingScroll(tipo, "table")}
+        >
         <Table>
           <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
             <TableRow>
@@ -1625,6 +1666,18 @@ export default function AprobacionesPendientes() {
             )}
           </TableBody>
         </Table>
+        </div>
+
+        {/* Sticky horizontal scrollbar */}
+        {!isMobile && contentWidth > 0 && (
+          <div
+            ref={(el) => { pendingStickyScrollRefs.current[tipo] = el; }}
+            className="matrix-table-sticky-scrollbar"
+            onScroll={() => syncPendingScroll(tipo, "sticky")}
+          >
+            <div style={{ width: contentWidth, height: 1 }} />
+          </div>
+        )}
       </div>
     );
   };

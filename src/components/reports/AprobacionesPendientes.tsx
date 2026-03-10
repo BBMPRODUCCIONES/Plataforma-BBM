@@ -2028,7 +2028,7 @@ export default function AprobacionesPendientes() {
 
                     return (
                       <TableRow key={group.key}>
-                        {canApproveCajaMenor() && (
+                        {canRestaurarSolicitudes() && (
                           <TableCell className="text-xs">
                             <Checkbox
                               checked={selectedForRestore.has(group.key)}

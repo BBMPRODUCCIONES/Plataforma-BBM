@@ -717,6 +717,7 @@ const PanelOperaciones = () => {
               type="text"
               onChange={(value) => updateProject(p.id, "centroCostos", value)}
               className="font-mono"
+              placeholder="Ej: 3-00814"
               disabled={operativoReadOnly}
             />
           );
@@ -727,12 +728,13 @@ const PanelOperaciones = () => {
               type="text"
               onChange={(value) => updateProject(p.id, "numFactura", value)}
               className="font-mono"
+              placeholder="Nº factura"
               disabled={operativoReadOnly}
             />
           );
         case "cliente":
           return operativoReadOnly ? (
-            <span className="text-sm truncate">{p.cliente || "-"}</span>
+            <span className="text-sm truncate">{p.cliente || "Sin cliente"}</span>
           ) : (
             <ClienteAutocomplete
               value={p.cliente}
@@ -746,12 +748,13 @@ const PanelOperaciones = () => {
               type="text"
               onChange={(value) => updateProject(p.id, "evento", value)}
               className="font-medium"
+              placeholder="Nombre del evento"
               disabled={operativoReadOnly}
             />
           );
         case "avanzada":
           return operativoReadOnly ? (
-            <span className="text-xs">{p.avanzada || "-"}</span>
+            <span className="text-xs">{p.avanzada || "Sin asignar"}</span>
           ) : (
             <AvanzadaSelect
               value={p.avanzada}
@@ -874,6 +877,7 @@ const PanelOperaciones = () => {
               value={p.jefeOperaciones}
               type="text"
               onChange={(value) => updateProject(p.id, "jefeOperaciones", value)}
+              placeholder="Asignar jefe"
               disabled={operativoReadOnly}
             />
           );
@@ -883,6 +887,7 @@ const PanelOperaciones = () => {
               value={p.aCargoDe}
               type="text"
               onChange={(value) => updateProject(p.id, "aCargoDe", value)}
+              placeholder="Responsable"
               disabled={operativoReadOnly}
             />
           );
@@ -892,6 +897,7 @@ const PanelOperaciones = () => {
               value={p.productor}
               type="text"
               onChange={(value) => updateProject(p.id, "productor", value)}
+              placeholder="Nombre productor"
               disabled={operativoReadOnly}
             />
           );
@@ -901,6 +907,7 @@ const PanelOperaciones = () => {
               value={p.ubicacion}
               type="text"
               onChange={(value) => updateProject(p.id, "ubicacion", value)}
+              placeholder="Dirección o lugar"
               disabled={operativoReadOnly}
             />
           );
@@ -982,6 +989,7 @@ const PanelOperaciones = () => {
                 type="text"
                 onChange={(value) => updateProject(p.id, "notas", value)}
                 className="truncate text-xs flex-1 min-w-0"
+                placeholder="Agregar nota"
                 disabled={operativoReadOnly}
               />
               {p.notas && p.notas.trim() && (

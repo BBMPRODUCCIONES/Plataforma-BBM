@@ -495,6 +495,7 @@ const PanelDirectivo = () => {
             type="text"
             onChange={(value) => updateProject(p.id, "centroCostos", value)}
             className="font-mono"
+            placeholder="Ej: 3-00814"
           />
         );
       case "numFactura":
@@ -504,6 +505,7 @@ const PanelDirectivo = () => {
             type="text"
             onChange={(value) => updateProject(p.id, "numFactura", value)}
             className="font-mono"
+            placeholder="Nº factura"
           />
         );
       case "cliente":
@@ -637,6 +639,7 @@ const PanelDirectivo = () => {
             value={p.administrativoResponsable}
             type="text"
             onChange={(value) => updateProject(p.id, "administrativoResponsable", value)}
+            placeholder="Asignar responsable"
           />
         );
       case "ingresoTotal":
@@ -646,6 +649,7 @@ const PanelDirectivo = () => {
             type="number"
             onChange={(value) => updateProject(p.id, "ingresoTotal", value)}
             className="text-primary"
+            placeholder="$ Ingreso total"
           />
         );
       case "ingresoBruto":
@@ -654,6 +658,7 @@ const PanelDirectivo = () => {
             value={p.ingresoBruto}
             type="number"
             onChange={(value) => updateProject(p.id, "ingresoBruto", value)}
+            placeholder="$ Ingreso bruto"
           />
         );
       case "cotizaciones":
@@ -721,6 +726,7 @@ const PanelDirectivo = () => {
               type="text"
               onChange={(value) => updateProject(p.id, "notas", value)}
               className="truncate text-xs flex-1 min-w-0"
+              placeholder="Agregar nota"
             />
             {p.notas && p.notas.trim() && (
               <button

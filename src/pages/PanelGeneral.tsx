@@ -187,22 +187,24 @@ const PanelGeneral = () => {
             type="text"
             onChange={(value) => updateProject(p.id, "centroCostos", value)}
             className="font-mono bg-muted px-2 py-1 rounded"
+            placeholder="Ej: 3-00814"
           />
         );
       case "numFactura":
         return (p: Project) => generalReadOnly ? (
-          <span className="text-sm font-mono">{p.numFactura || "-"}</span>
+          <span className="text-sm font-mono">{p.numFactura || "Sin factura"}</span>
         ) : (
           <EditableCell
             value={p.numFactura}
             type="text"
             onChange={(value) => updateProject(p.id, "numFactura", value)}
             className="font-mono"
+            placeholder="Nº factura"
           />
         );
       case "cliente":
         return (p: Project) => generalReadOnly ? (
-          <span className="text-sm truncate">{p.cliente || "-"}</span>
+          <span className="text-sm truncate">{p.cliente || "Sin cliente"}</span>
         ) : (
           <ClienteAutocomplete
             value={p.cliente}
@@ -221,7 +223,7 @@ const PanelGeneral = () => {
         );
       case "avanzada":
         return (p: Project) => generalReadOnly ? (
-          <span className="text-xs">{p.avanzada || "-"}</span>
+          <span className="text-xs">{p.avanzada || "Sin asignar"}</span>
         ) : (
           <AvanzadaSelect
             value={p.avanzada}
@@ -408,6 +410,7 @@ const PanelGeneral = () => {
               type="text"
               onChange={(value) => updateProject(p.id, "notas", value)}
               className="truncate text-xs flex-1 min-w-0"
+              placeholder="Agregar nota"
               disabled={generalReadOnly}
             />
             {p.notas && p.notas.trim() && (
@@ -423,7 +426,7 @@ const PanelGeneral = () => {
         );
       default:
         return (p: Project) => generalReadOnly ? (
-          <span className="text-sm truncate">{(p as any)[colConfig.key] || "-"}</span>
+          <span className="text-sm truncate">{(p as any)[colConfig.key] || "Sin datos"}</span>
         ) : (
           <EditableCell
             value={(p as any)[colConfig.key]}

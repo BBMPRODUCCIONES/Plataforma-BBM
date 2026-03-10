@@ -914,6 +914,14 @@ const Usuarios = () => {
                     </p>
                   )}
 
+                  {newRole === "visual" && (
+                    <p className="text-sm text-muted-foreground p-3 bg-muted/20 rounded-md">
+                      El rol Visual solo tiene acceso de lectura al Panel Operaciones. No se le pueden asignar permisos de edición.
+                    </p>
+                  )}
+
+                  {newRole !== "visual" && (
+                  <>
                   {/* Permisos de Edición por Panel */}
                   <div className="space-y-2">
                     <Label>Permisos de Edición por Panel</Label>

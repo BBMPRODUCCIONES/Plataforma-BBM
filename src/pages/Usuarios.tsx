@@ -1457,7 +1457,7 @@ const Usuarios = () => {
                 Todas las invitaciones enviadas y su estado actual.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
+            <div className="py-4 overflow-x-auto">
               {pendingInvitations.length > 0 ? (
                 <MatrixTable
                   columns={invitationColumns}

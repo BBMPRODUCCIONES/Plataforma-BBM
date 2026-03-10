@@ -61,6 +61,7 @@ interface UserWithRole {
   puede_editar_personal: boolean;
   puede_editar_inventario: boolean;
   puede_asignar_responsables: boolean;
+  puede_restaurar_solicitudes: boolean;
   created_at: string | null;
 }
 

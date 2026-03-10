@@ -99,27 +99,38 @@ const PanelGeneral = () => {
     }
   };
 
-  const filteredProjects = projects.filter((p) => {
-    // Show all by default, hide deleted only when hideDeleted is enabled
-    const matchesDeleted = !hideDeleted || !p.isDeleted;
-    
-    const matchesSearch =
-      p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
-    
-    const range = getDateRange();
-    const projectStart = parseISO(p.fechaMontajeInicio);
-    const projectEnd = parseISO(p.fechaEjecucionFin);
-    const matchesDate = 
-      isWithinInterval(projectStart, range) ||
-      isWithinInterval(projectEnd, range) ||
-      (projectStart <= range.start && projectEnd >= range.end);
+  const filteredProjects = useMemo(() => {
+    let result = projects.filter((p) => {
+      const matchesDeleted = !hideDeleted || !p.isDeleted;
+      const matchesSearch =
+        p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
+      const range = getDateRange();
+      const projectStart = parseISO(p.fechaMontajeInicio);
+      const projectEnd = parseISO(p.fechaEjecucionFin);
+      const matchesDate = 
+        isWithinInterval(projectStart, range) ||
+        isWithinInterval(projectEnd, range) ||
+        (projectStart <= range.start && projectEnd >= range.end);
+      return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
+    });
 
-    return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
-  });
+    if (montajeSort) {
+      result = [...result].sort((a, b) => {
+        const dateA = a.fechaMontajeInicio || "";
+        const dateB = b.fechaMontajeInicio || "";
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        const cmp = dateA.localeCompare(dateB);
+        return montajeSort === "asc" ? cmp : -cmp;
+      });
+    }
+
+    return result;
+  }, [projects, hideDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
 
 
   const getRowClassName = (project: Project) => {

@@ -2951,8 +2951,11 @@ const PanelOperaciones = () => {
             // Solo validar anticipos si el usuario puede editarlos
             const canEditAnticiposHere = isAdmin || canCrearAnticipos();
             if (selectedSection === "cajaMenor") {
-              // Validación de SOLICITUD DE ANTICIPOS - Imagen OBLIGATORIA (solo si el usuario puede editar)
-              const cajaMenorItems = currentProjectData.cajaMenor || [];
+              // Validación de SOLICITUD DE ANTICIPOS - solo validar items del usuario actual
+              const allCajaMenorItems = currentProjectData.cajaMenor || [];
+              const cajaMenorItems = isAdmin 
+                ? allCajaMenorItems 
+                : allCajaMenorItems.filter((cm: CajaMenorItem) => isCreatorOfRecord(cm));
               if (cajaMenorItems.length > 0 && canEditAnticiposHere) {
                 const legalizacionData2 = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
                 const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {

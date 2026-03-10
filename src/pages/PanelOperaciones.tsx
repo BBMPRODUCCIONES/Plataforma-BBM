@@ -748,6 +748,7 @@ const PanelOperaciones = () => {
               type="text"
               onChange={(value) => updateProject(p.id, "evento", value)}
               className="font-medium"
+              placeholder="Nombre del evento"
               disabled={operativoReadOnly}
             />
           );

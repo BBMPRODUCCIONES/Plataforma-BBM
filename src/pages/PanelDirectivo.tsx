@@ -495,6 +495,7 @@ const PanelDirectivo = () => {
             type="text"
             onChange={(value) => updateProject(p.id, "centroCostos", value)}
             className="font-mono"
+            placeholder="Ej: 3-00814"
           />
         );
       case "numFactura":

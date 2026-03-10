@@ -1262,16 +1262,19 @@ export default function AprobacionesPendientes() {
             );
           })()}
         </TableCell>
-        <TableCell className="text-xs whitespace-nowrap">
-          {(() => {
-            const r = (row.item.recursos as string) || "";
-            const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
-            if (tipo === "C") {
-              const gm = gastosMenores.find(g => g.id === row.gastoMenorId);
-              return gm?.aprobado_por_nombre || "—";
-            }
-            return row.item.revisadoPor || "—";
-          })()}
+        <TableCell className="text-xs">
+          <TruncatedCellWithEye
+            text={(() => {
+              const r = (row.item.recursos as string) || "";
+              const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
+              if (tipo === "C") {
+                const gm = gastosMenores.find(g => g.id === row.gastoMenorId);
+                return gm?.aprobado_por_nombre || "—";
+              }
+              return row.item.revisadoPor || "—";
+            })()}
+            label="Aprobado por"
+          />
         </TableCell>
         <TableCell className="text-xs text-right">
           {(() => {

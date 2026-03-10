@@ -272,6 +272,7 @@ const Proveedores = () => {
           <EditableCell
             value={p.tipoProductoServicio || ""}
             type="text"
+            placeholder="Describe el producto o servicio"
             onChange={(value) => handleUpdateProveedor(p.id, "tipoProductoServicio", value)}
           />
         ),

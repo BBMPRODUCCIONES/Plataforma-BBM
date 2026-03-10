@@ -44,7 +44,7 @@ const PanelGeneral = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
-  const [hideDeleted, setHideDeleted] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
   const [montajeSort, setMontajeSort] = useState<"asc" | "desc" | null>(null);
   // Initialize with base columns - persisted to localStorage

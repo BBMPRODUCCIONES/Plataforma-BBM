@@ -662,6 +662,19 @@ export default function AprobacionesPendientes() {
     return Array.from(groups.values());
   }, [resolvedRows]);
 
+  // Pending rows split by type for tabs
+  const pendingByType = useMemo(() => ({
+    S: groupedPendingRows.filter(g => g.tipo === 'S'),
+    R: groupedPendingRows.filter(g => g.tipo === 'R'),
+    C: groupedPendingRows.filter(g => g.tipo === 'C'),
+  }), [groupedPendingRows]);
+
+  const pendingCountByType = useMemo(() => ({
+    S: pendingByType.S.reduce((sum, g) => sum + g.rows.length, 0),
+    R: pendingByType.R.reduce((sum, g) => sum + g.rows.length, 0),
+    C: pendingByType.C.reduce((sum, g) => sum + g.rows.length, 0),
+  }), [pendingByType]);
+
   // Log a change to the undo log
   const logUndoEntry = async (row: FlattenedRow, previousEstado: string, newEstado: string, previousRevisadoPor: string) => {
     const { data: userData } = await supabase.auth.getUser();

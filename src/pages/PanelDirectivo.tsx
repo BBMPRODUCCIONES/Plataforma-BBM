@@ -74,7 +74,7 @@ const PanelDirectivo = () => {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
-  const [hideDeleted, setHideDeleted] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
   
   // Smart search state

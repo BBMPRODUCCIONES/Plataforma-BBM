@@ -117,6 +117,7 @@ export interface InventarioItem {
   unidad: string;
   observaciones?: string;
   recibido: boolean;
+  salida?: boolean;
   notasAdicionales?: string;
   // Responsables fields
   responsableEntradasSalidasTipo?: 'empleado' | 'proveedor';

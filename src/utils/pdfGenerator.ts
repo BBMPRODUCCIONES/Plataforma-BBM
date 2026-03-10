@@ -444,7 +444,8 @@ const generateInventarioSection = (project: Project): string => {
           <th>Material</th>
           <th>Cantidad</th>
           <th>Observaciones</th>
-          <th>Recibido</th>
+          <th>Entrada</th>
+          <th>Salida</th>
           <th>Notas Adicionales</th>
         </tr>
       </thead>

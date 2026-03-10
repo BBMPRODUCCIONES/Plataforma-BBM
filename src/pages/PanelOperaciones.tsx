@@ -3140,6 +3140,7 @@ const PanelOperaciones = () => {
                                 unidad: "uds",
                                 observaciones: "",
                                 recibido: false,
+                                salida: false,
                                 notasAdicionales: "",
                               };
                               try {

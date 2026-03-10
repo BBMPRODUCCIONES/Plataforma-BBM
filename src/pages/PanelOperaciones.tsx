@@ -459,6 +459,7 @@ const PanelOperaciones = () => {
   useEffect(() => {
     const eventId = searchParams.get("eventId");
     const source = searchParams.get("source") || "link";
+    const section = searchParams.get("section") as "plantilla" | "cajaMenor" | null;
     
     if (!eventId || loading || projects.length === 0) return;
 
@@ -485,9 +486,15 @@ const PanelOperaciones = () => {
     // Switch to matrix tab
     setActiveTab("matriz");
 
+    // If a section is specified, open the project detail directly in that section
+    if (section) {
+      setSelectedProject(project);
+      setSelectedSection(section);
+    }
+
     // Show toast notification
     toast.success(`Evento "${project.evento}" localizado`, {
-      description: "Modo foco activado - mostrando solo este evento",
+      description: section === "cajaMenor" ? "Abriendo sección de gastos" : "Modo foco activado - mostrando solo este evento",
       duration: 4000,
     });
 

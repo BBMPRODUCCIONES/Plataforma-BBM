@@ -450,7 +450,7 @@ const generateInventarioSection = (project: Project): string => {
         </tr>
       </thead>
       <tbody>
-        ${tableRows || '<tr><td colspan="5" style="text-align: center;">No hay inventario registrado</td></tr>'}
+        ${tableRows || '<tr><td colspan="6" style="text-align: center;">No hay inventario registrado</td></tr>'}
       </tbody>
     </table>
     ${generateResponsablesSection(project)}

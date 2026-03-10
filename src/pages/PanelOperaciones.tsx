@@ -342,15 +342,28 @@ const PanelOperaciones = () => {
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { empleados, refetch: refetchEmpleados } = useEmpleados();
 
-  // Fetch fresh employee data for exports (bypasses context cache)
+  // Fetch fresh employee data for exports (returns fresh array directly)
   const getFreshEmpleados = async () => {
     try {
-      await refetchEmpleados();
-      // Small delay to let state update
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const { data, error } = await supabase.rpc('get_employees_for_role');
+      if (!error && data) {
+        return data.map((row: any) => ({
+          id: row.id,
+          nombre: row.nombre || '',
+          cargo: row.cargo || '',
+          telefono: row.telefono || '',
+          correo: row.correo || '',
+          banco: row.banco || '',
+          tipoCuenta: row.tipo_cuenta || '',
+          numeroCuenta: row.numero_cuenta || '',
+          cedula: row.cedula || '',
+          createdAt: row.created_at,
+        }));
+      }
     } catch (err) {
       console.error('[PanelOperaciones] Error refreshing empleados for export:', err);
     }
+    return empleados; // fallback to context data
   };
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const [searchTerm, setSearchTerm] = useState("");

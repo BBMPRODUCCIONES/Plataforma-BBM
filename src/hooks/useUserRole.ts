@@ -13,6 +13,9 @@ interface UseUserRoleReturn {
   canEditOperaciones: () => boolean;
   canEditGeneral: () => boolean;
   canEditDirectivo: () => boolean;
+  canEditPersonal: () => boolean;
+  canEditInventario: () => boolean;
+  canAsignarResponsables: () => boolean;
   isAdminOnly: (section: string) => boolean;
   canViewFeedback: () => boolean;
   canEditFeedback: () => boolean;

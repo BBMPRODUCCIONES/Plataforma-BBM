@@ -340,7 +340,18 @@ const PanelOperaciones = () => {
   const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor, canCrearAnticipos, canEditOperaciones, canEditPersonal, canEditInventario, canAsignarResponsables } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
-  const { empleados } = useEmpleados();
+  const { empleados, refetch: refetchEmpleados } = useEmpleados();
+
+  // Fetch fresh employee data for exports (bypasses context cache)
+  const getFreshEmpleados = async () => {
+    try {
+      await refetchEmpleados();
+      // Small delay to let state update
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (err) {
+      console.error('[PanelOperaciones] Error refreshing empleados for export:', err);
+    }
+  };
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);

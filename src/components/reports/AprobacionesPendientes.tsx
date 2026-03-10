@@ -1561,8 +1561,8 @@ export default function AprobacionesPendientes() {
                         );
                       })()}
                     </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {aprobadoPorDisplay}
+                    <TableCell className="text-xs">
+                      <TruncatedCellWithEye text={aprobadoPorDisplay} label="Aprobado por" />
                     </TableCell>
                     {showLeg && (
                       <TableCell className="text-xs text-right">

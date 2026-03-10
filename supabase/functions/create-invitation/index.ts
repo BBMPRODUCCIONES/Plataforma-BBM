@@ -21,6 +21,24 @@ const createInvitationSchema = z.object({
     errorMap: () => ({ message: "Rol inválido. Debe ser: administrador, operativo o visual" })
   }),
   allowed_panels: z.array(z.enum(validPanels)).optional(),
+  permissions: z.object({
+    puede_ver_feedback: z.boolean().optional(),
+    puede_editar_feedback: z.boolean().optional(),
+    puede_aprobar_caja_menor: z.boolean().optional(),
+    puede_crear_anticipos: z.boolean().optional(),
+    puede_editar_general: z.boolean().optional(),
+    puede_editar_operaciones: z.boolean().optional(),
+    puede_editar_directivo: z.boolean().optional(),
+    puede_editar_personal: z.boolean().optional(),
+    puede_editar_inventario: z.boolean().optional(),
+    puede_asignar_responsables: z.boolean().optional(),
+    puede_restaurar_solicitudes: z.boolean().optional(),
+    puede_acceder_usuarios: z.boolean().optional(),
+    puede_acceder_clientes: z.boolean().optional(),
+    puede_acceder_empleados: z.boolean().optional(),
+    puede_acceder_constructor: z.boolean().optional(),
+    puede_acceder_agentes: z.boolean().optional(),
+  }).optional(),
 });
 
 serve(async (req) => {
@@ -98,7 +116,7 @@ serve(async (req) => {
       );
     }
 
-    const { email, role, allowed_panels } = validationResult.data;
+    const { email, role, allowed_panels, permissions } = validationResult.data;
 
     // Determine allowed panels based on role
     const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores'];
@@ -303,14 +321,15 @@ serve(async (req) => {
       }
     }
 
-    // Create invitation with allowed_panels
+    // Create invitation with allowed_panels and permissions
     const { data: invitation, error: invitationError } = await supabaseAdmin
       .from('invitations')
       .insert({
         email,
         role,
         allowed_panels: finalAllowedPanels,
-        created_by_admin_id: user.id
+        created_by_admin_id: user.id,
+        permissions: permissions || {}
       })
       .select()
       .single();

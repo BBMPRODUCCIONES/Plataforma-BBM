@@ -1,0 +1,1 @@
+ALTER TABLE public.invitations ADD COLUMN permissions jsonb DEFAULT '{}'::jsonb;

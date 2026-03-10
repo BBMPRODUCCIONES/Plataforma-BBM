@@ -486,11 +486,10 @@ const Proveedores = () => {
 
         {/* Matrix Table */}
         <div className="panel-card">
-          <MatrixTable
+            <MatrixTable
             key={tableKey}
             data={filteredProveedores}
             columns={columns}
-            onRowClick={(p) => setSelectedProveedor(p)}
           />
         </div>
 

@@ -20,6 +20,9 @@ interface PanelEditPermissions {
   puedeEditarGeneral: boolean;
   puedeEditarOperaciones: boolean;
   puedeEditarDirectivo: boolean;
+  puedeEditarPersonal: boolean;
+  puedeEditarInventario: boolean;
+  puedeAsignarResponsables: boolean;
 }
 
 interface UserRoleData {

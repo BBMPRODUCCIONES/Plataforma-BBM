@@ -275,7 +275,25 @@ const Usuarios = () => {
           role: newRole,
           allowed_panels: newRole === "administrador" 
             ? ALL_PANELS 
-            : newPanels
+            : newPanels,
+          permissions: {
+            puede_ver_feedback: newPuedeVerFeedback,
+            puede_editar_feedback: newPuedeEditarFeedback,
+            puede_aprobar_caja_menor: newPuedeAprobarCajaMenor,
+            puede_crear_anticipos: newPuedeCrearAnticipos,
+            puede_editar_general: newPuedeEditarGeneral,
+            puede_editar_operaciones: newPuedeEditarOperaciones,
+            puede_editar_directivo: newPuedeEditarDirectivo,
+            puede_editar_personal: newPuedeEditarPersonal,
+            puede_editar_inventario: newPuedeEditarInventario,
+            puede_asignar_responsables: newPuedeAsignarResponsables,
+            puede_restaurar_solicitudes: newPuedeRestaurarSolicitudes,
+            puede_acceder_usuarios: newPuedeAccederUsuarios,
+            puede_acceder_clientes: newPuedeAccederClientes,
+            puede_acceder_empleados: newPuedeAccederEmpleados,
+            puede_acceder_constructor: newPuedeAccederConstructor,
+            puede_acceder_agentes: newPuedeAccederAgentes,
+          }
         },
       });
 

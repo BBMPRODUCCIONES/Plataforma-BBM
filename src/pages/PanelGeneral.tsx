@@ -192,7 +192,7 @@ const PanelGeneral = () => {
         );
       case "numFactura":
         return (p: Project) => generalReadOnly ? (
-          <span className="text-sm font-mono">{p.numFactura || "-"}</span>
+          <span className="text-sm font-mono">{p.numFactura || "Sin factura"}</span>
         ) : (
           <EditableCell
             value={p.numFactura}

@@ -259,7 +259,7 @@ const PanelDirectivo = () => {
 
   const filteredProjects = useMemo(() => {
     let result = projects.filter((p) => {
-      const matchesDeleted = !hideDeleted || !p.isDeleted;
+      const matchesDeleted = showDeleted || !p.isDeleted;
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
       
       const range = getDateRange();

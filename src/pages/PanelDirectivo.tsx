@@ -338,7 +338,7 @@ const PanelDirectivo = () => {
     }
 
     return result;
-  }, [projects, hideDeleted, statusFilter, searchTokens, sortColumn, sortDirection, emptyPlacement, globalSelectedDate, globalViewMode, globalDateRange]);
+  }, [projects, showDeleted, statusFilter, searchTokens, sortColumn, sortDirection, emptyPlacement, globalSelectedDate, globalViewMode, globalDateRange]);
 
   const handleColumnSort = (columnKey: string) => {
     if (sortColumn === columnKey) {

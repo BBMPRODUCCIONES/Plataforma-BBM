@@ -50,7 +50,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
-import { Search, RotateCcw, Lock, History, Undo2, Clock, AlertTriangle, Globe } from "lucide-react";
+import { Search, RotateCcw, Lock, History, Undo2, Clock, AlertTriangle, Globe, Eye } from "lucide-react";
+
+const TruncatedCellWithEye = ({ text, label }: { text: string; label: string }) => {
+  if (!text || text === "—") return <span className="text-muted-foreground">—</span>;
+  return (
+    <div className="flex items-center gap-1 max-w-[100px]">
+      <span className="truncate text-xs">{text}</span>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button" className="shrink-0 focus:outline-none">
+            <Eye className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-pointer" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent side="top" className="text-xs max-w-[280px] p-3">
+          <p className="font-semibold mb-1">{label}</p>
+          <p className="whitespace-pre-wrap">{text}</p>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
 import AprobacionesKPIs from "@/components/reports/AprobacionesKPIs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";

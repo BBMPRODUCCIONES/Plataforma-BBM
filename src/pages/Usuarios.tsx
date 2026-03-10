@@ -198,6 +198,11 @@ const Usuarios = () => {
           puede_editar_inventario: (roleRecord as any).puede_editar_inventario ?? false,
           puede_asignar_responsables: (roleRecord as any).puede_asignar_responsables ?? false,
           puede_restaurar_solicitudes: (roleRecord as any).puede_restaurar_solicitudes ?? false,
+          puede_acceder_usuarios: (roleRecord as any).puede_acceder_usuarios ?? true,
+          puede_acceder_clientes: (roleRecord as any).puede_acceder_clientes ?? true,
+          puede_acceder_empleados: (roleRecord as any).puede_acceder_empleados ?? true,
+          puede_acceder_constructor: (roleRecord as any).puede_acceder_constructor ?? true,
+          puede_acceder_agentes: (roleRecord as any).puede_acceder_agentes ?? true,
           created_at: profile?.created_at || null,
         };
       });

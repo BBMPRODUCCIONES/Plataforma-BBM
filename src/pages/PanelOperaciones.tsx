@@ -3985,11 +3985,11 @@ const PanelOperaciones = () => {
                                         Agregar información de Solicitud de Anticipos
                                       </DropdownMenuCheckboxItem>
                                       <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={async () => { await getFreshEmpleados(); printLegalizacion(currentProjectData, empleados, includeSolicitudInExport); }}>
+                                      <DropdownMenuItem onClick={async () => { const freshEmps = await getFreshEmpleados(); printLegalizacion(currentProjectData, freshEmps, includeSolicitudInExport); }}>
                                         <FileDown className="h-4 w-4 mr-2" />
                                         Descargar PDF
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={async () => { await getFreshEmpleados(); await exportLegalizacionToExcel(currentProjectData, empleados, includeSolicitudInExport); }}>
+                                      <DropdownMenuItem onClick={async () => { const freshEmps = await getFreshEmpleados(); await exportLegalizacionToExcel(currentProjectData, freshEmps, includeSolicitudInExport); }}>
                                         <FileSpreadsheet className="h-4 w-4 mr-2" />
                                         Descargar Excel
                                       </DropdownMenuItem>

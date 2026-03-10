@@ -2951,8 +2951,11 @@ const PanelOperaciones = () => {
             // Solo validar anticipos si el usuario puede editarlos
             const canEditAnticiposHere = isAdmin || canCrearAnticipos();
             if (selectedSection === "cajaMenor") {
-              // Validación de SOLICITUD DE ANTICIPOS - Imagen OBLIGATORIA (solo si el usuario puede editar)
-              const cajaMenorItems = currentProjectData.cajaMenor || [];
+              // Validación de SOLICITUD DE ANTICIPOS - solo validar items del usuario actual
+              const allCajaMenorItems = currentProjectData.cajaMenor || [];
+              const cajaMenorItems = isAdmin 
+                ? allCajaMenorItems 
+                : allCajaMenorItems.filter((cm: CajaMenorItem) => isCreatorOfRecord(cm));
               if (cajaMenorItems.length > 0 && canEditAnticiposHere) {
                 const legalizacionData2 = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
                 const registrosIncompletos = cajaMenorItems.filter((item: CajaMenorItem) => {
@@ -3008,7 +3011,10 @@ const PanelOperaciones = () => {
               // Validación de RECURSOS PROPIOS - TODOS los campos obligatorios (sin recursos)
               const legalizacionData = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
               const anticipoIdsSet = new Set((currentProjectData.cajaMenor || []).map((cm: CajaMenorItem) => `leg-${cm.id}`));
-              const independentLegData = legalizacionData.filter(l => !anticipoIdsSet.has(l.id));
+              const allIndependentLegData = legalizacionData.filter(l => !anticipoIdsSet.has(l.id));
+              const independentLegData = isAdmin
+                ? allIndependentLegData
+                : allIndependentLegData.filter(l => isCreatorOfRecord(l as any));
               
               if (independentLegData.length > 0) {
                 const legIncompletos: { item: LegalizacionItem; idx: number }[] = [];

@@ -2053,12 +2053,13 @@ export default function AprobacionesPendientes() {
                         <TableCell className="text-xs text-center">
                           <div className="flex items-center gap-1 justify-center">
                             {hasRestoredRows && (
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="text-xs max-w-[220px]">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button type="button" className="focus:outline-none">
+                                    <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-pointer" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent side="top" className="text-xs max-w-[240px] p-3">
                                      <p className="font-semibold">Restaurada</p>
                                      {restoredRow?.item.restauradaPor && (
                                        <p>Por: {restoredRow.item.restauradaPor}</p>
@@ -2069,9 +2070,8 @@ export default function AprobacionesPendientes() {
                                      {restoredRow?.item.restauradaRazon && (
                                        <p className="mt-1 italic">Razón: {restoredRow.item.restauradaRazon}</p>
                                      )}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                                </PopoverContent>
+                              </Popover>
                             )}
                             <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
                               {group.tipo}

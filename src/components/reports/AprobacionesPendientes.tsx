@@ -1476,13 +1476,16 @@ export default function AprobacionesPendientes() {
                                   <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-help" />
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="text-xs max-w-[220px]">
-                                  <p className="font-semibold">Restaurada</p>
-                                  {restoredRow?.item.restauradaPor && (
-                                    <p>Por: {restoredRow.item.restauradaPor}</p>
-                                  )}
-                                  {restoredRow?.item.restauradaEn && (
-                                    <p>{format(parseISO(restoredRow.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
-                                  )}
+                                   <p className="font-semibold">Restaurada</p>
+                                   {restoredRow?.item.restauradaPor && (
+                                     <p>Por: {restoredRow.item.restauradaPor}</p>
+                                   )}
+                                   {restoredRow?.item.restauradaEn && (
+                                     <p>{format(parseISO(restoredRow.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
+                                   )}
+                                   {restoredRow?.item.restauradaRazon && (
+                                     <p className="mt-1 italic">Razón: {restoredRow.item.restauradaRazon}</p>
+                                   )}
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>

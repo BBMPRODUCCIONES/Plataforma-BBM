@@ -204,7 +204,7 @@ const PanelGeneral = () => {
         );
       case "cliente":
         return (p: Project) => generalReadOnly ? (
-          <span className="text-sm truncate">{p.cliente || "-"}</span>
+          <span className="text-sm truncate">{p.cliente || "Sin cliente"}</span>
         ) : (
           <ClienteAutocomplete
             value={p.cliente}

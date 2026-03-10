@@ -214,6 +214,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           puedeEditarPersonal: (data as any).puede_editar_personal ?? false,
           puedeEditarInventario: (data as any).puede_editar_inventario ?? false,
           puedeAsignarResponsables: (data as any).puede_asignar_responsables ?? false,
+        },
+        adminPagePermissions: {
+          puedeAccederUsuarios: (data as any).puede_acceder_usuarios ?? true,
+          puedeAccederClientes: (data as any).puede_acceder_clientes ?? true,
+          puedeAccederEmpleados: (data as any).puede_acceder_empleados ?? true,
+          puedeAccederConstructor: (data as any).puede_acceder_constructor ?? true,
+          puedeAccederAgentes: (data as any).puede_acceder_agentes ?? true,
         }
       };
       

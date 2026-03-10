@@ -1082,6 +1082,32 @@ const Usuarios = () => {
                 </div>
               </div>
 
+              {/* Restaurar Solicitudes Permission - admin only */}
+              {editRole === "administrador" && (
+                <div className="space-y-2">
+                  <Label>Permisos de Restauración</Label>
+                  <div className="space-y-2 p-3 border rounded-md bg-cyan-500/10 border-cyan-500/30">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-restaurar-solicitudes"
+                        checked={editPuedeRestaurarSolicitudes}
+                        onCheckedChange={(checked) => setEditPuedeRestaurarSolicitudes(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label 
+                        htmlFor="edit-puede-restaurar-solicitudes"
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        Puede restaurar solicitudes desde el historial
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Solo los administradores con este permiso pueden restaurar solicitudes aprobadas/rechazadas a estado Pendiente.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Crear Anticipos Permission - all roles */}
               <div className="space-y-2">
                 <Label>Permisos de Solicitud de Anticipos</Label>

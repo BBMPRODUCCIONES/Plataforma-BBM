@@ -1048,7 +1048,7 @@ export default function AprobacionesPendientes() {
       for (const row of gastoMenorRows) {
         await supabase
           .from("gastos_menores")
-          .update({ estado: "Pendiente", aprobado_por_id: null, aprobado_por_nombre: "", restaurada: true, restaurada_por: restoreBy, restaurada_en: restoreTimestamp } as any)
+          .update({ estado: "Pendiente", aprobado_por_id: null, aprobado_por_nombre: "", restaurada: true, restaurada_por: restoreBy, restaurada_en: restoreTimestamp, restaurada_razon: restoreReasonInput } as any)
           .eq("id", row.gastoMenorId!);
         toast.info(`Solicitud de caja menor restaurada a Pendiente`);
       }

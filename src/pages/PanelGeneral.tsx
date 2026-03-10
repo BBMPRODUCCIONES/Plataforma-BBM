@@ -542,12 +542,12 @@ const PanelGeneral = () => {
               </TabsList>
               <div className="flex items-center gap-2">
                 <Switch
-                  id="hide-deleted-general"
-                  checked={hideDeleted}
-                  onCheckedChange={setHideDeleted}
+                  id="show-deleted-general"
+                  checked={showDeleted}
+                  onCheckedChange={setShowDeleted}
                 />
-                <Label htmlFor="hide-deleted-general" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
-                  Ocultar eliminados
+                <Label htmlFor="show-deleted-general" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
+                  Mostrar eliminados
                 </Label>
               </div>
               <Button

@@ -926,13 +926,13 @@ const PanelDirectivo = () => {
               </TabsList>
               <div className="flex items-center gap-2">
                 <Switch
-                  id="hide-deleted"
-                  checked={hideDeleted}
-                  onCheckedChange={setHideDeleted}
+                  id="show-deleted"
+                  checked={showDeleted}
+                  onCheckedChange={setShowDeleted}
                   className={isMobile ? 'scale-90' : ''}
                 />
-                <Label htmlFor="hide-deleted" className={`cursor-pointer whitespace-nowrap ${isMobile ? 'text-xs text-muted-foreground' : 'text-sm text-muted-foreground'}`}>
-                  Ocultar eliminados
+                <Label htmlFor="show-deleted" className={`cursor-pointer whitespace-nowrap ${isMobile ? 'text-xs text-muted-foreground' : 'text-sm text-muted-foreground'}`}>
+                  Mostrar eliminados
                 </Label>
               </div>
             </div>

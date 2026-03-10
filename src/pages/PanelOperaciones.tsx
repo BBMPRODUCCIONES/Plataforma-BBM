@@ -2790,15 +2790,15 @@ const PanelOperaciones = () => {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
               <div className="flex items-center gap-2">
                 <Switch
-                  id="hide-deleted-operaciones"
-                  checked={hideDeleted}
+                  id="show-deleted-operaciones"
+                  checked={showDeleted}
                   onCheckedChange={(checked) => {
                     exitFocusMode();
-                    setHideDeleted(checked);
+                    setShowDeleted(checked);
                   }}
                 />
-                <Label htmlFor="hide-deleted-operaciones" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
-                  Ocultar eliminados
+                <Label htmlFor="show-deleted-operaciones" className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
+                  Mostrar eliminados
                 </Label>
               </div>
               <Button

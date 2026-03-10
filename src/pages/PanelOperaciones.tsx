@@ -1537,6 +1537,7 @@ const PanelOperaciones = () => {
     const projectId = selectedProject?.id;
     const hasTransporte = currentProjectData?.personal?.some(p => p.tipoPersonal === "Transporte");
     const hasProveedorOrTransporte = currentProjectData?.personal?.some(p => p.tipoPersonal === "Proveedor" || p.tipoPersonal === "Transporte");
+    const personalReadOnly = !canEditPersonal();
     
     const basePersonalCols = [
       { 
@@ -1544,14 +1545,15 @@ const PanelOperaciones = () => {
         header: "Tipo", 
         width: "120px",
         mobileWidth: "120px",
-        render: (p: PersonalItem) => (
+        render: (p: PersonalItem) => personalReadOnly ? (
+          <Badge variant="outline" className="text-[10px]">{p.tipoPersonal || "-"}</Badge>
+        ) : (
           <EditableCell
             value={p.tipoPersonal}
             type="select"
             options={["BBM", "Proveedor", "Transporte"]}
             onChange={(value) => {
               if (projectId) {
-                // Use atomic update to prevent stale closure issues
                 if (value === "BBM") {
                   updatePersonalItemMultiple(projectId, p.id, {
                     tipoPersonal: value,

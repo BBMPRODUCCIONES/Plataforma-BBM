@@ -1103,7 +1103,7 @@ export default function AprobacionesPendientes() {
         if (legIdsToRestore.size > 0) {
           const updatedLeg = (project.legalizacion || []).map(l =>
             legIdsToRestore.has(l.id)
-              ? { ...l, estado: "Pendiente", revisadoPor: "", restaurada: true, restauradaPor: restoreBy, restauradaEn: restoreTimestamp }
+              ? { ...l, estado: "Pendiente", revisadoPor: "", restaurada: true, restauradaPor: restoreBy, restauradaEn: restoreTimestamp, restauradaRazon: restoreReasonInput }
               : l
           );
           await updateProject(projectId, "legalizacion", updatedLeg);

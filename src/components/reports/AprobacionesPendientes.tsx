@@ -1728,306 +1728,60 @@ export default function AprobacionesPendientes() {
         </div>
       </div>
 
-      {/* KPIs - only count pending rows */}
-      <AprobacionesKPIs rows={pendingRows} />
-
-      <div className="flex items-center justify-between flex-shrink-0">
-        <div className="text-xs text-muted-foreground">
-          {groupedPendingRows.length} grupo{groupedPendingRows.length !== 1 ? "s" : ""} ({pendingRows.length} solicitud{pendingRows.length !== 1 ? "es" : ""}) pendiente{pendingRows.length !== 1 ? "s" : ""}
+      {/* Tabs by type */}
+      <Tabs defaultValue="S" className="flex-1 flex flex-col min-h-0">
+        <div className="flex items-center justify-between flex-shrink-0 gap-2">
+          <TabsList className="h-auto p-1 flex-wrap">
+            <TabsTrigger value="S" className="gap-1.5 text-xs px-3 py-1.5">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] bg-blue-500/20 text-blue-400 border-blue-500/40">S</span>
+              Solicitud de anticipos
+              <Badge variant="outline" className="text-[10px] ml-1">{pendingCountByType.S}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="R" className="gap-1.5 text-xs px-3 py-1.5">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] bg-emerald-500/20 text-emerald-400 border-emerald-500/40">R</span>
+              Recursos propios
+              <Badge variant="outline" className="text-[10px] ml-1">{pendingCountByType.R}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="C" className="gap-1.5 text-xs px-3 py-1.5">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/40">C</span>
+              Caja menor
+              <Badge variant="outline" className="text-[10px] ml-1">{pendingCountByType.C}</Badge>
+            </TabsTrigger>
+          </TabsList>
+          {resolvedRows.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-xs shrink-0"
+              onClick={openHistoryDialog}
+            >
+              <History className="w-3.5 h-3.5" />
+              Historial ({groupedResolvedRows.length})
+            </Button>
+          )}
         </div>
-        {resolvedRows.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 text-xs"
-            onClick={openHistoryDialog}
-          >
-            <History className="w-3.5 h-3.5" />
-            Historial ({groupedResolvedRows.length})
-          </Button>
-        )}
-      </div>
 
-      {/* Pending Solicitudes Table - Grouped */}
-      <div
-        className="border rounded-md overflow-auto"
-        style={{
-          maxHeight: "clamp(280px, 40vh, 500px)",
-          scrollbarWidth: "auto",
-          scrollbarColor: "hsl(var(--muted-foreground) / 0.3) transparent",
-        }}
-      >
-        <Table>
-          <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
-            <TableRow>
-              <TableHead className="text-xs w-[40px]">Tipo</TableHead>
-              <TableHead className="text-xs">Fecha</TableHead>
-              <TableHead className="text-xs">CC</TableHead>
-              <TableHead className="text-xs">Relación de eventos</TableHead>
-              <TableHead className="text-xs text-right">Valor Total</TableHead>
-              <TableHead className="text-xs text-center">Cant.</TableHead>
-              <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
-              <TableHead className="text-xs">Aprobado por</TableHead>
-              <TableHead className="text-xs text-right">Legalización</TableHead>
-              <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>
-              <TableHead className="text-xs text-right">Saldo</TableHead>
-              <TableHead className="text-xs w-[130px]">Plazo Leg.</TableHead>
-              <TableHead className="text-xs w-[100px]">Deshacer</TableHead>
-              <TableHead className="text-xs w-[80px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {groupedPendingRows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={14} className="text-center text-muted-foreground py-8 text-sm">
-                  No hay solicitudes pendientes
-                </TableCell>
-              </TableRow>
-            ) : (
-              groupedPendingRows.map((group) => {
-                const d = group.latestDate ? parseDateSafe(group.latestDate) : null;
-                const colorClass =
-                  group.tipo === "S" ? "bg-blue-500/20 text-blue-400 border-blue-500/40" :
-                  group.tipo === "R" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
-                  "bg-amber-500/20 text-amber-400 border-amber-500/40";
-                const firstProjectRow = group.rows.find(r => r.projectId);
-                const isTypeS = group.tipo === "S";
+        <TabsContent value="S" className="flex-1 min-h-0 mt-3">
+          <div className="text-xs text-muted-foreground mb-2">
+            {pendingByType.S.length} grupo{pendingByType.S.length !== 1 ? "s" : ""} ({pendingCountByType.S} solicitud{pendingCountByType.S !== 1 ? "es" : ""})
+          </div>
+          {renderPendingTable('S', pendingByType.S)}
+        </TabsContent>
 
-                // Determine common estado for the group
-                const allEstados = [...new Set(group.rows.map(r => r.item.estado))];
-                const commonEstado = allEstados.length === 1 ? allEstados[0] : "Pendiente";
+        <TabsContent value="R" className="flex-1 min-h-0 mt-3">
+          <div className="text-xs text-muted-foreground mb-2">
+            {pendingByType.R.length} grupo{pendingByType.R.length !== 1 ? "s" : ""} ({pendingCountByType.R} solicitud{pendingCountByType.R !== 1 ? "es" : ""})
+          </div>
+          {renderPendingTable('R', pendingByType.R)}
+        </TabsContent>
 
-                // Determine aprobado por
-                const aprobadores = [...new Set(group.rows
-                  .map(r => {
-                    if (r.source === 'gastoMenor') {
-                      const gm = gastosMenores.find(g => g.id === r.gastoMenorId);
-                      return gm?.aprobado_por_nombre || "";
-                    }
-                    return r.item.revisadoPor || "";
-                  })
-                  .filter(Boolean)
-                )];
-                const aprobadoPorDisplay = aprobadores.length === 1 ? aprobadores[0] : aprobadores.length > 1 ? aprobadores.join(", ") : "—";
-
-                // Determine legalization estado for type S
-                const legEstados = isTypeS ? [...new Set(group.rows.map(r => r.legalizacionEstado || "Revisando"))] : [];
-                const commonLegEstado = legEstados.length === 1 ? legEstados[0] : legEstados.length > 1 ? "Mixto" : "";
-                const hasRestoredRows = group.rows.some(r => r.item.restaurada === true);
-
-                return (
-                  <TableRow key={group.key}>
-                    <TableCell className="text-xs text-center">
-                      <div className="flex items-center gap-1 justify-center">
-                        {group.rows.some(r => r.item.restaurada === true) && (() => {
-                          const restoredRow = group.rows.find(r => r.item.restaurada && r.item.restauradaPor);
-                          return (
-                            <TooltipProvider delayDuration={200}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs max-w-[220px]">
-                                  <p className="font-semibold">Restaurada</p>
-                                  {restoredRow?.item.restauradaPor && (
-                                    <p>Por: {restoredRow.item.restauradaPor}</p>
-                                  )}
-                                  {restoredRow?.item.restauradaEn && (
-                                    <p>{format(parseISO(restoredRow.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
-                                  )}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          );
-                        })()}
-                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
-                          {group.tipo}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {d ? format(d, "dd/MM/yyyy") : "—"}
-                    </TableCell>
-                    <TableCell className="text-xs">{group.centroCostos || "—"}</TableCell>
-                    <TableCell className="text-xs">{group.evento || "—"}</TableCell>
-                    <TableCell className="text-xs text-right font-medium">
-                      {formatCurrency(group.totalValor)}
-                    </TableCell>
-                    <TableCell className="text-xs text-center">
-                      <Badge variant="outline" className="text-[10px]">
-                        {group.rows.length}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {(() => {
-                        const isTypeSAndDecided = isTypeS && commonEstado !== "Pendiente";
-                        if (canApproveCajaMenor() && !isTypeSAndDecided) {
-                          return (
-                            <CajaMenorEstadoSelect
-                              value={commonEstado}
-                              onChange={(v) => handleGroupedEstadoChange(group, v)}
-                              allowedValues={["Pendiente", "Aprobado", "No aprobado"]}
-                            />
-                          );
-                        }
-                        return (
-                          <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {aprobadoPorDisplay}
-                    </TableCell>
-                    <TableCell className="text-xs text-right">
-                      {isTypeS ? formatCurrency(group.totalLegalizacion) : "—"}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {(() => {
-                        if (!isTypeS) return <span className="text-muted-foreground">—</span>;
-                        if (commonEstado === "Pendiente") {
-                          return (
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_EN_REVISION.className}`}>
-                              {LEGALIZACION_EN_REVISION.label}
-                            </span>
-                          );
-                        }
-                        if (commonEstado === "No aprobado") {
-                          return (
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>
-                              {LEGALIZACION_NO_APROBADO.label}
-                            </span>
-                          );
-                        }
-                        // Editable selector when approved and user has permission
-                        const hasApproved = group.rows.some(r => r.item.estado === "Aprobado");
-                        if (canApproveCajaMenor() && hasApproved) {
-                          return (
-                            <Select
-                              value={commonLegEstado === "Mixto" ? "Revisando" : (commonLegEstado || "Revisando")}
-                              onValueChange={(v) => handleGroupedLegalizacionChange(group, v)}
-                            >
-                              <SelectTrigger
-                                className={`h-7 text-xs w-full border font-medium ${
-                                  LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (commonLegEstado === "Mixto" ? "Revisando" : commonLegEstado || "Revisando"))?.className || "bg-yellow-500/20 text-yellow-400"
-                                }`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <span>{commonLegEstado === "Mixto" ? "Mixto" : (LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (commonLegEstado || "Revisando"))?.label || "Revisando")}</span>
-                              </SelectTrigger>
-                              <SelectContent className="bg-popover border-border z-[9999]">
-                                {LEGALIZACION_ESTADO_OPTIONS.map((option) => (
-                                  <SelectItem
-                                    key={option.value}
-                                    value={option.value}
-                                    className={`text-xs font-medium ${option.className}`}
-                                  >
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          );
-                        }
-                        const legOption = LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === commonLegEstado);
-                        return (
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded ${legOption?.className || "bg-yellow-500/20 text-yellow-400"}`}>
-                            {commonLegEstado || "Revisando"}
-                          </span>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell className={`text-xs text-right font-medium ${
-                      isTypeS ? (group.totalSaldo > 0 ? "text-green-400" : group.totalSaldo < 0 ? "text-red-400" : "") : ""
-                    }`}>
-                      {isTypeS ? formatCurrency(Math.abs(group.totalSaldo)) : "—"}
-                    </TableCell>
-                    {/* Plazo Legalización */}
-                    <TableCell className="text-xs">
-                      {(() => {
-                        if (!isTypeS || commonEstado === "Pendiente") return <span className="text-muted-foreground">—</span>;
-                        if (!group.fechaDesmontajeFin) return <span className="text-muted-foreground text-[10px]">Sin fecha desm.</span>;
-                        try {
-                          const desmFin = parseISO(group.fechaDesmontajeFin);
-                          const deadline = new Date(desmFin.getTime() + 2 * 24 * 60 * 60 * 1000);
-                          const now = new Date();
-                          const diffMs = deadline.getTime() - now.getTime();
-                          const isLate = diffMs <= 0;
-                          if (isLate) {
-                            const daysLate = Math.ceil(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
-                            return (
-                              <div className="flex items-center gap-1">
-                                <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                                <span className="text-[10px] font-semibold text-red-400 leading-tight">
-                                  Tardía ({daysLate}d vencido)
-                                </span>
-                              </div>
-                            );
-                          } else {
-                            const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                            const hoursLeft = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                            return (
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                                <span className="text-[10px] font-medium text-green-400 leading-tight">
-                                  {daysLeft > 0 ? `${daysLeft}d ${hoursLeft}h` : `${hoursLeft}h`}
-                                </span>
-                              </div>
-                            );
-                          }
-                        } catch {
-                          return <span className="text-muted-foreground">—</span>;
-                        }
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {(() => {
-                        const undoEntry = getUndoEntryForGroup(group.key, group.rows);
-                        if (!undoEntry) return null;
-                        const timeLeft = formatTimeRemaining(undoEntry.expires_at);
-                        if (!timeLeft) return null;
-                        return (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 gap-1 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleUndoGroup(group.rows);
-                            }}
-                          >
-                            <Undo2 className="w-3 h-3" />
-                            {timeLeft}
-                          </Button>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      {firstProjectRow && (
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="h-7 px-1 text-xs text-primary underline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const params = new URLSearchParams({
-                              eventId: firstProjectRow.projectId,
-                              eventName: firstProjectRow.evento,
-                              source: "aprobaciones",
-                            });
-                            window.open(`/panel-operaciones?${params.toString()}`, "_blank");
-                          }}
-                        >
-                          Ver más
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+        <TabsContent value="C" className="flex-1 min-h-0 mt-3">
+          <div className="text-xs text-muted-foreground mb-2">
+            {pendingByType.C.length} grupo{pendingByType.C.length !== 1 ? "s" : ""} ({pendingCountByType.C} solicitud{pendingCountByType.C !== 1 ? "es" : ""})
+          </div>
+          {renderPendingTable('C', pendingByType.C)}
+        </TabsContent>
+      </Tabs>
 
       {/* History Dialog */}
       <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>

@@ -3442,6 +3442,7 @@ const PanelOperaciones = () => {
                                       </DropdownMenuCheckboxItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem onClick={async () => {
+                                        await getFreshEmpleados();
                                         const num = await getOrAssignSolicitudNum(currentProjectData.id);
                                         printSolicitudPresupuesto(currentProjectData, empleados, includeLegalizacionInExport, num ?? undefined);
                                       }}>
@@ -3449,6 +3450,7 @@ const PanelOperaciones = () => {
                                         Descargar PDF
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={async () => {
+                                        await getFreshEmpleados();
                                         const num = await getOrAssignSolicitudNum(currentProjectData.id);
                                         await exportSolicitudToExcel(currentProjectData, empleados, includeLegalizacionInExport, num ?? undefined);
                                       }}>

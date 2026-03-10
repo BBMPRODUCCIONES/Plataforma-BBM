@@ -462,6 +462,11 @@ const Usuarios = () => {
     setEditPuedeEditarInventario(user.puede_editar_inventario);
     setEditPuedeAsignarResponsables(user.puede_asignar_responsables);
     setEditPuedeRestaurarSolicitudes(user.puede_restaurar_solicitudes);
+    setEditPuedeAccederUsuarios(user.puede_acceder_usuarios);
+    setEditPuedeAccederClientes(user.puede_acceder_clientes);
+    setEditPuedeAccederEmpleados(user.puede_acceder_empleados);
+    setEditPuedeAccederConstructor(user.puede_acceder_constructor);
+    setEditPuedeAccederAgentes(user.puede_acceder_agentes);
   };
 
   const handleSaveUser = async () => {

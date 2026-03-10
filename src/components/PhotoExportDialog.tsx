@@ -100,17 +100,17 @@ export function PhotoExportDialog({ open, onOpenChange, title, subtitle, photos 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-2">
+        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
           <DialogTitle className="text-lg">{title}</DialogTitle>
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </DialogHeader>
-        <div className="px-6 pb-2 flex justify-end">
+        <div className="px-6 pb-2 flex justify-end shrink-0">
           <Button size="sm" variant="outline" onClick={handlePrint} disabled={loading || resolvedPhotos.length === 0}>
             <Download className="h-4 w-4 mr-2" />
             Guardar PDF
           </Button>
         </div>
-        <ScrollArea className="flex-1 px-6 pb-6 max-h-[calc(90vh-140px)]">
+        <div className="flex-1 overflow-y-auto px-6 pb-6">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -137,7 +137,7 @@ export function PhotoExportDialog({ open, onOpenChange, title, subtitle, photos 
               </p>
             </div>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -507,9 +507,14 @@ const Usuarios = () => {
           puede_editar_directivo: finalPuedeEditarDirectivo,
           puede_editar_personal: finalPuedeEditarPersonal,
           puede_editar_inventario: finalPuedeEditarInventario,
-          puede_asignar_responsables: finalPuedeAsignarResponsables,
-          puede_restaurar_solicitudes: finalPuedeRestaurarSolicitudes,
-        } as any)
+           puede_asignar_responsables: finalPuedeAsignarResponsables,
+           puede_restaurar_solicitudes: finalPuedeRestaurarSolicitudes,
+           puede_acceder_usuarios: editPuedeAccederUsuarios,
+           puede_acceder_clientes: editPuedeAccederClientes,
+           puede_acceder_empleados: editPuedeAccederEmpleados,
+           puede_acceder_constructor: editPuedeAccederConstructor,
+           puede_acceder_agentes: editPuedeAccederAgentes,
+         } as any)
         .eq("user_id", editingUser.id);
 
       if (roleError) throw roleError;

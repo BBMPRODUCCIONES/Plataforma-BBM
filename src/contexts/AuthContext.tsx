@@ -82,6 +82,14 @@ const defaultPanelEditPermissions: PanelEditPermissions = {
   puedeAsignarResponsables: false,
 };
 
+const defaultAdminPagePermissions: AdminPagePermissions = {
+  puedeAccederUsuarios: true,
+  puedeAccederClientes: true,
+  puedeAccederEmpleados: true,
+  puedeAccederConstructor: true,
+  puedeAccederAgentes: true,
+};
+
 // Cache key for localStorage
 const ROLE_CACHE_KEY = "bbm_user_role_cache";
 

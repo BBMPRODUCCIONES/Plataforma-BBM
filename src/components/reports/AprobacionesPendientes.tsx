@@ -783,7 +783,11 @@ export default function AprobacionesPendientes() {
 
   // Undo all entries for a group
   const handleUndoGroup = async (groupRows: FlattenedRow[]) => {
-    const itemIds = new Set(groupRows.map(r => r.item.id));
+    const itemIds = new Set<string>();
+    groupRows.forEach(r => {
+      itemIds.add(r.item.id);
+      itemIds.add(`leg-${r.item.id}`);
+    });
     const entries = undoLog.filter(e => itemIds.has(e.item_id) && !e.undone && new Date(e.expires_at) > new Date());
     for (const entry of entries) {
       await handleUndoFromLog(entry);

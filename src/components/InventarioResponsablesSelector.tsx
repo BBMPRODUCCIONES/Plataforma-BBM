@@ -296,6 +296,7 @@ export function InventarioResponsablesSelector({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!readOnly && (
         <div className="flex items-start gap-2 text-[11px] text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
           <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
           <span>
@@ -304,6 +305,7 @@ export function InventarioResponsablesSelector({
               : "Al registrarte como responsable, tendrás 5 minutos para deshacer tu registro. Después de ese tiempo, solo un administrador podrá modificarlo."}
           </span>
         </div>
+        )}
 
         <ResponsableSection
           label="Responsable de Salida"

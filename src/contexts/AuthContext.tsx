@@ -40,6 +40,7 @@ interface UserRoleData {
   feedbackPermissions: FeedbackPermissions;
   cajaMenorPermissions: CajaMenorPermissions;
   panelEditPermissions: PanelEditPermissions;
+  adminPagePermissions: AdminPagePermissions;
 }
 
 interface AuthContextType {

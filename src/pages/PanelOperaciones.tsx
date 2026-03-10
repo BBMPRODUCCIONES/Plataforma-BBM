@@ -1937,6 +1937,7 @@ const PanelOperaciones = () => {
   const inventarioColumns = useMemo(() => {
     // Use currentProjectData?.id to get fresh project ID
     const projectId = currentProjectData?.id;
+    const inventarioReadOnly = !canEditInventario();
     
     return [
       {

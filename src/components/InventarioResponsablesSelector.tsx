@@ -241,6 +241,7 @@ export function InventarioResponsablesSelector({
   onResponsableEntradaChange,
   onResponsableEventoChange,
   highlightMissing = false,
+  readOnly = false,
 }: InventarioResponsablesSelectorProps) {
   const { user } = useAuth();
   const { canEditStructure, canCrearAnticipos } = useUserRole();

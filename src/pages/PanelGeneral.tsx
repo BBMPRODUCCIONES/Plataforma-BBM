@@ -187,6 +187,7 @@ const PanelGeneral = () => {
             type="text"
             onChange={(value) => updateProject(p.id, "centroCostos", value)}
             className="font-mono bg-muted px-2 py-1 rounded"
+            placeholder="Ej: 3-00814"
           />
         );
       case "numFactura":

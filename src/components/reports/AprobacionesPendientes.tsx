@@ -61,6 +61,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface FlattenedRow {
   projectId: string;
@@ -438,9 +443,10 @@ export default function AprobacionesPendientes() {
           imagenes: leg.imagenes,
           createdAt: leg.createdAt,
           revisadoPor: leg.revisadoPor,
-          restaurada: leg.restaurada,
-          restauradaPor: leg.restauradaPor,
-          restauradaEn: leg.restauradaEn,
+           restaurada: leg.restaurada,
+           restauradaPor: leg.restauradaPor,
+           restauradaEn: leg.restauradaEn,
+           restauradaRazon: leg.restauradaRazon,
         };
         result.push({
           projectId: project.id,
@@ -1170,25 +1176,25 @@ export default function AprobacionesPendientes() {
         <TableCell className="text-xs text-center">
           <div className="flex items-center gap-1 justify-center">
             {isRestored && (
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs max-w-[220px]">
-                    <p className="font-semibold">Restaurada</p>
-                    {row.item.restauradaPor && (
-                      <p>Por: {row.item.restauradaPor}</p>
-                    )}
-                    {row.item.restauradaEn && (
-                      <p>{format(parseISO(row.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
-                    )}
-                    {row.item.restauradaRazon && (
-                      <p className="mt-1 italic">Razón: {row.item.restauradaRazon}</p>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button type="button" className="focus:outline-none">
+                    <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-pointer" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="top" className="text-xs max-w-[240px] p-3">
+                  <p className="font-semibold">Restaurada</p>
+                  {row.item.restauradaPor && (
+                    <p>Por: {row.item.restauradaPor}</p>
+                  )}
+                  {row.item.restauradaEn && (
+                    <p>{format(parseISO(row.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
+                  )}
+                  {row.item.restauradaRazon && (
+                    <p className="mt-1 italic">Razón: {row.item.restauradaRazon}</p>
+                  )}
+                </PopoverContent>
+              </Popover>
             )}
             {(() => {
               const r = (row.item.recursos as string) || "";
@@ -1470,12 +1476,13 @@ export default function AprobacionesPendientes() {
                         {hasRestoredRows && (() => {
                           const restoredRow = group.rows.find(r => r.item.restaurada && r.item.restauradaPor);
                           return (
-                            <TooltipProvider delayDuration={200}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs max-w-[220px]">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button type="button" className="focus:outline-none">
+                                  <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-pointer" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent side="top" className="text-xs max-w-[240px] p-3">
                                    <p className="font-semibold">Restaurada</p>
                                    {restoredRow?.item.restauradaPor && (
                                      <p>Por: {restoredRow.item.restauradaPor}</p>
@@ -1486,9 +1493,8 @@ export default function AprobacionesPendientes() {
                                    {restoredRow?.item.restauradaRazon && (
                                      <p className="mt-1 italic">Razón: {restoredRow.item.restauradaRazon}</p>
                                    )}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                              </PopoverContent>
+                            </Popover>
                           );
                         })()}
                         <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
@@ -2047,12 +2053,13 @@ export default function AprobacionesPendientes() {
                         <TableCell className="text-xs text-center">
                           <div className="flex items-center gap-1 justify-center">
                             {hasRestoredRows && (
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="text-xs max-w-[220px]">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button type="button" className="focus:outline-none">
+                                    <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-pointer" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent side="top" className="text-xs max-w-[240px] p-3">
                                      <p className="font-semibold">Restaurada</p>
                                      {restoredRow?.item.restauradaPor && (
                                        <p>Por: {restoredRow.item.restauradaPor}</p>
@@ -2063,9 +2070,8 @@ export default function AprobacionesPendientes() {
                                      {restoredRow?.item.restauradaRazon && (
                                        <p className="mt-1 italic">Razón: {restoredRow.item.restauradaRazon}</p>
                                      )}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                                </PopoverContent>
+                              </Popover>
                             )}
                             <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
                               {group.tipo}

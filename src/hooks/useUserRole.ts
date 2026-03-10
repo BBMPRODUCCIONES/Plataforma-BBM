@@ -22,6 +22,7 @@ interface UseUserRoleReturn {
   canApproveCajaMenor: () => boolean;
   canCrearAnticipos: () => boolean;
   canRestaurarSolicitudes: () => boolean;
+  canAccessAdminPage: (page: string) => boolean;
 }
 
 // Admin-only sections that require administrador role
@@ -35,7 +36,7 @@ const ADMIN_ONLY_SECTIONS = [
 ];
 
 export function useUserRole(): UseUserRoleReturn {
-  const { role, allowedPanels, loading, roleLoading, roleError, feedbackPermissions, cajaMenorPermissions, panelEditPermissions } = useAuth();
+  const { role, allowedPanels, loading, roleLoading, roleError, feedbackPermissions, cajaMenorPermissions, panelEditPermissions, adminPagePermissions } = useAuth();
 
   const canAccessPanel = (panel: string): boolean => {
     // If still loading, don't deny access yet
@@ -110,17 +111,13 @@ export function useUserRole(): UseUserRoleReturn {
 
   const canViewFeedback = (): boolean => {
     if (!role) return false;
-    // Administrador always has access
     if (role.toLowerCase() === "administrador") return true;
-    // For other roles, check specific permission
     return feedbackPermissions?.puedeVerFeedback ?? false;
   };
 
   const canEditFeedback = (): boolean => {
     if (!role) return false;
-    // Administrador always has full access
     if (role.toLowerCase() === "administrador") return true;
-    // For other roles, check specific permission
     return feedbackPermissions?.puedeEditarFeedback ?? false;
   };
 
@@ -134,7 +131,6 @@ export function useUserRole(): UseUserRoleReturn {
 
   const canCrearAnticipos = (): boolean => {
     if (!role) return false;
-    // All roles must have the explicit permission flag
     return cajaMenorPermissions?.puedeCrearAnticipos ?? false;
   };
 
@@ -164,6 +160,21 @@ export function useUserRole(): UseUserRoleReturn {
     return false;
   };
 
+  const canAccessAdminPage = (page: string): boolean => {
+    if (!role) return false;
+    if (role.toLowerCase() !== "administrador") return false;
+    
+    const pageMap: Record<string, boolean> = {
+      usuarios: adminPagePermissions?.puedeAccederUsuarios ?? true,
+      clientes: adminPagePermissions?.puedeAccederClientes ?? true,
+      empleados: adminPagePermissions?.puedeAccederEmpleados ?? true,
+      constructor: adminPagePermissions?.puedeAccederConstructor ?? true,
+      agentes: adminPagePermissions?.puedeAccederAgentes ?? true,
+    };
+    
+    return pageMap[page.toLowerCase()] ?? false;
+  };
+
   return {
     role: role as UserRole | null,
     loading,
@@ -185,5 +196,6 @@ export function useUserRole(): UseUserRoleReturn {
     canApproveCajaMenor,
     canCrearAnticipos,
     canRestaurarSolicitudes,
+    canAccessAdminPage,
   };
 }

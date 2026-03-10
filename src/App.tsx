@@ -89,29 +89,29 @@ const App = () => (
                     </ProtectedRoute>
                   } />
 
-                  {/* Admin-only routes */}
+                  {/* Admin-only routes with per-page permissions */}
                   <Route path="/usuarios" element={
-                    <ProtectedRoute adminOnly>
+                    <ProtectedRoute adminOnly adminPage="usuarios">
                       <Usuarios />
                     </ProtectedRoute>
                   } />
                   <Route path="/clientes" element={
-                    <ProtectedRoute adminOnly>
+                    <ProtectedRoute adminOnly adminPage="clientes">
                       <Clientes />
                     </ProtectedRoute>
                   } />
                   <Route path="/empleados" element={
-                    <ProtectedRoute adminOnly>
+                    <ProtectedRoute adminOnly adminPage="empleados">
                       <Empleados />
                     </ProtectedRoute>
                   } />
                   <Route path="/constructor" element={
-                    <ProtectedRoute adminOnly>
+                    <ProtectedRoute adminOnly adminPage="constructor">
                       <Constructor />
                     </ProtectedRoute>
                   } />
                   <Route path="/agentes-ia" element={
-                    <ProtectedRoute adminOnly>
+                    <ProtectedRoute adminOnly adminPage="agentes">
                       <AgentesIA />
                     </ProtectedRoute>
                   } />

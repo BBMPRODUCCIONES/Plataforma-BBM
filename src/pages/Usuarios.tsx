@@ -62,6 +62,11 @@ interface UserWithRole {
   puede_editar_inventario: boolean;
   puede_asignar_responsables: boolean;
   puede_restaurar_solicitudes: boolean;
+  puede_acceder_usuarios: boolean;
+  puede_acceder_clientes: boolean;
+  puede_acceder_empleados: boolean;
+  puede_acceder_constructor: boolean;
+  puede_acceder_agentes: boolean;
   created_at: string | null;
 }
 
@@ -121,6 +126,11 @@ const Usuarios = () => {
   const [editPuedeEditarInventario, setEditPuedeEditarInventario] = useState(false);
   const [editPuedeAsignarResponsables, setEditPuedeAsignarResponsables] = useState(false);
   const [editPuedeRestaurarSolicitudes, setEditPuedeRestaurarSolicitudes] = useState(false);
+  const [editPuedeAccederUsuarios, setEditPuedeAccederUsuarios] = useState(true);
+  const [editPuedeAccederClientes, setEditPuedeAccederClientes] = useState(true);
+  const [editPuedeAccederEmpleados, setEditPuedeAccederEmpleados] = useState(true);
+  const [editPuedeAccederConstructor, setEditPuedeAccederConstructor] = useState(true);
+  const [editPuedeAccederAgentes, setEditPuedeAccederAgentes] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   // Delete user state
@@ -136,6 +146,9 @@ const Usuarios = () => {
   const [reactivationData, setReactivationData] = useState<ReactivationData | null>(null);
   const [isReactivating, setIsReactivating] = useState(false);
   const [isDeletingOrphan, setIsDeletingOrphan] = useState(false);
+
+  // Invitations dialog state
+  const [showInvitationsDialog, setShowInvitationsDialog] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -153,7 +166,7 @@ const Usuarios = () => {
       // Fetch users with roles and panels (now includes email and feedback permissions)
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables, puede_restaurar_solicitudes");
+        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables, puede_restaurar_solicitudes, puede_acceder_usuarios, puede_acceder_clientes, puede_acceder_empleados, puede_acceder_constructor, puede_acceder_agentes");
 
       if (rolesError) throw rolesError;
 
@@ -185,6 +198,11 @@ const Usuarios = () => {
           puede_editar_inventario: (roleRecord as any).puede_editar_inventario ?? false,
           puede_asignar_responsables: (roleRecord as any).puede_asignar_responsables ?? false,
           puede_restaurar_solicitudes: (roleRecord as any).puede_restaurar_solicitudes ?? false,
+          puede_acceder_usuarios: (roleRecord as any).puede_acceder_usuarios ?? true,
+          puede_acceder_clientes: (roleRecord as any).puede_acceder_clientes ?? true,
+          puede_acceder_empleados: (roleRecord as any).puede_acceder_empleados ?? true,
+          puede_acceder_constructor: (roleRecord as any).puede_acceder_constructor ?? true,
+          puede_acceder_agentes: (roleRecord as any).puede_acceder_agentes ?? true,
           created_at: profile?.created_at || null,
         };
       });
@@ -444,6 +462,11 @@ const Usuarios = () => {
     setEditPuedeEditarInventario(user.puede_editar_inventario);
     setEditPuedeAsignarResponsables(user.puede_asignar_responsables);
     setEditPuedeRestaurarSolicitudes(user.puede_restaurar_solicitudes);
+    setEditPuedeAccederUsuarios(user.puede_acceder_usuarios);
+    setEditPuedeAccederClientes(user.puede_acceder_clientes);
+    setEditPuedeAccederEmpleados(user.puede_acceder_empleados);
+    setEditPuedeAccederConstructor(user.puede_acceder_constructor);
+    setEditPuedeAccederAgentes(user.puede_acceder_agentes);
   };
 
   const handleSaveUser = async () => {
@@ -484,9 +507,14 @@ const Usuarios = () => {
           puede_editar_directivo: finalPuedeEditarDirectivo,
           puede_editar_personal: finalPuedeEditarPersonal,
           puede_editar_inventario: finalPuedeEditarInventario,
-          puede_asignar_responsables: finalPuedeAsignarResponsables,
-          puede_restaurar_solicitudes: finalPuedeRestaurarSolicitudes,
-        } as any)
+           puede_asignar_responsables: finalPuedeAsignarResponsables,
+           puede_restaurar_solicitudes: finalPuedeRestaurarSolicitudes,
+           puede_acceder_usuarios: editPuedeAccederUsuarios,
+           puede_acceder_clientes: editPuedeAccederClientes,
+           puede_acceder_empleados: editPuedeAccederEmpleados,
+           puede_acceder_constructor: editPuedeAccederConstructor,
+           puede_acceder_agentes: editPuedeAccederAgentes,
+         } as any)
         .eq("user_id", editingUser.id);
 
       if (roleError) throw roleError;
@@ -740,7 +768,11 @@ const Usuarios = () => {
           description="Administra usuarios, roles y permisos del sistema"
         />
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setShowInvitationsDialog(true)}>
+            <Clock className="mr-2 h-4 w-4" />
+            Invitaciones ({pendingInvitations.length})
+          </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -1108,6 +1140,73 @@ const Usuarios = () => {
                 </div>
               )}
 
+              {/* Admin Page Access Permissions - admin only */}
+              {editRole === "administrador" && (
+                <div className="space-y-2">
+                  <Label>Acceso a Páginas de Administración</Label>
+                  <div className="space-y-2 p-3 border rounded-md bg-rose-500/10 border-rose-500/30">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-acceder-usuarios"
+                        checked={editPuedeAccederUsuarios}
+                        onCheckedChange={(checked) => setEditPuedeAccederUsuarios(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-acceder-usuarios" className="text-sm font-normal cursor-pointer">
+                        Gestión de Usuarios
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-acceder-clientes"
+                        checked={editPuedeAccederClientes}
+                        onCheckedChange={(checked) => setEditPuedeAccederClientes(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-acceder-clientes" className="text-sm font-normal cursor-pointer">
+                        Gestión de Clientes
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-acceder-empleados"
+                        checked={editPuedeAccederEmpleados}
+                        onCheckedChange={(checked) => setEditPuedeAccederEmpleados(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-acceder-empleados" className="text-sm font-normal cursor-pointer">
+                        Creación de Empleados
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-acceder-constructor"
+                        checked={editPuedeAccederConstructor}
+                        onCheckedChange={(checked) => setEditPuedeAccederConstructor(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-acceder-constructor" className="text-sm font-normal cursor-pointer">
+                        Constructor de Campos
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-acceder-agentes"
+                        checked={editPuedeAccederAgentes}
+                        onCheckedChange={(checked) => setEditPuedeAccederAgentes(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-acceder-agentes" className="text-sm font-normal cursor-pointer">
+                        Agentes IA
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Controla a cuáles páginas de administración tiene acceso este usuario. Desactivar una página impedirá que la vea en el menú y que acceda a ella.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Crear Anticipos Permission - all roles */}
               <div className="space-y-2">
                 <Label>Permisos de Solicitud de Anticipos</Label>
@@ -1346,30 +1445,39 @@ const Usuarios = () => {
           </DialogContent>
         </Dialog>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {/* Pending Invitations */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
+        {/* Invitations History Dialog */}
+        <Dialog open={showInvitationsDialog} onOpenChange={setShowInvitationsDialog}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                Invitaciones Pendientes ({pendingInvitations.length})
-              </h3>
+                Historial de Invitaciones ({pendingInvitations.length} pendientes)
+              </DialogTitle>
+              <DialogDescription>
+                Todas las invitaciones enviadas y su estado actual.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
               {pendingInvitations.length > 0 ? (
                 <MatrixTable
                   columns={invitationColumns}
                   data={pendingInvitations}
                 />
               ) : (
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-sm text-center py-8">
                   No hay invitaciones pendientes
                 </p>
               )}
             </div>
+          </DialogContent>
+        </Dialog>
 
+        {isLoading ? (
+          <div className="flex items-center justify-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="space-y-8">
             {/* Registered Users */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">

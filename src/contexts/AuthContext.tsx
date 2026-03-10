@@ -26,12 +26,21 @@ interface PanelEditPermissions {
   puedeAsignarResponsables: boolean;
 }
 
+interface AdminPagePermissions {
+  puedeAccederUsuarios: boolean;
+  puedeAccederClientes: boolean;
+  puedeAccederEmpleados: boolean;
+  puedeAccederConstructor: boolean;
+  puedeAccederAgentes: boolean;
+}
+
 interface UserRoleData {
   role: AppRole;
   allowedPanels: string[];
   feedbackPermissions: FeedbackPermissions;
   cajaMenorPermissions: CajaMenorPermissions;
   panelEditPermissions: PanelEditPermissions;
+  adminPagePermissions: AdminPagePermissions;
 }
 
 interface AuthContextType {
@@ -42,6 +51,7 @@ interface AuthContextType {
   feedbackPermissions: FeedbackPermissions;
   cajaMenorPermissions: CajaMenorPermissions;
   panelEditPermissions: PanelEditPermissions;
+  adminPagePermissions: AdminPagePermissions;
   loading: boolean;
   roleLoading: boolean;
   roleError: string | null;
@@ -72,6 +82,14 @@ const defaultPanelEditPermissions: PanelEditPermissions = {
   puedeAsignarResponsables: false,
 };
 
+const defaultAdminPagePermissions: AdminPagePermissions = {
+  puedeAccederUsuarios: true,
+  puedeAccederClientes: true,
+  puedeAccederEmpleados: true,
+  puedeAccederConstructor: true,
+  puedeAccederAgentes: true,
+};
+
 // Cache key for localStorage
 const ROLE_CACHE_KEY = "bbm_user_role_cache";
 
@@ -82,6 +100,7 @@ interface CachedRoleData {
   feedbackPermissions: FeedbackPermissions;
   cajaMenorPermissions: CajaMenorPermissions;
   panelEditPermissions: PanelEditPermissions;
+  adminPagePermissions: AdminPagePermissions;
   timestamp: number;
 }
 
@@ -106,6 +125,7 @@ function getCachedRole(userId: string): UserRoleData | null {
         feedbackPermissions: data.feedbackPermissions,
         cajaMenorPermissions: data.cajaMenorPermissions || { puedeAprobarCajaMenor: false, puedeCrearAnticipos: false, puedeRestaurarSolicitudes: false },
         panelEditPermissions: data.panelEditPermissions || defaultPanelEditPermissions,
+        adminPagePermissions: data.adminPagePermissions || defaultAdminPagePermissions,
       };
     }
     
@@ -127,6 +147,7 @@ function setCachedRole(userId: string, roleData: UserRoleData): void {
       feedbackPermissions: roleData.feedbackPermissions,
       cajaMenorPermissions: roleData.cajaMenorPermissions,
       panelEditPermissions: roleData.panelEditPermissions,
+      adminPagePermissions: roleData.adminPagePermissions,
       timestamp: Date.now(),
     };
     localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify(cacheData));
@@ -150,6 +171,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [allowedPanels, setAllowedPanels] = useState<string[]>([]);
   const [feedbackPermissions, setFeedbackPermissions] = useState<FeedbackPermissions>(defaultFeedbackPermissions);
   const [cajaMenorPermissions, setCajaMenorPermissions] = useState<CajaMenorPermissions>(defaultCajaMenorPermissions);
+  const [adminPagePermissions, setAdminPagePermissions] = useState<AdminPagePermissions>(defaultAdminPagePermissions);
   const [panelEditPermissions, setPanelEditPermissions] = useState<PanelEditPermissions>(defaultPanelEditPermissions);
   const [loading, setLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
@@ -163,7 +185,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role, allowed_panels, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables")
+        .select("role, allowed_panels, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables, puede_restaurar_solicitudes, puede_acceder_usuarios, puede_acceder_clientes, puede_acceder_empleados, puede_acceder_constructor, puede_acceder_agentes")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -193,6 +215,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           puedeEditarPersonal: (data as any).puede_editar_personal ?? false,
           puedeEditarInventario: (data as any).puede_editar_inventario ?? false,
           puedeAsignarResponsables: (data as any).puede_asignar_responsables ?? false,
+        },
+        adminPagePermissions: {
+          puedeAccederUsuarios: (data as any).puede_acceder_usuarios ?? true,
+          puedeAccederClientes: (data as any).puede_acceder_clientes ?? true,
+          puedeAccederEmpleados: (data as any).puede_acceder_empleados ?? true,
+          puedeAccederConstructor: (data as any).puede_acceder_constructor ?? true,
+          puedeAccederAgentes: (data as any).puede_acceder_agentes ?? true,
         }
       };
       
@@ -230,6 +259,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setFeedbackPermissions(roleData.feedbackPermissions);
       setCajaMenorPermissions(roleData.cajaMenorPermissions);
       setPanelEditPermissions(roleData.panelEditPermissions);
+      setAdminPagePermissions(roleData.adminPagePermissions);
       setRoleError(null);
     } else {
       setRole(null);
@@ -237,6 +267,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setFeedbackPermissions(defaultFeedbackPermissions);
       setCajaMenorPermissions(defaultCajaMenorPermissions);
       setPanelEditPermissions(defaultPanelEditPermissions);
+      setAdminPagePermissions(defaultAdminPagePermissions);
     }
   };
 
@@ -430,6 +461,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setFeedbackPermissions(defaultFeedbackPermissions);
     setCajaMenorPermissions(defaultCajaMenorPermissions);
     setPanelEditPermissions(defaultPanelEditPermissions);
+    setAdminPagePermissions(defaultAdminPagePermissions);
   };
 
   return (
@@ -441,6 +473,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       feedbackPermissions,
       cajaMenorPermissions,
       panelEditPermissions,
+      adminPagePermissions,
       loading, 
       roleLoading,
       roleError,

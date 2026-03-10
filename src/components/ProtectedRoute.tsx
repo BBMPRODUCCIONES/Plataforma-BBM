@@ -10,11 +10,12 @@ interface ProtectedRouteProps {
   children: ReactNode;
   requiredPanel?: string;
   adminOnly?: boolean;
+  adminPage?: string; // granular admin page permission key
 }
 
-export function ProtectedRoute({ children, requiredPanel, adminOnly = false }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requiredPanel, adminOnly = false, adminPage }: ProtectedRouteProps) {
   const { user, loading: authLoading, roleLoading, roleError, signOut, refreshUserRole } = useAuth();
-  const { role, canAccessPanel, canEditStructure } = useUserRole();
+  const { role, canAccessPanel, canEditStructure, canAccessAdminPage } = useUserRole();
 
   // Show loading while checking BOTH auth AND role
   if (authLoading || roleLoading) {
@@ -93,6 +94,23 @@ export function ProtectedRoute({ children, requiredPanel, adminOnly = false }: P
             <h2 className="text-xl font-semibold">Acceso Denegado</h2>
             <p className="text-muted-foreground">
               Solo los administradores pueden acceder a esta sección.
+            </p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Check granular admin page permission
+  if (adminPage && !canAccessAdminPage(adminPage)) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+            <h2 className="text-xl font-semibold">Acceso Denegado</h2>
+            <p className="text-muted-foreground">
+              No tienes permiso para acceder a esta sección de administración.
             </p>
           </div>
         </div>

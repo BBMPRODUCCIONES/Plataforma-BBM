@@ -148,7 +148,7 @@ const KNOWN_TIPOS = [
 
 export default function AprobacionesPendientes() {
   const { projects, updateProject } = useProjects();
-  const { canApproveCajaMenor } = useUserRole();
+  const { canApproveCajaMenor, canRestaurarSolicitudes } = useUserRole();
   const isMobile = useIsMobile();
   const { gastos: gastosMenores, refetch: refetchGastos, deleteGasto } = useGastosMenores();
 

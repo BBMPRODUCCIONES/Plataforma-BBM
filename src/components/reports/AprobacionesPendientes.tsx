@@ -1319,6 +1319,7 @@ export default function AprobacionesPendientes() {
                   eventId: row.projectId,
                   eventName: row.evento,
                   source: "aprobaciones",
+                  section: "cajaMenor",
                 });
                 window.open(`/panel-operaciones?${params.toString()}`, "_blank");
               }}

@@ -1,41 +1,72 @@
 
 
-## Plan: Ventana de deshacer de 2 horas + Reset de solicitudes
+## Plan: Sincronización Automática con Google Calendar + Mejora Visual
 
-### Problema
-Un toast de 6 segundos es insuficiente. Se necesita una ventana de 2 horas para deshacer cambios de estado. Un toast no puede permanecer visible 2 horas, por lo que se necesita un mecanismo persistente.
+### Problema actual
+1. La sincronización es **manual** — el usuario debe seleccionar proyectos y hacer clic.
+2. Cada sincronización **crea eventos duplicados** porque no se rastrea qué eventos ya fueron creados en Google Calendar.
+3. La descripción de los eventos es básica (solo cliente, ubicación, notas).
 
-### Diseño propuesto
+### Solución
 
-**1. Mecanismo de deshacer persistente (2 horas)**
+#### 1. Nueva tabla `google_calendar_events` para rastrear eventos sincronizados
+Almacena la relación entre proyecto ↔ evento de Google Calendar para evitar duplicados y permitir actualizaciones.
 
-En lugar de un toast efímero, se implementará:
+```text
+google_calendar_events
+├── id (uuid PK)
+├── user_id (uuid, ref auth.users)
+├── project_id (uuid, ref projects)
+├── event_type ('montaje' | 'ejecucion')
+├── google_event_id (text) ← ID del evento en Google
+├── last_synced_at (timestamptz)
+├── project_hash (text) ← hash de los datos para detectar cambios
+└── created_at (timestamptz)
+```
 
-- **Tabla en base de datos** `aprobacion_undo_log` para registrar cada cambio de estado con: `id`, `project_id`, `item_id`, `source` (cajaMenor/gastoMenor), `previous_estado`, `new_estado`, `previous_revisado_por`, `changed_by`, `changed_at`, `expires_at` (changed_at + 2h), `undone` (boolean).
+#### 2. Nueva edge function `google-calendar-auto-sync`
+- Se ejecuta **sin autenticación de usuario** (invocada por cron).
+- Lee **todos los usuarios conectados** desde `google_calendar_tokens`.
+- Para cada usuario, lee **todos los proyectos** con fechas desde la tabla `projects`.
+- Compara con `google_calendar_events` para detectar:
+  - **Nuevos**: crear evento en Google Calendar.
+  - **Modificados**: actualizar evento existente (PATCH).
+  - **Sin cambios**: omitir.
+- Usa un hash de los campos relevantes (fechas, horas, cliente, ubicación, evento) para detectar cambios.
 
-- **UI persistente**: Un botón "Deshacer" visible en cada fila que haya sido modificada en las últimas 2 horas (por el usuario actual). El botón desaparece automáticamente al vencer el plazo. Se mostrará un badge con el tiempo restante junto al botón.
+#### 3. Cron job cada minuto
+- Habilitar extensiones `pg_cron` y `pg_net`.
+- Crear un cron job que invoque `google-calendar-auto-sync` cada minuto vía `net.http_post`.
 
-- **Toast inmediato**: Se mantiene un toast breve confirmando el cambio, pero ahora solo informativo (sin acción de deshacer en el toast).
+#### 4. Mejora visual de los eventos en Google Calendar
+- **Descripción enriquecida** con formato estructurado:
+  - 📋 Evento, 👤 Cliente, 📍 Ubicación, 🕐 Horarios detallados, 📝 Notas
+  - Estado del proyecto, personal asignado, productor, jefe de operaciones
+- **Colores diferenciados**: Montaje (gris/`colorId: 8`), Ejecución (azul/`colorId: 9`) — ya implementado.
+- Google Calendar **no soporta HTML en descripciones**, pero sí texto con saltos de línea y emojis que se visualizan bien.
 
-**2. Reset global de solicitudes a Pendiente**
-
-Migración SQL para:
-- Actualizar `gastos_menores` → `estado = 'Pendiente'`, limpiar campos de aprobación
-- Actualizar `projects.caja_menor` y `projects.legalizacion` (JSONB) → estados a `Pendiente`/`Revisando`
+#### 5. Actualización de la UI
+- Mostrar indicador de "Sincronización Automática Activa" en la página de Google Calendar.
+- Mantener la opción de sincronización manual como complemento.
+- Mostrar última fecha de sincronización automática.
 
 ### Cambios técnicos
 
-| Archivo/Recurso | Cambio |
-|---|---|
-| **Nueva migración SQL** | Crear tabla `aprobacion_undo_log` + reset masivo de estados |
-| **AprobacionesPendientes.tsx** | Reemplazar toast-undo por consulta al undo_log; mostrar botón "Deshacer" en filas con cambios recientes (<2h); implementar lógica de reversión al hacer clic |
-| **RLS en undo_log** | INSERT para authenticated, SELECT/UPDATE solo para el propio `changed_by`, DELETE solo admin |
+| Archivo | Cambio |
+|---------|--------|
+| **Migration SQL** | Crear tabla `google_calendar_events`, habilitar `pg_cron` y `pg_net` |
+| **SQL (insert, no migration)** | Crear cron job cada minuto |
+| `supabase/functions/google-calendar-auto-sync/index.ts` | Nueva función: lee proyectos del DB, sincroniza para todos los usuarios conectados, usa PATCH para updates |
+| `supabase/functions/google-calendar-sync/index.ts` | Actualizar para registrar eventos en `google_calendar_events` y usar update en vez de create cuando ya existe |
+| `supabase/config.toml` | Agregar config para `google-calendar-auto-sync` con `verify_jwt = false` |
+| `src/pages/GoogleCalendar.tsx` | Mostrar estado de auto-sync, última sincronización, y mantener sync manual |
 
-### Flujo de usuario
+### Sobre la pregunta visual
+Google Calendar tiene limitaciones: las descripciones son solo texto plano (no HTML, no imágenes). Lo que **sí** se puede mejorar:
+- Emojis y formato con saltos de línea en la descripción
+- Colores por tipo de evento (ya implementado)
+- Título más descriptivo con prefijos claros `[MONTAJE]` / `[EJECUCIÓN]`
+- Incluir más datos del proyecto (personal, productor, estado)
 
-1. Admin cambia estado → se guarda registro en `aprobacion_undo_log` con `expires_at = now() + 2h`
-2. Toast informativo aparece brevemente
-3. En la tabla, la fila muestra un botón "Deshacer (1h 45m)" mientras esté dentro del plazo
-4. Al hacer clic en "Deshacer", se revierte el estado y se marca `undone = true`
-5. Pasadas las 2 horas, el botón desaparece automáticamente
+No es posible subir imágenes o diseños personalizados al evento de Google Calendar desde la API.
 

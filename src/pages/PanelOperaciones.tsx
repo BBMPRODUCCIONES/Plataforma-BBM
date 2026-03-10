@@ -3011,7 +3011,10 @@ const PanelOperaciones = () => {
               // Validación de RECURSOS PROPIOS - TODOS los campos obligatorios (sin recursos)
               const legalizacionData = (currentProjectData.legalizacion as LegalizacionItem[]) || [];
               const anticipoIdsSet = new Set((currentProjectData.cajaMenor || []).map((cm: CajaMenorItem) => `leg-${cm.id}`));
-              const independentLegData = legalizacionData.filter(l => !anticipoIdsSet.has(l.id));
+              const allIndependentLegData = legalizacionData.filter(l => !anticipoIdsSet.has(l.id));
+              const independentLegData = isAdmin
+                ? allIndependentLegData
+                : allIndependentLegData.filter(l => isCreatorOfRecord(l as any));
               
               if (independentLegData.length > 0) {
                 const legIncompletos: { item: LegalizacionItem; idx: number }[] = [];

@@ -1445,6 +1445,33 @@ const Usuarios = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Invitations History Dialog */}
+        <Dialog open={showInvitationsDialog} onOpenChange={setShowInvitationsDialog}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Historial de Invitaciones ({pendingInvitations.length} pendientes)
+              </DialogTitle>
+              <DialogDescription>
+                Todas las invitaciones enviadas y su estado actual.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              {pendingInvitations.length > 0 ? (
+                <MatrixTable
+                  columns={invitationColumns}
+                  data={pendingInvitations}
+                />
+              ) : (
+                <p className="text-muted-foreground text-sm text-center py-8">
+                  No hay invitaciones pendientes
+                </p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />

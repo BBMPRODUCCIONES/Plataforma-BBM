@@ -376,6 +376,7 @@ const PanelOperaciones = () => {
   // Calendar filter state - using global context
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
   const [hideDeleted, setHideDeleted] = useState(false);
+  const [montajeSort, setMontajeSort] = useState<"asc" | "desc" | null>(null);
   const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
   // Computed dateRange from global context
   const dateRange = globalDateRange?.from && globalDateRange?.to 

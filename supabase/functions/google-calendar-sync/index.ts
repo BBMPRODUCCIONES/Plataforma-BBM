@@ -236,16 +236,18 @@ serve(async (req) => {
         const key = `${project.id}_montaje`;
         const existing = existingMap.get(key);
 
-        const startDateTime = `${project.fechaMontajeInicio}T${project.horaMontajeInicio || '08:00'}:00`;
-        const endDateTime = `${project.fechaMontajeFin}T${project.horaMontajeFin || '18:00'}:00`;
+        // All-day event: end date must be exclusive (next day)
+        const endDate = new Date(project.fechaMontajeFin);
+        endDate.setDate(endDate.getDate() + 1);
+        const endDateStr = endDate.toISOString().split('T')[0];
 
         const eventData = {
           summary: `[MONTAJE] ${project.evento} - ${project.cliente}`,
           description: buildDescription(project, 'montaje'),
           location: project.ubicacion,
-          start: { dateTime: startDateTime, timeZone },
-          end: { dateTime: endDateTime, timeZone },
-          colorId: '8',
+          start: { date: project.fechaMontajeInicio },
+          end: { date: endDateStr },
+          colorId: '2',
         };
 
         const syncResult = await createOrUpdateEvent(accessToken, calendarId, eventData, existing?.google_event_id);

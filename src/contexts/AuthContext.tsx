@@ -26,6 +26,14 @@ interface PanelEditPermissions {
   puedeAsignarResponsables: boolean;
 }
 
+interface AdminPagePermissions {
+  puedeAccederUsuarios: boolean;
+  puedeAccederClientes: boolean;
+  puedeAccederEmpleados: boolean;
+  puedeAccederConstructor: boolean;
+  puedeAccederAgentes: boolean;
+}
+
 interface UserRoleData {
   role: AppRole;
   allowedPanels: string[];

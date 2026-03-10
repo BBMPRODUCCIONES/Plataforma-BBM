@@ -468,6 +468,7 @@ export default function AprobacionesPendientes() {
         restaurada: (g as any).restaurada === true,
         restauradaPor: (g as any).restaurada_por || "",
         restauradaEn: (g as any).restaurada_en || "",
+        restauradaRazon: (g as any).restaurada_razon || "",
         imagenes: g.imagen_url ? [{ id: "img", name: "imagen", url: g.imagen_url, type: "image", uploadedAt: g.created_at }] : [],
         createdAt: g.created_at,
       };

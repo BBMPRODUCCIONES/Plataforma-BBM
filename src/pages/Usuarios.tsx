@@ -461,6 +461,22 @@ const Usuarios = () => {
     setNewRole("operativo");
     setNewPanels(["general", "operaciones"]);
     setGeneratedLink("");
+    setNewPuedeVerFeedback(false);
+    setNewPuedeEditarFeedback(false);
+    setNewPuedeAprobarCajaMenor(false);
+    setNewPuedeCrearAnticipos(false);
+    setNewPuedeEditarGeneral(false);
+    setNewPuedeEditarOperaciones(false);
+    setNewPuedeEditarDirectivo(false);
+    setNewPuedeEditarPersonal(false);
+    setNewPuedeEditarInventario(false);
+    setNewPuedeAsignarResponsables(false);
+    setNewPuedeRestaurarSolicitudes(false);
+    setNewPuedeAccederUsuarios(true);
+    setNewPuedeAccederClientes(true);
+    setNewPuedeAccederEmpleados(true);
+    setNewPuedeAccederConstructor(true);
+    setNewPuedeAccederAgentes(true);
   };
 
   const handleEditUser = (user: UserWithRole) => {

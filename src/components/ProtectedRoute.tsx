@@ -13,9 +13,9 @@ interface ProtectedRouteProps {
   adminPage?: string; // granular admin page permission key
 }
 
-export function ProtectedRoute({ children, requiredPanel, adminOnly = false }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requiredPanel, adminOnly = false, adminPage }: ProtectedRouteProps) {
   const { user, loading: authLoading, roleLoading, roleError, signOut, refreshUserRole } = useAuth();
-  const { role, canAccessPanel, canEditStructure } = useUserRole();
+  const { role, canAccessPanel, canEditStructure, canAccessAdminPage } = useUserRole();
 
   // Show loading while checking BOTH auth AND role
   if (authLoading || roleLoading) {

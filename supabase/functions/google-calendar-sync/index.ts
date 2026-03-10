@@ -225,7 +225,7 @@ serve(async (req) => {
     );
 
     const results: any[] = [];
-    const timeZone = 'America/Bogota';
+    
 
     for (const project of projects) {
       const result: any = { projectId: project.id };

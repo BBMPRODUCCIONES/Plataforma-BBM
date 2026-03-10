@@ -167,7 +167,7 @@ serve(async (req) => {
       });
     }
 
-    const timeZone = 'America/Bogota';
+    
     let totalCreated = 0;
     let totalUpdated = 0;
     let totalSkipped = 0;

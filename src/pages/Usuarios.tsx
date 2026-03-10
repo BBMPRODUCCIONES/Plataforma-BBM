@@ -906,6 +906,130 @@ const Usuarios = () => {
                       </div>
                     </div>
                   )}
+
+                  {newRole === "administrador" && (
+                    <p className="text-sm text-muted-foreground p-3 bg-muted/20 rounded-md">
+                      Los administradores tienen acceso completo a todos los paneles.
+                    </p>
+                  )}
+
+                  {/* Permisos de Edición por Panel */}
+                  <div className="space-y-2">
+                    <Label>Permisos de Edición por Panel</Label>
+                    <div className="space-y-2 p-3 border rounded-md bg-emerald-500/10 border-emerald-500/30">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="new-puede-editar-general" checked={newPuedeEditarGeneral} onCheckedChange={(checked) => setNewPuedeEditarGeneral(checked as boolean)} disabled={isSubmitting} />
+                        <Label htmlFor="new-puede-editar-general" className="text-sm font-normal cursor-pointer">Puede editar en Panel General</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="new-puede-editar-operaciones" checked={newPuedeEditarOperaciones} onCheckedChange={(checked) => setNewPuedeEditarOperaciones(checked as boolean)} disabled={isSubmitting} />
+                        <Label htmlFor="new-puede-editar-operaciones" className="text-sm font-normal cursor-pointer">Puede editar en Panel Operaciones</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="new-puede-editar-directivo" checked={newPuedeEditarDirectivo} onCheckedChange={(checked) => setNewPuedeEditarDirectivo(checked as boolean)} disabled={isSubmitting} />
+                        <Label htmlFor="new-puede-editar-directivo" className="text-sm font-normal cursor-pointer">Puede editar en Panel Directivo</Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">Sin estos permisos, el usuario solo podrá visualizar sin realizar cambios.</p>
+                    </div>
+                  </div>
+
+                  {/* Permisos de Personal e Inventario */}
+                  <div className="space-y-2">
+                    <Label>Permisos de Personal e Inventario</Label>
+                    <div className="space-y-2 p-3 border rounded-md bg-purple-500/10 border-purple-500/30">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="new-puede-editar-personal" checked={newPuedeEditarPersonal} onCheckedChange={(checked) => setNewPuedeEditarPersonal(checked as boolean)} disabled={isSubmitting} />
+                        <Label htmlFor="new-puede-editar-personal" className="text-sm font-normal cursor-pointer">Puede editar/eliminar Personal</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="new-puede-editar-inventario" checked={newPuedeEditarInventario} onCheckedChange={(checked) => setNewPuedeEditarInventario(checked as boolean)} disabled={isSubmitting} />
+                        <Label htmlFor="new-puede-editar-inventario" className="text-sm font-normal cursor-pointer">Puede editar Inventario</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="new-puede-asignar-responsables" checked={newPuedeAsignarResponsables} onCheckedChange={(checked) => setNewPuedeAsignarResponsables(checked as boolean)} disabled={isSubmitting} />
+                        <Label htmlFor="new-puede-asignar-responsables" className="text-sm font-normal cursor-pointer">Puede asignar Responsables de Inventario</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Permisos de Caja Menor */}
+                  <div className="space-y-2">
+                    <Label>Permisos Especiales de Caja Menor</Label>
+                    <div className="space-y-2 p-3 border rounded-md bg-amber-500/10 border-amber-500/30">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="new-puede-aprobar-caja-menor" checked={newPuedeAprobarCajaMenor} onCheckedChange={(checked) => setNewPuedeAprobarCajaMenor(checked as boolean)} disabled={isSubmitting} />
+                        <Label htmlFor="new-puede-aprobar-caja-menor" className="text-sm font-normal cursor-pointer">Puede aprobar/desaprobar registros de Caja Menor</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Restaurar Solicitudes - only for admin */}
+                  {newRole === "administrador" && (
+                    <div className="space-y-2">
+                      <Label>Permisos de Restauración</Label>
+                      <div className="space-y-2 p-3 border rounded-md bg-cyan-500/10 border-cyan-500/30">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-puede-restaurar-solicitudes" checked={newPuedeRestaurarSolicitudes} onCheckedChange={(checked) => setNewPuedeRestaurarSolicitudes(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-puede-restaurar-solicitudes" className="text-sm font-normal cursor-pointer">Puede restaurar solicitudes desde el historial</Label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Admin Page Access - only for admin */}
+                  {newRole === "administrador" && (
+                    <div className="space-y-2">
+                      <Label>Acceso a Páginas de Administración</Label>
+                      <div className="space-y-2 p-3 border rounded-md bg-rose-500/10 border-rose-500/30">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-puede-acceder-usuarios" checked={newPuedeAccederUsuarios} onCheckedChange={(checked) => setNewPuedeAccederUsuarios(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-puede-acceder-usuarios" className="text-sm font-normal cursor-pointer">Gestión de Usuarios</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-puede-acceder-clientes" checked={newPuedeAccederClientes} onCheckedChange={(checked) => setNewPuedeAccederClientes(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-puede-acceder-clientes" className="text-sm font-normal cursor-pointer">Gestión de Clientes</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-puede-acceder-empleados" checked={newPuedeAccederEmpleados} onCheckedChange={(checked) => setNewPuedeAccederEmpleados(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-puede-acceder-empleados" className="text-sm font-normal cursor-pointer">Creación de Empleados</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-puede-acceder-constructor" checked={newPuedeAccederConstructor} onCheckedChange={(checked) => setNewPuedeAccederConstructor(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-puede-acceder-constructor" className="text-sm font-normal cursor-pointer">Constructor de Campos</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-puede-acceder-agentes" checked={newPuedeAccederAgentes} onCheckedChange={(checked) => setNewPuedeAccederAgentes(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-puede-acceder-agentes" className="text-sm font-normal cursor-pointer">Agentes IA</Label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Solicitud de Anticipos */}
+                  <div className="space-y-2">
+                    <Label>Permisos de Solicitud de Anticipos</Label>
+                    <div className="space-y-2 p-3 border rounded-md bg-blue-500/10 border-blue-500/30">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="new-puede-crear-anticipos" checked={newPuedeCrearAnticipos} onCheckedChange={(checked) => setNewPuedeCrearAnticipos(checked as boolean)} disabled={isSubmitting} />
+                        <Label htmlFor="new-puede-crear-anticipos" className="text-sm font-normal cursor-pointer">Permitir realizar solicitudes de anticipos</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Feedback Permissions */}
+                  <div className="space-y-2">
+                    <Label>Permisos de Feedback</Label>
+                    <div className="space-y-2 p-3 border rounded-md bg-muted/20">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="new-puede-ver-feedback" checked={newPuedeVerFeedback} onCheckedChange={(checked) => { setNewPuedeVerFeedback(checked as boolean); if (!checked) setNewPuedeEditarFeedback(false); }} disabled={isSubmitting} />
+                        <Label htmlFor="new-puede-ver-feedback" className="text-sm font-normal cursor-pointer">Puede ver Feedback</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="new-puede-editar-feedback" checked={newPuedeEditarFeedback} onCheckedChange={(checked) => { setNewPuedeEditarFeedback(checked as boolean); if (checked) setNewPuedeVerFeedback(true); }} disabled={isSubmitting || !newPuedeVerFeedback} />
+                        <Label htmlFor="new-puede-editar-feedback" className="text-sm font-normal cursor-pointer">Puede editar Feedback</Label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4 py-4">

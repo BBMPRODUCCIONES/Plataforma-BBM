@@ -1136,6 +1136,73 @@ const Usuarios = () => {
                 </div>
               )}
 
+              {/* Admin Page Access Permissions - admin only */}
+              {editRole === "administrador" && (
+                <div className="space-y-2">
+                  <Label>Acceso a Páginas de Administración</Label>
+                  <div className="space-y-2 p-3 border rounded-md bg-rose-500/10 border-rose-500/30">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-acceder-usuarios"
+                        checked={editPuedeAccederUsuarios}
+                        onCheckedChange={(checked) => setEditPuedeAccederUsuarios(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-acceder-usuarios" className="text-sm font-normal cursor-pointer">
+                        Gestión de Usuarios
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-acceder-clientes"
+                        checked={editPuedeAccederClientes}
+                        onCheckedChange={(checked) => setEditPuedeAccederClientes(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-acceder-clientes" className="text-sm font-normal cursor-pointer">
+                        Gestión de Clientes
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-acceder-empleados"
+                        checked={editPuedeAccederEmpleados}
+                        onCheckedChange={(checked) => setEditPuedeAccederEmpleados(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-acceder-empleados" className="text-sm font-normal cursor-pointer">
+                        Creación de Empleados
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-acceder-constructor"
+                        checked={editPuedeAccederConstructor}
+                        onCheckedChange={(checked) => setEditPuedeAccederConstructor(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-acceder-constructor" className="text-sm font-normal cursor-pointer">
+                        Constructor de Campos
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-acceder-agentes"
+                        checked={editPuedeAccederAgentes}
+                        onCheckedChange={(checked) => setEditPuedeAccederAgentes(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-acceder-agentes" className="text-sm font-normal cursor-pointer">
+                        Agentes IA
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Controla a cuáles páginas de administración tiene acceso este usuario. Desactivar una página impedirá que la vea en el menú y que acceda a ella.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Crear Anticipos Permission - all roles */}
               <div className="space-y-2">
                 <Label>Permisos de Solicitud de Anticipos</Label>

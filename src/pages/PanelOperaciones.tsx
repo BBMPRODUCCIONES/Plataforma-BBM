@@ -877,6 +877,7 @@ const PanelOperaciones = () => {
               value={p.jefeOperaciones}
               type="text"
               onChange={(value) => updateProject(p.id, "jefeOperaciones", value)}
+              placeholder="Asignar jefe"
               disabled={operativoReadOnly}
             />
           );

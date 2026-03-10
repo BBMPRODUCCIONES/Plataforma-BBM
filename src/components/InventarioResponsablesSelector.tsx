@@ -26,6 +26,7 @@ interface InventarioResponsablesSelectorProps {
   onResponsableEntradaChange: (data: ResponsableAutoLog) => void;
   onResponsableEventoChange: (data: ResponsableAutoLog) => void;
   highlightMissing?: boolean;
+  readOnly?: boolean;
 }
 
 const UNDO_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -146,6 +147,7 @@ function ResponsableSection({
   currentUserId,
   isAdmin,
   isProductor,
+  readOnly = false,
 }: {
   label: string;
   icon: React.ElementType;
@@ -156,13 +158,14 @@ function ResponsableSection({
   currentUserId?: string;
   isAdmin: boolean;
   isProductor: boolean;
+  readOnly?: boolean;
 }) {
   const isRegistered = !!data.nombre;
   const { canUndo, timeLeft } = useTimeLeft(data.timestamp);
   const isOwnRegistration = data.userId === currentUserId;
 
-  // Can clear if: admin always, productor always, or own registration within 5 min window
-  const canClear = isAdmin || isProductor || (isOwnRegistration && canUndo);
+  // Can clear if: not readOnly AND (admin always, productor always, or own registration within 5 min window)
+  const canClear = !readOnly && (isAdmin || isProductor || (isOwnRegistration && canUndo));
 
   const minutesLeft = Math.ceil(timeLeft / 60000);
 
@@ -207,6 +210,8 @@ function ResponsableSection({
             </Button>
           )}
         </div>
+      ) : readOnly ? (
+        <p className="text-sm text-muted-foreground italic px-3 py-2">Sin asignar</p>
       ) : isProductor || isAdmin ? (
         <div className="space-y-2">
           <EmpleadoSelectorPopover
@@ -240,6 +245,7 @@ export function InventarioResponsablesSelector({
   onResponsableEntradaChange,
   onResponsableEventoChange,
   highlightMissing = false,
+  readOnly = false,
 }: InventarioResponsablesSelectorProps) {
   const { user } = useAuth();
   const { canEditStructure, canCrearAnticipos } = useUserRole();
@@ -309,6 +315,7 @@ export function InventarioResponsablesSelector({
           currentUserId={user?.id}
           isAdmin={isAdmin}
           isProductor={isProductor}
+          readOnly={readOnly}
         />
 
         <div className="border-t border-dashed" />
@@ -323,6 +330,7 @@ export function InventarioResponsablesSelector({
           currentUserId={user?.id}
           isAdmin={isAdmin}
           isProductor={isProductor}
+          readOnly={readOnly}
         />
 
         <div className="border-t border-dashed" />
@@ -337,6 +345,7 @@ export function InventarioResponsablesSelector({
           currentUserId={user?.id}
           isAdmin={isAdmin}
           isProductor={isProductor}
+          readOnly={readOnly}
         />
       </CardContent>
     </Card>

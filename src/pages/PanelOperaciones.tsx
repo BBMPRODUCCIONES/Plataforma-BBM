@@ -336,7 +336,7 @@ const PanelOperaciones = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
-  const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor, canCrearAnticipos, canEditOperaciones } = useUserRole();
+  const { canEditStructure, role, canViewFeedback, canEditFeedback, canApproveCajaMenor, canCrearAnticipos, canEditOperaciones, canEditPersonal, canEditInventario, canAsignarResponsables } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { empleados } = useEmpleados();
@@ -1537,6 +1537,7 @@ const PanelOperaciones = () => {
     const projectId = selectedProject?.id;
     const hasTransporte = currentProjectData?.personal?.some(p => p.tipoPersonal === "Transporte");
     const hasProveedorOrTransporte = currentProjectData?.personal?.some(p => p.tipoPersonal === "Proveedor" || p.tipoPersonal === "Transporte");
+    const personalReadOnly = !canEditPersonal();
     
     const basePersonalCols = [
       { 
@@ -1544,14 +1545,15 @@ const PanelOperaciones = () => {
         header: "Tipo", 
         width: "120px",
         mobileWidth: "120px",
-        render: (p: PersonalItem) => (
+        render: (p: PersonalItem) => personalReadOnly ? (
+          <Badge variant="outline" className="text-[10px]">{p.tipoPersonal || "-"}</Badge>
+        ) : (
           <EditableCell
             value={p.tipoPersonal}
             type="select"
             options={["BBM", "Proveedor", "Transporte"]}
             onChange={(value) => {
               if (projectId) {
-                // Use atomic update to prevent stale closure issues
                 if (value === "BBM") {
                   updatePersonalItemMultiple(projectId, p.id, {
                     tipoPersonal: value,
@@ -1577,6 +1579,9 @@ const PanelOperaciones = () => {
         width: "200px",
         mobileWidth: "200px",
         render: (p: PersonalItem) => {
+          if (personalReadOnly) {
+            return <span className="text-sm truncate">{p.nombre || "-"}</span>;
+          }
           // BBM uses EmpleadoAutocomplete, Proveedor/Transporte use ProveedorAutocomplete
           if (p.tipoPersonal === "BBM") {
             return (
@@ -1624,18 +1629,16 @@ const PanelOperaciones = () => {
         width: "140px",
         mobileWidth: "140px",
         render: (p: PersonalItem) => {
-          // BBM: Auto-filled from employee, read-only
-          if (p.tipoPersonal === "BBM") {
+          if (personalReadOnly || p.tipoPersonal === "BBM") {
             return (
-              <div className="flex items-center gap-1" title="Cédula desde Creación de Empleados">
+              <div className="flex items-center gap-1" title={p.tipoPersonal === "BBM" ? "Cédula desde Creación de Empleados" : undefined}>
                 <span className={`text-sm truncate ${!p.cedula ? "text-muted-foreground italic" : ""}`}>
                   {p.cedula || "Sin cédula"}
                 </span>
-                <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                {p.tipoPersonal === "BBM" && <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />}
               </div>
             );
           }
-          // Proveedor/Transporte: Manual editable with validation
           return (
             <div className={`rounded ${!p.cedula ? "ring-2 ring-destructive/50" : ""}`}>
               <EditableCell
@@ -1661,7 +1664,9 @@ const PanelOperaciones = () => {
         header: "Cargo", 
         width: "120px",
         mobileWidth: "120px",
-        render: (p: PersonalItem) => (
+        render: (p: PersonalItem) => personalReadOnly ? (
+          <span className="text-sm truncate">{p.cargo || "-"}</span>
+        ) : (
           <EditableCell
             value={p.cargo}
             type="text"
@@ -1674,7 +1679,9 @@ const PanelOperaciones = () => {
         header: "Teléfono", 
         width: "130px",
         mobileWidth: "130px",
-        render: (p: PersonalItem) => (
+        render: (p: PersonalItem) => personalReadOnly ? (
+          <span className="text-sm truncate">{p.telefono || "-"}</span>
+        ) : (
           <EditableCell
             value={p.telefono}
             type="text"
@@ -1687,7 +1694,9 @@ const PanelOperaciones = () => {
         header: "Notas", 
         width: "200px",
         mobileWidth: "200px",
-        render: (p: PersonalItem) => (
+        render: (p: PersonalItem) => personalReadOnly ? (
+          <span className="text-sm truncate">{p.notas || "-"}</span>
+        ) : (
           <EditableCell
             value={p.notas}
             type="text"
@@ -1698,29 +1707,31 @@ const PanelOperaciones = () => {
       },
     ];
 
-    // Add delete action column
-    basePersonalCols.push({
-      key: "acciones",
-      header: "",
-      width: "50px",
-      mobileWidth: "50px",
-      render: (p: PersonalItem) => (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (projectId) {
-              deletePersonalItem(projectId, p.id);
-            }
-          }}
-          title="Eliminar"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      ),
-    });
+    // Add delete action column - only if user has permission
+    if (canEditPersonal()) {
+      basePersonalCols.push({
+        key: "acciones",
+        header: "",
+        width: "50px",
+        mobileWidth: "50px",
+        render: (p: PersonalItem) => (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (projectId) {
+                deletePersonalItem(projectId, p.id);
+              }
+            }}
+            title="Eliminar"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        ),
+      });
+    }
 
     // Always show Ruta Transporte column when there's transport personnel
     if (hasTransporte) {
@@ -1926,9 +1937,10 @@ const PanelOperaciones = () => {
   const inventarioColumns = useMemo(() => {
     // Use currentProjectData?.id to get fresh project ID
     const projectId = currentProjectData?.id;
+    const inventarioReadOnly = !canEditInventario();
     
     return [
-      {
+      ...(!inventarioReadOnly ? [{
         key: "reorder",
         header: "",
         width: "40px",
@@ -1968,7 +1980,7 @@ const PanelOperaciones = () => {
             </Button>
           </div>
         ),
-      },
+      }] : []),
       { 
         key: "nombreMaterial", 
         header: "Material", 
@@ -1976,6 +1988,9 @@ const PanelOperaciones = () => {
         mobileWidth: "280px",
         className: "align-top inventario-material-cell",
         render: (i: InventarioItem) => {
+          if (inventarioReadOnly) {
+            return <span className="text-sm whitespace-pre-wrap">{i.nombreMaterial || "-"}</span>;
+          }
           const text = i.nombreMaterial || "";
           const lineCount = text.split('\n').length;
           const charLength = text.length;
@@ -2006,7 +2021,12 @@ const PanelOperaciones = () => {
         header: "Cantidad", 
         width: "100px",
         mobileWidth: "100px",
-        render: (i: InventarioItem) => (
+        render: (i: InventarioItem) => inventarioReadOnly ? (
+          <div className="flex flex-col gap-0.5 text-sm">
+            <span>$ {i.cantidad}</span>
+            <span className="text-xs text-muted-foreground">{i.unidad || "uds"}</span>
+          </div>
+        ) : (
           <div className="flex flex-col gap-1">
             <EditableCell
               value={i.cantidad}
@@ -2034,6 +2054,7 @@ const PanelOperaciones = () => {
             value={i.recibido}
             type="boolean"
             onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "recibido", value)}
+            disabled={inventarioReadOnly}
           />
         ),
       },
@@ -2047,6 +2068,7 @@ const PanelOperaciones = () => {
             value={i.salida ?? false}
             type="boolean"
             onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "salida", value)}
+            disabled={inventarioReadOnly}
           />
         ),
       },
@@ -2055,7 +2077,9 @@ const PanelOperaciones = () => {
         header: "Notas Adicionales", 
         width: "200px",
         mobileWidth: "200px",
-        render: (i: InventarioItem) => (
+        render: (i: InventarioItem) => inventarioReadOnly ? (
+          <span className="text-sm truncate">{i.notasAdicionales || "-"}</span>
+        ) : (
           <EditableCell
             value={i.notasAdicionales}
             type="text"
@@ -2064,7 +2088,7 @@ const PanelOperaciones = () => {
           />
         ),
       },
-      {
+      ...(canEditInventario() ? [{
         key: "acciones",
         header: "",
         width: "50px",
@@ -2085,7 +2109,7 @@ const PanelOperaciones = () => {
             <Trash2 className="h-3 w-3" />
           </Button>
         ),
-      },
+      }] : []),
   ];
   }, [currentProjectData?.id, currentProjectData?.inventario]);
 
@@ -3105,7 +3129,7 @@ const PanelOperaciones = () => {
                             <Users className="h-4 w-4" />
                             Personal ({(currentProjectData.personal || []).length})
                           </CardTitle>
-                          {!operativoReadOnly && (
+                          {!operativoReadOnly && canEditPersonal() && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -3151,7 +3175,7 @@ const PanelOperaciones = () => {
                             <Package className="h-4 w-4" />
                             Inventario ({(currentProjectData.inventario || []).length})
                           </CardTitle>
-                          {!operativoReadOnly && (
+                          {!operativoReadOnly && canEditInventario() && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -3193,6 +3217,7 @@ const PanelOperaciones = () => {
                           {/* Responsables del Inventario */}
                           <InventarioResponsablesSelector
                             highlightMissing={highlightResponsables}
+                            readOnly={!canAsignarResponsables()}
                             responsableSalida={{
                               userId: currentProjectData.inventarioResponsableSalidaUserId,
                               nombre: currentProjectData.inventarioResponsableSalidaNombre,

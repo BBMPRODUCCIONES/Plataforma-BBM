@@ -315,6 +315,7 @@ export function InventarioResponsablesSelector({
           currentUserId={user?.id}
           isAdmin={isAdmin}
           isProductor={isProductor}
+          readOnly={readOnly}
         />
 
         <div className="border-t border-dashed" />
@@ -329,6 +330,7 @@ export function InventarioResponsablesSelector({
           currentUserId={user?.id}
           isAdmin={isAdmin}
           isProductor={isProductor}
+          readOnly={readOnly}
         />
 
         <div className="border-t border-dashed" />
@@ -343,6 +345,7 @@ export function InventarioResponsablesSelector({
           currentUserId={user?.id}
           isAdmin={isAdmin}
           isProductor={isProductor}
+          readOnly={readOnly}
         />
       </CardContent>
     </Card>

@@ -22,6 +22,7 @@ interface UndoLogEntry {
 }
 import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -148,7 +149,7 @@ const KNOWN_TIPOS = [
 
 export default function AprobacionesPendientes() {
   const { projects, updateProject } = useProjects();
-  const { canApproveCajaMenor } = useUserRole();
+  const { canApproveCajaMenor, canRestaurarSolicitudes } = useUserRole();
   const isMobile = useIsMobile();
   const { gastos: gastosMenores, refetch: refetchGastos, deleteGasto } = useGastosMenores();
 
@@ -217,6 +218,7 @@ export default function AprobacionesPendientes() {
   const [selectedForRestore, setSelectedForRestore] = useState<Set<string>>(new Set());
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
+  const [restoreReasonInput, setRestoreReasonInput] = useState("");
   const [isRestoring, setIsRestoring] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [globalSearch, setGlobalSearch] = useState(false);
@@ -467,6 +469,7 @@ export default function AprobacionesPendientes() {
         restaurada: (g as any).restaurada === true,
         restauradaPor: (g as any).restaurada_por || "",
         restauradaEn: (g as any).restaurada_en || "",
+        restauradaRazon: (g as any).restaurada_razon || "",
         imagenes: g.imagen_url ? [{ id: "img", name: "imagen", url: g.imagen_url, type: "image", uploadedAt: g.created_at }] : [],
         createdAt: g.created_at,
       };
@@ -1032,6 +1035,7 @@ export default function AprobacionesPendientes() {
         setIsRestoring(false);
         setShowPasswordDialog(false);
         setPasswordInput("");
+        setRestoreReasonInput("");
         return;
       }
       
@@ -1046,7 +1050,7 @@ export default function AprobacionesPendientes() {
       for (const row of gastoMenorRows) {
         await supabase
           .from("gastos_menores")
-          .update({ estado: "Pendiente", aprobado_por_id: null, aprobado_por_nombre: "", restaurada: true, restaurada_por: restoreBy, restaurada_en: restoreTimestamp } as any)
+          .update({ estado: "Pendiente", aprobado_por_id: null, aprobado_por_nombre: "", restaurada: true, restaurada_por: restoreBy, restaurada_en: restoreTimestamp, restaurada_razon: restoreReasonInput } as any)
           .eq("id", row.gastoMenorId!);
         toast.info(`Solicitud de caja menor restaurada a Pendiente`);
       }
@@ -1075,7 +1079,7 @@ export default function AprobacionesPendientes() {
           // Reset estado to "Pendiente" and mark as restaurada
           const updatedCajaMenor = (project.cajaMenor || []).map(item =>
             cajaMenorIdsToRestore.has(item.id)
-              ? { ...item, estado: "Pendiente", revisadoPor: "", restaurada: true, restauradaPor: restoreBy, restauradaEn: restoreTimestamp }
+              ? { ...item, estado: "Pendiente", revisadoPor: "", restaurada: true, restauradaPor: restoreBy, restauradaEn: restoreTimestamp, restauradaRazon: restoreReasonInput }
               : item
           );
           await updateProject(projectId, "cajaMenor", updatedCajaMenor);
@@ -1101,7 +1105,7 @@ export default function AprobacionesPendientes() {
         if (legIdsToRestore.size > 0) {
           const updatedLeg = (project.legalizacion || []).map(l =>
             legIdsToRestore.has(l.id)
-              ? { ...l, estado: "Pendiente", revisadoPor: "", restaurada: true, restauradaPor: restoreBy, restauradaEn: restoreTimestamp }
+              ? { ...l, estado: "Pendiente", revisadoPor: "", restaurada: true, restauradaPor: restoreBy, restauradaEn: restoreTimestamp, restauradaRazon: restoreReasonInput }
               : l
           );
           await updateProject(projectId, "legalizacion", updatedLeg);
@@ -1114,6 +1118,7 @@ export default function AprobacionesPendientes() {
       setSelectedForRestore(new Set());
       setShowPasswordDialog(false);
       setPasswordInput("");
+      setRestoreReasonInput("");
     } catch (err) {
       toast.error("Error al restaurar solicitudes");
     } finally {
@@ -1153,7 +1158,7 @@ export default function AprobacionesPendientes() {
     const isRestored = row.item.restaurada === true;
     return (
       <TableRow key={rowKey}>
-        {showCheckbox && canApproveCajaMenor() && (
+        {showCheckbox && canRestaurarSolicitudes() && (
           <TableCell className="text-xs">
             <Checkbox
               checked={selectedForRestore.has(rowKey)}
@@ -1177,6 +1182,9 @@ export default function AprobacionesPendientes() {
                     )}
                     {row.item.restauradaEn && (
                       <p>{format(parseISO(row.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
+                    )}
+                    {row.item.restauradaRazon && (
+                      <p className="mt-1 italic">Razón: {row.item.restauradaRazon}</p>
                     )}
                   </TooltipContent>
                 </Tooltip>
@@ -1468,13 +1476,16 @@ export default function AprobacionesPendientes() {
                                   <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-help" />
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="text-xs max-w-[220px]">
-                                  <p className="font-semibold">Restaurada</p>
-                                  {restoredRow?.item.restauradaPor && (
-                                    <p>Por: {restoredRow.item.restauradaPor}</p>
-                                  )}
-                                  {restoredRow?.item.restauradaEn && (
-                                    <p>{format(parseISO(restoredRow.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
-                                  )}
+                                   <p className="font-semibold">Restaurada</p>
+                                   {restoredRow?.item.restauradaPor && (
+                                     <p>Por: {restoredRow.item.restauradaPor}</p>
+                                   )}
+                                   {restoredRow?.item.restauradaEn && (
+                                     <p>{format(parseISO(restoredRow.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
+                                   )}
+                                   {restoredRow?.item.restauradaRazon && (
+                                     <p className="mt-1 italic">Razón: {restoredRow.item.restauradaRazon}</p>
+                                   )}
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -1921,7 +1932,7 @@ export default function AprobacionesPendientes() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-end gap-2">
-            {canApproveCajaMenor() && (
+            {canRestaurarSolicitudes() && (
               <Button
                 variant="outline"
                 size="sm"
@@ -1944,7 +1955,7 @@ export default function AprobacionesPendientes() {
             <Table>
               <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
                 <TableRow>
-                  {canApproveCajaMenor() && (
+                   {canRestaurarSolicitudes() && (
                     <TableHead className="text-xs w-[40px]">
                       <Checkbox
                         checked={groupedResolvedRows.length > 0 && groupedResolvedRows.every(g => selectedForRestore.has(g.key))}
@@ -2017,7 +2028,7 @@ export default function AprobacionesPendientes() {
 
                     return (
                       <TableRow key={group.key}>
-                        {canApproveCajaMenor() && (
+                        {canRestaurarSolicitudes() && (
                           <TableCell className="text-xs">
                             <Checkbox
                               checked={selectedForRestore.has(group.key)}
@@ -2042,13 +2053,16 @@ export default function AprobacionesPendientes() {
                                     <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-help" />
                                   </TooltipTrigger>
                                   <TooltipContent side="top" className="text-xs max-w-[220px]">
-                                    <p className="font-semibold">Restaurada</p>
-                                    {restoredRow?.item.restauradaPor && (
-                                      <p>Por: {restoredRow.item.restauradaPor}</p>
-                                    )}
-                                    {restoredRow?.item.restauradaEn && (
-                                      <p>{format(parseISO(restoredRow.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
-                                    )}
+                                     <p className="font-semibold">Restaurada</p>
+                                     {restoredRow?.item.restauradaPor && (
+                                       <p>Por: {restoredRow.item.restauradaPor}</p>
+                                     )}
+                                     {restoredRow?.item.restauradaEn && (
+                                       <p>{format(parseISO(restoredRow.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
+                                     )}
+                                     {restoredRow?.item.restauradaRazon && (
+                                       <p className="mt-1 italic">Razón: {restoredRow.item.restauradaRazon}</p>
+                                     )}
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -2130,7 +2144,7 @@ export default function AprobacionesPendientes() {
       </Dialog>
 
       {/* Password Confirmation Dialog */}
-      <Dialog open={showPasswordDialog} onOpenChange={(open) => { if (!open) { setShowPasswordDialog(false); setPasswordInput(""); } }}>
+      <Dialog open={showPasswordDialog} onOpenChange={(open) => { if (!open) { setShowPasswordDialog(false); setPasswordInput(""); setRestoreReasonInput(""); } }}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -2149,19 +2163,27 @@ export default function AprobacionesPendientes() {
               placeholder="Contraseña"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") confirmRestore(); }}
               autoComplete="new-password"
               name="restore-password-nofill"
               data-form-type="other"
               data-lpignore="true"
               autoFocus
             />
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-foreground">¿Por qué quieres realizar la restauración? <span className="text-destructive">*</span></label>
+              <Textarea
+                placeholder="Escribe la razón de la restauración..."
+                value={restoreReasonInput}
+                onChange={(e) => setRestoreReasonInput(e.target.value)}
+                className="min-h-[80px] resize-none"
+              />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowPasswordDialog(false); setPasswordInput(""); }} disabled={isRestoring}>
+            <Button variant="outline" onClick={() => { setShowPasswordDialog(false); setPasswordInput(""); setRestoreReasonInput(""); }} disabled={isRestoring}>
               Cancelar
             </Button>
-            <Button onClick={confirmRestore} disabled={isRestoring || !passwordInput}>
+            <Button onClick={confirmRestore} disabled={isRestoring || !passwordInput || !restoreReasonInput.trim()}>
               {isRestoring ? "Restaurando..." : "Confirmar"}
             </Button>
           </DialogFooter>

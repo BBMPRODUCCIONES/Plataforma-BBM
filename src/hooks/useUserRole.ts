@@ -21,6 +21,7 @@ interface UseUserRoleReturn {
   canEditFeedback: () => boolean;
   canApproveCajaMenor: () => boolean;
   canCrearAnticipos: () => boolean;
+  canRestaurarSolicitudes: () => boolean;
 }
 
 // Admin-only sections that require administrador role
@@ -155,6 +156,14 @@ export function useUserRole(): UseUserRoleReturn {
     return panelEditPermissions?.puedeAsignarResponsables ?? false;
   };
 
+  const canRestaurarSolicitudes = (): boolean => {
+    if (!role) return false;
+    if (role.toLowerCase() === "administrador") {
+      return cajaMenorPermissions?.puedeRestaurarSolicitudes ?? false;
+    }
+    return false;
+  };
+
   return {
     role: role as UserRole | null,
     loading,
@@ -175,5 +184,6 @@ export function useUserRole(): UseUserRoleReturn {
     canEditFeedback,
     canApproveCajaMenor,
     canCrearAnticipos,
+    canRestaurarSolicitudes,
   };
 }

@@ -61,6 +61,7 @@ interface UserWithRole {
   puede_editar_personal: boolean;
   puede_editar_inventario: boolean;
   puede_asignar_responsables: boolean;
+  puede_restaurar_solicitudes: boolean;
   created_at: string | null;
 }
 
@@ -119,6 +120,7 @@ const Usuarios = () => {
   const [editPuedeEditarPersonal, setEditPuedeEditarPersonal] = useState(false);
   const [editPuedeEditarInventario, setEditPuedeEditarInventario] = useState(false);
   const [editPuedeAsignarResponsables, setEditPuedeAsignarResponsables] = useState(false);
+  const [editPuedeRestaurarSolicitudes, setEditPuedeRestaurarSolicitudes] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Delete user state
@@ -151,7 +153,7 @@ const Usuarios = () => {
       // Fetch users with roles and panels (now includes email and feedback permissions)
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables");
+        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables, puede_restaurar_solicitudes");
 
       if (rolesError) throw rolesError;
 
@@ -182,6 +184,7 @@ const Usuarios = () => {
           puede_editar_personal: (roleRecord as any).puede_editar_personal ?? false,
           puede_editar_inventario: (roleRecord as any).puede_editar_inventario ?? false,
           puede_asignar_responsables: (roleRecord as any).puede_asignar_responsables ?? false,
+          puede_restaurar_solicitudes: (roleRecord as any).puede_restaurar_solicitudes ?? false,
           created_at: profile?.created_at || null,
         };
       });
@@ -440,6 +443,7 @@ const Usuarios = () => {
     setEditPuedeEditarPersonal(user.puede_editar_personal);
     setEditPuedeEditarInventario(user.puede_editar_inventario);
     setEditPuedeAsignarResponsables(user.puede_asignar_responsables);
+    setEditPuedeRestaurarSolicitudes(user.puede_restaurar_solicitudes);
   };
 
   const handleSaveUser = async () => {
@@ -463,6 +467,7 @@ const Usuarios = () => {
       const finalPuedeEditarPersonal = editPuedeEditarPersonal;
       const finalPuedeEditarInventario = editPuedeEditarInventario;
       const finalPuedeAsignarResponsables = editPuedeAsignarResponsables;
+      const finalPuedeRestaurarSolicitudes = editPuedeRestaurarSolicitudes;
 
       // Update user roles with all permissions
       const { error: roleError } = await supabase
@@ -480,6 +485,7 @@ const Usuarios = () => {
           puede_editar_personal: finalPuedeEditarPersonal,
           puede_editar_inventario: finalPuedeEditarInventario,
           puede_asignar_responsables: finalPuedeAsignarResponsables,
+          puede_restaurar_solicitudes: finalPuedeRestaurarSolicitudes,
         } as any)
         .eq("user_id", editingUser.id);
 
@@ -1075,6 +1081,32 @@ const Usuarios = () => {
                   </p>
                 </div>
               </div>
+
+              {/* Restaurar Solicitudes Permission - admin only */}
+              {editRole === "administrador" && (
+                <div className="space-y-2">
+                  <Label>Permisos de Restauración</Label>
+                  <div className="space-y-2 p-3 border rounded-md bg-cyan-500/10 border-cyan-500/30">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-restaurar-solicitudes"
+                        checked={editPuedeRestaurarSolicitudes}
+                        onCheckedChange={(checked) => setEditPuedeRestaurarSolicitudes(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label 
+                        htmlFor="edit-puede-restaurar-solicitudes"
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        Puede restaurar solicitudes desde el historial
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Solo los administradores con este permiso pueden restaurar solicitudes aprobadas/rechazadas a estado Pendiente.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Crear Anticipos Permission - all roles */}
               <div className="space-y-2">

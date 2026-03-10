@@ -14,6 +14,7 @@ interface FeedbackPermissions {
 interface CajaMenorPermissions {
   puedeAprobarCajaMenor: boolean;
   puedeCrearAnticipos: boolean;
+  puedeRestaurarSolicitudes: boolean;
 }
 
 interface PanelEditPermissions {
@@ -59,6 +60,7 @@ const defaultFeedbackPermissions: FeedbackPermissions = {
 const defaultCajaMenorPermissions: CajaMenorPermissions = {
   puedeAprobarCajaMenor: false,
   puedeCrearAnticipos: false,
+  puedeRestaurarSolicitudes: false,
 };
 
 const defaultPanelEditPermissions: PanelEditPermissions = {
@@ -102,7 +104,7 @@ function getCachedRole(userId: string): UserRoleData | null {
         role: data.role,
         allowedPanels: data.allowedPanels,
         feedbackPermissions: data.feedbackPermissions,
-        cajaMenorPermissions: data.cajaMenorPermissions || { puedeAprobarCajaMenor: false, puedeCrearAnticipos: false },
+        cajaMenorPermissions: data.cajaMenorPermissions || { puedeAprobarCajaMenor: false, puedeCrearAnticipos: false, puedeRestaurarSolicitudes: false },
         panelEditPermissions: data.panelEditPermissions || defaultPanelEditPermissions,
       };
     }
@@ -182,6 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         cajaMenorPermissions: {
           puedeAprobarCajaMenor: data.puede_aprobar_caja_menor ?? false,
           puedeCrearAnticipos: data.puede_crear_anticipos ?? false,
+          puedeRestaurarSolicitudes: (data as any).puede_restaurar_solicitudes ?? false,
         },
         panelEditPermissions: {
           puedeEditarGeneral: (data as any).puede_editar_general ?? false,

@@ -2126,7 +2126,9 @@ export default function AprobacionesPendientes() {
                         <TableCell className="text-xs">
                           <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />
                         </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{aprobadoPorDisplay}</TableCell>
+                        <TableCell className="text-xs">
+                          <TruncatedCellWithEye text={aprobadoPorDisplay} label="Aprobado por" />
+                        </TableCell>
                         <TableCell className="text-xs text-right">
                           {isTypeS ? formatCurrency(group.totalLegalizacion) : "—"}
                         </TableCell>

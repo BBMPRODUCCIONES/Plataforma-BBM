@@ -215,8 +215,12 @@ export default function AprobacionesPendientes() {
   }, []);
 
   const getUndoEntryForGroup = useCallback((groupKey: string, groupRows: FlattenedRow[]) => {
-    // Find the most recent non-expired undo entry for any item in this group
-    const itemIds = new Set(groupRows.map(r => r.item.id));
+    // Find the most recent non-expired undo entry for any item in this group (including legalization undos)
+    const itemIds = new Set<string>();
+    groupRows.forEach(r => {
+      itemIds.add(r.item.id);
+      itemIds.add(`leg-${r.item.id}`);
+    });
     return undoLog.find(entry => itemIds.has(entry.item_id) && !entry.undone && new Date(entry.expires_at) > new Date());
   }, [undoLog]);
 

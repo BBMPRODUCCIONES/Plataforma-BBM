@@ -3455,17 +3455,17 @@ const PanelOperaciones = () => {
                                       </DropdownMenuCheckboxItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem onClick={async () => {
-                                        await getFreshEmpleados();
+                                        const freshEmps = await getFreshEmpleados();
                                         const num = await getOrAssignSolicitudNum(currentProjectData.id);
-                                        printSolicitudPresupuesto(currentProjectData, empleados, includeLegalizacionInExport, num ?? undefined);
+                                        printSolicitudPresupuesto(currentProjectData, freshEmps, includeLegalizacionInExport, num ?? undefined);
                                       }}>
                                         <FileDown className="h-4 w-4 mr-2" />
                                         Descargar PDF
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={async () => {
-                                        await getFreshEmpleados();
+                                        const freshEmps = await getFreshEmpleados();
                                         const num = await getOrAssignSolicitudNum(currentProjectData.id);
-                                        await exportSolicitudToExcel(currentProjectData, empleados, includeLegalizacionInExport, num ?? undefined);
+                                        await exportSolicitudToExcel(currentProjectData, freshEmps, includeLegalizacionInExport, num ?? undefined);
                                       }}>
                                         <FileSpreadsheet className="h-4 w-4 mr-2" />
                                         Descargar Excel

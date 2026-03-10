@@ -106,10 +106,10 @@ export function EditableCell({
           if (!disabled) setIsEditing(true);
         }}
         className={cn(
-          "cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 min-h-[24px] flex items-center truncate",
+          "cursor-pointer hover:bg-muted/30 rounded px-2 py-1.5 min-h-[32px] flex items-center truncate w-full border border-transparent hover:border-muted-foreground/20 transition-colors",
           type === "number" && "font-mono",
-          !value && "text-muted-foreground",
-          disabled && "cursor-default",
+          !value && "text-muted-foreground italic",
+          disabled && "cursor-default hover:border-transparent",
           !className && "text-xs",
           className
         )}

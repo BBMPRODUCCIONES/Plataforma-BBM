@@ -1000,6 +1000,57 @@ const Usuarios = () => {
                 </div>
               </div>
 
+              {/* Permisos de Personal, Inventario y Responsables */}
+              <div className="space-y-2">
+                <Label>Permisos de Personal e Inventario</Label>
+                <div className="space-y-2 p-3 border rounded-md bg-purple-500/10 border-purple-500/30">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-puede-editar-personal"
+                      checked={editPuedeEditarPersonal}
+                      onCheckedChange={(checked) => setEditPuedeEditarPersonal(checked as boolean)}
+                      disabled={isSaving}
+                    />
+                    <Label 
+                      htmlFor="edit-puede-editar-personal"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Puede editar/eliminar Personal
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-puede-editar-inventario"
+                      checked={editPuedeEditarInventario}
+                      onCheckedChange={(checked) => setEditPuedeEditarInventario(checked as boolean)}
+                      disabled={isSaving}
+                    />
+                    <Label 
+                      htmlFor="edit-puede-editar-inventario"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Puede editar Inventario
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-puede-asignar-responsables"
+                      checked={editPuedeAsignarResponsables}
+                      onCheckedChange={(checked) => setEditPuedeAsignarResponsables(checked as boolean)}
+                      disabled={isSaving}
+                    />
+                    <Label 
+                      htmlFor="edit-puede-asignar-responsables"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Puede asignar Responsables de Inventario
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Controla si el usuario puede modificar las secciones de Personal, Inventario y asignar responsables en los paneles.
+                  </p>
+                </div>
+
               {/* Caja Menor Approval Permission - all roles */}
               <div className="space-y-2">
                 <Label>Permisos Especiales de Caja Menor</Label>

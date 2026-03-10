@@ -1698,29 +1698,31 @@ const PanelOperaciones = () => {
       },
     ];
 
-    // Add delete action column
-    basePersonalCols.push({
-      key: "acciones",
-      header: "",
-      width: "50px",
-      mobileWidth: "50px",
-      render: (p: PersonalItem) => (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (projectId) {
-              deletePersonalItem(projectId, p.id);
-            }
-          }}
-          title="Eliminar"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      ),
-    });
+    // Add delete action column - only if user has permission
+    if (canEditPersonal()) {
+      basePersonalCols.push({
+        key: "acciones",
+        header: "",
+        width: "50px",
+        mobileWidth: "50px",
+        render: (p: PersonalItem) => (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (projectId) {
+                deletePersonalItem(projectId, p.id);
+              }
+            }}
+            title="Eliminar"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        ),
+      });
+    }
 
     // Always show Ruta Transporte column when there's transport personnel
     if (hasTransporte) {

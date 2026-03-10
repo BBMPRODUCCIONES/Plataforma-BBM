@@ -142,7 +142,11 @@ export function PhotoExportDialog({ open, onOpenChange, title, subtitle, photos 
               <span className="ml-2 text-sm text-muted-foreground">Cargando imágenes...</span>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div ref={contentRef} className="space-y-4">
+              <div className="text-center pb-2 border-b border-border mb-4">
+                <h2 className="font-bold text-base">{title}</h2>
+                <p className="text-xs text-muted-foreground">{subtitle}</p>
+              </div>
               {resolvedPhotos.map((img, i) => (
                 <div key={i} className="border border-border rounded-lg p-4">
                   <h3 className="font-bold text-sm">{i + 1}. {img.comercio || "Sin comercio"}</h3>

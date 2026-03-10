@@ -859,9 +859,10 @@ const Usuarios = () => {
                       value={newRole}
                       onValueChange={(value) => {
                         setNewRole(value as AppRole);
-                        // Auto-select all panels for admin
                         if (value === "administrador") {
                           setNewPanels(ALL_PANELS);
+                        } else if (value === "visual") {
+                          setNewPanels(["operaciones"]);
                         }
                       }}
                       disabled={isSubmitting}
@@ -877,8 +878,8 @@ const Usuarios = () => {
                     </Select>
                   </div>
                   
-                  {/* Panel access selection - only for non-admin roles */}
-                  {newRole !== "administrador" && (
+                  {/* Panel access selection - only for non-admin and non-visual roles */}
+                  {newRole !== "administrador" && newRole !== "visual" && (
                     <div className="space-y-2">
                       <Label>Acceso a Paneles</Label>
                       <div className="space-y-2 p-3 border rounded-md bg-muted/20">
@@ -913,6 +914,14 @@ const Usuarios = () => {
                     </p>
                   )}
 
+                  {newRole === "visual" && (
+                    <p className="text-sm text-muted-foreground p-3 bg-muted/20 rounded-md">
+                      El rol Visual solo tiene acceso de lectura al Panel Operaciones. No se le pueden asignar permisos de edición.
+                    </p>
+                  )}
+
+                  {newRole !== "visual" && (
+                  <>
                   {/* Permisos de Edición por Panel */}
                   <div className="space-y-2">
                     <Label>Permisos de Edición por Panel</Label>
@@ -1026,10 +1035,12 @@ const Usuarios = () => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox id="new-puede-editar-feedback" checked={newPuedeEditarFeedback} onCheckedChange={(checked) => { setNewPuedeEditarFeedback(checked as boolean); if (checked) setNewPuedeVerFeedback(true); }} disabled={isSubmitting || !newPuedeVerFeedback} />
-                        <Label htmlFor="new-puede-editar-feedback" className="text-sm font-normal cursor-pointer">Puede editar Feedback</Label>
+                      <Label htmlFor="new-puede-editar-feedback" className="text-sm font-normal cursor-pointer">Puede editar Feedback</Label>
                       </div>
                     </div>
                   </div>
+                  </>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4 py-4">

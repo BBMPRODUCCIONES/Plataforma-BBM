@@ -202,6 +202,7 @@ const Proveedores = () => {
           <EditableCell
             value={p.categoria || ""}
             type="text"
+            placeholder="Escribe la categoría"
             onChange={(value) => handleUpdateProveedor(p.id, "categoria", value)}
           />
         ),
@@ -217,6 +218,7 @@ const Proveedores = () => {
           <EditableCell
             value={p.nombre || ""}
             type="text"
+            placeholder="Escribe el nombre"
             onChange={(value) => handleUpdateProveedor(p.id, "nombre", value)}
           />
         ),
@@ -234,6 +236,7 @@ const Proveedores = () => {
             <EditableCell
               value={p.telefono || ""}
               type="text"
+              placeholder="Número de teléfono"
               onChange={(value) => handleUpdateProveedor(p.id, "telefono", value)}
             />
           </div>
@@ -252,6 +255,7 @@ const Proveedores = () => {
             <EditableCell
               value={p.correo || ""}
               type="text"
+              placeholder="correo@ejemplo.com"
               onChange={(value) => handleUpdateProveedor(p.id, "correo", value)}
             />
           </div>
@@ -268,6 +272,7 @@ const Proveedores = () => {
           <EditableCell
             value={p.tipoProductoServicio || ""}
             type="text"
+            placeholder="Describe el producto o servicio"
             onChange={(value) => handleUpdateProveedor(p.id, "tipoProductoServicio", value)}
           />
         ),
@@ -362,6 +367,7 @@ const Proveedores = () => {
           <EditableCell
             value={p.notas || ""}
             type="text"
+            placeholder="Agregar notas..."
             onChange={(value) => handleUpdateProveedor(p.id, "notas", value)}
           />
         ),

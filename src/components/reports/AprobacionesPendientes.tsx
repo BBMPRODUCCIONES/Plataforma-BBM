@@ -589,8 +589,13 @@ export default function AprobacionesPendientes() {
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
-      // Type S stays pending until legalization is complete
-      if (isTypeS && r.legalizacionEstado !== "Legalizado" && r.legalizacionEstado !== "No legalizable") return true;
+      if (isTypeS) {
+        // Type S stays pending until legalization is complete
+        if (r.legalizacionEstado !== "Legalizado" && r.legalizacionEstado !== "No legalizable") return true;
+        // Even if legalized, stay pending while undo window for legalization is active
+        const legUndoId = `leg-${r.item.id}`;
+        if (hasActiveUndo(legUndoId)) return true;
+      }
       // Type R and C: stay in pending while undo window is active
       if (!isTypeS) return hasActiveUndo(r.item.id);
     }

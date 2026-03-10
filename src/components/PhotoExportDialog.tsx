@@ -130,9 +130,9 @@ export function PhotoExportDialog({ open, onOpenChange, title, subtitle, photos 
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </DialogHeader>
         <div className="px-6 pb-2 flex justify-end shrink-0">
-          <Button size="sm" variant="outline" onClick={handlePrint} disabled={loading || resolvedPhotos.length === 0}>
-            <Download className="h-4 w-4 mr-2" />
-            Guardar PDF
+          <Button size="sm" variant="outline" onClick={handleDownloadPDF} disabled={loading || exporting || resolvedPhotos.length === 0}>
+            {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            {exporting ? "Generando..." : "Guardar PDF"}
           </Button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 pb-6">

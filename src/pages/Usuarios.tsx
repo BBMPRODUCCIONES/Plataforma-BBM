@@ -437,6 +437,9 @@ const Usuarios = () => {
     setEditPuedeEditarGeneral(user.puede_editar_general);
     setEditPuedeEditarOperaciones(user.puede_editar_operaciones);
     setEditPuedeEditarDirectivo(user.puede_editar_directivo);
+    setEditPuedeEditarPersonal(user.puede_editar_personal);
+    setEditPuedeEditarInventario(user.puede_editar_inventario);
+    setEditPuedeAsignarResponsables(user.puede_asignar_responsables);
   };
 
   const handleSaveUser = async () => {

@@ -431,6 +431,7 @@ const generateInventarioSection = (project: Project): string => {
       <td>${i.cantidad} ${i.unidad}</td>
       <td>${i.observaciones || '-'}</td>
       <td><span class="checkbox ${i.recibido ? 'checked' : ''}"></span></td>
+      <td><span class="checkbox ${(i as any).salida ? 'checked' : ''}"></span></td>
       <td>${i.notasAdicionales || '-'}</td>
     </tr>
   `).join('');
@@ -443,12 +444,13 @@ const generateInventarioSection = (project: Project): string => {
           <th>Material</th>
           <th>Cantidad</th>
           <th>Observaciones</th>
-          <th>Recibido</th>
+          <th>Entrada</th>
+          <th>Salida</th>
           <th>Notas Adicionales</th>
         </tr>
       </thead>
       <tbody>
-        ${tableRows || '<tr><td colspan="5" style="text-align: center;">No hay inventario registrado</td></tr>'}
+        ${tableRows || '<tr><td colspan="6" style="text-align: center;">No hay inventario registrado</td></tr>'}
       </tbody>
     </table>
     ${generateResponsablesSection(project)}

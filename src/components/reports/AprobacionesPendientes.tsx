@@ -1034,7 +1034,7 @@ export default function AprobacionesPendientes() {
         setIsRestoring(false);
         setShowPasswordDialog(false);
         setPasswordInput("");
-        return;
+        setRestoreReasonInput("");
       }
       
       // Group rows by projectId to batch updates

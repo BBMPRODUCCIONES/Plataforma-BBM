@@ -1331,6 +1331,295 @@ export default function AprobacionesPendientes() {
     );
   };
 
+  const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
+    const showLeg = tipo === 'S';
+    const colCount = showLeg ? 12 : 8;
+
+    return (
+      <div
+        className="border rounded-md overflow-auto"
+        style={{
+          maxHeight: "clamp(280px, 50vh, 600px)",
+          scrollbarWidth: "auto",
+          scrollbarColor: "hsl(var(--muted-foreground) / 0.3) transparent",
+        }}
+      >
+        <Table>
+          <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
+            <TableRow>
+              <TableHead className="text-xs w-[30px]"></TableHead>
+              <TableHead className="text-xs">Fecha</TableHead>
+              <TableHead className="text-xs">CC</TableHead>
+              <TableHead className="text-xs">Relación de eventos</TableHead>
+              <TableHead className="text-xs text-right">Valor Total</TableHead>
+              <TableHead className="text-xs text-center">Cant.</TableHead>
+              <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
+              <TableHead className="text-xs">Aprobado por</TableHead>
+              {showLeg && <TableHead className="text-xs text-right">Legalización</TableHead>}
+              {showLeg && <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>}
+              {showLeg && <TableHead className="text-xs text-right">Saldo</TableHead>}
+              {showLeg && <TableHead className="text-xs w-[130px]">Plazo Leg.</TableHead>}
+              <TableHead className="text-xs w-[100px]">Deshacer</TableHead>
+              <TableHead className="text-xs w-[80px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {groups.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={colCount} className="text-center text-muted-foreground py-8 text-sm">
+                  No hay solicitudes pendientes
+                </TableCell>
+              </TableRow>
+            ) : (
+              groups.map((group) => {
+                const d = group.latestDate ? parseDateSafe(group.latestDate) : null;
+                const colorClass =
+                  group.tipo === "S" ? "bg-blue-500/20 text-blue-400 border-blue-500/40" :
+                  group.tipo === "R" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
+                  "bg-amber-500/20 text-amber-400 border-amber-500/40";
+                const firstProjectRow = group.rows.find(r => r.projectId);
+                const isTypeS = group.tipo === "S";
+
+                const allEstados = [...new Set(group.rows.map(r => r.item.estado))];
+                const commonEstado = allEstados.length === 1 ? allEstados[0] : "Pendiente";
+
+                const aprobadores = [...new Set(group.rows
+                  .map(r => {
+                    if (r.source === 'gastoMenor') {
+                      const gm = gastosMenores.find(g => g.id === r.gastoMenorId);
+                      return gm?.aprobado_por_nombre || "";
+                    }
+                    return r.item.revisadoPor || "";
+                  })
+                  .filter(Boolean)
+                )];
+                const aprobadoPorDisplay = aprobadores.length === 1 ? aprobadores[0] : aprobadores.length > 1 ? aprobadores.join(", ") : "—";
+
+                const legEstados = isTypeS ? [...new Set(group.rows.map(r => r.legalizacionEstado || "Revisando"))] : [];
+                const commonLegEstado = legEstados.length === 1 ? legEstados[0] : legEstados.length > 1 ? "Mixto" : "";
+                const hasRestoredRows = group.rows.some(r => r.item.restaurada === true);
+
+                return (
+                  <TableRow key={group.key}>
+                    <TableCell className="text-xs text-center">
+                      <div className="flex items-center gap-1 justify-center">
+                        {hasRestoredRows && (() => {
+                          const restoredRow = group.rows.find(r => r.item.restaurada && r.item.restauradaPor);
+                          return (
+                            <TooltipProvider delayDuration={200}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs max-w-[220px]">
+                                  <p className="font-semibold">Restaurada</p>
+                                  {restoredRow?.item.restauradaPor && (
+                                    <p>Por: {restoredRow.item.restauradaPor}</p>
+                                  )}
+                                  {restoredRow?.item.restauradaEn && (
+                                    <p>{format(parseISO(restoredRow.item.restauradaEn), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })()}
+                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-md border font-bold text-sm ${colorClass}`}>
+                          {group.tipo}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      {d ? format(d, "dd/MM/yyyy") : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs">{group.centroCostos || "—"}</TableCell>
+                    <TableCell className="text-xs">{group.evento || "—"}</TableCell>
+                    <TableCell className="text-xs text-right font-medium">
+                      {formatCurrency(group.totalValor)}
+                    </TableCell>
+                    <TableCell className="text-xs text-center">
+                      <Badge variant="outline" className="text-[10px]">
+                        {group.rows.length}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {(() => {
+                        const isTypeSAndDecided = isTypeS && commonEstado !== "Pendiente";
+                        if (canApproveCajaMenor() && !isTypeSAndDecided) {
+                          return (
+                            <CajaMenorEstadoSelect
+                              value={commonEstado}
+                              onChange={(v) => handleGroupedEstadoChange(group, v)}
+                              allowedValues={["Pendiente", "Aprobado", "No aprobado"]}
+                            />
+                          );
+                        }
+                        return (
+                          <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      {aprobadoPorDisplay}
+                    </TableCell>
+                    {showLeg && (
+                      <TableCell className="text-xs text-right">
+                        {formatCurrency(group.totalLegalizacion)}
+                      </TableCell>
+                    )}
+                    {showLeg && (
+                      <TableCell className="text-xs">
+                        {(() => {
+                          if (commonEstado === "Pendiente") {
+                            return (
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_EN_REVISION.className}`}>
+                                {LEGALIZACION_EN_REVISION.label}
+                              </span>
+                            );
+                          }
+                          if (commonEstado === "No aprobado") {
+                            return (
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>
+                                {LEGALIZACION_NO_APROBADO.label}
+                              </span>
+                            );
+                          }
+                          const hasApproved = group.rows.some(r => r.item.estado === "Aprobado");
+                          if (canApproveCajaMenor() && hasApproved) {
+                            return (
+                              <Select
+                                value={commonLegEstado === "Mixto" ? "Revisando" : (commonLegEstado || "Revisando")}
+                                onValueChange={(v) => handleGroupedLegalizacionChange(group, v)}
+                              >
+                                <SelectTrigger
+                                  className={`h-7 text-xs w-full border font-medium ${
+                                    LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (commonLegEstado === "Mixto" ? "Revisando" : commonLegEstado || "Revisando"))?.className || "bg-yellow-500/20 text-yellow-400"
+                                  }`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <span>{commonLegEstado === "Mixto" ? "Mixto" : (LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (commonLegEstado || "Revisando"))?.label || "Revisando")}</span>
+                                </SelectTrigger>
+                                <SelectContent className="bg-popover border-border z-[9999]">
+                                  {LEGALIZACION_ESTADO_OPTIONS.map((option) => (
+                                    <SelectItem
+                                      key={option.value}
+                                      value={option.value}
+                                      className={`text-xs font-medium ${option.className}`}
+                                    >
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            );
+                          }
+                          const legOption = LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === commonLegEstado);
+                          return (
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${legOption?.className || "bg-yellow-500/20 text-yellow-400"}`}>
+                              {commonLegEstado || "Revisando"}
+                            </span>
+                          );
+                        })()}
+                      </TableCell>
+                    )}
+                    {showLeg && (
+                      <TableCell className={`text-xs text-right font-medium ${
+                        group.totalSaldo > 0 ? "text-green-400" : group.totalSaldo < 0 ? "text-red-400" : ""
+                      }`}>
+                        {formatCurrency(Math.abs(group.totalSaldo))}
+                      </TableCell>
+                    )}
+                    {showLeg && (
+                      <TableCell className="text-xs">
+                        {(() => {
+                          if (commonEstado === "Pendiente") return <span className="text-muted-foreground">—</span>;
+                          if (!group.fechaDesmontajeFin) return <span className="text-muted-foreground text-[10px]">Sin fecha desm.</span>;
+                          try {
+                            const desmFin = parseISO(group.fechaDesmontajeFin);
+                            const deadline = new Date(desmFin.getTime() + 2 * 24 * 60 * 60 * 1000);
+                            const now = new Date();
+                            const diffMs = deadline.getTime() - now.getTime();
+                            const isLate = diffMs <= 0;
+                            if (isLate) {
+                              const daysLate = Math.ceil(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
+                              return (
+                                <div className="flex items-center gap-1">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                                  <span className="text-[10px] font-semibold text-red-400 leading-tight">
+                                    Tardía ({daysLate}d vencido)
+                                  </span>
+                                </div>
+                              );
+                            } else {
+                              const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                              const hoursLeft = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                              return (
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                                  <span className="text-[10px] font-medium text-green-400 leading-tight">
+                                    {daysLeft > 0 ? `${daysLeft}d ${hoursLeft}h` : `${hoursLeft}h`}
+                                  </span>
+                                </div>
+                              );
+                            }
+                          } catch {
+                            return <span className="text-muted-foreground">—</span>;
+                          }
+                        })()}
+                      </TableCell>
+                    )}
+                    <TableCell className="text-xs">
+                      {(() => {
+                        const undoEntry = getUndoEntryForGroup(group.key, group.rows);
+                        if (!undoEntry) return null;
+                        const timeLeft = formatTimeRemaining(undoEntry.expires_at);
+                        if (!timeLeft) return null;
+                        return (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUndoGroup(group.rows);
+                            }}
+                          >
+                            <Undo2 className="w-3 h-3" />
+                            {timeLeft}
+                          </Button>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell>
+                      {firstProjectRow && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-7 px-1 text-xs text-primary underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const params = new URLSearchParams({
+                              eventId: firstProjectRow.projectId,
+                              eventName: firstProjectRow.evento,
+                              source: "aprobaciones",
+                            });
+                            window.open(`/panel-operaciones?${params.toString()}`, "_blank");
+                          }}
+                        >
+                          Ver más
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-4 h-full">
       {/* Filters */}

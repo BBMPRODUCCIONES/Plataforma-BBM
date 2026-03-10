@@ -116,6 +116,9 @@ const Usuarios = () => {
   const [editPuedeEditarGeneral, setEditPuedeEditarGeneral] = useState(false);
   const [editPuedeEditarOperaciones, setEditPuedeEditarOperaciones] = useState(false);
   const [editPuedeEditarDirectivo, setEditPuedeEditarDirectivo] = useState(false);
+  const [editPuedeEditarPersonal, setEditPuedeEditarPersonal] = useState(false);
+  const [editPuedeEditarInventario, setEditPuedeEditarInventario] = useState(false);
+  const [editPuedeAsignarResponsables, setEditPuedeAsignarResponsables] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Delete user state

@@ -217,6 +217,7 @@ export default function AprobacionesPendientes() {
   const [selectedForRestore, setSelectedForRestore] = useState<Set<string>>(new Set());
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
+  const [restoreReasonInput, setRestoreReasonInput] = useState("");
   const [isRestoring, setIsRestoring] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [globalSearch, setGlobalSearch] = useState(false);

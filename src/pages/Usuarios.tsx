@@ -110,6 +110,24 @@ const Usuarios = () => {
   const [newPanels, setNewPanels] = useState<string[]>(["general", "operaciones"]);
   const [generatedLink, setGeneratedLink] = useState("");
 
+  // New invitation granular permissions
+  const [newPuedeVerFeedback, setNewPuedeVerFeedback] = useState(false);
+  const [newPuedeEditarFeedback, setNewPuedeEditarFeedback] = useState(false);
+  const [newPuedeAprobarCajaMenor, setNewPuedeAprobarCajaMenor] = useState(false);
+  const [newPuedeCrearAnticipos, setNewPuedeCrearAnticipos] = useState(false);
+  const [newPuedeEditarGeneral, setNewPuedeEditarGeneral] = useState(false);
+  const [newPuedeEditarOperaciones, setNewPuedeEditarOperaciones] = useState(false);
+  const [newPuedeEditarDirectivo, setNewPuedeEditarDirectivo] = useState(false);
+  const [newPuedeEditarPersonal, setNewPuedeEditarPersonal] = useState(false);
+  const [newPuedeEditarInventario, setNewPuedeEditarInventario] = useState(false);
+  const [newPuedeAsignarResponsables, setNewPuedeAsignarResponsables] = useState(false);
+  const [newPuedeRestaurarSolicitudes, setNewPuedeRestaurarSolicitudes] = useState(false);
+  const [newPuedeAccederUsuarios, setNewPuedeAccederUsuarios] = useState(true);
+  const [newPuedeAccederClientes, setNewPuedeAccederClientes] = useState(true);
+  const [newPuedeAccederEmpleados, setNewPuedeAccederEmpleados] = useState(true);
+  const [newPuedeAccederConstructor, setNewPuedeAccederConstructor] = useState(true);
+  const [newPuedeAccederAgentes, setNewPuedeAccederAgentes] = useState(true);
+
   // Edit user state
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [editRole, setEditRole] = useState<AppRole>("operativo");

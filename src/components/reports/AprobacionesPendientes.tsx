@@ -1333,7 +1333,7 @@ export default function AprobacionesPendientes() {
 
   const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
     const showLeg = tipo === 'S';
-    const colCount = showLeg ? 12 : 8;
+    const colCount = showLeg ? 13 : 9;
 
     return (
       <div
@@ -1349,6 +1349,7 @@ export default function AprobacionesPendientes() {
             <TableRow>
               <TableHead className="text-xs w-[30px]"></TableHead>
               <TableHead className="text-xs">Fecha</TableHead>
+              <TableHead className="text-xs">Solicitante</TableHead>
               <TableHead className="text-xs">CC</TableHead>
               <TableHead className="text-xs">Relación de eventos</TableHead>
               <TableHead className="text-xs text-right">Valor Total</TableHead>
@@ -1431,6 +1432,12 @@ export default function AprobacionesPendientes() {
                     </TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
                       {d ? format(d, "dd/MM/yyyy") : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      {(() => {
+                        const names = [...new Set(group.rows.map(r => r.item.empleadoNombre).filter(Boolean))];
+                        return names.length > 0 ? names.join(", ") : "—";
+                      })()}
                     </TableCell>
                     <TableCell className="text-xs">{group.centroCostos || "—"}</TableCell>
                     <TableCell className="text-xs">{group.evento || "—"}</TableCell>
@@ -1839,6 +1846,7 @@ export default function AprobacionesPendientes() {
                   )}
                   <TableHead className="text-xs w-[40px]">Tipo</TableHead>
                   <TableHead className="text-xs">Fecha</TableHead>
+                  <TableHead className="text-xs">Solicitante</TableHead>
                   <TableHead className="text-xs">CC</TableHead>
                   <TableHead className="text-xs">Relación de eventos</TableHead>
                   <TableHead className="text-xs text-right">Valor Total</TableHead>
@@ -1854,7 +1862,7 @@ export default function AprobacionesPendientes() {
               <TableBody>
                 {groupedResolvedRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center text-muted-foreground py-8 text-sm">
+                    <TableCell colSpan={14} className="text-center text-muted-foreground py-8 text-sm">
                       No hay solicitudes en el historial
                     </TableCell>
                   </TableRow>
@@ -1934,6 +1942,12 @@ export default function AprobacionesPendientes() {
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">
                           {d ? format(d, "dd/MM/yyyy") : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {(() => {
+                            const names = [...new Set(group.rows.map(r => r.item.empleadoNombre).filter(Boolean))];
+                            return names.length > 0 ? names.join(", ") : "—";
+                          })()}
                         </TableCell>
                         <TableCell className="text-xs">{group.centroCostos || "—"}</TableCell>
                         <TableCell className="text-xs">{group.evento || "—"}</TableCell>

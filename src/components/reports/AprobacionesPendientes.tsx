@@ -443,9 +443,10 @@ export default function AprobacionesPendientes() {
           imagenes: leg.imagenes,
           createdAt: leg.createdAt,
           revisadoPor: leg.revisadoPor,
-          restaurada: leg.restaurada,
-          restauradaPor: leg.restauradaPor,
-          restauradaEn: leg.restauradaEn,
+           restaurada: leg.restaurada,
+           restauradaPor: leg.restauradaPor,
+           restauradaEn: leg.restauradaEn,
+           restauradaRazon: leg.restauradaRazon,
         };
         result.push({
           projectId: project.id,

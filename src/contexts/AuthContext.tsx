@@ -60,6 +60,7 @@ const defaultFeedbackPermissions: FeedbackPermissions = {
 const defaultCajaMenorPermissions: CajaMenorPermissions = {
   puedeAprobarCajaMenor: false,
   puedeCrearAnticipos: false,
+  puedeRestaurarSolicitudes: false,
 };
 
 const defaultPanelEditPermissions: PanelEditPermissions = {

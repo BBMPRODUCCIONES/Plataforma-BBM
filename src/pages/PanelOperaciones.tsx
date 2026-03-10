@@ -3546,25 +3546,28 @@ const PanelOperaciones = () => {
                               });
                               
                               const hasUnfinishedSolicitud = userCajaMenorItems.some(cm => {
+                                const estado = String(cm.estado || "Pendiente");
                                 // Rejected items are finalized
-                                if (cm.estado === "Rechazado" || cm.estado === "No aprobado") return false;
+                                if (estado === "Rechazado" || estado === "No aprobado") return false;
                                 
                                 // If solicitud not yet approved, it's unfinished
-                                if (cm.estado !== "Aprobado") return true;
+                                if (estado !== "Aprobado") return true;
                                 
                                 // If solicitud is approved, check its legalization
                                 const linkedLeg = legalizacion.find(l => l.id === `leg-${cm.id}`);
-                                if (!linkedLeg) return true; // No legalization found = unfinished
+                                if (!linkedLeg) return true;
                                 
-                                // For type R/C: just needs to be approved
-                                const recursos = cm.recursos || "";
+                                const legEstado = String(linkedLeg.estado || "Pendiente");
+                                const recursos = String(cm.recursos || "");
+                                
+                                // For type R/C: just needs to be approved/rejected
                                 if (recursos === "Recursos propios" || recursos === "Caja menor") {
-                                  return linkedLeg.estado !== "Aprobado" && linkedLeg.estado !== "No aprobado" && linkedLeg.estado !== "Rechazado";
+                                  return legEstado !== "Aprobado" && legEstado !== "No aprobado" && legEstado !== "Rechazado";
                                 }
                                 
-                                // For type S (Anticipo BBM): needs legalization approved
-                                return linkedLeg.estado !== "Aprobado" && linkedLeg.estado !== "Legalizado" && 
-                                       linkedLeg.estado !== "No aprobado" && linkedLeg.estado !== "Rechazado";
+                                // For type S (Anticipo BBM): needs legalization approved/legalizado
+                                return legEstado !== "Aprobado" && legEstado !== "Legalizado" && 
+                                       legEstado !== "No aprobado" && legEstado !== "Rechazado";
                               });
                               
                               const isBlocked = hasUnfinishedSolicitud && !isAdmin;

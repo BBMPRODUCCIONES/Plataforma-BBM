@@ -431,6 +431,7 @@ const generateInventarioSection = (project: Project): string => {
       <td>${i.cantidad} ${i.unidad}</td>
       <td>${i.observaciones || '-'}</td>
       <td><span class="checkbox ${i.recibido ? 'checked' : ''}"></span></td>
+      <td><span class="checkbox ${(i as any).salida ? 'checked' : ''}"></span></td>
       <td>${i.notasAdicionales || '-'}</td>
     </tr>
   `).join('');

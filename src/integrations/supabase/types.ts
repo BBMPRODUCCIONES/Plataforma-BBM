@@ -909,6 +909,11 @@ export type Database = {
           allowed_panels: string[] | null
           email: string | null
           id: string
+          puede_acceder_agentes: boolean | null
+          puede_acceder_clientes: boolean | null
+          puede_acceder_constructor: boolean | null
+          puede_acceder_empleados: boolean | null
+          puede_acceder_usuarios: boolean | null
           puede_aprobar_caja_menor: boolean | null
           puede_asignar_responsables: boolean | null
           puede_crear_anticipos: boolean | null
@@ -927,6 +932,11 @@ export type Database = {
           allowed_panels?: string[] | null
           email?: string | null
           id?: string
+          puede_acceder_agentes?: boolean | null
+          puede_acceder_clientes?: boolean | null
+          puede_acceder_constructor?: boolean | null
+          puede_acceder_empleados?: boolean | null
+          puede_acceder_usuarios?: boolean | null
           puede_aprobar_caja_menor?: boolean | null
           puede_asignar_responsables?: boolean | null
           puede_crear_anticipos?: boolean | null
@@ -945,6 +955,11 @@ export type Database = {
           allowed_panels?: string[] | null
           email?: string | null
           id?: string
+          puede_acceder_agentes?: boolean | null
+          puede_acceder_clientes?: boolean | null
+          puede_acceder_constructor?: boolean | null
+          puede_acceder_empleados?: boolean | null
+          puede_acceder_usuarios?: boolean | null
           puede_aprobar_caja_menor?: boolean | null
           puede_asignar_responsables?: boolean | null
           puede_crear_anticipos?: boolean | null

@@ -3195,6 +3195,7 @@ const PanelOperaciones = () => {
                           {/* Responsables del Inventario */}
                           <InventarioResponsablesSelector
                             highlightMissing={highlightResponsables}
+                            readOnly={!canAsignarResponsables()}
                             responsableSalida={{
                               userId: currentProjectData.inventarioResponsableSalidaUserId,
                               nombre: currentProjectData.inventarioResponsableSalidaNombre,

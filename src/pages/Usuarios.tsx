@@ -477,6 +477,9 @@ const Usuarios = () => {
           puede_editar_general: finalPuedeEditarGeneral,
           puede_editar_operaciones: finalPuedeEditarOperaciones,
           puede_editar_directivo: finalPuedeEditarDirectivo,
+          puede_editar_personal: finalPuedeEditarPersonal,
+          puede_editar_inventario: finalPuedeEditarInventario,
+          puede_asignar_responsables: finalPuedeAsignarResponsables,
         } as any)
         .eq("user_id", editingUser.id);
 

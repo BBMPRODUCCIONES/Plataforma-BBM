@@ -1118,6 +1118,7 @@ export default function AprobacionesPendientes() {
       setShowPasswordDialog(false);
       setPasswordInput("");
       setRestoreReasonInput("");
+    } catch (err) {
       toast.error("Error al restaurar solicitudes");
     } finally {
       setIsRestoring(false);

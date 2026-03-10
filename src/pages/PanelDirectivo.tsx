@@ -658,27 +658,28 @@ const PanelDirectivo = () => {
         );
       case "cotizaciones":
         return (p: Project) => (
-          <PurchaseOrderUpload
-            attachments={p.cotizaciones || []}
-            onAttachmentsChange={(attachments) => updateProject(p.id, "cotizaciones", attachments)}
-            currentIngresoBruto={p.ingresoBruto}
-            currentIngresoTotal={p.ingresoTotal}
-            projectId={p.id}
-            placeholderText="Cargar CO"
-            onDataExtracted={(ingresoBruto, ingresoTotal, inventarioItems) => {
-              // Merge new inventory items with existing ones (don't replace)
-              const existingInventario = p.inventario || [];
-              const mergedInventario = inventarioItems && inventarioItems.length > 0
-                ? [...existingInventario, ...inventarioItems]
-                : existingInventario;
-              
-              updateProjectMultiple(p.id, {
-                ingresoBruto: ingresoBruto ?? undefined,
-                ingresoTotal: ingresoTotal ?? undefined,
-                inventario: mergedInventario.length > 0 ? mergedInventario : undefined,
-              });
-            }}
-          />
+          <div className={cn((p.cotizaciones || []).length === 0 && "ring-2 ring-red-500 rounded-md")}>
+            <PurchaseOrderUpload
+              attachments={p.cotizaciones || []}
+              onAttachmentsChange={(attachments) => updateProject(p.id, "cotizaciones", attachments)}
+              currentIngresoBruto={p.ingresoBruto}
+              currentIngresoTotal={p.ingresoTotal}
+              projectId={p.id}
+              placeholderText="Cargar CO"
+              onDataExtracted={(ingresoBruto, ingresoTotal, inventarioItems) => {
+                const existingInventario = p.inventario || [];
+                const mergedInventario = inventarioItems && inventarioItems.length > 0
+                  ? [...existingInventario, ...inventarioItems]
+                  : existingInventario;
+                
+                updateProjectMultiple(p.id, {
+                  ingresoBruto: ingresoBruto ?? undefined,
+                  ingresoTotal: ingresoTotal ?? undefined,
+                  inventario: mergedInventario.length > 0 ? mergedInventario : undefined,
+                });
+              }}
+            />
+          </div>
         );
       case "ordenCompra":
         return (p: Project) => (

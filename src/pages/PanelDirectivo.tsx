@@ -937,6 +937,16 @@ const PanelDirectivo = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant={sortColumn === "fechaMontaje" ? "default" : "outline"}
+                size="sm"
+                onClick={() => handleColumnSort("fechaMontaje")}
+                className={`text-xs whitespace-nowrap gap-1.5 ${isMobile ? 'h-8 px-2.5' : 'h-9'}`}
+                title={sortColumn === "fechaMontaje" && sortDirection === "asc" ? "Montaje: Más antiguo primero" : sortColumn === "fechaMontaje" && sortDirection === "desc" ? "Montaje: Más reciente primero" : "Ordenar por Montaje"}
+              >
+                {sortColumn === "fechaMontaje" && sortDirection === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : sortColumn === "fechaMontaje" && sortDirection === "desc" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUpDown className="h-3.5 w-3.5" />}
+                Montaje
+              </Button>
               <div className={isMobile ? 'relative w-full' : 'relative w-80'}>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                 <Input

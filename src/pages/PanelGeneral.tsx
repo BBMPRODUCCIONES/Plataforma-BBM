@@ -223,7 +223,7 @@ const PanelGeneral = () => {
         );
       case "avanzada":
         return (p: Project) => generalReadOnly ? (
-          <span className="text-xs">{p.avanzada || "-"}</span>
+          <span className="text-xs">{p.avanzada || "Sin asignar"}</span>
         ) : (
           <AvanzadaSelect
             value={p.avanzada}

@@ -2144,7 +2144,7 @@ export default function AprobacionesPendientes() {
       </Dialog>
 
       {/* Password Confirmation Dialog */}
-      <Dialog open={showPasswordDialog} onOpenChange={(open) => { if (!open) { setShowPasswordDialog(false); setPasswordInput(""); } }}>
+      <Dialog open={showPasswordDialog} onOpenChange={(open) => { if (!open) { setShowPasswordDialog(false); setPasswordInput(""); setRestoreReasonInput(""); } }}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -2163,19 +2163,27 @@ export default function AprobacionesPendientes() {
               placeholder="Contraseña"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") confirmRestore(); }}
               autoComplete="new-password"
               name="restore-password-nofill"
               data-form-type="other"
               data-lpignore="true"
               autoFocus
             />
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-foreground">¿Por qué quieres realizar la restauración? <span className="text-destructive">*</span></label>
+              <Textarea
+                placeholder="Escribe la razón de la restauración..."
+                value={restoreReasonInput}
+                onChange={(e) => setRestoreReasonInput(e.target.value)}
+                className="min-h-[80px] resize-none"
+              />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowPasswordDialog(false); setPasswordInput(""); }} disabled={isRestoring}>
+            <Button variant="outline" onClick={() => { setShowPasswordDialog(false); setPasswordInput(""); setRestoreReasonInput(""); }} disabled={isRestoring}>
               Cancelar
             </Button>
-            <Button onClick={confirmRestore} disabled={isRestoring || !passwordInput}>
+            <Button onClick={confirmRestore} disabled={isRestoring || !passwordInput || !restoreReasonInput.trim()}>
               {isRestoring ? "Restaurando..." : "Confirmar"}
             </Button>
           </DialogFooter>

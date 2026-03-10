@@ -3511,9 +3511,23 @@ const PanelOperaciones = () => {
                               const hasPermission = canCrearAnticipos();
                               if (!hasPermission) return null;
                               
-                              const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
+                              // Block if another user already owns records in this section
+                              const existingCajaMenor = currentProjectData.cajaMenor || [];
                               const userEmail = currentUserEmail || "";
                               const userEmpId = currentUserEmpleado?.id || "";
+                              const otherUserOwnsRecords = existingCajaMenor.length > 0 && existingCajaMenor.some(cm => {
+                                const isOwner = (cm.empleadoEmail?.toLowerCase() === userEmail) || 
+                                  (userEmpId && cm.empleadoId === userEmpId);
+                                return !isOwner;
+                              }) && !existingCajaMenor.some(cm => {
+                                const isOwner = (cm.empleadoEmail?.toLowerCase() === userEmail) || 
+                                  (userEmpId && cm.empleadoId === userEmpId);
+                                return isOwner;
+                              });
+
+                              if (otherUserOwnsRecords) return null;
+
+                              const legalizacion = (currentProjectData.legalizacion || []) as LegalizacionItem[];
                               const hasPendingLeg = legalizacion.some(l => {
                                 const isOwner = (l.empleadoEmail?.toLowerCase() === userEmail) || 
                                   (userEmpId && l.empleadoId === userEmpId);

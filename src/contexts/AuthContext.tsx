@@ -103,7 +103,7 @@ function getCachedRole(userId: string): UserRoleData | null {
         allowedPanels: data.allowedPanels,
         feedbackPermissions: data.feedbackPermissions,
         cajaMenorPermissions: data.cajaMenorPermissions || { puedeAprobarCajaMenor: false, puedeCrearAnticipos: false },
-        panelEditPermissions: data.panelEditPermissions || { puedeEditarGeneral: false, puedeEditarOperaciones: false, puedeEditarDirectivo: false },
+        panelEditPermissions: data.panelEditPermissions || defaultPanelEditPermissions,
       };
     }
     

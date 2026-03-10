@@ -768,7 +768,11 @@ const Usuarios = () => {
           description="Administra usuarios, roles y permisos del sistema"
         />
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setShowInvitationsDialog(true)}>
+            <Clock className="mr-2 h-4 w-4" />
+            Invitaciones ({pendingInvitations.length})
+          </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>

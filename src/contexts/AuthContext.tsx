@@ -258,6 +258,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setFeedbackPermissions(roleData.feedbackPermissions);
       setCajaMenorPermissions(roleData.cajaMenorPermissions);
       setPanelEditPermissions(roleData.panelEditPermissions);
+      setAdminPagePermissions(roleData.adminPagePermissions);
       setRoleError(null);
     } else {
       setRole(null);
@@ -265,6 +266,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setFeedbackPermissions(defaultFeedbackPermissions);
       setCajaMenorPermissions(defaultCajaMenorPermissions);
       setPanelEditPermissions(defaultPanelEditPermissions);
+      setAdminPagePermissions(defaultAdminPagePermissions);
     }
   };
 

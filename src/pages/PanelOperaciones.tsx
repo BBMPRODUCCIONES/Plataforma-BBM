@@ -1988,6 +1988,9 @@ const PanelOperaciones = () => {
         mobileWidth: "280px",
         className: "align-top inventario-material-cell",
         render: (i: InventarioItem) => {
+          if (inventarioReadOnly) {
+            return <span className="text-sm whitespace-pre-wrap">{i.nombreMaterial || "-"}</span>;
+          }
           const text = i.nombreMaterial || "";
           const lineCount = text.split('\n').length;
           const charLength = text.length;
@@ -2018,7 +2021,12 @@ const PanelOperaciones = () => {
         header: "Cantidad", 
         width: "100px",
         mobileWidth: "100px",
-        render: (i: InventarioItem) => (
+        render: (i: InventarioItem) => inventarioReadOnly ? (
+          <div className="flex flex-col gap-0.5 text-sm">
+            <span>$ {i.cantidad}</span>
+            <span className="text-xs text-muted-foreground">{i.unidad || "uds"}</span>
+          </div>
+        ) : (
           <div className="flex flex-col gap-1">
             <EditableCell
               value={i.cantidad}
@@ -2046,6 +2054,7 @@ const PanelOperaciones = () => {
             value={i.recibido}
             type="boolean"
             onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "recibido", value)}
+            disabled={inventarioReadOnly}
           />
         ),
       },
@@ -2059,6 +2068,7 @@ const PanelOperaciones = () => {
             value={i.salida ?? false}
             type="boolean"
             onChange={(value) => projectId && updateInventarioItem(projectId, i.id, "salida", value)}
+            disabled={inventarioReadOnly}
           />
         ),
       },
@@ -2067,7 +2077,9 @@ const PanelOperaciones = () => {
         header: "Notas Adicionales", 
         width: "200px",
         mobileWidth: "200px",
-        render: (i: InventarioItem) => (
+        render: (i: InventarioItem) => inventarioReadOnly ? (
+          <span className="text-sm truncate">{i.notasAdicionales || "-"}</span>
+        ) : (
           <EditableCell
             value={i.notasAdicionales}
             type="text"

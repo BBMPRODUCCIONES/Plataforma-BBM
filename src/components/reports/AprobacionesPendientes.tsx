@@ -1862,7 +1862,7 @@ export default function AprobacionesPendientes() {
               <TableBody>
                 {groupedResolvedRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center text-muted-foreground py-8 text-sm">
+                    <TableCell colSpan={14} className="text-center text-muted-foreground py-8 text-sm">
                       No hay solicitudes en el historial
                     </TableCell>
                   </TableRow>

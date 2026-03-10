@@ -188,7 +188,7 @@ const GoogleCalendar = () => {
           notas: p.notas,
           productor: p.productor,
           jefeOperaciones: p.jefeOperaciones,
-          aCargoeDe: p.aCargoeDe,
+          aCargoeDe: p.aCargoDe,
           estado: p.estado,
           personal: p.personal,
           fechaMontajeInicio: p.fechaMontajeInicio,

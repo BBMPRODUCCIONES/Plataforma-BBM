@@ -728,6 +728,7 @@ const PanelOperaciones = () => {
               type="text"
               onChange={(value) => updateProject(p.id, "numFactura", value)}
               className="font-mono"
+              placeholder="Nº factura"
               disabled={operativoReadOnly}
             />
           );

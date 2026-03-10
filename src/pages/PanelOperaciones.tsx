@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { logger } from "@/lib/logger";
@@ -999,7 +1000,7 @@ const PanelOperaciones = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs"
+              className={cn("h-6 px-2 text-xs", (!p.inventario || p.inventario.length === 0) && "ring-2 ring-red-500 text-red-400")}
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedProject(p);

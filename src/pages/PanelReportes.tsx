@@ -28,11 +28,11 @@ const PanelReportes = () => {
   const [gastoDialogOpen, setGastoDialogOpen] = useState(false);
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores();
-  const { config, cierres, stats, updateBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
+  const { config, cierres, stats, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
   const { canApproveCajaMenor, role } = useUserRole();
   const isAdmin = role === "administrador";
   const handleSaveBaseAndReembolso = async (newBase: number, newReembolso: number) => {
-    return await updateBaseAndReembolso(newBase, newReembolso);
+    return await saveBaseAndReembolso(newBase, newReembolso);
   };
 
   const handleEstadoChange = async (gastoId: string, newEstado: string) => {

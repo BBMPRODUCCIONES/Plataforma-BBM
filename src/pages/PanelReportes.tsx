@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Layout from "@/components/Layout";
 import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ type ReportView = "main" | "financieros" | "caja-menor" | "reporte-caja-menor" |
 const PanelReportes = () => {
   const [currentView, setCurrentView] = useState<ReportView>("main");
   const [gastoDialogOpen, setGastoDialogOpen] = useState(false);
+  const [selectedGastoIds, setSelectedGastoIds] = useState<Set<string>>(new Set());
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores();
   const { config, cierres, stats, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
@@ -33,6 +35,49 @@ const PanelReportes = () => {
   const isAdmin = role === "administrador";
   const handleSaveBaseAndReembolso = async (newBase: number, newReembolso: number) => {
     return await saveBaseAndReembolso(newBase, newReembolso);
+  };
+
+  const toggleGastoSelection = useCallback((id: string) => {
+    setSelectedGastoIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAllGastos = useCallback(() => {
+    const selectableGastos = gastos.filter(g => g.estado === "Aprobado");
+    if (selectedGastoIds.size === selectableGastos.length && selectableGastos.length > 0) {
+      setSelectedGastoIds(new Set());
+    } else {
+      setSelectedGastoIds(new Set(selectableGastos.map(g => g.id)));
+    }
+  }, [gastos, selectedGastoIds]);
+
+  const handleCierreCaja = async () => {
+    const result = await realizarCierre("Legalizado");
+    if (result) setSelectedGastoIds(new Set());
+  };
+
+  const handleLegalizar = async () => {
+    if (selectedGastoIds.size === 0) return;
+    const ids = Array.from(selectedGastoIds);
+    const { data: userData } = await supabase.auth.getUser();
+    let aprobadorNombre = "Admin";
+    const { data: empData } = await supabase.rpc("get_my_employee");
+    if (empData && empData.length > 0) aprobadorNombre = empData[0].nombre;
+
+    const { error } = await supabase
+      .from("gastos_menores")
+      .update({ estado: "Legalizado", aprobado_por_id: userData?.user?.id || null, aprobado_por_nombre: aprobadorNombre } as any)
+      .in("id", ids);
+    if (error) {
+      toast.error("Error al legalizar gastos: " + error.message);
+    } else {
+      toast.success(`${ids.length} gasto(s) legalizado(s)`);
+      setSelectedGastoIds(new Set());
+    }
   };
 
   const handleEstadoChange = async (gastoId: string, newEstado: string) => {
@@ -242,8 +287,10 @@ const PanelReportes = () => {
               stats={stats}
               isAdmin={isAdmin}
               canAjustarBase={canAjustarBaseCajaMenor()}
+              selectedGastosCount={selectedGastoIds.size}
               onRegisterResponsable={registerResponsable}
-              onCierre={realizarCierre}
+              onCierre={handleCierreCaja}
+              onLegalizar={handleLegalizar}
               onAgregarGasto={() => setGastoDialogOpen(true)}
               onSaveBaseAndReembolso={handleSaveBaseAndReembolso}
             />
@@ -257,6 +304,12 @@ const PanelReportes = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={gastos.filter(g => g.estado === "Aprobado").length > 0 && selectedGastoIds.size === gastos.filter(g => g.estado === "Aprobado").length}
+                        onCheckedChange={toggleAllGastos}
+                      />
+                    </TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead>Centro de Costos</TableHead>
                     <TableHead>Concepto</TableHead>
@@ -273,6 +326,16 @@ const PanelReportes = () => {
                 <TableBody>
                   {gastos.map((g) => (
                     <TableRow key={g.id}>
+                      <TableCell>
+                        {g.estado === "Aprobado" ? (
+                          <Checkbox
+                            checked={selectedGastoIds.has(g.id)}
+                            onCheckedChange={() => toggleGastoSelection(g.id)}
+                          />
+                        ) : (
+                          <span className="block w-4" />
+                        )}
+                      </TableCell>
                       <TableCell className="text-xs whitespace-nowrap">
                         {format(new Date(g.created_at), "dd/MM/yyyy", { locale: es })}
                       </TableCell>

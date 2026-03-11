@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserCheck, Lock, RotateCcw, Plus, Settings } from "lucide-react";
+import { UserCheck, Lock, RotateCcw, Plus, FileCheck } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CajaMenorConfig } from "@/hooks/useCajaMenorConfig";
@@ -18,8 +18,10 @@ interface EstadoCajaMenorProps {
   };
   isAdmin: boolean;
   canAjustarBase: boolean;
+  selectedGastosCount: number;
   onRegisterResponsable: () => void;
-  onCierre: (estado: "Legalizado" | "Reembolsado") => void;
+  onCierre: () => void;
+  onLegalizar: () => void;
   onAgregarGasto: () => void;
   onSaveBaseAndReembolso: (newBase: number, newReembolso: number) => Promise<boolean>;
 }
@@ -28,8 +30,8 @@ const fmt = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 export default function EstadoCajaMenor({
-  config, stats, isAdmin, canAjustarBase,
-  onRegisterResponsable, onCierre, onAgregarGasto, onSaveBaseAndReembolso,
+  config, stats, isAdmin, canAjustarBase, selectedGastosCount,
+  onRegisterResponsable, onCierre, onLegalizar, onAgregarGasto, onSaveBaseAndReembolso,
 }: EstadoCajaMenorProps) {
   const [ajusteOpen, setAjusteOpen] = useState(false);
   const saldoEnCaja = stats.base - stats.totalAprobados;
@@ -37,15 +39,20 @@ export default function EstadoCajaMenor({
   return (
     <div>
       {/* Header bar */}
-      <div className="bg-primary/10 px-4 py-2.5 border-b border-primary/20 flex items-center justify-between">
+      <div className="bg-primary/10 px-4 py-2.5 border-b border-primary/20 flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-sm font-bold uppercase tracking-wider">Estado de Caja Menor</h3>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => onCierre("Legalizado")}>
-            <Lock className="h-3 w-3 mr-1" /> Legalizado
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={onCierre}>
+            <Lock className="h-3 w-3 mr-1" /> Cierre de caja
           </Button>
-          <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => onCierre("Reembolsado")}>
-            <RotateCcw className="h-3 w-3 mr-1" /> Reembolsado
+          <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={onLegalizar} disabled={selectedGastosCount === 0}>
+            <FileCheck className="h-3 w-3 mr-1" /> Legalizado {selectedGastosCount > 0 && `(${selectedGastosCount})`}
           </Button>
+          {canAjustarBase && (
+            <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setAjusteOpen(true)}>
+              <RotateCcw className="h-3 w-3 mr-1" /> Reembolsado
+            </Button>
+          )}
           <Button size="sm" className="text-[11px] h-7" onClick={onAgregarGasto}>
             <Plus className="h-3 w-3 mr-1" /> Agregar Gasto
           </Button>
@@ -94,23 +101,10 @@ export default function EstadoCajaMenor({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {/* BASE ASIGNADA - prominent row with settings button */}
+              {/* BASE ASIGNADA */}
               <TableRow className="bg-primary/5 border-b-2 border-primary/20">
                 <TableCell className="text-xs py-2 font-bold uppercase">
-                  <div className="flex items-center gap-2">
-                    Base Asignada
-                    {canAjustarBase && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 min-h-0 min-w-0"
-                        onClick={() => setAjusteOpen(true)}
-                        title="Ajustar base asignada"
-                      >
-                        <Settings className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
-                      </Button>
-                    )}
-                  </div>
+                  Base Asignada
                 </TableCell>
                 <TableCell className="text-sm py-2 text-right font-mono font-bold">
                   {fmt(stats.base)}
@@ -153,7 +147,7 @@ export default function EstadoCajaMenor({
         </div>
       </div>
 
-      {/* Ajuste Base Dialog */}
+      {/* Ajuste Base Dialog (opened by Reembolsado button) */}
       <AjusteBaseDialog
         open={ajusteOpen}
         onOpenChange={setAjusteOpen}

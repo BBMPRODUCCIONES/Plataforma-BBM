@@ -737,6 +737,24 @@ export default function AprobacionesPendientes() {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user?.id) return;
     const source = row.source === 'gastoMenor' ? 'gastoMenor' : (row.item.recursos as string) === "Recursos propios" ? 'legalizacion' : 'cajaMenor';
+
+    // If reverting to Pendiente, mark all active undo entries for this item as undone instead of creating a new one
+    if (newEstado === "Pendiente") {
+      await supabase
+        .from("aprobacion_undo_log")
+        .update({ undone: true } as any)
+        .eq("item_id", row.item.id)
+        .eq("undone", false);
+      // Also mark legalization undo entries
+      await supabase
+        .from("aprobacion_undo_log")
+        .update({ undone: true } as any)
+        .eq("item_id", `leg-${row.item.id}`)
+        .eq("undone", false);
+      await fetchUndoLog();
+      return;
+    }
+
     await supabase.from("aprobacion_undo_log").insert({
       project_id: row.projectId || null,
       item_id: row.item.id,

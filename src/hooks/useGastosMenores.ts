@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useActiveUndoLog } from "@/hooks/useActiveUndoLog";
 import { toast } from "sonner";
 
 export interface GastoMenor {

@@ -94,7 +94,7 @@ export default function CajaMenorCharts({ gastos, base, snapshotStats }: CajaMen
               <span className={`font-bold ${disponible >= 0 ? "text-emerald-500" : "text-destructive"}`}>{fmt(disponible)}</span>
             </div>
             <p className="text-center text-[11px] text-muted-foreground">
-              Base asignada: <span className="font-semibold">{fmt(base)}</span> — Usado: <span className="font-semibold">{gastadoPct.toFixed(1)}%</span>
+              Base asignada: <span className="font-semibold">{fmt(effectiveBase)}</span> — Usado: <span className="font-semibold">{gastadoPct.toFixed(1)}%</span>
             </p>
           </div>
         </CardContent>

@@ -146,7 +146,7 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
 
   const realizarCierre = useCallback(async (estado: "Legalizado" | "Reembolsado") => {
     const responsableNombre = config?.responsable_nombre || "";
-    const gastosAprobados = gastos.filter((g) => g.estado === "Aprobado");
+    const gastosAprobados = currentPeriodGastos.filter((g) => g.estado === "Aprobado");
     const valorTotal = gastosAprobados.reduce((s, g) => s + g.valor, 0);
 
     if (gastosAprobados.length === 0) {

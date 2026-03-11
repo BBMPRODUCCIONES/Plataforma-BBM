@@ -165,6 +165,14 @@ export function useUserRole(): UseUserRoleReturn {
     return false;
   };
 
+  const canAjustarBaseCajaMenor = (): boolean => {
+    if (!role) return false;
+    if (role.toLowerCase() === "administrador") {
+      return cajaMenorPermissions?.puedeAjustarBaseCajaMenor ?? false;
+    }
+    return false;
+  };
+
   const canAccessAdminPage = (page: string): boolean => {
     if (!role) return false;
     if (role.toLowerCase() !== "administrador") return false;

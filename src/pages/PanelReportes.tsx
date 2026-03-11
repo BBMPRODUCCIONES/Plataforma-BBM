@@ -482,51 +482,98 @@ const PanelReportes = () => {
                     <TableHead>Estado</TableHead>
                     <TableHead>Desembolsado por</TableHead>
                     <TableHead>Cambios Base</TableHead>
-                    <TableHead className="w-[80px]"></TableHead>
+                    <TableHead className="w-[120px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {cierres.map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="text-xs">{format(new Date(c.fecha_cierre), "dd/MM/yyyy HH:mm", { locale: es })}</TableCell>
-                      <TableCell className="text-xs">{c.responsable_nombre}</TableCell>
-                      <TableCell className="text-xs text-right font-mono">$ {c.valor_total.toLocaleString("es-CO")}</TableCell>
-                      <TableCell>
-                        <CajaMenorEstadoSelect value={c.estado} onChange={() => {}} readOnly />
-                      </TableCell>
-                      <TableCell className="text-xs">{c.desembolsado_por || "—"}</TableCell>
-                      <TableCell className="text-xs">{c.cambios_base || "—"}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-[11px] h-7 gap-1"
-                          onClick={() => {
-                            const snap = (c as any).snapshot || {};
-                            const parsedBase = c.cambios_base ? Number(c.cambios_base.replace(/[^0-9]/g, "")) || 0 : 0;
-                            setViewingCierreSnapshot({
-                              base_asignada: snap.base_asignada || parsedBase,
-                              total_aprobados: snap.total_aprobados || c.valor_total || 0,
-                              total_pendientes: snap.total_pendientes || 0,
-                              saldo_en_caja: snap.saldo_en_caja ?? ((snap.base_asignada || parsedBase) - (snap.total_aprobados || c.valor_total || 0)),
-                              reembolsado: snap.reembolsado || 0,
-                              responsable_nombre: snap.responsable_nombre || c.responsable_nombre || "",
-                              responsable_timestamp: snap.responsable_timestamp || null,
-                              estado_cierre: snap.estado_cierre || c.estado || "Cerrada",
-                              gastos_count: snap.gastos_count ?? null,
-                              fecha_cierre: c.fecha_cierre,
-                            });
-                          }}
-                        >
-                          <Eye className="h-3 w-3" /> Ver más
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {cierres.map((c) => {
+                    const isDeleted = !!c.deleted_at;
+                    return (
+                      <TableRow key={c.id} className={isDeleted ? "bg-destructive/10" : ""}>
+                        <TableCell className="text-xs">
+                          <div className="flex items-center gap-1.5">
+                            {isDeleted && (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button className="text-destructive hover:text-destructive/80 cursor-pointer">
+                                    <Ban className="h-3.5 w-3.5" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-72 text-xs space-y-1">
+                                  <p className="font-semibold text-destructive">Cierre eliminado</p>
+                                  <p><span className="font-medium">Por:</span> {c.deleted_by || "—"}</p>
+                                  <p><span className="font-medium">Motivo:</span> {c.deleted_reason || "—"}</p>
+                                  <p><span className="font-medium">Fecha:</span> {c.deleted_at ? format(new Date(c.deleted_at), "dd/MM/yyyy HH:mm", { locale: es }) : "—"}</p>
+                                </PopoverContent>
+                              </Popover>
+                            )}
+                            {format(new Date(c.fecha_cierre), "dd/MM/yyyy HH:mm", { locale: es })}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs">{c.responsable_nombre}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">$ {c.valor_total.toLocaleString("es-CO")}</TableCell>
+                        <TableCell>
+                          <CajaMenorEstadoSelect value={isDeleted ? "Eliminado" : c.estado} onChange={() => {}} readOnly />
+                        </TableCell>
+                        <TableCell className="text-xs">{c.desembolsado_por || "—"}</TableCell>
+                        <TableCell className="text-xs">{c.cambios_base || "—"}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {!isDeleted && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-[11px] h-7 gap-1"
+                                  onClick={() => {
+                                    const snap = (c as any).snapshot || {};
+                                    const parsedBase = c.cambios_base ? Number(c.cambios_base.replace(/[^0-9]/g, "")) || 0 : 0;
+                                    setViewingCierreSnapshot({
+                                      base_asignada: snap.base_asignada || parsedBase,
+                                      total_aprobados: snap.total_aprobados || c.valor_total || 0,
+                                      total_pendientes: snap.total_pendientes || 0,
+                                      saldo_en_caja: snap.saldo_en_caja ?? ((snap.base_asignada || parsedBase) - (snap.total_aprobados || c.valor_total || 0)),
+                                      reembolsado: snap.reembolsado || 0,
+                                      responsable_nombre: snap.responsable_nombre || c.responsable_nombre || "",
+                                      responsable_timestamp: snap.responsable_timestamp || null,
+                                      estado_cierre: snap.estado_cierre || c.estado || "Cerrada",
+                                      gastos_count: snap.gastos_count ?? null,
+                                      fecha_cierre: c.fecha_cierre,
+                                    });
+                                  }}
+                                >
+                                  <Eye className="h-3 w-3" /> Ver más
+                                </Button>
+                                {isAdmin && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => setDeleteCierreId(c.id)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
           </div>
+        )}
+
+        {deleteCierreId && (
+          <DeleteCierreDialog
+            open={!!deleteCierreId}
+            onOpenChange={(open) => { if (!open) setDeleteCierreId(null); }}
+            cierreId={deleteCierreId}
+            onDeleted={() => setDeleteCierreId(null)}
+          />
         )}
       </div>
 

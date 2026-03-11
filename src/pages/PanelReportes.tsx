@@ -29,6 +29,9 @@ const PanelReportes = () => {
   const [currentView, setCurrentView] = useState<ReportView>("main");
   const [gastoDialogOpen, setGastoDialogOpen] = useState(false);
   const [selectedGastoIds, setSelectedGastoIds] = useState<Set<string>>(new Set());
+  const [cajaOpen, setCajaOpen] = useState(true);
+  const [cierreDetailOpen, setCierreDetailOpen] = useState(false);
+  const [selectedCierreSnapshot, setSelectedCierreSnapshot] = useState<any>(null);
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
   const { config, cierres, stats, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);

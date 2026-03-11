@@ -494,14 +494,13 @@ const PanelReportes = () => {
                         size="sm"
                         className="text-[11px] h-7 gap-1"
                         onClick={() => {
-                          setSelectedCierreSnapshot({
+                          setViewingCierreSnapshot({
                             ...(c as any).snapshot,
                             fecha_cierre: c.fecha_cierre,
                             responsable_nombre_cierre: c.responsable_nombre,
                             valor_total_cierre: c.valor_total,
                             estado_cierre_tipo: c.estado,
                           });
-                          setCierreDetailOpen(true);
                         }}
                       >
                         <Eye className="h-3 w-3" /> Ver más
@@ -513,89 +512,6 @@ const PanelReportes = () => {
             </Table>
           </div>
         )}
-
-        {/* Cierre Detail Dialog (read-only) */}
-        <Dialog open={cierreDetailOpen} onOpenChange={setCierreDetailOpen}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-base">
-                <Lock className="h-4 w-4" />
-                Detalle del Cierre de Caja
-              </DialogTitle>
-            </DialogHeader>
-            {selectedCierreSnapshot && (
-              <div className="space-y-4 pt-2">
-                <div className="bg-muted/50 rounded-lg p-4 space-y-2.5">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Fecha de cierre:</span>
-                    <span className="font-semibold">
-                      {selectedCierreSnapshot.fecha_cierre
-                        ? format(new Date(selectedCierreSnapshot.fecha_cierre), "dd/MM/yyyy HH:mm", { locale: es })
-                        : "—"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Responsable:</span>
-                    <span className="font-semibold">{selectedCierreSnapshot.responsable_nombre || selectedCierreSnapshot.responsable_nombre_cierre || "—"}</span>
-                  </div>
-                  {selectedCierreSnapshot.responsable_timestamp && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Registro responsable:</span>
-                      <span className="text-xs">{format(new Date(selectedCierreSnapshot.responsable_timestamp), "dd/MM/yyyy HH:mm", { locale: es })}</span>
-                    </div>
-                  )}
-                </div>
-
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Concepto</TableHead>
-                      <TableHead className="text-xs text-right">Valor</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow className="bg-primary/5 border-b-2 border-primary/20">
-                      <TableCell className="text-xs py-2 font-bold uppercase">Base Asignada</TableCell>
-                      <TableCell className="text-sm py-2 text-right font-mono font-bold">
-                        {fmtCOP(selectedCierreSnapshot.base_asignada || 0)}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="text-xs py-1.5">Total gastos aprobados</TableCell>
-                      <TableCell className="text-xs py-1.5 text-right font-mono text-emerald-500 font-semibold">
-                        {fmtCOP(selectedCierreSnapshot.total_aprobados || 0)}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="text-xs py-1.5">Total gastos pendientes</TableCell>
-                      <TableCell className="text-xs py-1.5 text-right font-mono text-yellow-500">
-                        {fmtCOP(selectedCierreSnapshot.total_pendientes || 0)}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow className="border-t-2 border-border/50">
-                      <TableCell className="text-xs py-1.5 font-semibold">Saldo en caja</TableCell>
-                      <TableCell className={`text-xs py-1.5 text-right font-mono font-bold ${(selectedCierreSnapshot.saldo_en_caja || 0) >= 0 ? "text-emerald-500" : "text-destructive"}`}>
-                        {(selectedCierreSnapshot.saldo_en_caja || 0) < 0 ? "- " : ""}{fmtCOP(Math.abs(selectedCierreSnapshot.saldo_en_caja || 0))}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow className="border-t-2 border-border/50">
-                      <TableCell className="text-xs py-1.5 font-bold uppercase">Reembolsado</TableCell>
-                      <TableCell className="text-xs py-1.5 text-right font-mono font-bold text-cyan-500">
-                        {fmtCOP(selectedCierreSnapshot.reembolsado || 0)}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-
-                {selectedCierreSnapshot.gastos_count != null && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    {selectedCierreSnapshot.gastos_count} gasto(s) incluidos en este cierre
-                  </p>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
       </div>
 
       <GastoMenorDialog

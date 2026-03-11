@@ -495,6 +495,7 @@ const Usuarios = () => {
     setNewPuedeEditarInventario(false);
     setNewPuedeAsignarResponsables(false);
     setNewPuedeRestaurarSolicitudes(false);
+    setNewPuedeAjustarBaseCajaMenor(false);
     setNewPuedeAccederUsuarios(true);
     setNewPuedeAccederClientes(true);
     setNewPuedeAccederEmpleados(true);

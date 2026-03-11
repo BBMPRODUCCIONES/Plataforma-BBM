@@ -39,12 +39,15 @@ const PanelReportes = () => {
   const { canApproveCajaMenor, canAjustarBaseCajaMenor, role } = useUserRole();
   const isAdmin = role === "administrador";
 
-  // Filter gastos to only show those from the current caja period
+  // Determine which data to show in charts: snapshot if viewing history, otherwise current period
   const currentPeriodGastos = useMemo(() => {
     if (!config?.created_at) return gastos;
     const configCreatedAt = new Date(config.created_at).getTime();
     return gastos.filter(g => new Date(g.created_at).getTime() >= configCreatedAt);
   }, [gastos, config?.created_at]);
+
+  const chartsBase = viewingCierreSnapshot ? (viewingCierreSnapshot.base_asignada || 0) : stats.base;
+  const chartsGastos = viewingCierreSnapshot ? [] : currentPeriodGastos;
 
   const handleSaveBaseAndReembolso = async (newBase: number, newReembolso: number) => {
     return await saveBaseAndReembolso(newBase, newReembolso);

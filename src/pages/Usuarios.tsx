@@ -1348,7 +1348,29 @@ const Usuarios = () => {
                 </div>
               )}
 
-              {/* Admin Page Access Permissions - admin only */}
+              {/* Ajustar Base Caja Menor Permission - admin only */}
+              {editRole === "administrador" && (
+                <div className="space-y-2">
+                  <Label>Permisos de Caja Menor (Base)</Label>
+                  <div className="space-y-2 p-3 border rounded-md bg-amber-500/10 border-amber-500/30">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-ajustar-base"
+                        checked={editPuedeAjustarBaseCajaMenor}
+                        onCheckedChange={(checked) => setEditPuedeAjustarBaseCajaMenor(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-ajustar-base" className="text-sm font-normal cursor-pointer">
+                        Puede ajustar la base asignada de caja menor
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Solo los administradores con este permiso pueden modificar la base asignada y reembolsos de caja menor.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {editRole === "administrador" && (
                 <div className="space-y-2">
                   <Label>Acceso a Páginas de Administración</Label>

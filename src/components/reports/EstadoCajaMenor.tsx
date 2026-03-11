@@ -89,10 +89,12 @@ export default function EstadoCajaMenor({
                   )}
                 </div>
               </div>
-            ) : (
+            ) : !readOnly ? (
               <Button variant="outline" size="sm" onClick={onRegisterResponsable} className="w-full text-xs">
                 <UserCheck className="h-3.5 w-3.5 mr-1" /> Autologueo
               </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground">Sin responsable registrado</p>
             )}
           </div>
 

@@ -35,7 +35,13 @@ export default function EstadoCajaMenor({
   onRegisterResponsable, onCierre, onLegalizar, onAgregarGasto, onSaveBaseAndReembolso,
 }: EstadoCajaMenorProps) {
   const [ajusteOpen, setAjusteOpen] = useState(false);
+  const [cierreConfirmOpen, setCierreConfirmOpen] = useState(false);
   const saldoEnCaja = stats.base - stats.totalAprobados;
+
+  const handleCierreConfirm = () => {
+    setCierreConfirmOpen(false);
+    onCierre();
+  };
 
   return (
     <div>
@@ -43,7 +49,7 @@ export default function EstadoCajaMenor({
       <div className="bg-primary/10 px-4 py-2.5 border-b border-primary/20 flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-sm font-bold uppercase tracking-wider">Estado de Caja Menor</h3>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={onCierre}>
+          <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setCierreConfirmOpen(true)}>
             <Lock className="h-3 w-3 mr-1" /> Cierre de caja
           </Button>
           <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={onLegalizar} disabled={selectedGastosCount === 0}>
@@ -157,6 +163,55 @@ export default function EstadoCajaMenor({
         saldoEnCaja={saldoEnCaja}
         onSave={onSaveBaseAndReembolso}
       />
+
+      {/* Cierre Confirmation Dialog */}
+      <AlertDialog open={cierreConfirmOpen} onOpenChange={setCierreConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmar cierre de caja?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás a punto de cerrar la caja menor con los siguientes datos:</p>
+                <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Base Asignada:</span>
+                    <span className="font-mono font-semibold">{fmt(stats.base)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total gastos aprobados:</span>
+                    <span className="font-mono font-semibold text-emerald-500">{fmt(stats.totalAprobados)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Saldo en caja:</span>
+                    <span className={`font-mono font-semibold ${saldoEnCaja >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                      {saldoEnCaja < 0 ? "- " : ""}{fmt(Math.abs(saldoEnCaja))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Reembolsado:</span>
+                    <span className="font-mono font-semibold text-cyan-500">{fmt(stats.reembolsado)}</span>
+                  </div>
+                  {config?.responsable_nombre && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Responsable:</span>
+                      <span className="font-semibold">{config.responsable_nombre}</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-destructive text-xs font-medium">
+                  Esta acción cerrará la caja actual y creará una nueva con el saldo restante.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCierreConfirm}>
+              Confirmar cierre
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

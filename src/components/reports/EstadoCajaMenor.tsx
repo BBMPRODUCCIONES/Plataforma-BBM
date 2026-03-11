@@ -131,13 +131,11 @@ export default function EstadoCajaMenor({
   );
 
   return (
-    <div className="space-y-4">
-      {/* Charts section - separate from the main card */}
+    <>
+      {/* Charts section - rendered separately, outside the main card */}
       {chartsSection}
 
-      {/* Estado de Caja Menor Panel - no wrapper Card, parent provides it */}
-      <div className="space-y-0">
-      {/* Estado de Caja Menor Panel - no wrapper Card, parent provides it */}
+      {/* Estado de Caja Menor Panel - no wrapper Card, parent wraps this with the table */}
       <div>
           <div className="bg-primary/10 px-4 py-2.5 border-b border-primary/20 flex items-center justify-between">
             <h3 className="text-sm font-bold uppercase tracking-wider">Estado de Caja Menor</h3>

@@ -66,6 +66,7 @@ export type Database = {
           id: string
           responsable_nombre: string
           responsable_user_id: string | null
+          snapshot: Json | null
           valor_total: number
         }
         Insert: {
@@ -77,6 +78,7 @@ export type Database = {
           id?: string
           responsable_nombre?: string
           responsable_user_id?: string | null
+          snapshot?: Json | null
           valor_total?: number
         }
         Update: {
@@ -88,6 +90,7 @@ export type Database = {
           id?: string
           responsable_nombre?: string
           responsable_user_id?: string | null
+          snapshot?: Json | null
           valor_total?: number
         }
         Relationships: []

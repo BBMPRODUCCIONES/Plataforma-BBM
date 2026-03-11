@@ -205,6 +205,8 @@ serve(async (req) => {
         (existingEvents || []).map(e => [`${e.project_id}_${e.event_type}`, e])
       );
 
+      const syncTimestamp = new Date().toISOString();
+
       for (const project of projects) {
         // Process montaje
         if (project.fecha_montaje_inicio && project.fecha_montaje_fin) {
@@ -306,9 +308,17 @@ serve(async (req) => {
                   project_hash: hash,
                 });
               totalCreated++;
-            }
-          }
         }
+      }
+
+      // Update last_synced_at for ALL tracked events of this user (including unchanged)
+      if (existingEvents && existingEvents.length > 0) {
+        await supabase
+          .from('google_calendar_events')
+          .update({ last_synced_at: syncTimestamp })
+          .eq('user_id', token.user_id);
+      }
+    }
       }
     }
 

@@ -1517,6 +1517,7 @@ export default function AprobacionesPendientes() {
                 const commonEstado = allEstados.length === 1 ? allEstados[0] : "Pendiente";
 
                 const aprobadores = [...new Set(group.rows
+                  .filter(r => r.item.estado !== "Pendiente")
                   .map(r => {
                     if (r.source === 'gastoMenor') {
                       const gm = gastosMenores.find(g => g.id === r.gastoMenorId);
@@ -1526,7 +1527,7 @@ export default function AprobacionesPendientes() {
                   })
                   .filter(Boolean)
                 )];
-                const aprobadoPorDisplay = aprobadores.length === 1 ? aprobadores[0] : aprobadores.length > 1 ? aprobadores.join(", ") : "—";
+                const aprobadoPorDisplay = commonEstado === "Pendiente" ? "—" : (aprobadores.length === 1 ? aprobadores[0] : aprobadores.length > 1 ? aprobadores.join(", ") : "—");
 
                 const legEstados = isTypeS ? [...new Set(group.rows.map(r => r.legalizacionEstado || "Revisando"))] : [];
                 const commonLegEstado = legEstados.length === 1 ? legEstados[0] : legEstados.length > 1 ? "Mixto" : "";

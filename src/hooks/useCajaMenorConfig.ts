@@ -219,7 +219,7 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
     toast.success(`Cierre de caja: ${estado}. Nueva caja abierta con ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(Math.max(efectivoRestante, 0))}`);
     await fetchConfig();
     return true;
-  }, [config, gastos, user, fetchConfig]);
+  }, [config, currentPeriodGastos, user, fetchConfig]);
 
   return { config, cierres, loading, stats, currentPeriodGastos, updateBaseAndReembolso, registerResponsable, realizarCierre, refetch: fetchConfig };
 }

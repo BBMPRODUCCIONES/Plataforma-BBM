@@ -34,16 +34,9 @@ const PanelReportes = () => {
   const [viewingCierreSnapshot, setViewingCierreSnapshot] = useState<any>(null);
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
-  const { config, cierres, stats, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
+  const { config, cierres, stats, currentPeriodGastos, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
   const { canApproveCajaMenor, canAjustarBaseCajaMenor, role } = useUserRole();
   const isAdmin = role === "administrador";
-
-  // Determine which data to show in charts: snapshot if viewing history, otherwise current period
-  const currentPeriodGastos = useMemo(() => {
-    if (!config?.created_at) return gastos;
-    const configCreatedAt = new Date(config.created_at).getTime();
-    return gastos.filter(g => new Date(g.created_at).getTime() >= configCreatedAt);
-  }, [gastos, config?.created_at]);
 
   const chartsBase = viewingCierreSnapshot ? (viewingCierreSnapshot.base_asignada || 0) : stats.base;
   const chartsGastos = viewingCierreSnapshot ? [] : currentPeriodGastos;

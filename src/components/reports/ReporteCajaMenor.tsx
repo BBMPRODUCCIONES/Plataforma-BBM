@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { EventLink } from "@/components/EventLink";
 import { CalendarFilter } from "@/components/CalendarFilter";
+import { useActiveUndoLog } from "@/hooks/useActiveUndoLog";
 
 interface FlattenedCajaMenorItem extends CajaMenorItem {
   eventoId: string;

@@ -229,89 +229,93 @@ const PanelReportes = () => {
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto space-y-4">
-        {/* Estado de Caja Menor - Full Dashboard */}
-        <EstadoCajaMenor
-          gastos={gastos}
-          config={config}
-          stats={stats}
-          isAdmin={isAdmin}
-          editingBase={editingBase}
-          baseInput={baseInput}
-          onEditBase={() => { setEditingBase(true); setBaseInput(String(stats.base || "")); }}
-          onCancelEditBase={() => setEditingBase(false)}
-          onBaseInputChange={setBaseInput}
-          onSaveBase={async () => { if (await updateBase(Number(baseInput))) setEditingBase(false); }}
-          onRegisterResponsable={registerResponsable}
-          onCierre={realizarCierre}
-          onAgregarGasto={() => setGastoDialogOpen(true)}
-        />
+        {/* Estado de Caja Menor + Gastos Table - unified card */}
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-0">
+            <EstadoCajaMenor
+              gastos={gastos}
+              config={config}
+              stats={stats}
+              isAdmin={isAdmin}
+              editingBase={editingBase}
+              baseInput={baseInput}
+              onEditBase={() => { setEditingBase(true); setBaseInput(String(stats.base || "")); }}
+              onCancelEditBase={() => setEditingBase(false)}
+              onBaseInputChange={setBaseInput}
+              onSaveBase={async () => { if (await updateBase(Number(baseInput))) setEditingBase(false); }}
+              onRegisterResponsable={registerResponsable}
+              onCierre={realizarCierre}
+              onAgregarGasto={() => setGastoDialogOpen(true)}
+            />
 
-        {/* Gastos Table */}
-        {loading ? (
-          <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>
-        ) : gastos.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-muted-foreground">No hay gastos registrados.</p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Centro de Costos</TableHead>
-                <TableHead>Concepto</TableHead>
-                <TableHead>Categoría</TableHead>
-                <TableHead>Nombre Comercio</TableHead>
-                <TableHead>NIT/CC</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Imagen</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Aprobado por</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {gastos.map((g) => (
-                <TableRow key={g.id}>
-                  <TableCell className="text-xs whitespace-nowrap">
-                    {format(new Date(g.created_at), "dd/MM/yyyy", { locale: es })}
-                  </TableCell>
-                  <TableCell className="text-xs">{g.centro_costos || "—"}</TableCell>
-                  <TableCell className="text-xs">{g.concepto}</TableCell>
-                  <TableCell className="text-xs">{g.categoria}</TableCell>
-                  <TableCell className="text-xs">{g.nombre_comercio || "—"}</TableCell>
-                  <TableCell className="text-xs">{g.nit_cc || "—"}</TableCell>
-                  <TableCell className="text-xs text-right font-mono">
-                    $ {g.valor.toLocaleString("es-CO")}
-                  </TableCell>
-                  <TableCell>
-                    {g.imagen_url ? (
-                      <a href={g.imagen_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">Ver</a>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <CajaMenorEstadoSelect value={g.estado} onChange={() => {}} readOnly />
-                  </TableCell>
-                  <TableCell className="text-xs whitespace-nowrap">{g.aprobado_por_nombre || "—"}</TableCell>
-                  <TableCell>
-                    {canApproveCajaMenor() && g.estado !== "Aprobado" && g.estado !== "Legalizado" && g.estado !== "Reembolsado" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDeleteGasto(g.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+            {/* Gastos Table - inside same card */}
+            {loading ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>
+            ) : gastos.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <p className="text-muted-foreground">No hay gastos registrados.</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Centro de Costos</TableHead>
+                    <TableHead>Concepto</TableHead>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead>Nombre Comercio</TableHead>
+                    <TableHead>NIT/CC</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Imagen</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Aprobado por</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {gastos.map((g) => (
+                    <TableRow key={g.id}>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {format(new Date(g.created_at), "dd/MM/yyyy", { locale: es })}
+                      </TableCell>
+                      <TableCell className="text-xs">{g.centro_costos || "—"}</TableCell>
+                      <TableCell className="text-xs">{g.concepto}</TableCell>
+                      <TableCell className="text-xs">{g.categoria}</TableCell>
+                      <TableCell className="text-xs">{g.nombre_comercio || "—"}</TableCell>
+                      <TableCell className="text-xs">{g.nit_cc || "—"}</TableCell>
+                      <TableCell className="text-xs text-right font-mono">
+                        $ {g.valor.toLocaleString("es-CO")}
+                      </TableCell>
+                      <TableCell>
+                        {g.imagen_url ? (
+                          <a href={g.imagen_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">Ver</a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <CajaMenorEstadoSelect value={g.estado} onChange={() => {}} readOnly />
+                      </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{g.aprobado_por_nombre || "—"}</TableCell>
+                      <TableCell>
+                        {canApproveCajaMenor() && g.estado !== "Aprobado" && g.estado !== "Legalizado" && g.estado !== "Reembolsado" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteGasto(g.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Historial de Cierres */}
         {cierres.length > 0 && (

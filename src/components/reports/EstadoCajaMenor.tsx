@@ -99,7 +99,7 @@ export default function EstadoCajaMenor({
                 <TableCell className="text-xs py-2 font-bold uppercase">
                   <div className="flex items-center gap-2">
                     Base Asignada
-                    {isAdmin && (
+                    {canAjustarBase && (
                       <Button
                         variant="ghost"
                         size="icon"

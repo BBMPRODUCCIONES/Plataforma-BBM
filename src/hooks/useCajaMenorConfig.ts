@@ -133,29 +133,58 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
 
   const realizarCierre = useCallback(async (estado: "Legalizado" | "Reembolsado") => {
     const responsableNombre = config?.responsable_nombre || "";
-    const valorTotal = gastos
-      .filter((g) => g.estado === "Aprobado")
-      .reduce((s, g) => s + g.valor, 0);
+    const gastosAprobados = gastos.filter((g) => g.estado === "Aprobado");
+    const valorTotal = gastosAprobados.reduce((s, g) => s + g.valor, 0);
 
-    const { error } = await supabase.from("caja_menor_cierres").insert({
+    if (gastosAprobados.length === 0) {
+      toast.error("No hay gastos aprobados para realizar el cierre");
+      return false;
+    }
+
+    // 1. Change all approved gastos to the cierre estado
+    const idsAprobados = gastosAprobados.map((g) => g.id);
+    const { error: updateError } = await supabase
+      .from("gastos_menores")
+      .update({ estado } as any)
+      .in("id", idsAprobados);
+    if (updateError) { toast.error("Error actualizando gastos: " + updateError.message); return false; }
+
+    // 2. Create cierre record
+    const { error: cierreError } = await supabase.from("caja_menor_cierres").insert({
       responsable_nombre: responsableNombre,
       responsable_user_id: user?.id,
       valor_total: valorTotal,
       estado,
+      desembolsado_por: config?.desembolsado_por || "",
       cambios_base: `Base: ${config?.base_asignada || 0}`,
     } as any);
-    if (error) { toast.error("Error: " + error.message); return false; }
+    if (cierreError) { toast.error("Error en cierre: " + cierreError.message); return false; }
 
-    // Update config
+    // 3. Update current config as closed
     if (config) {
       await supabase.from("caja_menor_config").update({
         estado_cierre: estado,
         fecha_cierre: new Date().toISOString(),
       } as any).eq("id", config.id);
     }
-    toast.success(`Cierre de caja: ${estado}`);
+
+    // 4. Create a NEW caja config with the remaining balance (efectivo en caja)
+    const efectivoRestante = (config?.base_asignada || 0) - valorTotal;
+    const { error: newConfigError } = await supabase.from("caja_menor_config").insert({
+      base_asignada: Math.max(efectivoRestante, 0),
+      responsable_user_id: null,
+      responsable_nombre: "",
+      responsable_timestamp: null,
+      estado_cierre: "Abierta",
+      desembolso: 0,
+      desembolsado_por: "",
+    } as any);
+    if (newConfigError) { toast.error("Error creando nueva caja: " + newConfigError.message); return false; }
+
+    toast.success(`Cierre de caja: ${estado}. Nueva caja abierta con ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(Math.max(efectivoRestante, 0))}`);
+    await fetchConfig();
     return true;
-  }, [config, gastos, user]);
+  }, [config, gastos, user, fetchConfig]);
 
   return { config, cierres, loading, stats, updateBase, registerResponsable, realizarCierre, refetch: fetchConfig };
 }

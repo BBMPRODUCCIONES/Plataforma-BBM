@@ -80,20 +80,27 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
     };
   }, [fetchConfig, fetchCierres]);
 
-  // Derived stats
+  // Filter gastos to only include those created after the current config was created
+  const currentPeriodGastos = useMemo(() => {
+    if (!config?.created_at) return gastos;
+    const configCreatedAt = new Date(config.created_at).getTime();
+    return gastos.filter(g => new Date(g.created_at).getTime() >= configCreatedAt);
+  }, [gastos, config?.created_at]);
+
+  // Derived stats (only current period)
   const stats = useMemo(() => {
     const base = config?.base_asignada || 0;
-    const totalAprobados = gastos
+    const totalAprobados = currentPeriodGastos
       .filter((g) => g.estado === "Aprobado" || g.estado === "Legalizado" || g.estado === "Reembolsado")
       .reduce((s, g) => s + g.valor, 0);
-    const totalPendientes = gastos
+    const totalPendientes = currentPeriodGastos
       .filter((g) => g.estado === "Pendiente")
       .reduce((s, g) => s + g.valor, 0);
     const efectivoEnCaja = base - totalAprobados;
     const reembolsado = config?.desembolso || 0;
 
     return { base, totalAprobados, totalPendientes, efectivoEnCaja, reembolsado };
-  }, [config, gastos]);
+  }, [config, currentPeriodGastos]);
 
   const updateBaseAndReembolso = useCallback(async (newBase: number, newReembolso: number) => {
     if (!config) {

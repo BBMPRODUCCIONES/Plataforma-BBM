@@ -28,11 +28,12 @@ const PanelReportes = () => {
   const [gastoDialogOpen, setGastoDialogOpen] = useState(false);
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores();
-  const { config, cierres, stats, updateBase, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
+  const { config, cierres, stats, updateBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
   const { canApproveCajaMenor, role } = useUserRole();
   const isAdmin = role === "administrador";
-  const [editingBase, setEditingBase] = useState(false);
-  const [baseInput, setBaseInput] = useState("");
+  const handleSaveBaseAndReembolso = async (newBase: number, newReembolso: number) => {
+    return await updateBaseAndReembolso(newBase, newReembolso);
+  };
 
   const handleEstadoChange = async (gastoId: string, newEstado: string) => {
     const { data: userData } = await supabase.auth.getUser();
@@ -240,15 +241,10 @@ const PanelReportes = () => {
               config={config}
               stats={stats}
               isAdmin={isAdmin}
-              editingBase={editingBase}
-              baseInput={baseInput}
-              onEditBase={() => { setEditingBase(true); setBaseInput(String(stats.base || "")); }}
-              onCancelEditBase={() => setEditingBase(false)}
-              onBaseInputChange={setBaseInput}
-              onSaveBase={async () => { if (await updateBase(Number(baseInput))) setEditingBase(false); }}
               onRegisterResponsable={registerResponsable}
               onCierre={realizarCierre}
               onAgregarGasto={() => setGastoDialogOpen(true)}
+              onSaveBaseAndReembolso={handleSaveBaseAndReembolso}
             />
             {loading ? (
               <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>

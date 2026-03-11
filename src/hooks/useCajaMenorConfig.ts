@@ -221,5 +221,5 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
     return true;
   }, [config, gastos, user, fetchConfig]);
 
-  return { config, cierres, loading, stats, updateBaseAndReembolso, registerResponsable, realizarCierre, refetch: fetchConfig };
+  return { config, cierres, loading, stats, currentPeriodGastos, updateBaseAndReembolso, registerResponsable, realizarCierre, refetch: fetchConfig };
 }

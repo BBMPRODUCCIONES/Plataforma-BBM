@@ -22,6 +22,7 @@ export default function AjusteBaseDialog({
   onOpenChange,
   currentBase,
   currentReembolso,
+  saldoEnCaja,
   onSave,
 }: AjusteBaseDialogProps) {
   const { user } = useAuth();

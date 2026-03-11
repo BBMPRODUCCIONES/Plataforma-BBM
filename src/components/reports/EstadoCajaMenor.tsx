@@ -234,8 +234,7 @@ export default function EstadoCajaMenor({
               </Table>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </div>
 
     </div>
   );

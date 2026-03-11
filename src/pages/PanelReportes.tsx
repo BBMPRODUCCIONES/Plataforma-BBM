@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
 import Layout from "@/components/Layout";
-import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2 } from "lucide-react";
+import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2, Eye, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ReporteCajaMenor from "@/components/reports/ReporteCajaMenor";
@@ -23,11 +24,16 @@ import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
 type ReportView = "main" | "financieros" | "caja-menor" | "reporte-caja-menor" | "aprobaciones";
+const fmtCOP = (v: number) =>
+  new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 const PanelReportes = () => {
   const [currentView, setCurrentView] = useState<ReportView>("main");
   const [gastoDialogOpen, setGastoDialogOpen] = useState(false);
   const [selectedGastoIds, setSelectedGastoIds] = useState<Set<string>>(new Set());
+  const [cajaOpen, setCajaOpen] = useState(true);
+  const [cierreDetailOpen, setCierreDetailOpen] = useState(false);
+  const [selectedCierreSnapshot, setSelectedCierreSnapshot] = useState<any>(null);
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
   const { config, cierres, stats, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
@@ -57,7 +63,10 @@ const PanelReportes = () => {
 
   const handleCierreCaja = async () => {
     const result = await realizarCierre("Legalizado");
-    if (result) setSelectedGastoIds(new Set());
+    if (result) {
+      setSelectedGastoIds(new Set());
+      setCajaOpen(false);
+    }
   };
 
   const handleLegalizar = async () => {
@@ -279,104 +288,119 @@ const PanelReportes = () => {
         {/* Charts - separate section at top */}
         <CajaMenorCharts gastos={gastos} base={stats.base} />
 
-        {/* Estado de Caja Menor + Gastos Table - unified card */}
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="p-0">
-            <EstadoCajaMenor
-              config={config}
-              stats={stats}
-              isAdmin={isAdmin}
-              canAjustarBase={canAjustarBaseCajaMenor()}
-              selectedGastosCount={selectedGastoIds.size}
-              onRegisterResponsable={registerResponsable}
-              onCierre={handleCierreCaja}
-              onLegalizar={handleLegalizar}
-              onAgregarGasto={() => setGastoDialogOpen(true)}
-              onSaveBaseAndReembolso={handleSaveBaseAndReembolso}
-            />
-            {loading ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>
-            ) : gastos.length === 0 ? (
-              <div className="flex items-center justify-center py-12">
-                <p className="text-muted-foreground">No hay gastos registrados.</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]">
-                      <Checkbox
-                        checked={gastos.filter(g => g.estado === "Aprobado").length > 0 && selectedGastoIds.size === gastos.filter(g => g.estado === "Aprobado").length}
-                        onCheckedChange={toggleAllGastos}
-                      />
-                    </TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Centro de Costos</TableHead>
-                    <TableHead>Concepto</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead>Nombre Comercio</TableHead>
-                    <TableHead>NIT/CC</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Imagen</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Aprobado por</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {gastos.map((g) => (
-                    <TableRow key={g.id}>
-                      <TableCell>
-                        {g.estado === "Aprobado" ? (
-                          <Checkbox
-                            checked={selectedGastoIds.has(g.id)}
-                            onCheckedChange={() => toggleGastoSelection(g.id)}
-                          />
-                        ) : (
-                          <span className="block w-4" />
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">
-                        {format(new Date(g.created_at), "dd/MM/yyyy", { locale: es })}
-                      </TableCell>
-                      <TableCell className="text-xs">{g.centro_costos || "—"}</TableCell>
-                      <TableCell className="text-xs">{g.concepto}</TableCell>
-                      <TableCell className="text-xs">{g.categoria}</TableCell>
-                      <TableCell className="text-xs">{g.nombre_comercio || "—"}</TableCell>
-                      <TableCell className="text-xs">{g.nit_cc || "—"}</TableCell>
-                      <TableCell className="text-xs text-right font-mono">
-                        $ {g.valor.toLocaleString("es-CO")}
-                      </TableCell>
-                      <TableCell>
-                        {g.imagen_url ? (
-                          <a href={g.imagen_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">Ver</a>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <CajaMenorEstadoSelect value={g.estado} onChange={() => {}} readOnly />
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">{g.aprobado_por_nombre || "—"}</TableCell>
-                      <TableCell>
-                        {canApproveCajaMenor() && g.estado !== "Aprobado" && g.estado !== "Legalizado" && g.estado !== "Reembolsado" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDeleteGasto(g.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </TableCell>
+        {/* Estado de Caja Menor + Gastos Table - collapsible */}
+        {cajaOpen ? (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-0">
+              <EstadoCajaMenor
+                config={config}
+                stats={stats}
+                isAdmin={isAdmin}
+                canAjustarBase={canAjustarBaseCajaMenor()}
+                selectedGastosCount={selectedGastoIds.size}
+                onRegisterResponsable={registerResponsable}
+                onCierre={handleCierreCaja}
+                onLegalizar={handleLegalizar}
+                onAgregarGasto={() => setGastoDialogOpen(true)}
+                onSaveBaseAndReembolso={handleSaveBaseAndReembolso}
+              />
+              {loading ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>
+              ) : gastos.length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                  <p className="text-muted-foreground">No hay gastos registrados.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px]">
+                        <Checkbox
+                          checked={gastos.filter(g => g.estado === "Aprobado").length > 0 && selectedGastoIds.size === gastos.filter(g => g.estado === "Aprobado").length}
+                          onCheckedChange={toggleAllGastos}
+                        />
+                      </TableHead>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Centro de Costos</TableHead>
+                      <TableHead>Concepto</TableHead>
+                      <TableHead>Categoría</TableHead>
+                      <TableHead>Nombre Comercio</TableHead>
+                      <TableHead>NIT/CC</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Imagen</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Aprobado por</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {gastos.map((g) => (
+                      <TableRow key={g.id}>
+                        <TableCell>
+                          {g.estado === "Aprobado" ? (
+                            <Checkbox
+                              checked={selectedGastoIds.has(g.id)}
+                              onCheckedChange={() => toggleGastoSelection(g.id)}
+                            />
+                          ) : (
+                            <span className="block w-4" />
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {format(new Date(g.created_at), "dd/MM/yyyy", { locale: es })}
+                        </TableCell>
+                        <TableCell className="text-xs">{g.centro_costos || "—"}</TableCell>
+                        <TableCell className="text-xs">{g.concepto}</TableCell>
+                        <TableCell className="text-xs">{g.categoria}</TableCell>
+                        <TableCell className="text-xs">{g.nombre_comercio || "—"}</TableCell>
+                        <TableCell className="text-xs">{g.nit_cc || "—"}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">
+                          $ {g.valor.toLocaleString("es-CO")}
+                        </TableCell>
+                        <TableCell>
+                          {g.imagen_url ? (
+                            <a href={g.imagen_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">Ver</a>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <CajaMenorEstadoSelect value={g.estado} onChange={() => {}} readOnly />
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{g.aprobado_por_nombre || "—"}</TableCell>
+                        <TableCell>
+                          {canApproveCajaMenor() && g.estado !== "Aprobado" && g.estado !== "Legalizado" && g.estado !== "Reembolsado" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleDeleteGasto(g.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex items-center justify-center py-8">
+              <Button
+                size="lg"
+                onClick={() => setCajaOpen(true)}
+                className="gap-2"
+              >
+                <Lock className="h-4 w-4" />
+                Realizar cierre de caja
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Historial de Cierres */}
         {cierres.length > 0 && (
@@ -391,6 +415,7 @@ const PanelReportes = () => {
                   <TableHead>Estado</TableHead>
                   <TableHead>Desembolsado por</TableHead>
                   <TableHead>Cambios Base</TableHead>
+                  <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -404,12 +429,114 @@ const PanelReportes = () => {
                     </TableCell>
                     <TableCell className="text-xs">{c.desembolsado_por || "—"}</TableCell>
                     <TableCell className="text-xs">{c.cambios_base || "—"}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-[11px] h-7 gap-1"
+                        onClick={() => {
+                          setSelectedCierreSnapshot({
+                            ...(c as any).snapshot,
+                            fecha_cierre: c.fecha_cierre,
+                            responsable_nombre_cierre: c.responsable_nombre,
+                            valor_total_cierre: c.valor_total,
+                            estado_cierre_tipo: c.estado,
+                          });
+                          setCierreDetailOpen(true);
+                        }}
+                      >
+                        <Eye className="h-3 w-3" /> Ver más
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
         )}
+
+        {/* Cierre Detail Dialog (read-only) */}
+        <Dialog open={cierreDetailOpen} onOpenChange={setCierreDetailOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <Lock className="h-4 w-4" />
+                Detalle del Cierre de Caja
+              </DialogTitle>
+            </DialogHeader>
+            {selectedCierreSnapshot && (
+              <div className="space-y-4 pt-2">
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2.5">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Fecha de cierre:</span>
+                    <span className="font-semibold">
+                      {selectedCierreSnapshot.fecha_cierre
+                        ? format(new Date(selectedCierreSnapshot.fecha_cierre), "dd/MM/yyyy HH:mm", { locale: es })
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Responsable:</span>
+                    <span className="font-semibold">{selectedCierreSnapshot.responsable_nombre || selectedCierreSnapshot.responsable_nombre_cierre || "—"}</span>
+                  </div>
+                  {selectedCierreSnapshot.responsable_timestamp && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Registro responsable:</span>
+                      <span className="text-xs">{format(new Date(selectedCierreSnapshot.responsable_timestamp), "dd/MM/yyyy HH:mm", { locale: es })}</span>
+                    </div>
+                  )}
+                </div>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Concepto</TableHead>
+                      <TableHead className="text-xs text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow className="bg-primary/5 border-b-2 border-primary/20">
+                      <TableCell className="text-xs py-2 font-bold uppercase">Base Asignada</TableCell>
+                      <TableCell className="text-sm py-2 text-right font-mono font-bold">
+                        {fmtCOP(selectedCierreSnapshot.base_asignada || 0)}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-xs py-1.5">Total gastos aprobados</TableCell>
+                      <TableCell className="text-xs py-1.5 text-right font-mono text-emerald-500 font-semibold">
+                        {fmtCOP(selectedCierreSnapshot.total_aprobados || 0)}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-xs py-1.5">Total gastos pendientes</TableCell>
+                      <TableCell className="text-xs py-1.5 text-right font-mono text-yellow-500">
+                        {fmtCOP(selectedCierreSnapshot.total_pendientes || 0)}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow className="border-t-2 border-border/50">
+                      <TableCell className="text-xs py-1.5 font-semibold">Saldo en caja</TableCell>
+                      <TableCell className={`text-xs py-1.5 text-right font-mono font-bold ${(selectedCierreSnapshot.saldo_en_caja || 0) >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                        {(selectedCierreSnapshot.saldo_en_caja || 0) < 0 ? "- " : ""}{fmtCOP(Math.abs(selectedCierreSnapshot.saldo_en_caja || 0))}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow className="border-t-2 border-border/50">
+                      <TableCell className="text-xs py-1.5 font-bold uppercase">Reembolsado</TableCell>
+                      <TableCell className="text-xs py-1.5 text-right font-mono font-bold text-cyan-500">
+                        {fmtCOP(selectedCierreSnapshot.reembolsado || 0)}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+
+                {selectedCierreSnapshot.gastos_count != null && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    {selectedCierreSnapshot.gastos_count} gasto(s) incluidos en este cierre
+                  </p>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
 
       <GastoMenorDialog

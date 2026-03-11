@@ -1,0 +1,1 @@
+ALTER TABLE public.caja_menor_cierres ADD COLUMN IF NOT EXISTS snapshot jsonb DEFAULT '{}'::jsonb;

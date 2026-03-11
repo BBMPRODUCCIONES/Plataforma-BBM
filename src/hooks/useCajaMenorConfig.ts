@@ -155,7 +155,28 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
       .in("id", idsAprobados);
     if (updateError) { toast.error("Error actualizando gastos: " + updateError.message); return false; }
 
-    // 2. Create cierre record
+    // Build snapshot of current caja state
+    const base = config?.base_asignada || 0;
+    const totalAprobados = gastos
+      .filter((g) => g.estado === "Aprobado" || g.estado === "Legalizado" || g.estado === "Reembolsado")
+      .reduce((s, g) => s + g.valor, 0);
+    const totalPendientes = gastos
+      .filter((g) => g.estado === "Pendiente")
+      .reduce((s, g) => s + g.valor, 0);
+    const reembolsado = config?.desembolso || 0;
+    const snapshot = {
+      base_asignada: base,
+      total_aprobados: totalAprobados,
+      total_pendientes: totalPendientes,
+      saldo_en_caja: base - totalAprobados,
+      reembolsado,
+      responsable_nombre: responsableNombre,
+      responsable_timestamp: config?.responsable_timestamp || null,
+      estado_cierre: estado,
+      gastos_count: gastosAprobados.length,
+    };
+
+    // 2. Create cierre record with snapshot
     const { error: cierreError } = await supabase.from("caja_menor_cierres").insert({
       responsable_nombre: responsableNombre,
       responsable_user_id: user?.id,
@@ -163,6 +184,7 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
       estado,
       desembolsado_por: config?.desembolsado_por || "",
       cambios_base: `Base: ${config?.base_asignada || 0}`,
+      snapshot,
     } as any);
     if (cierreError) { toast.error("Error en cierre: " + cierreError.message); return false; }
 

@@ -61,7 +61,10 @@ const PanelReportes = () => {
 
   const handleCierreCaja = async () => {
     const result = await realizarCierre("Legalizado");
-    if (result) setSelectedGastoIds(new Set());
+    if (result) {
+      setSelectedGastoIds(new Set());
+      setCajaOpen(false);
+    }
   };
 
   const handleLegalizar = async () => {

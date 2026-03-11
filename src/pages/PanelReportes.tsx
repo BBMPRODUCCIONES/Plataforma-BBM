@@ -1,6 +1,8 @@
 import { useState, useCallback, useMemo } from "react";
 import Layout from "@/components/Layout";
-import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2, Eye, Lock, ChevronUp, ChevronDown } from "lucide-react";
+import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2, Eye, Lock, ChevronUp, ChevronDown, Ban } from "lucide-react";
+import DeleteCierreDialog from "@/components/reports/DeleteCierreDialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

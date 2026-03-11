@@ -13,6 +13,7 @@ interface AjusteBaseDialogProps {
   onOpenChange: (open: boolean) => void;
   currentBase: number;
   currentReembolso: number;
+  saldoEnCaja: number;
   onSave: (newBase: number, newReembolso: number) => Promise<boolean>;
 }
 

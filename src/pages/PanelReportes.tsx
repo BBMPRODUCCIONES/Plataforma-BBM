@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ReporteCajaMenor from "@/components/reports/ReporteCajaMenor";
+import CajaMenorCharts from "@/components/reports/CajaMenorCharts";
 import AprobacionesPendientes from "@/components/reports/AprobacionesPendientes";
 import GastoMenorDialog from "@/components/reports/GastoMenorDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -229,11 +230,13 @@ const PanelReportes = () => {
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto space-y-4">
+        {/* Charts - separate section at top */}
+        <CajaMenorCharts gastos={gastos} base={stats.base} />
+
         {/* Estado de Caja Menor + Gastos Table - unified card */}
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="p-0">
             <EstadoCajaMenor
-              gastos={gastos}
               config={config}
               stats={stats}
               isAdmin={isAdmin}
@@ -247,8 +250,6 @@ const PanelReportes = () => {
               onCierre={realizarCierre}
               onAgregarGasto={() => setGastoDialogOpen(true)}
             />
-
-            {/* Gastos Table - inside same card */}
             {loading ? (
               <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>
             ) : gastos.length === 0 ? (

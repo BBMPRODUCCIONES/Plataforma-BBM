@@ -581,7 +581,7 @@ export default function AprobacionesPendientes() {
   // S "Aprobado" stays pending until legalization is "Legalizado"
   // Helper: check if item has active undo entry
   const hasActiveUndo = useCallback((itemId: string) => {
-    return undoLog.some(e => e.item_id === itemId && !e.undone && new Date(e.expires_at) > new Date());
+    return undoLog.some(e => e.item_id === itemId && !e.undone && new Date(e.expires_at) > new Date() && e.new_estado !== "Pendiente");
   }, [undoLog]);
 
   const pendingRows = useMemo(() => filteredRows.filter(r => {

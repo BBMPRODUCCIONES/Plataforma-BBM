@@ -445,10 +445,12 @@ const PanelReportes = () => {
             <CardContent className="flex items-center justify-center py-8">
               <Button
                 size="lg"
-                onClick={() => setCajaOpen(true)}
+                onClick={() => {
+                  setCajaOpen(true);
+                  registerResponsable();
+                }}
                 className="gap-2"
               >
-                <Lock className="h-4 w-4" />
                 Realizar cierre de caja
               </Button>
             </CardContent>

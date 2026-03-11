@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import Layout from "@/components/Layout";
 import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2, Eye, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,6 +39,14 @@ const PanelReportes = () => {
   const { config, cierres, stats, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
   const { canApproveCajaMenor, canAjustarBaseCajaMenor, role } = useUserRole();
   const isAdmin = role === "administrador";
+
+  // Filter gastos to only show those from the current caja period
+  const currentPeriodGastos = useMemo(() => {
+    if (!config?.created_at) return gastos;
+    const configCreatedAt = new Date(config.created_at).getTime();
+    return gastos.filter(g => new Date(g.created_at).getTime() >= configCreatedAt);
+  }, [gastos, config?.created_at]);
+
   const handleSaveBaseAndReembolso = async (newBase: number, newReembolso: number) => {
     return await saveBaseAndReembolso(newBase, newReembolso);
   };
@@ -285,8 +293,8 @@ const PanelReportes = () => {
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto space-y-4">
-        {/* Charts - separate section at top */}
-        <CajaMenorCharts gastos={gastos} base={stats.base} />
+        {/* Charts - only show gastos from current caja period */}
+        <CajaMenorCharts gastos={currentPeriodGastos} base={stats.base} />
 
         {/* Estado de Caja Menor + Gastos Table - collapsible */}
         {cajaOpen ? (

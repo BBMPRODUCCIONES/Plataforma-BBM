@@ -178,11 +178,15 @@ export default function AprobacionesPendientes() {
   const isMobile = useIsMobile();
   const { gastos: gastosMenores, refetch: refetchGastos, deleteGasto } = useGastosMenores();
 
-  // Get current user's employee name for approver tracking
+  // Get current user's employee name and ID for approver tracking
   const [currentUserName, setCurrentUserName] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   useEffect(() => {
     supabase.rpc("get_my_employee").then(({ data }) => {
       if (data && data.length > 0) setCurrentUserName(data[0].nombre);
+    });
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user?.id) setCurrentUserId(data.user.id);
     });
   }, []);
   
@@ -1609,7 +1613,10 @@ export default function AprobacionesPendientes() {
                     <TableCell className="text-xs">
                       {(() => {
                         const isTypeSAndDecided = isTypeS && commonEstado !== "Pendiente";
-                        if (canApproveCajaMenor() && !isTypeSAndDecided) {
+                        // Check if another user has an active undo — lock editing
+                        const undoEntry = getUndoEntryForGroup(group.key, group.rows);
+                        const otherUserUndo = undoEntry && currentUserId && undoEntry.changed_by !== currentUserId;
+                        if (canApproveCajaMenor() && !isTypeSAndDecided && !otherUserUndo) {
                           return (
                             <CajaMenorEstadoSelect
                               value={commonEstado}
@@ -1649,7 +1656,9 @@ export default function AprobacionesPendientes() {
                             );
                           }
                           const hasApproved = group.rows.some(r => r.item.estado === "Aprobado");
-                          if (canApproveCajaMenor() && hasApproved) {
+                          const legUndoEntry = undoLog.find(e => group.rows.some(r => e.item_id === `leg-${r.item.id}`) && !e.undone && new Date(e.expires_at) > new Date() && e.new_estado !== "Pendiente");
+                          const legOtherUserUndo = legUndoEntry && currentUserId && legUndoEntry.changed_by !== currentUserId;
+                          if (canApproveCajaMenor() && hasApproved && !legOtherUserUndo) {
                             return (
                               <Select
                                 value={commonLegEstado === "Mixto" ? "Revisando" : (commonLegEstado || "Revisando")}
@@ -1738,19 +1747,29 @@ export default function AprobacionesPendientes() {
                         if (!undoEntry) return null;
                         const timeLeft = formatTimeRemaining(undoEntry.expires_at);
                         if (!timeLeft) return null;
+                        const isOwnChange = currentUserId && undoEntry.changed_by === currentUserId;
+                        if (isOwnChange) {
+                          return (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 gap-1 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUndoGroup(group.rows);
+                              }}
+                            >
+                              <Undo2 className="w-3 h-3" />
+                              {timeLeft}
+                            </Button>
+                          );
+                        }
+                        // Read-only badge for other users
                         return (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 gap-1 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleUndoGroup(group.rows);
-                            }}
-                          >
-                            <Undo2 className="w-3 h-3" />
+                          <Badge variant="outline" className="h-7 gap-1 text-xs border-muted-foreground/30 text-muted-foreground cursor-default">
+                            <Lock className="w-3 h-3" />
                             {timeLeft}
-                          </Button>
+                          </Badge>
                         );
                       })()}
                     </TableCell>

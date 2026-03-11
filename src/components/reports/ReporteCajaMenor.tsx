@@ -160,8 +160,16 @@ const ReporteCajaMenor = () => {
           project.createdAt ||
           "";
 
+        // Apply undo log overlay: show previous estado while undo timer is active
+        const effectiveEstado = getEffectiveEstadoForCajaMenor(
+          (item as any).id || "",
+          project.id,
+          item.estado
+        );
+
         items.push({
           ...item,
+          estado: effectiveEstado as CajaMenorItem["estado"],
           eventoId: project.id,
           eventoNombre: project.evento || "Sin nombre",
           recibo: `RCM-${reciboNum}`,

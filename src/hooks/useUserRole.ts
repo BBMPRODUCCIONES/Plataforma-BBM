@@ -209,6 +209,7 @@ export function useUserRole(): UseUserRoleReturn {
     canApproveCajaMenor,
     canCrearAnticipos,
     canRestaurarSolicitudes,
+    canAjustarBaseCajaMenor,
     canAccessAdminPage,
   };
 }

@@ -159,6 +159,7 @@ export default function EstadoCajaMenor({
         onOpenChange={setAjusteOpen}
         currentBase={stats.base}
         currentReembolso={stats.reembolsado}
+        saldoEnCaja={saldoEnCaja}
         onSave={onSaveBaseAndReembolso}
       />
     </div>

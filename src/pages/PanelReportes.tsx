@@ -241,6 +241,7 @@ const PanelReportes = () => {
               config={config}
               stats={stats}
               isAdmin={isAdmin}
+              canAjustarBase={canAjustarBaseCajaMenor()}
               onRegisterResponsable={registerResponsable}
               onCierre={realizarCierre}
               onAgregarGasto={() => setGastoDialogOpen(true)}

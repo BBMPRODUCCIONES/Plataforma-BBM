@@ -28,6 +28,10 @@ export interface CajaMenorCierre {
   desembolsado_por: string;
   cambios_base: string;
   created_at: string;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  deleted_by_email: string | null;
+  deleted_reason: string | null;
 }
 
 export function useCajaMenorConfig(gastos: GastoMenor[]) {

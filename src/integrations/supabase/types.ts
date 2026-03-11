@@ -60,6 +60,10 @@ export type Database = {
         Row: {
           cambios_base: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_by_email: string | null
+          deleted_reason: string | null
           desembolsado_por: string | null
           estado: string
           fecha_cierre: string
@@ -72,6 +76,10 @@ export type Database = {
         Insert: {
           cambios_base?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_by_email?: string | null
+          deleted_reason?: string | null
           desembolsado_por?: string | null
           estado?: string
           fecha_cierre?: string
@@ -84,6 +92,10 @@ export type Database = {
         Update: {
           cambios_base?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_by_email?: string | null
+          deleted_reason?: string | null
           desembolsado_por?: string | null
           estado?: string
           fecha_cierre?: string

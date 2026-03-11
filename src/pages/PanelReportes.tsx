@@ -24,6 +24,8 @@ import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
 type ReportView = "main" | "financieros" | "caja-menor" | "reporte-caja-menor" | "aprobaciones";
+const fmtCOP = (v: number) =>
+  new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 const PanelReportes = () => {
   const [currentView, setCurrentView] = useState<ReportView>("main");

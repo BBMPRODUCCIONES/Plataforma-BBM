@@ -216,12 +216,13 @@ export default function AprobacionesPendientes() {
 
   const getUndoEntryForGroup = useCallback((groupKey: string, groupRows: FlattenedRow[]) => {
     // Find the most recent non-expired undo entry for any item in this group (including legalization undos)
+    // Only match entries where the NEW estado is not "Pendiente" (timer only for Aprobado/Rechazado changes)
     const itemIds = new Set<string>();
     groupRows.forEach(r => {
       itemIds.add(r.item.id);
       itemIds.add(`leg-${r.item.id}`);
     });
-    return undoLog.find(entry => itemIds.has(entry.item_id) && !entry.undone && new Date(entry.expires_at) > new Date());
+    return undoLog.find(entry => itemIds.has(entry.item_id) && !entry.undone && new Date(entry.expires_at) > new Date() && entry.new_estado !== "Pendiente");
   }, [undoLog]);
 
   const formatTimeRemaining = (expiresAt: string) => {

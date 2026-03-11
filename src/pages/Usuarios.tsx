@@ -123,6 +123,7 @@ const Usuarios = () => {
   const [newPuedeEditarInventario, setNewPuedeEditarInventario] = useState(false);
   const [newPuedeAsignarResponsables, setNewPuedeAsignarResponsables] = useState(false);
   const [newPuedeRestaurarSolicitudes, setNewPuedeRestaurarSolicitudes] = useState(false);
+  const [newPuedeAjustarBaseCajaMenor, setNewPuedeAjustarBaseCajaMenor] = useState(false);
   const [newPuedeAccederUsuarios, setNewPuedeAccederUsuarios] = useState(true);
   const [newPuedeAccederClientes, setNewPuedeAccederClientes] = useState(true);
   const [newPuedeAccederEmpleados, setNewPuedeAccederEmpleados] = useState(true);

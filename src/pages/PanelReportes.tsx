@@ -241,15 +241,10 @@ const PanelReportes = () => {
               config={config}
               stats={stats}
               isAdmin={isAdmin}
-              editingBase={editingBase}
-              baseInput={baseInput}
-              onEditBase={() => { setEditingBase(true); setBaseInput(String(stats.base || "")); }}
-              onCancelEditBase={() => setEditingBase(false)}
-              onBaseInputChange={setBaseInput}
-              onSaveBase={async () => { if (await updateBase(Number(baseInput))) setEditingBase(false); }}
               onRegisterResponsable={registerResponsable}
               onCierre={realizarCierre}
               onAgregarGasto={() => setGastoDialogOpen(true)}
+              onSaveBaseAndReembolso={handleSaveBaseAndReembolso}
             />
             {loading ? (
               <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>

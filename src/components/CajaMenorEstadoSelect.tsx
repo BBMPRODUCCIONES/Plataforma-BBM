@@ -22,6 +22,7 @@ const ESTADO_OPTIONS = [
   { value: 'No aprobado', label: 'No aprobado', className: 'bg-red-500/20 text-red-400 border-red-500/30' },
   { value: 'Legalizado', label: 'Legalizado', className: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
   { value: 'Reembolsado', label: 'Reembolsado', className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  { value: 'Eliminado', label: 'Eliminado', className: 'bg-red-500/20 text-red-400 border-red-500/30' },
 ] as const;
 
 export function CajaMenorEstadoSelect({ value, onChange, className, readOnly, allowedValues }: CajaMenorEstadoSelectProps) {

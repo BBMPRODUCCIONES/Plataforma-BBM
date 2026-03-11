@@ -22,6 +22,7 @@ interface UseUserRoleReturn {
   canApproveCajaMenor: () => boolean;
   canCrearAnticipos: () => boolean;
   canRestaurarSolicitudes: () => boolean;
+  canAjustarBaseCajaMenor: () => boolean;
   canAccessAdminPage: (page: string) => boolean;
 }
 
@@ -164,6 +165,14 @@ export function useUserRole(): UseUserRoleReturn {
     return false;
   };
 
+  const canAjustarBaseCajaMenor = (): boolean => {
+    if (!role) return false;
+    if (role.toLowerCase() === "administrador") {
+      return cajaMenorPermissions?.puedeAjustarBaseCajaMenor ?? false;
+    }
+    return false;
+  };
+
   const canAccessAdminPage = (page: string): boolean => {
     if (!role) return false;
     if (role.toLowerCase() !== "administrador") return false;
@@ -200,6 +209,7 @@ export function useUserRole(): UseUserRoleReturn {
     canApproveCajaMenor,
     canCrearAnticipos,
     canRestaurarSolicitudes,
+    canAjustarBaseCajaMenor,
     canAccessAdminPage,
   };
 }

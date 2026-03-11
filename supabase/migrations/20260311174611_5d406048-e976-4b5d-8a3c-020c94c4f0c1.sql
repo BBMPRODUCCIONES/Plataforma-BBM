@@ -1,0 +1,1 @@
+ALTER TABLE public.user_roles ADD COLUMN puede_ajustar_base_caja_menor boolean DEFAULT false;

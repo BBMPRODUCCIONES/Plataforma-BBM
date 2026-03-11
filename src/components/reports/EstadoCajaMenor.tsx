@@ -17,6 +17,7 @@ interface EstadoCajaMenorProps {
     reembolsado: number;
   };
   isAdmin: boolean;
+  canAjustarBase: boolean;
   onRegisterResponsable: () => void;
   onCierre: (estado: "Legalizado" | "Reembolsado") => void;
   onAgregarGasto: () => void;
@@ -27,7 +28,7 @@ const fmt = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 export default function EstadoCajaMenor({
-  config, stats, isAdmin,
+  config, stats, isAdmin, canAjustarBase,
   onRegisterResponsable, onCierre, onAgregarGasto, onSaveBaseAndReembolso,
 }: EstadoCajaMenorProps) {
   const [ajusteOpen, setAjusteOpen] = useState(false);
@@ -98,7 +99,7 @@ export default function EstadoCajaMenor({
                 <TableCell className="text-xs py-2 font-bold uppercase">
                   <div className="flex items-center gap-2">
                     Base Asignada
-                    {isAdmin && (
+                    {canAjustarBase && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -158,6 +159,7 @@ export default function EstadoCajaMenor({
         onOpenChange={setAjusteOpen}
         currentBase={stats.base}
         currentReembolso={stats.reembolsado}
+        saldoEnCaja={saldoEnCaja}
         onSave={onSaveBaseAndReembolso}
       />
     </div>

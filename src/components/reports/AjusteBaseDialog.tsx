@@ -13,6 +13,7 @@ interface AjusteBaseDialogProps {
   onOpenChange: (open: boolean) => void;
   currentBase: number;
   currentReembolso: number;
+  saldoEnCaja: number;
   onSave: (newBase: number, newReembolso: number) => Promise<boolean>;
 }
 
@@ -21,6 +22,7 @@ export default function AjusteBaseDialog({
   onOpenChange,
   currentBase,
   currentReembolso,
+  saldoEnCaja,
   onSave,
 }: AjusteBaseDialogProps) {
   const { user } = useAuth();
@@ -77,15 +79,13 @@ export default function AjusteBaseDialog({
             />
           </div>
 
-          {/* Base asignada */}
+          {/* Base asignada - read only, shows saldo en caja */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Base Asignada</Label>
+            <Label className="text-xs text-muted-foreground">Base Asignada (Saldo en caja)</Label>
             <Input
-              type="number"
-              value={baseValue}
-              onChange={(e) => setBaseValue(e.target.value)}
-              placeholder="Valor de la base"
-              className="text-sm"
+              value={new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(saldoEnCaja)}
+              readOnly
+              className="bg-muted/50 text-sm"
             />
           </div>
 

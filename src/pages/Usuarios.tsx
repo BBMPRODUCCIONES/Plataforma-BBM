@@ -62,6 +62,7 @@ interface UserWithRole {
   puede_editar_inventario: boolean;
   puede_asignar_responsables: boolean;
   puede_restaurar_solicitudes: boolean;
+  puede_ajustar_base_caja_menor: boolean;
   puede_acceder_usuarios: boolean;
   puede_acceder_clientes: boolean;
   puede_acceder_empleados: boolean;
@@ -122,6 +123,7 @@ const Usuarios = () => {
   const [newPuedeEditarInventario, setNewPuedeEditarInventario] = useState(false);
   const [newPuedeAsignarResponsables, setNewPuedeAsignarResponsables] = useState(false);
   const [newPuedeRestaurarSolicitudes, setNewPuedeRestaurarSolicitudes] = useState(false);
+  const [newPuedeAjustarBaseCajaMenor, setNewPuedeAjustarBaseCajaMenor] = useState(false);
   const [newPuedeAccederUsuarios, setNewPuedeAccederUsuarios] = useState(true);
   const [newPuedeAccederClientes, setNewPuedeAccederClientes] = useState(true);
   const [newPuedeAccederEmpleados, setNewPuedeAccederEmpleados] = useState(true);
@@ -144,6 +146,7 @@ const Usuarios = () => {
   const [editPuedeEditarInventario, setEditPuedeEditarInventario] = useState(false);
   const [editPuedeAsignarResponsables, setEditPuedeAsignarResponsables] = useState(false);
   const [editPuedeRestaurarSolicitudes, setEditPuedeRestaurarSolicitudes] = useState(false);
+  const [editPuedeAjustarBaseCajaMenor, setEditPuedeAjustarBaseCajaMenor] = useState(false);
   const [editPuedeAccederUsuarios, setEditPuedeAccederUsuarios] = useState(true);
   const [editPuedeAccederClientes, setEditPuedeAccederClientes] = useState(true);
   const [editPuedeAccederEmpleados, setEditPuedeAccederEmpleados] = useState(true);
@@ -184,7 +187,7 @@ const Usuarios = () => {
       // Fetch users with roles and panels (now includes email and feedback permissions)
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables, puede_restaurar_solicitudes, puede_acceder_usuarios, puede_acceder_clientes, puede_acceder_empleados, puede_acceder_constructor, puede_acceder_agentes");
+        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables, puede_restaurar_solicitudes, puede_ajustar_base_caja_menor, puede_acceder_usuarios, puede_acceder_clientes, puede_acceder_empleados, puede_acceder_constructor, puede_acceder_agentes");
 
       if (rolesError) throw rolesError;
 
@@ -216,6 +219,7 @@ const Usuarios = () => {
           puede_editar_inventario: (roleRecord as any).puede_editar_inventario ?? false,
           puede_asignar_responsables: (roleRecord as any).puede_asignar_responsables ?? false,
           puede_restaurar_solicitudes: (roleRecord as any).puede_restaurar_solicitudes ?? false,
+          puede_ajustar_base_caja_menor: (roleRecord as any).puede_ajustar_base_caja_menor ?? false,
           puede_acceder_usuarios: (roleRecord as any).puede_acceder_usuarios ?? true,
           puede_acceder_clientes: (roleRecord as any).puede_acceder_clientes ?? true,
           puede_acceder_empleados: (roleRecord as any).puede_acceder_empleados ?? true,
@@ -288,6 +292,7 @@ const Usuarios = () => {
             puede_editar_inventario: newPuedeEditarInventario,
             puede_asignar_responsables: newPuedeAsignarResponsables,
             puede_restaurar_solicitudes: newPuedeRestaurarSolicitudes,
+            puede_ajustar_base_caja_menor: newPuedeAjustarBaseCajaMenor,
             puede_acceder_usuarios: newPuedeAccederUsuarios,
             puede_acceder_clientes: newPuedeAccederClientes,
             puede_acceder_empleados: newPuedeAccederEmpleados,
@@ -490,6 +495,7 @@ const Usuarios = () => {
     setNewPuedeEditarInventario(false);
     setNewPuedeAsignarResponsables(false);
     setNewPuedeRestaurarSolicitudes(false);
+    setNewPuedeAjustarBaseCajaMenor(false);
     setNewPuedeAccederUsuarios(true);
     setNewPuedeAccederClientes(true);
     setNewPuedeAccederEmpleados(true);
@@ -514,6 +520,7 @@ const Usuarios = () => {
     setEditPuedeEditarInventario(user.puede_editar_inventario);
     setEditPuedeAsignarResponsables(user.puede_asignar_responsables);
     setEditPuedeRestaurarSolicitudes(user.puede_restaurar_solicitudes);
+    setEditPuedeAjustarBaseCajaMenor(user.puede_ajustar_base_caja_menor);
     setEditPuedeAccederUsuarios(user.puede_acceder_usuarios);
     setEditPuedeAccederClientes(user.puede_acceder_clientes);
     setEditPuedeAccederEmpleados(user.puede_acceder_empleados);
@@ -543,6 +550,7 @@ const Usuarios = () => {
       const finalPuedeEditarInventario = editPuedeEditarInventario;
       const finalPuedeAsignarResponsables = editPuedeAsignarResponsables;
       const finalPuedeRestaurarSolicitudes = editPuedeRestaurarSolicitudes;
+      const finalPuedeAjustarBaseCajaMenor = editPuedeAjustarBaseCajaMenor;
 
       // Update user roles with all permissions
       const { error: roleError } = await supabase
@@ -561,6 +569,7 @@ const Usuarios = () => {
           puede_editar_inventario: finalPuedeEditarInventario,
            puede_asignar_responsables: finalPuedeAsignarResponsables,
            puede_restaurar_solicitudes: finalPuedeRestaurarSolicitudes,
+           puede_ajustar_base_caja_menor: finalPuedeAjustarBaseCajaMenor,
            puede_acceder_usuarios: editPuedeAccederUsuarios,
            puede_acceder_clientes: editPuedeAccederClientes,
            puede_acceder_empleados: editPuedeAccederEmpleados,
@@ -985,7 +994,19 @@ const Usuarios = () => {
                     </div>
                   )}
 
-                  {/* Admin Page Access - only for admin */}
+                  {/* Ajustar Base Caja Menor - only for admin */}
+                  {newRole === "administrador" && (
+                    <div className="space-y-2">
+                      <Label>Permisos de Caja Menor (Base)</Label>
+                      <div className="space-y-2 p-3 border rounded-md bg-amber-500/10 border-amber-500/30">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-puede-ajustar-base" checked={newPuedeAjustarBaseCajaMenor} onCheckedChange={(checked) => setNewPuedeAjustarBaseCajaMenor(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-puede-ajustar-base" className="text-sm font-normal cursor-pointer">Puede ajustar la base asignada de caja menor</Label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {newRole === "administrador" && (
                     <div className="space-y-2">
                       <Label>Acceso a Páginas de Administración</Label>
@@ -1327,7 +1348,29 @@ const Usuarios = () => {
                 </div>
               )}
 
-              {/* Admin Page Access Permissions - admin only */}
+              {/* Ajustar Base Caja Menor Permission - admin only */}
+              {editRole === "administrador" && (
+                <div className="space-y-2">
+                  <Label>Permisos de Caja Menor (Base)</Label>
+                  <div className="space-y-2 p-3 border rounded-md bg-amber-500/10 border-amber-500/30">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-ajustar-base"
+                        checked={editPuedeAjustarBaseCajaMenor}
+                        onCheckedChange={(checked) => setEditPuedeAjustarBaseCajaMenor(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-ajustar-base" className="text-sm font-normal cursor-pointer">
+                        Puede ajustar la base asignada de caja menor
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Solo los administradores con este permiso pueden modificar la base asignada y reembolsos de caja menor.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {editRole === "administrador" && (
                 <div className="space-y-2">
                   <Label>Acceso a Páginas de Administración</Label>

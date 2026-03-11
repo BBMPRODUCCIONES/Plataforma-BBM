@@ -15,6 +15,7 @@ interface CajaMenorPermissions {
   puedeAprobarCajaMenor: boolean;
   puedeCrearAnticipos: boolean;
   puedeRestaurarSolicitudes: boolean;
+  puedeAjustarBaseCajaMenor: boolean;
 }
 
 interface PanelEditPermissions {
@@ -71,6 +72,7 @@ const defaultCajaMenorPermissions: CajaMenorPermissions = {
   puedeAprobarCajaMenor: false,
   puedeCrearAnticipos: false,
   puedeRestaurarSolicitudes: false,
+  puedeAjustarBaseCajaMenor: false,
 };
 
 const defaultPanelEditPermissions: PanelEditPermissions = {
@@ -123,7 +125,7 @@ function getCachedRole(userId: string): UserRoleData | null {
         role: data.role,
         allowedPanels: data.allowedPanels,
         feedbackPermissions: data.feedbackPermissions,
-        cajaMenorPermissions: data.cajaMenorPermissions || { puedeAprobarCajaMenor: false, puedeCrearAnticipos: false, puedeRestaurarSolicitudes: false },
+        cajaMenorPermissions: data.cajaMenorPermissions || { puedeAprobarCajaMenor: false, puedeCrearAnticipos: false, puedeRestaurarSolicitudes: false, puedeAjustarBaseCajaMenor: false },
         panelEditPermissions: data.panelEditPermissions || defaultPanelEditPermissions,
         adminPagePermissions: data.adminPagePermissions || defaultAdminPagePermissions,
       };
@@ -185,7 +187,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role, allowed_panels, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables, puede_restaurar_solicitudes, puede_acceder_usuarios, puede_acceder_clientes, puede_acceder_empleados, puede_acceder_constructor, puede_acceder_agentes")
+        .select("role, allowed_panels, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables, puede_restaurar_solicitudes, puede_ajustar_base_caja_menor, puede_acceder_usuarios, puede_acceder_clientes, puede_acceder_empleados, puede_acceder_constructor, puede_acceder_agentes")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -207,6 +209,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           puedeAprobarCajaMenor: data.puede_aprobar_caja_menor ?? false,
           puedeCrearAnticipos: data.puede_crear_anticipos ?? false,
           puedeRestaurarSolicitudes: (data as any).puede_restaurar_solicitudes ?? false,
+          puedeAjustarBaseCajaMenor: (data as any).puede_ajustar_base_caja_menor ?? false,
         },
         panelEditPermissions: {
           puedeEditarGeneral: (data as any).puede_editar_general ?? false,

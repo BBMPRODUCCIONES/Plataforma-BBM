@@ -31,8 +31,9 @@ const PanelReportes = () => {
   const { config, cierres, stats, updateBase, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
   const { canApproveCajaMenor, role } = useUserRole();
   const isAdmin = role === "administrador";
-  const [editingBase, setEditingBase] = useState(false);
-  const [baseInput, setBaseInput] = useState("");
+  const handleSaveBaseAndReembolso = async (newBase: number, newReembolso: number) => {
+    return await updateBaseAndReembolso(newBase, newReembolso);
+  };
 
   const handleEstadoChange = async (gastoId: string, newEstado: string) => {
     const { data: userData } = await supabase.auth.getUser();

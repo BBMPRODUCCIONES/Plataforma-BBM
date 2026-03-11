@@ -22,6 +22,7 @@ interface UseUserRoleReturn {
   canApproveCajaMenor: () => boolean;
   canCrearAnticipos: () => boolean;
   canRestaurarSolicitudes: () => boolean;
+  canAjustarBaseCajaMenor: () => boolean;
   canAccessAdminPage: (page: string) => boolean;
 }
 

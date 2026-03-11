@@ -25,6 +25,7 @@ interface EstadoCajaMenorProps {
   onLegalizar: () => void;
   onAgregarGasto: () => void;
   onSaveBaseAndReembolso: (newBase: number, newReembolso: number) => Promise<boolean>;
+  readOnly?: boolean;
 }
 
 const fmt = (v: number) =>

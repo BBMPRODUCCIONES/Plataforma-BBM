@@ -4,7 +4,6 @@ import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, P
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ReporteCajaMenor from "@/components/reports/ReporteCajaMenor";
@@ -32,20 +31,22 @@ const PanelReportes = () => {
   const [gastoDialogOpen, setGastoDialogOpen] = useState(false);
   const [selectedGastoIds, setSelectedGastoIds] = useState<Set<string>>(new Set());
   const [cajaOpen, setCajaOpen] = useState(true);
-  const [cierreDetailOpen, setCierreDetailOpen] = useState(false);
-  const [selectedCierreSnapshot, setSelectedCierreSnapshot] = useState<any>(null);
+  const [viewingCierreSnapshot, setViewingCierreSnapshot] = useState<any>(null);
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
   const { config, cierres, stats, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
   const { canApproveCajaMenor, canAjustarBaseCajaMenor, role } = useUserRole();
   const isAdmin = role === "administrador";
 
-  // Filter gastos to only show those from the current caja period
+  // Determine which data to show in charts: snapshot if viewing history, otherwise current period
   const currentPeriodGastos = useMemo(() => {
     if (!config?.created_at) return gastos;
     const configCreatedAt = new Date(config.created_at).getTime();
     return gastos.filter(g => new Date(g.created_at).getTime() >= configCreatedAt);
   }, [gastos, config?.created_at]);
+
+  const chartsBase = viewingCierreSnapshot ? (viewingCierreSnapshot.base_asignada || 0) : stats.base;
+  const chartsGastos = viewingCierreSnapshot ? [] : currentPeriodGastos;
 
   const handleSaveBaseAndReembolso = async (newBase: number, newReembolso: number) => {
     return await saveBaseAndReembolso(newBase, newReembolso);
@@ -294,10 +295,59 @@ const PanelReportes = () => {
 
       <div className="flex-1 min-h-0 overflow-auto space-y-4">
         {/* Charts - only show gastos from current caja period */}
-        <CajaMenorCharts gastos={currentPeriodGastos} base={stats.base} />
+        <CajaMenorCharts gastos={chartsGastos} base={chartsBase} snapshotStats={viewingCierreSnapshot} />
 
-        {/* Estado de Caja Menor + Gastos Table - collapsible */}
-        {cajaOpen ? (
+        {/* Read-only view of a historical cierre */}
+        {viewingCierreSnapshot && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-0">
+              <EstadoCajaMenor
+                config={{
+                  id: "snapshot",
+                  base_asignada: viewingCierreSnapshot.base_asignada || 0,
+                  responsable_user_id: null,
+                  responsable_nombre: viewingCierreSnapshot.responsable_nombre || viewingCierreSnapshot.responsable_nombre_cierre || "",
+                  responsable_timestamp: viewingCierreSnapshot.responsable_timestamp || null,
+                  estado_cierre: viewingCierreSnapshot.estado_cierre || "Cerrada",
+                  desembolso: viewingCierreSnapshot.reembolsado || 0,
+                  desembolsado_por: "",
+                  fecha_cierre: viewingCierreSnapshot.fecha_cierre || null,
+                  created_at: "",
+                  updated_at: "",
+                }}
+                stats={{
+                  base: viewingCierreSnapshot.base_asignada || 0,
+                  totalAprobados: viewingCierreSnapshot.total_aprobados || 0,
+                  totalPendientes: viewingCierreSnapshot.total_pendientes || 0,
+                  efectivoEnCaja: viewingCierreSnapshot.saldo_en_caja || 0,
+                  reembolsado: viewingCierreSnapshot.reembolsado || 0,
+                }}
+                isAdmin={false}
+                canAjustarBase={false}
+                selectedGastosCount={0}
+                onRegisterResponsable={() => {}}
+                onCierre={() => {}}
+                onLegalizar={() => {}}
+                onAgregarGasto={() => {}}
+                onSaveBaseAndReembolso={async () => false}
+                readOnly
+              />
+              {viewingCierreSnapshot.gastos_count != null && (
+                <p className="text-xs text-muted-foreground text-center py-3">
+                  {viewingCierreSnapshot.gastos_count} gasto(s) incluidos en este cierre
+                </p>
+              )}
+            </CardContent>
+            <div className="px-4 pb-3 flex justify-end">
+              <Button variant="outline" size="sm" onClick={() => setViewingCierreSnapshot(null)}>
+                Cerrar vista
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Estado de Caja Menor + Gastos Table - current period */}
+        {!viewingCierreSnapshot && cajaOpen ? (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="p-0">
               <EstadoCajaMenor
@@ -395,7 +445,7 @@ const PanelReportes = () => {
               )}
             </CardContent>
           </Card>
-        ) : (
+        ) : !viewingCierreSnapshot ? (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="flex items-center justify-center py-8">
               <Button
@@ -408,7 +458,7 @@ const PanelReportes = () => {
               </Button>
             </CardContent>
           </Card>
-        )}
+        ) : null}
 
         {/* Historial de Cierres */}
         {cierres.length > 0 && (
@@ -443,14 +493,13 @@ const PanelReportes = () => {
                         size="sm"
                         className="text-[11px] h-7 gap-1"
                         onClick={() => {
-                          setSelectedCierreSnapshot({
+                          setViewingCierreSnapshot({
                             ...(c as any).snapshot,
                             fecha_cierre: c.fecha_cierre,
                             responsable_nombre_cierre: c.responsable_nombre,
                             valor_total_cierre: c.valor_total,
                             estado_cierre_tipo: c.estado,
                           });
-                          setCierreDetailOpen(true);
                         }}
                       >
                         <Eye className="h-3 w-3" /> Ver más
@@ -462,89 +511,6 @@ const PanelReportes = () => {
             </Table>
           </div>
         )}
-
-        {/* Cierre Detail Dialog (read-only) */}
-        <Dialog open={cierreDetailOpen} onOpenChange={setCierreDetailOpen}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-base">
-                <Lock className="h-4 w-4" />
-                Detalle del Cierre de Caja
-              </DialogTitle>
-            </DialogHeader>
-            {selectedCierreSnapshot && (
-              <div className="space-y-4 pt-2">
-                <div className="bg-muted/50 rounded-lg p-4 space-y-2.5">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Fecha de cierre:</span>
-                    <span className="font-semibold">
-                      {selectedCierreSnapshot.fecha_cierre
-                        ? format(new Date(selectedCierreSnapshot.fecha_cierre), "dd/MM/yyyy HH:mm", { locale: es })
-                        : "—"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Responsable:</span>
-                    <span className="font-semibold">{selectedCierreSnapshot.responsable_nombre || selectedCierreSnapshot.responsable_nombre_cierre || "—"}</span>
-                  </div>
-                  {selectedCierreSnapshot.responsable_timestamp && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Registro responsable:</span>
-                      <span className="text-xs">{format(new Date(selectedCierreSnapshot.responsable_timestamp), "dd/MM/yyyy HH:mm", { locale: es })}</span>
-                    </div>
-                  )}
-                </div>
-
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Concepto</TableHead>
-                      <TableHead className="text-xs text-right">Valor</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow className="bg-primary/5 border-b-2 border-primary/20">
-                      <TableCell className="text-xs py-2 font-bold uppercase">Base Asignada</TableCell>
-                      <TableCell className="text-sm py-2 text-right font-mono font-bold">
-                        {fmtCOP(selectedCierreSnapshot.base_asignada || 0)}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="text-xs py-1.5">Total gastos aprobados</TableCell>
-                      <TableCell className="text-xs py-1.5 text-right font-mono text-emerald-500 font-semibold">
-                        {fmtCOP(selectedCierreSnapshot.total_aprobados || 0)}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="text-xs py-1.5">Total gastos pendientes</TableCell>
-                      <TableCell className="text-xs py-1.5 text-right font-mono text-yellow-500">
-                        {fmtCOP(selectedCierreSnapshot.total_pendientes || 0)}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow className="border-t-2 border-border/50">
-                      <TableCell className="text-xs py-1.5 font-semibold">Saldo en caja</TableCell>
-                      <TableCell className={`text-xs py-1.5 text-right font-mono font-bold ${(selectedCierreSnapshot.saldo_en_caja || 0) >= 0 ? "text-emerald-500" : "text-destructive"}`}>
-                        {(selectedCierreSnapshot.saldo_en_caja || 0) < 0 ? "- " : ""}{fmtCOP(Math.abs(selectedCierreSnapshot.saldo_en_caja || 0))}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow className="border-t-2 border-border/50">
-                      <TableCell className="text-xs py-1.5 font-bold uppercase">Reembolsado</TableCell>
-                      <TableCell className="text-xs py-1.5 text-right font-mono font-bold text-cyan-500">
-                        {fmtCOP(selectedCierreSnapshot.reembolsado || 0)}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-
-                {selectedCierreSnapshot.gastos_count != null && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    {selectedCierreSnapshot.gastos_count} gasto(s) incluidos en este cierre
-                  </p>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
       </div>
 
       <GastoMenorDialog

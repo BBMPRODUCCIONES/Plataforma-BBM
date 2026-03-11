@@ -25,6 +25,7 @@ interface EstadoCajaMenorProps {
   onLegalizar: () => void;
   onAgregarGasto: () => void;
   onSaveBaseAndReembolso: (newBase: number, newReembolso: number) => Promise<boolean>;
+  readOnly?: boolean;
 }
 
 const fmt = (v: number) =>
@@ -33,6 +34,7 @@ const fmt = (v: number) =>
 export default function EstadoCajaMenor({
   config, stats, isAdmin, canAjustarBase, selectedGastosCount,
   onRegisterResponsable, onCierre, onLegalizar, onAgregarGasto, onSaveBaseAndReembolso,
+  readOnly = false,
 }: EstadoCajaMenorProps) {
   const [ajusteOpen, setAjusteOpen] = useState(false);
   const [cierreConfirmOpen, setCierreConfirmOpen] = useState(false);
@@ -47,23 +49,27 @@ export default function EstadoCajaMenor({
     <div>
       {/* Header bar */}
       <div className="bg-primary/10 px-4 py-2.5 border-b border-primary/20 flex items-center justify-between flex-wrap gap-2">
-        <h3 className="text-sm font-bold uppercase tracking-wider">Estado de Caja Menor</h3>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setCierreConfirmOpen(true)}>
-            <Lock className="h-3 w-3 mr-1" /> Cierre de caja
-          </Button>
-          <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={onLegalizar} disabled={selectedGastosCount === 0}>
-            <FileCheck className="h-3 w-3 mr-1" /> Legalizado {selectedGastosCount > 0 && `(${selectedGastosCount})`}
-          </Button>
-          {canAjustarBase && (
-            <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setAjusteOpen(true)}>
-              <RotateCcw className="h-3 w-3 mr-1" /> Reembolsado
+        <h3 className="text-sm font-bold uppercase tracking-wider">
+          {readOnly ? "Detalle del Cierre de Caja" : "Estado de Caja Menor"}
+        </h3>
+        {!readOnly && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setCierreConfirmOpen(true)}>
+              <Lock className="h-3 w-3 mr-1" /> Cierre de caja
             </Button>
-          )}
-          <Button size="sm" className="text-[11px] h-7" onClick={onAgregarGasto}>
-            <Plus className="h-3 w-3 mr-1" /> Agregar Gasto
-          </Button>
-        </div>
+            <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={onLegalizar} disabled={selectedGastosCount === 0}>
+              <FileCheck className="h-3 w-3 mr-1" /> Legalizado {selectedGastosCount > 0 && `(${selectedGastosCount})`}
+            </Button>
+            {canAjustarBase && (
+              <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setAjusteOpen(true)}>
+                <RotateCcw className="h-3 w-3 mr-1" /> Reembolsado
+              </Button>
+            )}
+            <Button size="sm" className="text-[11px] h-7" onClick={onAgregarGasto}>
+              <Plus className="h-3 w-3 mr-1" /> Agregar Gasto
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/30">
@@ -83,10 +89,12 @@ export default function EstadoCajaMenor({
                   )}
                 </div>
               </div>
-            ) : (
+            ) : !readOnly ? (
               <Button variant="outline" size="sm" onClick={onRegisterResponsable} className="w-full text-xs">
                 <UserCheck className="h-3.5 w-3.5 mr-1" /> Autologueo
               </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground">Sin responsable registrado</p>
             )}
           </div>
 

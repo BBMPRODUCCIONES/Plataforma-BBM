@@ -6,6 +6,10 @@ import { GastoMenor } from "@/hooks/useGastosMenores";
 interface CajaMenorChartsProps {
   gastos: GastoMenor[];
   base: number;
+  snapshotStats?: {
+    base_asignada: number;
+    total_aprobados: number;
+  } | null;
 }
 
 const CHART_COLORS = ["#06b6d4", "#f59e0b", "#a855f7", "#3b82f6", "#ef4444", "#10b981"];
@@ -13,8 +17,9 @@ const CHART_COLORS = ["#06b6d4", "#f59e0b", "#a855f7", "#3b82f6", "#ef4444", "#1
 const fmt = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
-export default function CajaMenorCharts({ gastos, base }: CajaMenorChartsProps) {
+export default function CajaMenorCharts({ gastos, base, snapshotStats }: CajaMenorChartsProps) {
   const chartData = useMemo(() => {
+    if (snapshotStats) return []; // No category breakdown for snapshots
     const byCategory = new Map<string, number>();
     gastos
       .filter(g => g.estado === "Aprobado" || g.estado === "Legalizado" || g.estado === "Reembolsado")
@@ -24,11 +29,12 @@ export default function CajaMenorCharts({ gastos, base }: CajaMenorChartsProps) 
     return Array.from(byCategory.entries())
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [gastos]);
+  }, [gastos, snapshotStats]);
 
-  const totalAprobados = useMemo(() => chartData.reduce((s, d) => s + d.value, 0), [chartData]);
-  const gastadoPct = base > 0 ? Math.min((totalAprobados / base) * 100, 100) : 0;
-  const disponible = base - totalAprobados;
+  const totalAprobados = snapshotStats ? snapshotStats.total_aprobados : chartData.reduce((s, d) => s + d.value, 0);
+  const effectiveBase = snapshotStats ? snapshotStats.base_asignada : base;
+  const gastadoPct = effectiveBase > 0 ? Math.min((totalAprobados / effectiveBase) * 100, 100) : 0;
+  const disponible = effectiveBase - totalAprobados;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -88,7 +94,7 @@ export default function CajaMenorCharts({ gastos, base }: CajaMenorChartsProps) 
               <span className={`font-bold ${disponible >= 0 ? "text-emerald-500" : "text-destructive"}`}>{fmt(disponible)}</span>
             </div>
             <p className="text-center text-[11px] text-muted-foreground">
-              Base asignada: <span className="font-semibold">{fmt(base)}</span> — Usado: <span className="font-semibold">{gastadoPct.toFixed(1)}%</span>
+              Base asignada: <span className="font-semibold">{fmt(effectiveBase)}</span> — Usado: <span className="font-semibold">{gastadoPct.toFixed(1)}%</span>
             </p>
           </div>
         </CardContent>

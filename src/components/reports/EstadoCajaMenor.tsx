@@ -238,23 +238,6 @@ export default function EstadoCajaMenor({
         </CardContent>
       </Card>
 
-      {/* Status counters row */}
-      <div className="grid grid-cols-5 gap-2">
-        {[
-          { label: "Pendientes", count: gastos.filter(g => g.estado === "Pendiente").length, color: "text-yellow-500" },
-          { label: "Aprobados", count: gastos.filter(g => g.estado === "Aprobado").length, color: "text-emerald-500" },
-          { label: "No aprobados", count: gastos.filter(g => g.estado === "No aprobado").length, color: "text-destructive" },
-          { label: "Legalizados", count: gastos.filter(g => g.estado === "Legalizado").length, color: "text-blue-500" },
-          { label: "Reembolsados", count: gastos.filter(g => g.estado === "Reembolsado").length, color: "text-cyan-500" },
-        ].map(s => (
-          <Card key={s.label}>
-            <CardContent className="p-2.5 text-center">
-              <p className={`text-[10px] ${s.color}`}>{s.label}</p>
-              <p className={`text-lg font-bold ${s.color}`}>{s.count}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }

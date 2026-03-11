@@ -48,11 +48,22 @@ export default function AjusteBaseDialog({
     }
   }, [open, currentBase, currentReembolso, user]);
 
+  const fmt = (v: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(v);
+
   const handleSave = async () => {
     setSaving(true);
-    const success = await onSave(Number(baseValue) || 0, Number(reembolsoValue) || 0);
+    const newReembolso = Number(reembolsoValue) || 0;
+    const success = await onSave(Number(baseValue) || 0, newReembolso);
     setSaving(false);
-    if (success) onOpenChange(false);
+    if (success) {
+      onOpenChange(false);
+      // Informative toast with details of the change
+      const { toast } = await import("sonner");
+      toast.success("Reembolso registrado", {
+        description: `${userName} registró un reembolso de ${fmt(newReembolso)} el ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: es })}`,
+        duration: 5000,
+      });
+    }
   };
 
   return (

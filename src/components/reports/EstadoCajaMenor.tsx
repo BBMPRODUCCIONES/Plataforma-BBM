@@ -131,9 +131,8 @@ export default function EstadoCajaMenor({
         </Card>
       </div>
 
-      {/* Estado de Caja Menor Panel */}
-      <Card className="border-primary/30 bg-primary/5">
-        <CardContent className="p-0">
+      {/* Estado de Caja Menor Panel - no wrapper Card, parent provides it */}
+      <div>
           <div className="bg-primary/10 px-4 py-2.5 border-b border-primary/20 flex items-center justify-between">
             <h3 className="text-sm font-bold uppercase tracking-wider">Estado de Caja Menor</h3>
             <div className="flex items-center gap-2">
@@ -235,26 +234,8 @@ export default function EstadoCajaMenor({
               </Table>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Status counters row */}
-      <div className="grid grid-cols-5 gap-2">
-        {[
-          { label: "Pendientes", count: gastos.filter(g => g.estado === "Pendiente").length, color: "text-yellow-500" },
-          { label: "Aprobados", count: gastos.filter(g => g.estado === "Aprobado").length, color: "text-emerald-500" },
-          { label: "No aprobados", count: gastos.filter(g => g.estado === "No aprobado").length, color: "text-destructive" },
-          { label: "Legalizados", count: gastos.filter(g => g.estado === "Legalizado").length, color: "text-blue-500" },
-          { label: "Reembolsados", count: gastos.filter(g => g.estado === "Reembolsado").length, color: "text-cyan-500" },
-        ].map(s => (
-          <Card key={s.label}>
-            <CardContent className="p-2.5 text-center">
-              <p className={`text-[10px] ${s.color}`}>{s.label}</p>
-              <p className={`text-lg font-bold ${s.color}`}>{s.count}</p>
-            </CardContent>
-          </Card>
-        ))}
       </div>
+
     </div>
   );
 }

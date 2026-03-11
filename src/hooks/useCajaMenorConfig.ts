@@ -109,7 +109,7 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
       } as any).eq("id", config.id);
       if (error) { toast.error("Error: " + error.message); return false; }
     }
-    toast.success("Base y reembolso actualizados");
+    // Toast is handled by the caller (AjusteBaseDialog) for richer info
     return true;
   }, [config]);
 

@@ -302,8 +302,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         (event, currentSession) => {
           if (!isMounted) return;
           
-          // Clear cache on sign out or token issues
-          if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          // Only clear cache on sign out, NOT on token refresh
+          if (event === 'SIGNED_OUT') {
             clearCachedRole();
           }
           

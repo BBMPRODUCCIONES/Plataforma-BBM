@@ -205,6 +205,8 @@ serve(async (req) => {
         (existingEvents || []).map(e => [`${e.project_id}_${e.event_type}`, e])
       );
 
+      const syncTimestamp = new Date().toISOString();
+
       for (const project of projects) {
         // Process montaje
         if (project.fecha_montaje_inicio && project.fecha_montaje_fin) {

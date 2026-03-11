@@ -178,11 +178,15 @@ export default function AprobacionesPendientes() {
   const isMobile = useIsMobile();
   const { gastos: gastosMenores, refetch: refetchGastos, deleteGasto } = useGastosMenores();
 
-  // Get current user's employee name for approver tracking
+  // Get current user's employee name and ID for approver tracking
   const [currentUserName, setCurrentUserName] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   useEffect(() => {
     supabase.rpc("get_my_employee").then(({ data }) => {
       if (data && data.length > 0) setCurrentUserName(data[0].nombre);
+    });
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user?.id) setCurrentUserId(data.user.id);
     });
   }, []);
   

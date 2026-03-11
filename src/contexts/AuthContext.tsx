@@ -15,6 +15,7 @@ interface CajaMenorPermissions {
   puedeAprobarCajaMenor: boolean;
   puedeCrearAnticipos: boolean;
   puedeRestaurarSolicitudes: boolean;
+  puedeAjustarBaseCajaMenor: boolean;
 }
 
 interface PanelEditPermissions {

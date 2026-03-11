@@ -292,6 +292,7 @@ const Usuarios = () => {
             puede_editar_inventario: newPuedeEditarInventario,
             puede_asignar_responsables: newPuedeAsignarResponsables,
             puede_restaurar_solicitudes: newPuedeRestaurarSolicitudes,
+            puede_ajustar_base_caja_menor: newPuedeAjustarBaseCajaMenor,
             puede_acceder_usuarios: newPuedeAccederUsuarios,
             puede_acceder_clientes: newPuedeAccederClientes,
             puede_acceder_empleados: newPuedeAccederEmpleados,

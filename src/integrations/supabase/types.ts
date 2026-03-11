@@ -958,6 +958,7 @@ export type Database = {
           puede_acceder_constructor: boolean | null
           puede_acceder_empleados: boolean | null
           puede_acceder_usuarios: boolean | null
+          puede_ajustar_base_caja_menor: boolean | null
           puede_aprobar_caja_menor: boolean | null
           puede_asignar_responsables: boolean | null
           puede_crear_anticipos: boolean | null
@@ -981,6 +982,7 @@ export type Database = {
           puede_acceder_constructor?: boolean | null
           puede_acceder_empleados?: boolean | null
           puede_acceder_usuarios?: boolean | null
+          puede_ajustar_base_caja_menor?: boolean | null
           puede_aprobar_caja_menor?: boolean | null
           puede_asignar_responsables?: boolean | null
           puede_crear_anticipos?: boolean | null
@@ -1004,6 +1006,7 @@ export type Database = {
           puede_acceder_constructor?: boolean | null
           puede_acceder_empleados?: boolean | null
           puede_acceder_usuarios?: boolean | null
+          puede_ajustar_base_caja_menor?: boolean | null
           puede_aprobar_caja_menor?: boolean | null
           puede_asignar_responsables?: boolean | null
           puede_crear_anticipos?: boolean | null

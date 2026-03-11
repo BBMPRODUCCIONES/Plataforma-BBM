@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ReporteCajaMenor from "@/components/reports/ReporteCajaMenor";
+import CajaMenorCharts from "@/components/reports/CajaMenorCharts";
 import AprobacionesPendientes from "@/components/reports/AprobacionesPendientes";
 import GastoMenorDialog from "@/components/reports/GastoMenorDialog";
 import { useIsMobile } from "@/hooks/use-mobile";

@@ -550,6 +550,7 @@ const Usuarios = () => {
       const finalPuedeEditarInventario = editPuedeEditarInventario;
       const finalPuedeAsignarResponsables = editPuedeAsignarResponsables;
       const finalPuedeRestaurarSolicitudes = editPuedeRestaurarSolicitudes;
+      const finalPuedeAjustarBaseCajaMenor = editPuedeAjustarBaseCajaMenor;
 
       // Update user roles with all permissions
       const { error: roleError } = await supabase

@@ -239,8 +239,6 @@ export default function EstadoCajaMenor({
             </div>
           </div>
       </div>
-      </div>
-
-    </div>
+    </>
   );
 }

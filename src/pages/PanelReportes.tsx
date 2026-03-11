@@ -464,15 +464,28 @@ const PanelReportes = () => {
         {/* Historial de Cierres */}
         {cierres.length > 0 && (
           <div className="space-y-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs gap-1.5"
-              onClick={() => setHistorialOpen(prev => !prev)}
-            >
-              {historialOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-              Historial de Cierres de Caja ({cierres.length})
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs gap-1.5"
+                onClick={() => setHistorialOpen(prev => !prev)}
+              >
+                {historialOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                Historial de Cierres de Caja ({cierres.filter(c => !c.deleted_at).length})
+              </Button>
+              {historialOpen && cierres.some(c => !!c.deleted_at) && (
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showDeletedCierres}
+                    onChange={(e) => setShowDeletedCierres(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  Mostrar eliminados
+                </label>
+              )}
+            </div>
             {historialOpen && (
               <Table>
                 <TableHeader>
@@ -487,7 +500,14 @@ const PanelReportes = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {cierres.map((c) => {
+                  {[...cierres]
+                    .sort((a, b) => {
+                      const aDeleted = !!a.deleted_at ? 1 : 0;
+                      const bDeleted = !!b.deleted_at ? 1 : 0;
+                      return aDeleted - bDeleted;
+                    })
+                    .filter(c => showDeletedCierres || !c.deleted_at)
+                    .map((c) => {
                     const isDeleted = !!c.deleted_at;
                     return (
                       <TableRow key={c.id} className={isDeleted ? "bg-destructive/10" : ""}>

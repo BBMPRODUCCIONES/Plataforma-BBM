@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { UserCheck, Lock, RotateCcw, Plus, FileCheck } from "lucide-react";
+import { UserCheck, Lock, RotateCcw, Plus, FileCheck, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CajaMenorConfig } from "@/hooks/useCajaMenorConfig";
@@ -25,6 +25,7 @@ interface EstadoCajaMenorProps {
   onLegalizar: () => void;
   onAgregarGasto: () => void;
   onSaveBaseAndReembolso: (newBase: number, newReembolso: number) => Promise<boolean>;
+  onClose?: () => void;
   readOnly?: boolean;
 }
 
@@ -34,6 +35,7 @@ const fmt = (v: number) =>
 export default function EstadoCajaMenor({
   config, stats, isAdmin, canAjustarBase, selectedGastosCount,
   onRegisterResponsable, onCierre, onLegalizar, onAgregarGasto, onSaveBaseAndReembolso,
+  onClose,
   readOnly = false,
 }: EstadoCajaMenorProps) {
   const [ajusteOpen, setAjusteOpen] = useState(false);
@@ -54,6 +56,11 @@ export default function EstadoCajaMenor({
         </h3>
         {!readOnly && (
           <div className="flex items-center gap-2 flex-wrap">
+            {onClose && (
+              <Button variant="ghost" size="sm" className="text-[11px] h-7" onClick={onClose}>
+                <ArrowLeft className="h-3 w-3 mr-1" /> Volver
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setCierreConfirmOpen(true)}>
               <Lock className="h-3 w-3 mr-1" /> Cierre de caja
             </Button>

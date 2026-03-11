@@ -1613,7 +1613,10 @@ export default function AprobacionesPendientes() {
                     <TableCell className="text-xs">
                       {(() => {
                         const isTypeSAndDecided = isTypeS && commonEstado !== "Pendiente";
-                        if (canApproveCajaMenor() && !isTypeSAndDecided) {
+                        // Check if another user has an active undo — lock editing
+                        const undoEntry = getUndoEntryForGroup(group.key, group.rows);
+                        const otherUserUndo = undoEntry && currentUserId && undoEntry.changed_by !== currentUserId;
+                        if (canApproveCajaMenor() && !isTypeSAndDecided && !otherUserUndo) {
                           return (
                             <CajaMenorEstadoSelect
                               value={commonEstado}

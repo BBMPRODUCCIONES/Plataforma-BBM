@@ -1742,19 +1742,29 @@ export default function AprobacionesPendientes() {
                         if (!undoEntry) return null;
                         const timeLeft = formatTimeRemaining(undoEntry.expires_at);
                         if (!timeLeft) return null;
+                        const isOwnChange = currentUserId && undoEntry.changed_by === currentUserId;
+                        if (isOwnChange) {
+                          return (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 gap-1 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUndoGroup(group.rows);
+                              }}
+                            >
+                              <Undo2 className="w-3 h-3" />
+                              {timeLeft}
+                            </Button>
+                          );
+                        }
+                        // Read-only badge for other users
                         return (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 gap-1 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleUndoGroup(group.rows);
-                            }}
-                          >
-                            <Undo2 className="w-3 h-3" />
+                          <Badge variant="outline" className="h-7 gap-1 text-xs border-muted-foreground/30 text-muted-foreground cursor-default">
+                            <Lock className="w-3 h-3" />
                             {timeLeft}
-                          </Button>
+                          </Badge>
                         );
                       })()}
                     </TableCell>

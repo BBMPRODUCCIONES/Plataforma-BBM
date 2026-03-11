@@ -306,7 +306,7 @@ const PanelReportes = () => {
                   id: "snapshot",
                   base_asignada: viewingCierreSnapshot.base_asignada || 0,
                   responsable_user_id: null,
-                  responsable_nombre: viewingCierreSnapshot.responsable_nombre || viewingCierreSnapshot.responsable_nombre_cierre || "",
+                  responsable_nombre: viewingCierreSnapshot.responsable_nombre || "",
                   responsable_timestamp: viewingCierreSnapshot.responsable_timestamp || null,
                   estado_cierre: viewingCierreSnapshot.estado_cierre || "Cerrada",
                   desembolso: viewingCierreSnapshot.reembolsado || 0,

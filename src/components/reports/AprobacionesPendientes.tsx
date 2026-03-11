@@ -1303,6 +1303,8 @@ export default function AprobacionesPendientes() {
         <TableCell className="text-xs">
           <TruncatedCellWithEye
             text={(() => {
+              // Don't show approver name when estado is Pendiente
+              if (row.item.estado === "Pendiente") return "—";
               const r = (row.item.recursos as string) || "";
               const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
               if (tipo === "C") {

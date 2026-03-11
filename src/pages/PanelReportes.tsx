@@ -326,8 +326,16 @@ const PanelReportes = () => {
                 <TableBody>
                   {gastos.map((g) => (
                     <TableRow key={g.id}>
-                      <TableCell className="text-xs whitespace-nowrap">
-                        {format(new Date(g.created_at), "dd/MM/yyyy", { locale: es })}
+                      <TableCell>
+                        {g.estado === "Aprobado" ? (
+                          <Checkbox
+                            checked={selectedGastoIds.has(g.id)}
+                            onCheckedChange={() => toggleGastoSelection(g.id)}
+                          />
+                        ) : (
+                          <span className="block w-4" />
+                        )}
+                      </TableCell>
                       </TableCell>
                       <TableCell className="text-xs">{g.centro_costos || "—"}</TableCell>
                       <TableCell className="text-xs">{g.concepto}</TableCell>

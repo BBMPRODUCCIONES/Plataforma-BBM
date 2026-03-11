@@ -308,9 +308,17 @@ serve(async (req) => {
                   project_hash: hash,
                 });
               totalCreated++;
-            }
-          }
         }
+      }
+
+      // Update last_synced_at for ALL tracked events of this user (including unchanged)
+      if (existingEvents && existingEvents.length > 0) {
+        await supabase
+          .from('google_calendar_events')
+          .update({ last_synced_at: syncTimestamp })
+          .eq('user_id', token.user_id);
+      }
+    }
       }
     }
 

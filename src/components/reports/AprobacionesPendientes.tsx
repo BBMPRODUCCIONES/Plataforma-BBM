@@ -1656,7 +1656,9 @@ export default function AprobacionesPendientes() {
                             );
                           }
                           const hasApproved = group.rows.some(r => r.item.estado === "Aprobado");
-                          if (canApproveCajaMenor() && hasApproved) {
+                          const legUndoEntry = undoLog.find(e => group.rows.some(r => e.item_id === `leg-${r.item.id}`) && !e.undone && new Date(e.expires_at) > new Date() && e.new_estado !== "Pendiente");
+                          const legOtherUserUndo = legUndoEntry && currentUserId && legUndoEntry.changed_by !== currentUserId;
+                          if (canApproveCajaMenor() && hasApproved && !legOtherUserUndo) {
                             return (
                               <Select
                                 value={commonLegEstado === "Mixto" ? "Revisando" : (commonLegEstado || "Revisando")}

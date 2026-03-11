@@ -41,8 +41,9 @@ export const CATEGORIAS_GASTOS_MENORES = [
 ] as const;
 
 export function useGastosMenores(centroCostos?: string) {
-  const [gastos, setGastos] = useState<GastoMenor[]>([]);
+  const [rawGastos, setRawGastos] = useState<GastoMenor[]>([]);
   const [loading, setLoading] = useState(false);
+  const { getEffectiveEstadoForGasto } = useActiveUndoLog();
 
   const fetchGastos = async (filterCentroCostos?: string) => {
     setLoading(true);
@@ -53,13 +54,21 @@ export function useGastosMenores(centroCostos?: string) {
       }
       const { data, error } = await query;
       if (error) throw error;
-      setGastos((data as GastoMenor[]) || []);
+      setRawGastos((data as GastoMenor[]) || []);
     } catch (err: any) {
       console.error("Error fetching gastos menores:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Apply undo log overlay: show previous estado while undo timer is active
+  const gastos = useMemo(() => {
+    return rawGastos.map(g => ({
+      ...g,
+      estado: getEffectiveEstadoForGasto(g.id, g.estado),
+    }));
+  }, [rawGastos, getEffectiveEstadoForGasto]);
 
   const addGasto = async (gasto: Omit<GastoMenor, "id" | "created_at" | "updated_at" | "aprobado_por_id" | "aprobado_por_nombre">) => {
     try {

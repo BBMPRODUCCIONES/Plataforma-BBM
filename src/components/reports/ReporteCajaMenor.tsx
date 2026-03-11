@@ -65,6 +65,7 @@ interface Suggestion {
 
 const ReporteCajaMenor = () => {
   const { projects, updateProjectMultiple } = useProjects();
+  const { getEffectiveEstadoForCajaMenor } = useActiveUndoLog();
   const { 
     globalDateRange, 
     setGlobalDateRange, 

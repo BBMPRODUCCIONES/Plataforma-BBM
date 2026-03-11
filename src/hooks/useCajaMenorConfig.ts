@@ -164,10 +164,10 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
 
     // Build snapshot of current caja state
     const base = config?.base_asignada || 0;
-    const totalAprobados = gastos
+    const totalAprobados = currentPeriodGastos
       .filter((g) => g.estado === "Aprobado" || g.estado === "Legalizado" || g.estado === "Reembolsado")
       .reduce((s, g) => s + g.valor, 0);
-    const totalPendientes = gastos
+    const totalPendientes = currentPeriodGastos
       .filter((g) => g.estado === "Pendiente")
       .reduce((s, g) => s + g.valor, 0);
     const reembolsado = config?.desembolso || 0;

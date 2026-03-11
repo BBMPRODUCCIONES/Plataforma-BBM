@@ -95,15 +95,21 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
     return { base, totalAprobados, totalPendientes, efectivoEnCaja, reembolsado };
   }, [config, gastos]);
 
-  const updateBase = useCallback(async (newBase: number) => {
+  const updateBaseAndReembolso = useCallback(async (newBase: number, newReembolso: number) => {
     if (!config) {
-      const { error } = await supabase.from("caja_menor_config").insert({ base_asignada: newBase } as any);
+      const { error } = await supabase.from("caja_menor_config").insert({
+        base_asignada: newBase,
+        desembolso: newReembolso,
+      } as any);
       if (error) { toast.error("Error: " + error.message); return false; }
     } else {
-      const { error } = await supabase.from("caja_menor_config").update({ base_asignada: newBase } as any).eq("id", config.id);
+      const { error } = await supabase.from("caja_menor_config").update({
+        base_asignada: newBase,
+        desembolso: newReembolso,
+      } as any).eq("id", config.id);
       if (error) { toast.error("Error: " + error.message); return false; }
     }
-    toast.success("Base actualizada");
+    toast.success("Base y reembolso actualizados");
     return true;
   }, [config]);
 

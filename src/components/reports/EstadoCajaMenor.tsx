@@ -17,6 +17,7 @@ interface EstadoCajaMenorProps {
     reembolsado: number;
   };
   isAdmin: boolean;
+  canAjustarBase: boolean;
   onRegisterResponsable: () => void;
   onCierre: (estado: "Legalizado" | "Reembolsado") => void;
   onAgregarGasto: () => void;

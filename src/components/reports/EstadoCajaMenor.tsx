@@ -56,6 +56,11 @@ export default function EstadoCajaMenor({
         </h3>
         {!readOnly && (
           <div className="flex items-center gap-2 flex-wrap">
+            {onClose && (
+              <Button variant="ghost" size="sm" className="text-[11px] h-7" onClick={onClose}>
+                <ArrowLeft className="h-3 w-3 mr-1" /> Volver
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setCierreConfirmOpen(true)}>
               <Lock className="h-3 w-3 mr-1" /> Cierre de caja
             </Button>

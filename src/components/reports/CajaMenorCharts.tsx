@@ -6,6 +6,10 @@ import { GastoMenor } from "@/hooks/useGastosMenores";
 interface CajaMenorChartsProps {
   gastos: GastoMenor[];
   base: number;
+  snapshotStats?: {
+    base_asignada: number;
+    total_aprobados: number;
+  } | null;
 }
 
 const CHART_COLORS = ["#06b6d4", "#f59e0b", "#a855f7", "#3b82f6", "#ef4444", "#10b981"];

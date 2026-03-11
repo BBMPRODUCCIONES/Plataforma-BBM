@@ -229,26 +229,26 @@ const PanelReportes = () => {
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto space-y-4">
-        {/* Estado de Caja Menor + Gastos Table - unified card */}
+        {/* EstadoCajaMenor renders charts separately at top, then the estado panel */}
+        <EstadoCajaMenor
+          gastos={gastos}
+          config={config}
+          stats={stats}
+          isAdmin={isAdmin}
+          editingBase={editingBase}
+          baseInput={baseInput}
+          onEditBase={() => { setEditingBase(true); setBaseInput(String(stats.base || "")); }}
+          onCancelEditBase={() => setEditingBase(false)}
+          onBaseInputChange={setBaseInput}
+          onSaveBase={async () => { if (await updateBase(Number(baseInput))) setEditingBase(false); }}
+          onRegisterResponsable={registerResponsable}
+          onCierre={realizarCierre}
+          onAgregarGasto={() => setGastoDialogOpen(true)}
+        />
+
+        {/* Gastos Table - unified card with estado panel above */}
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="p-0">
-            <EstadoCajaMenor
-              gastos={gastos}
-              config={config}
-              stats={stats}
-              isAdmin={isAdmin}
-              editingBase={editingBase}
-              baseInput={baseInput}
-              onEditBase={() => { setEditingBase(true); setBaseInput(String(stats.base || "")); }}
-              onCancelEditBase={() => setEditingBase(false)}
-              onBaseInputChange={setBaseInput}
-              onSaveBase={async () => { if (await updateBase(Number(baseInput))) setEditingBase(false); }}
-              onRegisterResponsable={registerResponsable}
-              onCierre={realizarCierre}
-              onAgregarGasto={() => setGastoDialogOpen(true)}
-            />
-
-            {/* Gastos Table - inside same card */}
             {loading ? (
               <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>
             ) : gastos.length === 0 ? (

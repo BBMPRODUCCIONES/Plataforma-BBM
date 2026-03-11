@@ -386,7 +386,7 @@ const PanelReportes = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {gastos.map((g) => (
+                    {currentPeriodGastos.map((g) => (
                       <TableRow key={g.id}>
                         <TableCell>
                           {g.estado === "Aprobado" ? (

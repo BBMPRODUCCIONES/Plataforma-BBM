@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserCheck, Lock, RotateCcw, Plus } from "lucide-react";
+import { UserCheck, Lock, RotateCcw, Plus, Settings } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CajaMenorConfig } from "@/hooks/useCajaMenorConfig";
+import AjusteBaseDialog from "./AjusteBaseDialog";
 
 interface EstadoCajaMenorProps {
   config: CajaMenorConfig | null;
@@ -16,15 +17,10 @@ interface EstadoCajaMenorProps {
     reembolsado: number;
   };
   isAdmin: boolean;
-  editingBase: boolean;
-  baseInput: string;
-  onEditBase: () => void;
-  onCancelEditBase: () => void;
-  onBaseInputChange: (val: string) => void;
-  onSaveBase: () => void;
   onRegisterResponsable: () => void;
   onCierre: (estado: "Legalizado" | "Reembolsado") => void;
   onAgregarGasto: () => void;
+  onSaveBaseAndReembolso: (newBase: number, newReembolso: number) => Promise<boolean>;
 }
 
 const fmt = (v: number) =>
@@ -32,13 +28,14 @@ const fmt = (v: number) =>
 
 export default function EstadoCajaMenor({
   config, stats, isAdmin,
-  editingBase, baseInput, onEditBase, onCancelEditBase, onBaseInputChange, onSaveBase,
-  onRegisterResponsable, onCierre, onAgregarGasto,
+  onRegisterResponsable, onCierre, onAgregarGasto, onSaveBaseAndReembolso,
 }: EstadoCajaMenorProps) {
-  const cuadreDeCaja = stats.efectivoEnCaja;
+  const [ajusteOpen, setAjusteOpen] = useState(false);
+  const saldoEnCaja = stats.base - stats.totalAprobados;
 
   return (
     <div>
+      {/* Header bar */}
       <div className="bg-primary/10 px-4 py-2.5 border-b border-primary/20 flex items-center justify-between">
         <h3 className="text-sm font-bold uppercase tracking-wider">Estado de Caja Menor</h3>
         <div className="flex items-center gap-2">
@@ -86,7 +83,7 @@ export default function EstadoCajaMenor({
           </div>
         </div>
 
-        {/* Center: Financial summary table */}
+        {/* Center/Right: Financial summary table */}
         <div className="p-4 md:col-span-2">
           <Table>
             <TableHeader>
@@ -96,48 +93,73 @@ export default function EstadoCajaMenor({
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell className="text-xs py-1.5 font-medium">Base asignada</TableCell>
-                <TableCell className="text-xs py-1.5 text-right font-mono">
-                  {editingBase ? (
-                    <div className="flex items-center gap-1 justify-end">
-                      <Input type="number" value={baseInput} onChange={(e) => onBaseInputChange(e.target.value)} className="h-7 text-xs w-32 text-right" />
-                      <Button size="sm" className="h-7 text-[10px] px-2" onClick={onSaveBase}>OK</Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-[10px] px-2" onClick={onCancelEditBase}>✕</Button>
-                    </div>
-                  ) : (
-                    <span className="cursor-pointer hover:underline" onClick={isAdmin ? onEditBase : undefined}>
-                      {fmt(stats.base)}
-                    </span>
-                  )}
+              {/* BASE ASIGNADA - prominent row with settings button */}
+              <TableRow className="bg-primary/5 border-b-2 border-primary/20">
+                <TableCell className="text-xs py-2 font-bold uppercase">
+                  <div className="flex items-center gap-2">
+                    Base Asignada
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 min-h-0 min-w-0"
+                        onClick={() => setAjusteOpen(true)}
+                        title="Ajustar base asignada"
+                      >
+                        <Settings className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-sm py-2 text-right font-mono font-bold">
+                  {fmt(stats.base)}
                 </TableCell>
               </TableRow>
+
+              {/* Total gastos aprobados */}
               <TableRow>
                 <TableCell className="text-xs py-1.5">Total gastos aprobados</TableCell>
-                <TableCell className="text-xs py-1.5 text-right font-mono text-emerald-500 font-semibold">{fmt(stats.totalAprobados)}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="text-xs py-1.5">Total gastos pendientes</TableCell>
-                <TableCell className="text-xs py-1.5 text-right font-mono text-yellow-500">{fmt(stats.totalPendientes)}</TableCell>
-              </TableRow>
-              <TableRow className="border-t-2 border-border/50">
-                <TableCell className="text-xs py-1.5 font-semibold">Efectivo en caja</TableCell>
-                <TableCell className="text-xs py-1.5 text-right font-mono font-bold">{fmt(stats.efectivoEnCaja)}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="text-xs py-1.5">Cuadre de caja</TableCell>
-                <TableCell className={`text-xs py-1.5 text-right font-mono font-bold ${cuadreDeCaja >= 0 ? "text-emerald-500" : "text-destructive"}`}>
-                  {cuadreDeCaja >= 0 ? "" : "- "}{fmt(Math.abs(cuadreDeCaja))}
+                <TableCell className="text-xs py-1.5 text-right font-mono text-emerald-500 font-semibold">
+                  {fmt(stats.totalAprobados)}
                 </TableCell>
               </TableRow>
+
+              {/* Total gastos pendientes */}
+              <TableRow>
+                <TableCell className="text-xs py-1.5">Total gastos pendientes</TableCell>
+                <TableCell className="text-xs py-1.5 text-right font-mono text-yellow-500">
+                  {fmt(stats.totalPendientes)}
+                </TableCell>
+              </TableRow>
+
+              {/* Saldo en caja */}
+              <TableRow className="border-t-2 border-border/50">
+                <TableCell className="text-xs py-1.5 font-semibold">Saldo en caja</TableCell>
+                <TableCell className={`text-xs py-1.5 text-right font-mono font-bold ${saldoEnCaja >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                  {saldoEnCaja < 0 ? "- " : ""}{fmt(Math.abs(saldoEnCaja))}
+                </TableCell>
+              </TableRow>
+
+              {/* REEMBOLSADO */}
               <TableRow className="border-t-2 border-border/50">
                 <TableCell className="text-xs py-1.5 font-bold uppercase">Reembolsado</TableCell>
-                <TableCell className="text-xs py-1.5 text-right font-mono font-bold text-cyan-500">{fmt(stats.reembolsado)}</TableCell>
+                <TableCell className="text-xs py-1.5 text-right font-mono font-bold text-cyan-500">
+                  {fmt(stats.reembolsado)}
+                </TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </div>
       </div>
+
+      {/* Ajuste Base Dialog */}
+      <AjusteBaseDialog
+        open={ajusteOpen}
+        onOpenChange={setAjusteOpen}
+        currentBase={stats.base}
+        currentReembolso={stats.reembolsado}
+        onSave={onSaveBaseAndReembolso}
+      />
     </div>
   );
 }

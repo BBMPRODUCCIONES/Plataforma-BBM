@@ -104,8 +104,8 @@ interface CachedRoleData {
   timestamp: number;
 }
 
-// Cache duration: 1 minute (shorter to pick up permission changes faster)
-const CACHE_DURATION = 1 * 60 * 1000;
+// Cache duration: 10 minutes
+const CACHE_DURATION = 10 * 60 * 1000;
 
 // Timeout for role fetch: 5 seconds
 const ROLE_FETCH_TIMEOUT = 5000;
@@ -302,8 +302,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         (event, currentSession) => {
           if (!isMounted) return;
           
-          // Clear cache on sign out or token issues
-          if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          // Only clear cache on sign out, NOT on token refresh
+          if (event === 'SIGNED_OUT') {
             clearCachedRole();
           }
           

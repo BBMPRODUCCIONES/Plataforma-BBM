@@ -306,7 +306,7 @@ const PanelReportes = () => {
                   id: "snapshot",
                   base_asignada: viewingCierreSnapshot.base_asignada || 0,
                   responsable_user_id: null,
-                  responsable_nombre: viewingCierreSnapshot.responsable_nombre || viewingCierreSnapshot.responsable_nombre_cierre || "",
+                  responsable_nombre: viewingCierreSnapshot.responsable_nombre || "",
                   responsable_timestamp: viewingCierreSnapshot.responsable_timestamp || null,
                   estado_cierre: viewingCierreSnapshot.estado_cierre || "Cerrada",
                   desembolso: viewingCierreSnapshot.reembolsado || 0,
@@ -493,12 +493,20 @@ const PanelReportes = () => {
                         size="sm"
                         className="text-[11px] h-7 gap-1"
                         onClick={() => {
+                          const snap = (c as any).snapshot || {};
+                          // Parse base from cambios_base string "Base: 2000000"
+                          const parsedBase = c.cambios_base ? Number(c.cambios_base.replace(/[^0-9]/g, "")) || 0 : 0;
                           setViewingCierreSnapshot({
-                            ...(c as any).snapshot,
+                            base_asignada: snap.base_asignada || parsedBase,
+                            total_aprobados: snap.total_aprobados || c.valor_total || 0,
+                            total_pendientes: snap.total_pendientes || 0,
+                            saldo_en_caja: snap.saldo_en_caja ?? ((snap.base_asignada || parsedBase) - (snap.total_aprobados || c.valor_total || 0)),
+                            reembolsado: snap.reembolsado || 0,
+                            responsable_nombre: snap.responsable_nombre || c.responsable_nombre || "",
+                            responsable_timestamp: snap.responsable_timestamp || null,
+                            estado_cierre: snap.estado_cierre || c.estado || "Cerrada",
+                            gastos_count: snap.gastos_count ?? null,
                             fecha_cierre: c.fecha_cierre,
-                            responsable_nombre_cierre: c.responsable_nombre,
-                            valor_total_cierre: c.valor_total,
-                            estado_cierre_tipo: c.estado,
                           });
                         }}
                       >

@@ -27,6 +27,7 @@ type ReportView = "main" | "financieros" | "caja-menor" | "reporte-caja-menor" |
 const PanelReportes = () => {
   const [currentView, setCurrentView] = useState<ReportView>("main");
   const [gastoDialogOpen, setGastoDialogOpen] = useState(false);
+  const [selectedGastoIds, setSelectedGastoIds] = useState<Set<string>>(new Set());
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores();
   const { config, cierres, stats, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
@@ -34,6 +35,49 @@ const PanelReportes = () => {
   const isAdmin = role === "administrador";
   const handleSaveBaseAndReembolso = async (newBase: number, newReembolso: number) => {
     return await saveBaseAndReembolso(newBase, newReembolso);
+  };
+
+  const toggleGastoSelection = useCallback((id: string) => {
+    setSelectedGastoIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAllGastos = useCallback(() => {
+    const selectableGastos = gastos.filter(g => g.estado === "Aprobado");
+    if (selectedGastoIds.size === selectableGastos.length && selectableGastos.length > 0) {
+      setSelectedGastoIds(new Set());
+    } else {
+      setSelectedGastoIds(new Set(selectableGastos.map(g => g.id)));
+    }
+  }, [gastos, selectedGastoIds]);
+
+  const handleCierreCaja = async () => {
+    const result = await realizarCierre("Legalizado");
+    if (result) setSelectedGastoIds(new Set());
+  };
+
+  const handleLegalizar = async () => {
+    if (selectedGastoIds.size === 0) return;
+    const ids = Array.from(selectedGastoIds);
+    const { data: userData } = await supabase.auth.getUser();
+    let aprobadorNombre = "Admin";
+    const { data: empData } = await supabase.rpc("get_my_employee");
+    if (empData && empData.length > 0) aprobadorNombre = empData[0].nombre;
+
+    const { error } = await supabase
+      .from("gastos_menores")
+      .update({ estado: "Legalizado", aprobado_por_id: userData?.user?.id || null, aprobado_por_nombre: aprobadorNombre } as any)
+      .in("id", ids);
+    if (error) {
+      toast.error("Error al legalizar gastos: " + error.message);
+    } else {
+      toast.success(`${ids.length} gasto(s) legalizado(s)`);
+      setSelectedGastoIds(new Set());
+    }
   };
 
   const handleEstadoChange = async (gastoId: string, newEstado: string) => {

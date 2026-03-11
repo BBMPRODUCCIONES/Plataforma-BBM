@@ -146,6 +146,7 @@ const Usuarios = () => {
   const [editPuedeEditarInventario, setEditPuedeEditarInventario] = useState(false);
   const [editPuedeAsignarResponsables, setEditPuedeAsignarResponsables] = useState(false);
   const [editPuedeRestaurarSolicitudes, setEditPuedeRestaurarSolicitudes] = useState(false);
+  const [editPuedeAjustarBaseCajaMenor, setEditPuedeAjustarBaseCajaMenor] = useState(false);
   const [editPuedeAccederUsuarios, setEditPuedeAccederUsuarios] = useState(true);
   const [editPuedeAccederClientes, setEditPuedeAccederClientes] = useState(true);
   const [editPuedeAccederEmpleados, setEditPuedeAccederEmpleados] = useState(true);

@@ -36,6 +36,7 @@ const PanelReportes = () => {
   const [viewingCierreSnapshot, setViewingCierreSnapshot] = useState<any>(null);
   const [historialOpen, setHistorialOpen] = useState(false);
   const [deleteCierreId, setDeleteCierreId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
   const { config, cierres, stats, currentPeriodGastos, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
   const { canApproveCajaMenor, canAjustarBaseCajaMenor, role } = useUserRole();

@@ -287,8 +287,10 @@ const PanelReportes = () => {
               stats={stats}
               isAdmin={isAdmin}
               canAjustarBase={canAjustarBaseCajaMenor()}
+              selectedGastosCount={selectedGastoIds.size}
               onRegisterResponsable={registerResponsable}
-              onCierre={realizarCierre}
+              onCierre={handleCierreCaja}
+              onLegalizar={handleLegalizar}
               onAgregarGasto={() => setGastoDialogOpen(true)}
               onSaveBaseAndReembolso={handleSaveBaseAndReembolso}
             />

@@ -34,6 +34,7 @@ const fmt = (v: number) =>
 export default function EstadoCajaMenor({
   config, stats, isAdmin, canAjustarBase, selectedGastosCount,
   onRegisterResponsable, onCierre, onLegalizar, onAgregarGasto, onSaveBaseAndReembolso,
+  readOnly = false,
 }: EstadoCajaMenorProps) {
   const [ajusteOpen, setAjusteOpen] = useState(false);
   const [cierreConfirmOpen, setCierreConfirmOpen] = useState(false);

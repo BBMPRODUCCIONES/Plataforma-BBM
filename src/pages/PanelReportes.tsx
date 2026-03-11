@@ -285,8 +285,8 @@ const PanelReportes = () => {
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto space-y-4">
-        {/* Charts - separate section at top */}
-        <CajaMenorCharts gastos={gastos} base={stats.base} />
+        {/* Charts - only show gastos from current caja period */}
+        <CajaMenorCharts gastos={currentPeriodGastos} base={stats.base} />
 
         {/* Estado de Caja Menor + Gastos Table - collapsible */}
         {cajaOpen ? (

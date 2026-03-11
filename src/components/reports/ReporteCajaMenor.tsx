@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { EventLink } from "@/components/EventLink";
 import { CalendarFilter } from "@/components/CalendarFilter";
+import { useActiveUndoLog } from "@/hooks/useActiveUndoLog";
 
 interface FlattenedCajaMenorItem extends CajaMenorItem {
   eventoId: string;
@@ -64,6 +65,7 @@ interface Suggestion {
 
 const ReporteCajaMenor = () => {
   const { projects, updateProjectMultiple } = useProjects();
+  const { getEffectiveEstadoForCajaMenor } = useActiveUndoLog();
   const { 
     globalDateRange, 
     setGlobalDateRange, 
@@ -158,8 +160,16 @@ const ReporteCajaMenor = () => {
           project.createdAt ||
           "";
 
+        // Apply undo log overlay: show previous estado while undo timer is active
+        const effectiveEstado = getEffectiveEstadoForCajaMenor(
+          (item as any).id || "",
+          project.id,
+          item.estado
+        );
+
         items.push({
           ...item,
+          estado: effectiveEstado as CajaMenorItem["estado"],
           eventoId: project.id,
           eventoNombre: project.evento || "Sin nombre",
           recibo: `RCM-${reciboNum}`,
@@ -174,7 +184,7 @@ const ReporteCajaMenor = () => {
       const ta = safeDate(a.fecha)?.getTime() ?? 0;
       return tb - ta;
     });
-  }, [projects]);
+  }, [projects, getEffectiveEstadoForCajaMenor]);
 
   // Get unique values for classification
   const uniqueEmpleados = useMemo(() => {

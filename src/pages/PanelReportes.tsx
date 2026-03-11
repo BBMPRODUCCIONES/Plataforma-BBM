@@ -55,13 +55,13 @@ const PanelReportes = () => {
   }, []);
 
   const toggleAllGastos = useCallback(() => {
-    const selectableGastos = gastos.filter(g => g.estado === "Aprobado");
+    const selectableGastos = currentPeriodGastos.filter(g => g.estado === "Aprobado");
     if (selectedGastoIds.size === selectableGastos.length && selectableGastos.length > 0) {
       setSelectedGastoIds(new Set());
     } else {
       setSelectedGastoIds(new Set(selectableGastos.map(g => g.id)));
     }
-  }, [gastos, selectedGastoIds]);
+  }, [currentPeriodGastos, selectedGastoIds]);
 
   const handleCierreCaja = async () => {
     const result = await realizarCierre("Legalizado");

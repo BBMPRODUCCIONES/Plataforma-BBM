@@ -304,6 +304,12 @@ const PanelReportes = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={gastos.filter(g => g.estado === "Aprobado").length > 0 && selectedGastoIds.size === gastos.filter(g => g.estado === "Aprobado").length}
+                        onCheckedChange={toggleAllGastos}
+                      />
+                    </TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead>Centro de Costos</TableHead>
                     <TableHead>Concepto</TableHead>

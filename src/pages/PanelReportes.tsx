@@ -34,16 +34,9 @@ const PanelReportes = () => {
   const [viewingCierreSnapshot, setViewingCierreSnapshot] = useState<any>(null);
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
-  const { config, cierres, stats, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
+  const { config, cierres, stats, currentPeriodGastos, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
   const { canApproveCajaMenor, canAjustarBaseCajaMenor, role } = useUserRole();
   const isAdmin = role === "administrador";
-
-  // Determine which data to show in charts: snapshot if viewing history, otherwise current period
-  const currentPeriodGastos = useMemo(() => {
-    if (!config?.created_at) return gastos;
-    const configCreatedAt = new Date(config.created_at).getTime();
-    return gastos.filter(g => new Date(g.created_at).getTime() >= configCreatedAt);
-  }, [gastos, config?.created_at]);
 
   const chartsBase = viewingCierreSnapshot ? (viewingCierreSnapshot.base_asignada || 0) : stats.base;
   const chartsGastos = viewingCierreSnapshot ? [] : currentPeriodGastos;
@@ -62,13 +55,13 @@ const PanelReportes = () => {
   }, []);
 
   const toggleAllGastos = useCallback(() => {
-    const selectableGastos = gastos.filter(g => g.estado === "Aprobado");
+    const selectableGastos = currentPeriodGastos.filter(g => g.estado === "Aprobado");
     if (selectedGastoIds.size === selectableGastos.length && selectableGastos.length > 0) {
       setSelectedGastoIds(new Set());
     } else {
       setSelectedGastoIds(new Set(selectableGastos.map(g => g.id)));
     }
-  }, [gastos, selectedGastoIds]);
+  }, [currentPeriodGastos, selectedGastoIds]);
 
   const handleCierreCaja = async () => {
     const result = await realizarCierre("Legalizado");
@@ -393,7 +386,7 @@ const PanelReportes = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {gastos.map((g) => (
+                    {currentPeriodGastos.map((g) => (
                       <TableRow key={g.id}>
                         <TableCell>
                           {g.estado === "Aprobado" ? (

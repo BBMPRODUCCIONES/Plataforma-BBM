@@ -336,6 +336,8 @@ const PanelReportes = () => {
                           <span className="block w-4" />
                         )}
                       </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {format(new Date(g.created_at), "dd/MM/yyyy", { locale: es })}
                       </TableCell>
                       <TableCell className="text-xs">{g.centro_costos || "—"}</TableCell>
                       <TableCell className="text-xs">{g.concepto}</TableCell>

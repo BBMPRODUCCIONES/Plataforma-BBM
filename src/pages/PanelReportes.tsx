@@ -457,60 +457,69 @@ const PanelReportes = () => {
         {/* Historial de Cierres */}
         {cierres.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-muted-foreground">Historial de Cierres de Caja</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha Cierre</TableHead>
-                  <TableHead>Responsable</TableHead>
-                  <TableHead className="text-right">Valor Total</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Desembolsado por</TableHead>
-                  <TableHead>Cambios Base</TableHead>
-                  <TableHead className="w-[80px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cierres.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="text-xs">{format(new Date(c.fecha_cierre), "dd/MM/yyyy HH:mm", { locale: es })}</TableCell>
-                    <TableCell className="text-xs">{c.responsable_nombre}</TableCell>
-                    <TableCell className="text-xs text-right font-mono">$ {c.valor_total.toLocaleString("es-CO")}</TableCell>
-                    <TableCell>
-                      <CajaMenorEstadoSelect value={c.estado} onChange={() => {}} readOnly />
-                    </TableCell>
-                    <TableCell className="text-xs">{c.desembolsado_por || "—"}</TableCell>
-                    <TableCell className="text-xs">{c.cambios_base || "—"}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-[11px] h-7 gap-1"
-                        onClick={() => {
-                          const snap = (c as any).snapshot || {};
-                          // Parse base from cambios_base string "Base: 2000000"
-                          const parsedBase = c.cambios_base ? Number(c.cambios_base.replace(/[^0-9]/g, "")) || 0 : 0;
-                          setViewingCierreSnapshot({
-                            base_asignada: snap.base_asignada || parsedBase,
-                            total_aprobados: snap.total_aprobados || c.valor_total || 0,
-                            total_pendientes: snap.total_pendientes || 0,
-                            saldo_en_caja: snap.saldo_en_caja ?? ((snap.base_asignada || parsedBase) - (snap.total_aprobados || c.valor_total || 0)),
-                            reembolsado: snap.reembolsado || 0,
-                            responsable_nombre: snap.responsable_nombre || c.responsable_nombre || "",
-                            responsable_timestamp: snap.responsable_timestamp || null,
-                            estado_cierre: snap.estado_cierre || c.estado || "Cerrada",
-                            gastos_count: snap.gastos_count ?? null,
-                            fecha_cierre: c.fecha_cierre,
-                          });
-                        }}
-                      >
-                        <Eye className="h-3 w-3" /> Ver más
-                      </Button>
-                    </TableCell>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1.5"
+              onClick={() => setHistorialOpen(prev => !prev)}
+            >
+              {historialOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              Historial de Cierres de Caja ({cierres.length})
+            </Button>
+            {historialOpen && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha Cierre</TableHead>
+                    <TableHead>Responsable</TableHead>
+                    <TableHead className="text-right">Valor Total</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Desembolsado por</TableHead>
+                    <TableHead>Cambios Base</TableHead>
+                    <TableHead className="w-[80px]"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {cierres.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="text-xs">{format(new Date(c.fecha_cierre), "dd/MM/yyyy HH:mm", { locale: es })}</TableCell>
+                      <TableCell className="text-xs">{c.responsable_nombre}</TableCell>
+                      <TableCell className="text-xs text-right font-mono">$ {c.valor_total.toLocaleString("es-CO")}</TableCell>
+                      <TableCell>
+                        <CajaMenorEstadoSelect value={c.estado} onChange={() => {}} readOnly />
+                      </TableCell>
+                      <TableCell className="text-xs">{c.desembolsado_por || "—"}</TableCell>
+                      <TableCell className="text-xs">{c.cambios_base || "—"}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-[11px] h-7 gap-1"
+                          onClick={() => {
+                            const snap = (c as any).snapshot || {};
+                            const parsedBase = c.cambios_base ? Number(c.cambios_base.replace(/[^0-9]/g, "")) || 0 : 0;
+                            setViewingCierreSnapshot({
+                              base_asignada: snap.base_asignada || parsedBase,
+                              total_aprobados: snap.total_aprobados || c.valor_total || 0,
+                              total_pendientes: snap.total_pendientes || 0,
+                              saldo_en_caja: snap.saldo_en_caja ?? ((snap.base_asignada || parsedBase) - (snap.total_aprobados || c.valor_total || 0)),
+                              reembolsado: snap.reembolsado || 0,
+                              responsable_nombre: snap.responsable_nombre || c.responsable_nombre || "",
+                              responsable_timestamp: snap.responsable_timestamp || null,
+                              estado_cierre: snap.estado_cierre || c.estado || "Cerrada",
+                              gastos_count: snap.gastos_count ?? null,
+                              fecha_cierre: c.fecha_cierre,
+                            });
+                          }}
+                        >
+                          <Eye className="h-3 w-3" /> Ver más
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </div>
         )}
       </div>

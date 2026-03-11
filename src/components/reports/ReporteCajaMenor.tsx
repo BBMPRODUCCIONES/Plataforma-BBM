@@ -184,7 +184,7 @@ const ReporteCajaMenor = () => {
       const ta = safeDate(a.fecha)?.getTime() ?? 0;
       return tb - ta;
     });
-  }, [projects]);
+  }, [projects, getEffectiveEstadoForCajaMenor]);
 
   // Get unique values for classification
   const uniqueEmpleados = useMemo(() => {

@@ -28,7 +28,7 @@ const fmt = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 export default function EstadoCajaMenor({
-  config, stats, isAdmin,
+  config, stats, isAdmin, canAjustarBase,
   onRegisterResponsable, onCierre, onAgregarGasto, onSaveBaseAndReembolso,
 }: EstadoCajaMenorProps) {
   const [ajusteOpen, setAjusteOpen] = useState(false);

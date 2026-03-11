@@ -298,8 +298,57 @@ const PanelReportes = () => {
         {/* Charts - only show gastos from current caja period */}
         <CajaMenorCharts gastos={chartsGastos} base={chartsBase} snapshotStats={viewingCierreSnapshot} />
 
-        {/* Estado de Caja Menor + Gastos Table - collapsible */}
-        {cajaOpen ? (
+        {/* Read-only view of a historical cierre */}
+        {viewingCierreSnapshot && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-0">
+              <EstadoCajaMenor
+                config={{
+                  id: "snapshot",
+                  base_asignada: viewingCierreSnapshot.base_asignada || 0,
+                  responsable_user_id: null,
+                  responsable_nombre: viewingCierreSnapshot.responsable_nombre || viewingCierreSnapshot.responsable_nombre_cierre || "",
+                  responsable_timestamp: viewingCierreSnapshot.responsable_timestamp || null,
+                  estado_cierre: viewingCierreSnapshot.estado_cierre || "Cerrada",
+                  desembolso: viewingCierreSnapshot.reembolsado || 0,
+                  desembolsado_por: "",
+                  fecha_cierre: viewingCierreSnapshot.fecha_cierre || null,
+                  created_at: "",
+                  updated_at: "",
+                }}
+                stats={{
+                  base: viewingCierreSnapshot.base_asignada || 0,
+                  totalAprobados: viewingCierreSnapshot.total_aprobados || 0,
+                  totalPendientes: viewingCierreSnapshot.total_pendientes || 0,
+                  efectivoEnCaja: viewingCierreSnapshot.saldo_en_caja || 0,
+                  reembolsado: viewingCierreSnapshot.reembolsado || 0,
+                }}
+                isAdmin={false}
+                canAjustarBase={false}
+                selectedGastosCount={0}
+                onRegisterResponsable={() => {}}
+                onCierre={() => {}}
+                onLegalizar={() => {}}
+                onAgregarGasto={() => {}}
+                onSaveBaseAndReembolso={async () => false}
+                readOnly
+              />
+              {viewingCierreSnapshot.gastos_count != null && (
+                <p className="text-xs text-muted-foreground text-center py-3">
+                  {viewingCierreSnapshot.gastos_count} gasto(s) incluidos en este cierre
+                </p>
+              )}
+            </CardContent>
+            <div className="px-4 pb-3 flex justify-end">
+              <Button variant="outline" size="sm" onClick={() => setViewingCierreSnapshot(null)}>
+                Cerrar vista
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Estado de Caja Menor + Gastos Table - current period */}
+        {!viewingCierreSnapshot && cajaOpen ? (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="p-0">
               <EstadoCajaMenor
@@ -397,7 +446,7 @@ const PanelReportes = () => {
               )}
             </CardContent>
           </Card>
-        ) : (
+        ) : !viewingCierreSnapshot ? (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="flex items-center justify-center py-8">
               <Button
@@ -410,7 +459,7 @@ const PanelReportes = () => {
               </Button>
             </CardContent>
           </Card>
-        )}
+        ) : null}
 
         {/* Historial de Cierres */}
         {cierres.length > 0 && (

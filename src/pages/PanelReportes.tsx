@@ -38,6 +38,8 @@ const PanelReportes = () => {
   const [historialOpen, setHistorialOpen] = useState(false);
   const [deleteCierreId, setDeleteCierreId] = useState<string | null>(null);
   const [showDeletedCierres, setShowDeletedCierres] = useState(false);
+  const [historialSearch, setHistorialSearch] = useState("");
+  const [historialSort, setHistorialSort] = useState<{ field: "fecha" | "valor"; dir: "asc" | "desc" } | null>(null);
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
   const { config, cierres, stats, currentPeriodGastos, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);

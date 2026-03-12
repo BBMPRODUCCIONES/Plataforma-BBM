@@ -19,6 +19,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import EstadoCajaMenor from "@/components/reports/EstadoCajaMenor";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useActiveUndoLog } from "@/hooks/useActiveUndoLog";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";

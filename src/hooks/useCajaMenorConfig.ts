@@ -150,20 +150,37 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
 
   const realizarCierre = useCallback(async (estado: "Legalizado" | "Reembolsado") => {
     const responsableNombre = config?.responsable_nombre || "";
-    const gastosAprobados = currentPeriodGastos.filter((g) => g.estado === "Aprobado");
-    const valorTotal = gastosAprobados.reduce((s, g) => s + g.valor, 0);
 
-    if (gastosAprobados.length === 0) {
-      toast.error("No hay gastos aprobados para realizar el cierre");
+    // Validate: no pending expenses allowed
+    const gastosPendientes = currentPeriodGastos.filter((g) => g.estado === "Pendiente");
+    if (gastosPendientes.length > 0) {
+      toast.error(`No se puede cerrar la caja: hay ${gastosPendientes.length} solicitud(es) pendiente(s). Todas deben estar legalizadas o rechazadas.`);
       return false;
     }
 
-    // 1. Change all approved gastos to the cierre estado
-    const idsAprobados = gastosAprobados.map((g) => g.id);
+    // Validate: must have at least one legalized expense
+    const gastosLegalizados = currentPeriodGastos.filter((g) => g.estado === "Legalizado");
+    if (gastosLegalizados.length === 0) {
+      toast.error("No se puede cerrar la caja: debe existir al menos una solicitud legalizada.");
+      return false;
+    }
+
+    const gastosAprobados = currentPeriodGastos.filter((g) => g.estado === "Aprobado");
+    if (gastosAprobados.length > 0) {
+      toast.error(`No se puede cerrar la caja: hay ${gastosAprobados.length} solicitud(es) aprobada(s) sin legalizar.`);
+      return false;
+    }
+
+    // Use legalized expenses for the cierre
+    const gastosParaCierre = gastosLegalizados;
+    const valorTotal = gastosParaCierre.reduce((s, g) => s + g.valor, 0);
+
+    // 1. Change all legalized gastos to the cierre estado
+    const idsCierre = gastosParaCierre.map((g) => g.id);
     const { error: updateError } = await supabase
       .from("gastos_menores")
       .update({ estado } as any)
-      .in("id", idsAprobados);
+      .in("id", idsCierre);
     if (updateError) { toast.error("Error actualizando gastos: " + updateError.message); return false; }
 
     // Build snapshot of current caja state
@@ -184,8 +201,8 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
       responsable_nombre: responsableNombre,
       responsable_timestamp: config?.responsable_timestamp || null,
       estado_cierre: estado,
-      gastos_count: gastosAprobados.length,
-      gastos: gastosAprobados.map(g => ({
+      gastos_count: gastosParaCierre.length,
+      gastos: gastosParaCierre.map(g => ({
         id: g.id,
         created_at: g.created_at,
         centro_costos: g.centro_costos,

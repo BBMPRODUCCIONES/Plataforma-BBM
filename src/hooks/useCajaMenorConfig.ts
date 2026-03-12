@@ -185,6 +185,20 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
       responsable_timestamp: config?.responsable_timestamp || null,
       estado_cierre: estado,
       gastos_count: gastosAprobados.length,
+      gastos: gastosAprobados.map(g => ({
+        id: g.id,
+        created_at: g.created_at,
+        centro_costos: g.centro_costos,
+        concepto: g.concepto,
+        categoria: g.categoria,
+        nombre_comercio: g.nombre_comercio,
+        nit_cc: g.nit_cc,
+        valor: g.valor,
+        imagen_url: g.imagen_url,
+        estado: g.estado,
+        aprobado_por_nombre: g.aprobado_por_nombre,
+        usuario_nombre: g.usuario_nombre,
+      })),
     };
 
     // 2. Create cierre record with snapshot

@@ -222,7 +222,7 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
     }
 
     // 4. Create a NEW caja config with the remaining balance (efectivo en caja)
-    const efectivoRestante = (config?.base_asignada || 0) - valorTotal;
+    const efectivoRestante = (config?.base_asignada || 0) - valorTotal + (config?.desembolso || 0);
     const { error: newConfigError } = await supabase.from("caja_menor_config").insert({
       base_asignada: Math.max(efectivoRestante, 0),
       responsable_user_id: null,

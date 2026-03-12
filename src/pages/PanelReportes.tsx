@@ -482,7 +482,13 @@ const PanelReportes = () => {
                         <TableCell>
                           <CajaMenorEstadoSelect value={g.estado} onChange={() => {}} readOnly />
                         </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{g.aprobado_por_nombre || "—"}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {hasActiveUndoForGasto(g.id) ? (
+                            <span className="text-muted-foreground italic flex items-center gap-1">
+                              <Lock className="h-3 w-3" /> En proceso
+                            </span>
+                          ) : (g.aprobado_por_nombre || "—")}
+                        </TableCell>
                         <TableCell>
                           {g.usuario_id === currentUserId && g.estado !== "Aprobado" && g.estado !== "Legalizado" && g.estado !== "Reembolsado" && (
                             <Button

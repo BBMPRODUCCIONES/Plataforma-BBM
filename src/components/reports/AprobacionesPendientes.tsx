@@ -717,7 +717,7 @@ export default function AprobacionesPendientes() {
     resolvedRows.forEach(row => {
       const r = (row.item.recursos as string) || "";
       const tipo: 'S' | 'R' | 'C' = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
-      const key = `${row.centroCostos || "sin-cc"}-${tipo}`;
+      const key = tipo === "C" ? `gm-individual-${row.item.id}` : `${row.centroCostos || "sin-cc"}-${tipo}`;
       if (!groups.has(key)) {
         groups.set(key, { key, tipo, centroCostos: row.centroCostos, evento: row.evento, totalValor: 0, totalLegalizacion: 0, totalSaldo: 0, latestDate: undefined, rows: [] });
       }

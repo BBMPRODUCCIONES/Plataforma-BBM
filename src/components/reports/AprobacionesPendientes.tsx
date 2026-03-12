@@ -232,12 +232,24 @@ export default function AprobacionesPendientes() {
   const getUndoEntryForGroup = useCallback((groupKey: string, groupRows: FlattenedRow[]) => {
     // Find the most recent non-expired undo entry for any item in this group (including legalization undos)
     // Only match entries where the NEW estado is not "Pendiente" (timer only for Aprobado/Rechazado changes)
+    // Also verify the item's CURRENT estado matches the undo entry's new_estado to avoid stale timers
     const itemIds = new Set<string>();
     groupRows.forEach(r => {
       itemIds.add(r.item.id);
       itemIds.add(`leg-${r.item.id}`);
     });
-    return undoLog.find(entry => itemIds.has(entry.item_id) && !entry.undone && new Date(entry.expires_at) > new Date() && entry.new_estado !== "Pendiente");
+    return undoLog.find(entry => {
+      if (!itemIds.has(entry.item_id) || entry.undone || new Date(entry.expires_at) <= new Date() || entry.new_estado === "Pendiente") return false;
+      // Check that the current estado of the matching row actually matches the undo entry's new_estado
+      const matchingRow = groupRows.find(r => r.item.id === entry.item_id || `leg-${r.item.id}` === entry.item_id);
+      if (!matchingRow) return false;
+      // For legalization entries, check legalizacionEstado
+      if (entry.item_id.startsWith('leg-')) {
+        return matchingRow.legalizacionEstado === entry.new_estado;
+      }
+      // For regular entries, check item estado
+      return matchingRow.item.estado === entry.new_estado;
+    });
   }, [undoLog]);
 
   const formatTimeRemaining = (expiresAt: string) => {

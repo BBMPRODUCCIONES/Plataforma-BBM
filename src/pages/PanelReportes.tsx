@@ -45,8 +45,11 @@ const PanelReportes = () => {
   const { entries: undoEntries } = useActiveUndoLog();
 
   /** Returns true if gasto has an active undo timer (name should be hidden) */
-  const hasActiveUndoForGasto = (gastoId: string) =>
-    undoEntries.some(e => e.source === "gastoMenor" && e.item_id === `gm-${gastoId}`);
+  const hasActiveUndoForGasto = (gastoId: string, currentEstado: string) => {
+    const entry = undoEntries.find(e => e.source === "gastoMenor" && e.item_id === `gm-${gastoId}`);
+    // Only active if the gasto's current estado matches what the undo entry says it was changed to
+    return entry ? entry.new_estado === currentEstado : false;
+  };
   const isAdmin = role === "administrador";
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   useEffect(() => {
@@ -72,7 +75,7 @@ const PanelReportes = () => {
   }, []);
 
   const toggleAllGastos = useCallback(() => {
-    const selectableGastos = currentPeriodGastos.filter(g => g.estado === "Aprobado" && !hasActiveUndoForGasto(g.id));
+    const selectableGastos = currentPeriodGastos.filter(g => g.estado === "Aprobado" && !hasActiveUndoForGasto(g.id, g.estado));
     if (selectedGastoIds.size === selectableGastos.length && selectableGastos.length > 0) {
       setSelectedGastoIds(new Set());
     } else {
@@ -452,7 +455,7 @@ const PanelReportes = () => {
                     {currentPeriodGastos.map((g) => (
                       <TableRow key={g.id}>
                         <TableCell>
-                          {g.estado === "Aprobado" && !hasActiveUndoForGasto(g.id) ? (
+                          {g.estado === "Aprobado" && !hasActiveUndoForGasto(g.id, g.estado) ? (
                             <Checkbox
                               checked={selectedGastoIds.has(g.id)}
                               onCheckedChange={() => toggleGastoSelection(g.id)}
@@ -483,7 +486,7 @@ const PanelReportes = () => {
                           <CajaMenorEstadoSelect value={g.estado} onChange={() => {}} readOnly />
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">
-                          {hasActiveUndoForGasto(g.id) ? (
+                          {hasActiveUndoForGasto(g.id, g.estado) ? (
                             <span className="text-muted-foreground italic flex items-center gap-1">
                               <Lock className="h-3 w-3" /> En proceso
                             </span>

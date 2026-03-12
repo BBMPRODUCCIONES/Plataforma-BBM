@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2, Eye, Lock, ChevronUp, ChevronDown, Ban } from "lucide-react";
 import DeleteCierreDialog from "@/components/reports/DeleteCierreDialog";
@@ -42,6 +42,12 @@ const PanelReportes = () => {
   const { config, cierres, stats, currentPeriodGastos, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
   const { canApproveCajaMenor, canAjustarBaseCajaMenor, role } = useUserRole();
   const isAdmin = role === "administrador";
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user?.id) setCurrentUserId(data.user.id);
+    });
+  }, []);
 
   const chartsBase = viewingCierreSnapshot ? (viewingCierreSnapshot.base_asignada || 0) : stats.base;
   const chartsGastos = viewingCierreSnapshot ? [] : currentPeriodGastos;
@@ -426,7 +432,7 @@ const PanelReportes = () => {
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">{g.aprobado_por_nombre || "—"}</TableCell>
                         <TableCell>
-                          {canApproveCajaMenor() && g.estado !== "Aprobado" && g.estado !== "Legalizado" && g.estado !== "Reembolsado" && (
+                          {g.usuario_id === currentUserId && g.estado !== "Aprobado" && g.estado !== "Legalizado" && g.estado !== "Reembolsado" && (
                             <Button
                               variant="ghost"
                               size="icon"

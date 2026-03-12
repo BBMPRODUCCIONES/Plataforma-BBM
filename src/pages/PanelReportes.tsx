@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2, Eye, Lock, ChevronUp, ChevronDown, Ban } from "lucide-react";
 import DeleteCierreDialog from "@/components/reports/DeleteCierreDialog";

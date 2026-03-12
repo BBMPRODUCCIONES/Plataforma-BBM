@@ -38,6 +38,7 @@ export default function EstadoCajaMenor({
   onRegisterResponsable, onCierre, onLegalizar, onAgregarGasto, onSaveBaseAndReembolso,
   onClose,
   readOnly = false,
+  hasGastos = false,
 }: EstadoCajaMenorProps) {
   const [ajusteOpen, setAjusteOpen] = useState(false);
   const [cierreConfirmOpen, setCierreConfirmOpen] = useState(false);

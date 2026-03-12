@@ -45,8 +45,11 @@ const PanelReportes = () => {
   const { entries: undoEntries } = useActiveUndoLog();
 
   /** Returns true if gasto has an active undo timer (name should be hidden) */
-  const hasActiveUndoForGasto = (gastoId: string) =>
-    undoEntries.some(e => e.source === "gastoMenor" && e.item_id === `gm-${gastoId}`);
+  const hasActiveUndoForGasto = (gastoId: string, currentEstado: string) => {
+    const entry = undoEntries.find(e => e.source === "gastoMenor" && e.item_id === `gm-${gastoId}`);
+    // Only active if the gasto's current estado matches what the undo entry says it was changed to
+    return entry ? entry.new_estado === currentEstado : false;
+  };
   const isAdmin = role === "administrador";
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   useEffect(() => {

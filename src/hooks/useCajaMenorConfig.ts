@@ -201,8 +201,8 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
       responsable_nombre: responsableNombre,
       responsable_timestamp: config?.responsable_timestamp || null,
       estado_cierre: estado,
-      gastos_count: gastosAprobados.length,
-      gastos: gastosAprobados.map(g => ({
+      gastos_count: gastosParaCierre.length,
+      gastos: gastosParaCierre.map(g => ({
         id: g.id,
         created_at: g.created_at,
         centro_costos: g.centro_costos,

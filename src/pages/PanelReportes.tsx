@@ -432,7 +432,7 @@ const PanelReportes = () => {
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">{g.aprobado_por_nombre || "—"}</TableCell>
                         <TableCell>
-                          {canApproveCajaMenor() && g.estado !== "Aprobado" && g.estado !== "Legalizado" && g.estado !== "Reembolsado" && (
+                          {g.usuario_id === currentUserId && g.estado !== "Aprobado" && g.estado !== "Legalizado" && g.estado !== "Reembolsado" && (
                             <Button
                               variant="ghost"
                               size="icon"

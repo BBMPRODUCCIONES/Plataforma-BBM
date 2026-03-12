@@ -486,7 +486,7 @@ const PanelReportes = () => {
                           <CajaMenorEstadoSelect value={g.estado} onChange={() => {}} readOnly />
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">
-                          {hasActiveUndoForGasto(g.id) ? (
+                          {hasActiveUndoForGasto(g.id, g.estado) ? (
                             <span className="text-muted-foreground italic flex items-center gap-1">
                               <Lock className="h-3 w-3" /> En proceso
                             </span>

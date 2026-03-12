@@ -366,6 +366,7 @@ const PanelReportes = () => {
                 onAgregarGasto={() => setGastoDialogOpen(true)}
                 onSaveBaseAndReembolso={handleSaveBaseAndReembolso}
                 onClose={() => setCajaOpen(false)}
+                hasGastos={currentPeriodGastos.length > 0}
               />
               {loading ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>

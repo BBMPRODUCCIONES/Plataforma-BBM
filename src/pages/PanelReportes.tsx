@@ -492,7 +492,7 @@ const PanelReportes = () => {
                             <span className="text-muted-foreground italic flex items-center gap-1">
                               <Lock className="h-3 w-3" /> En proceso
                             </span>
-                          ) : (g.aprobado_por_nombre || "—")}
+                          ) : (g.estado !== "Pendiente" && g.aprobado_por_nombre ? g.aprobado_por_nombre : "—")}
                         </TableCell>
                         <TableCell>
                           {g.usuario_id === currentUserId && g.estado !== "Aprobado" && g.estado !== "Legalizado" && g.estado !== "Reembolsado" && (

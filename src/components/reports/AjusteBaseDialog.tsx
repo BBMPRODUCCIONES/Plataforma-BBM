@@ -103,13 +103,20 @@ export default function AjusteBaseDialog({
           {/* Reembolsado */}
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Reembolsado</Label>
-            <Input
-              type="number"
-              value={reembolsoValue}
-              onChange={(e) => setReembolsoValue(e.target.value)}
-              placeholder="Valor a reembolsar a la base"
-              className="text-sm"
-            />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={reembolsoValue ? Number(reembolsoValue).toLocaleString("es-CO") : ""}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, "");
+                  setReembolsoValue(raw);
+                }}
+                placeholder="0"
+                className="text-sm pl-7"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

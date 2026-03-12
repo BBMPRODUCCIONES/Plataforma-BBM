@@ -19,6 +19,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import EstadoCajaMenor from "@/components/reports/EstadoCajaMenor";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useActiveUndoLog } from "@/hooks/useActiveUndoLog";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -41,6 +42,11 @@ const PanelReportes = () => {
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
   const { config, cierres, stats, currentPeriodGastos, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
   const { canApproveCajaMenor, canAjustarBaseCajaMenor, role } = useUserRole();
+  const { entries: undoEntries } = useActiveUndoLog();
+
+  /** Returns true if gasto has an active undo timer (name should be hidden) */
+  const hasActiveUndoForGasto = (gastoId: string) =>
+    undoEntries.some(e => e.source === "gastoMenor" && e.item_id === `gm-${gastoId}`);
   const isAdmin = role === "administrador";
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   useEffect(() => {
@@ -66,13 +72,13 @@ const PanelReportes = () => {
   }, []);
 
   const toggleAllGastos = useCallback(() => {
-    const selectableGastos = currentPeriodGastos.filter(g => g.estado === "Aprobado");
+    const selectableGastos = currentPeriodGastos.filter(g => g.estado === "Aprobado" && !hasActiveUndoForGasto(g.id));
     if (selectedGastoIds.size === selectableGastos.length && selectableGastos.length > 0) {
       setSelectedGastoIds(new Set());
     } else {
       setSelectedGastoIds(new Set(selectableGastos.map(g => g.id)));
     }
-  }, [currentPeriodGastos, selectedGastoIds]);
+  }, [currentPeriodGastos, selectedGastoIds, undoEntries]);
 
   const handleCierreCaja = async () => {
     const result = await realizarCierre("Legalizado");
@@ -349,7 +355,7 @@ const PanelReportes = () => {
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Imagen</TableHead>
                       <TableHead>Estado</TableHead>
-                      <TableHead>Aprobado por</TableHead>
+                      <TableHead>Cambio hecho por</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -438,7 +444,7 @@ const PanelReportes = () => {
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Imagen</TableHead>
                       <TableHead>Estado</TableHead>
-                      <TableHead>Aprobado por</TableHead>
+                      <TableHead>Cambio hecho por</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -446,7 +452,7 @@ const PanelReportes = () => {
                     {currentPeriodGastos.map((g) => (
                       <TableRow key={g.id}>
                         <TableCell>
-                          {g.estado === "Aprobado" ? (
+                          {g.estado === "Aprobado" && !hasActiveUndoForGasto(g.id) ? (
                             <Checkbox
                               checked={selectedGastoIds.has(g.id)}
                               onCheckedChange={() => toggleGastoSelection(g.id)}
@@ -476,7 +482,13 @@ const PanelReportes = () => {
                         <TableCell>
                           <CajaMenorEstadoSelect value={g.estado} onChange={() => {}} readOnly />
                         </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{g.aprobado_por_nombre || "—"}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {hasActiveUndoForGasto(g.id) ? (
+                            <span className="text-muted-foreground italic flex items-center gap-1">
+                              <Lock className="h-3 w-3" /> En proceso
+                            </span>
+                          ) : (g.aprobado_por_nombre || "—")}
+                        </TableCell>
                         <TableCell>
                           {g.usuario_id === currentUserId && g.estado !== "Aprobado" && g.estado !== "Legalizado" && g.estado !== "Reembolsado" && (
                             <Button

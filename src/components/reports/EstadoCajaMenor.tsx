@@ -27,6 +27,7 @@ interface EstadoCajaMenorProps {
   onSaveBaseAndReembolso: (newBase: number, newReembolso: number) => Promise<boolean>;
   onClose?: () => void;
   readOnly?: boolean;
+  hasGastos?: boolean;
 }
 
 const fmt = (v: number) =>

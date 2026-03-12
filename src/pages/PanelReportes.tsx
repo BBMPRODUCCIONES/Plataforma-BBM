@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import Layout from "@/components/Layout";
-import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2, Eye, Lock, ChevronUp, ChevronDown, Ban } from "lucide-react";
+import { FileBarChart, DollarSign, ArrowLeft, Wallet, ClipboardCheck, Receipt, Plus, Trash2, Eye, Lock, ChevronUp, ChevronDown, Ban, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import DeleteCierreDialog from "@/components/reports/DeleteCierreDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,6 +38,8 @@ const PanelReportes = () => {
   const [historialOpen, setHistorialOpen] = useState(false);
   const [deleteCierreId, setDeleteCierreId] = useState<string | null>(null);
   const [showDeletedCierres, setShowDeletedCierres] = useState(false);
+  const [historialSearch, setHistorialSearch] = useState("");
+  const [historialSort, setHistorialSort] = useState<{ field: "fecha" | "valor"; dir: "asc" | "desc" } | null>(null);
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
   const { config, cierres, stats, currentPeriodGastos, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
@@ -531,7 +533,7 @@ const PanelReportes = () => {
         {/* Historial de Cierres */}
         {cierres.length > 0 && (
           <div className="space-y-2">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
@@ -554,104 +556,179 @@ const PanelReportes = () => {
               )}
             </div>
             {historialOpen && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha Cierre</TableHead>
-                    <TableHead>Responsable</TableHead>
-                    <TableHead className="text-right">Valor Total</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Desembolsado por</TableHead>
-                    <TableHead>Cambios Base</TableHead>
-                    <TableHead className="w-[120px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {[...cierres]
-                    .sort((a, b) => {
-                      const aDeleted = !!a.deleted_at ? 1 : 0;
-                      const bDeleted = !!b.deleted_at ? 1 : 0;
-                      return aDeleted - bDeleted;
-                    })
-                    .filter(c => showDeletedCierres || !c.deleted_at)
-                    .map((c) => {
-                    const isDeleted = !!c.deleted_at;
-                    return (
-                      <TableRow key={c.id} className={isDeleted ? "bg-destructive/10" : ""}>
-                        <TableCell className="text-xs">
-                          <div className="flex items-center gap-1.5">
-                            {isDeleted && (
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <button className="text-destructive hover:text-destructive/80 cursor-pointer">
-                                    <Ban className="h-3.5 w-3.5" />
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-72 text-xs space-y-1">
-                                  <p className="font-semibold text-destructive">Cierre eliminado</p>
-                                  <p><span className="font-medium">Por:</span> {c.deleted_by || "—"}</p>
-                                  <p><span className="font-medium">Motivo:</span> {c.deleted_reason || "—"}</p>
-                                  <p><span className="font-medium">Fecha:</span> {c.deleted_at ? format(new Date(c.deleted_at), "dd/MM/yyyy HH:mm", { locale: es }) : "—"}</p>
-                                </PopoverContent>
-                              </Popover>
-                            )}
-                            {format(new Date(c.fecha_cierre), "dd/MM/yyyy HH:mm", { locale: es })}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs">{c.responsable_nombre}</TableCell>
-                        <TableCell className="text-xs text-right font-mono">$ {c.valor_total.toLocaleString("es-CO")}</TableCell>
-                        <TableCell>
-                          <CajaMenorEstadoSelect value={isDeleted ? "Eliminado" : c.estado} onChange={() => {}} readOnly />
-                        </TableCell>
-                        <TableCell className="text-xs">{c.desembolsado_por || "—"}</TableCell>
-                        <TableCell className="text-xs">{c.cambios_base || "—"}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            {!isDeleted && (
-                              <>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-[11px] h-7 gap-1"
-                                  onClick={() => {
-                                    const snap = (c as any).snapshot || {};
-                                    const parsedBase = c.cambios_base ? Number(c.cambios_base.replace(/[^0-9]/g, "")) || 0 : 0;
-                                    setViewingCierreSnapshot({
-                                      base_asignada: snap.base_asignada || parsedBase,
-                                      total_aprobados: snap.total_aprobados || c.valor_total || 0,
-                                      total_pendientes: snap.total_pendientes || 0,
-                                      saldo_en_caja: snap.saldo_en_caja ?? ((snap.base_asignada || parsedBase) - (snap.total_aprobados || c.valor_total || 0)),
-                                      reembolsado: snap.reembolsado || 0,
-                                      responsable_nombre: snap.responsable_nombre || c.responsable_nombre || "",
-                                      responsable_timestamp: snap.responsable_timestamp || null,
-                                      estado_cierre: snap.estado_cierre || c.estado || "Cerrada",
-                                      gastos_count: snap.gastos_count ?? null,
-                                      gastos: snap.gastos || null,
-                                      fecha_cierre: c.fecha_cierre,
-                                    });
-                                  }}
-                                >
-                                  <Eye className="h-3 w-3" /> Ver más
-                                </Button>
-                                {isAdmin && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    onClick={() => setDeleteCierreId(c.id)}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
+              <>
+                {/* Filtro y ordenamiento */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="relative flex-1 min-w-[180px] max-w-xs">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar responsable, desembolsado por, estado..."
+                      value={historialSearch}
+                      onChange={(e) => setHistorialSearch(e.target.value)}
+                      className="pl-8 h-8 text-xs"
+                    />
+                  </div>
+                  <Button
+                    variant={historialSort?.field === "fecha" ? "default" : "outline"}
+                    size="sm"
+                    className="text-[11px] h-8 gap-1"
+                    onClick={() => {
+                      if (historialSort?.field === "fecha") {
+                        if (historialSort.dir === "desc") setHistorialSort({ field: "fecha", dir: "asc" });
+                        else setHistorialSort(null);
+                      } else {
+                        setHistorialSort({ field: "fecha", dir: "desc" });
+                      }
+                    }}
+                  >
+                    {historialSort?.field === "fecha"
+                      ? historialSort.dir === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />
+                      : <ArrowUpDown className="h-3 w-3" />}
+                    Fecha
+                  </Button>
+                  <Button
+                    variant={historialSort?.field === "valor" ? "default" : "outline"}
+                    size="sm"
+                    className="text-[11px] h-8 gap-1"
+                    onClick={() => {
+                      if (historialSort?.field === "valor") {
+                        if (historialSort.dir === "desc") setHistorialSort({ field: "valor", dir: "asc" });
+                        else setHistorialSort(null);
+                      } else {
+                        setHistorialSort({ field: "valor", dir: "desc" });
+                      }
+                    }}
+                  >
+                    {historialSort?.field === "valor"
+                      ? historialSort.dir === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />
+                      : <ArrowUpDown className="h-3 w-3" />}
+                    Valor Total
+                  </Button>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha Cierre</TableHead>
+                      <TableHead>Responsable</TableHead>
+                      <TableHead className="text-right">Valor Total</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Desembolsado por</TableHead>
+                      <TableHead>Cambios Base</TableHead>
+                      <TableHead className="w-[120px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(() => {
+                      const searchLower = historialSearch.toLowerCase().trim();
+                      const filtered = [...cierres]
+                        .filter(c => showDeletedCierres || !c.deleted_at)
+                        .filter(c => {
+                          if (!searchLower) return true;
+                          return (
+                            (c.responsable_nombre || "").toLowerCase().includes(searchLower) ||
+                            (c.desembolsado_por || "").toLowerCase().includes(searchLower) ||
+                            (c.estado || "").toLowerCase().includes(searchLower) ||
+                            (c.cambios_base || "").toLowerCase().includes(searchLower)
+                          );
+                        });
+
+                      filtered.sort((a, b) => {
+                        const aDeleted = !!a.deleted_at ? 1 : 0;
+                        const bDeleted = !!b.deleted_at ? 1 : 0;
+                        if (aDeleted !== bDeleted) return aDeleted - bDeleted;
+
+                        if (historialSort) {
+                          const multiplier = historialSort.dir === "asc" ? 1 : -1;
+                          if (historialSort.field === "fecha") {
+                            return multiplier * (new Date(a.fecha_cierre).getTime() - new Date(b.fecha_cierre).getTime());
+                          }
+                          if (historialSort.field === "valor") {
+                            return multiplier * (a.valor_total - b.valor_total);
+                          }
+                        }
+                        return 0;
+                      });
+
+                      return filtered.map((c) => {
+                        const isDeleted = !!c.deleted_at;
+                        return (
+                          <TableRow key={c.id} className={isDeleted ? "bg-destructive/10" : ""}>
+                            <TableCell className="text-xs">
+                              <div className="flex items-center gap-1.5">
+                                {isDeleted && (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <button className="text-destructive hover:text-destructive/80 cursor-pointer">
+                                        <Ban className="h-3.5 w-3.5" />
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-72 text-xs space-y-1">
+                                      <p className="font-semibold text-destructive">Cierre eliminado</p>
+                                      <p><span className="font-medium">Por:</span> {c.deleted_by || "—"}</p>
+                                      <p><span className="font-medium">Motivo:</span> {c.deleted_reason || "—"}</p>
+                                      <p><span className="font-medium">Fecha:</span> {c.deleted_at ? format(new Date(c.deleted_at), "dd/MM/yyyy HH:mm", { locale: es }) : "—"}</p>
+                                    </PopoverContent>
+                                  </Popover>
                                 )}
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                                {format(new Date(c.fecha_cierre), "dd/MM/yyyy HH:mm", { locale: es })}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs">{c.responsable_nombre}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">$ {c.valor_total.toLocaleString("es-CO")}</TableCell>
+                            <TableCell>
+                              <CajaMenorEstadoSelect value={isDeleted ? "Eliminado" : c.estado} onChange={() => {}} readOnly />
+                            </TableCell>
+                            <TableCell className="text-xs">{c.desembolsado_por || "—"}</TableCell>
+                            <TableCell className="text-xs">{c.cambios_base || "—"}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                {!isDeleted && (
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-[11px] h-7 gap-1"
+                                      onClick={() => {
+                                        const snap = (c as any).snapshot || {};
+                                        const parsedBase = c.cambios_base ? Number(c.cambios_base.replace(/[^0-9]/g, "")) || 0 : 0;
+                                        setViewingCierreSnapshot({
+                                          base_asignada: snap.base_asignada || parsedBase,
+                                          total_aprobados: snap.total_aprobados || c.valor_total || 0,
+                                          total_pendientes: snap.total_pendientes || 0,
+                                          saldo_en_caja: snap.saldo_en_caja ?? ((snap.base_asignada || parsedBase) - (snap.total_aprobados || c.valor_total || 0)),
+                                          reembolsado: snap.reembolsado || 0,
+                                          responsable_nombre: snap.responsable_nombre || c.responsable_nombre || "",
+                                          responsable_timestamp: snap.responsable_timestamp || null,
+                                          estado_cierre: snap.estado_cierre || c.estado || "Cerrada",
+                                          gastos_count: snap.gastos_count ?? null,
+                                          gastos: snap.gastos || null,
+                                          fecha_cierre: c.fecha_cierre,
+                                        });
+                                      }}
+                                    >
+                                      <Eye className="h-3 w-3" /> Ver más
+                                    </Button>
+                                    {isAdmin && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => setDeleteCierreId(c.id)}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      });
+                    })()}
+                  </TableBody>
+                </Table>
+              </>
             )}
           </div>
         )}

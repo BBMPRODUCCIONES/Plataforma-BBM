@@ -27,6 +27,7 @@ interface EstadoCajaMenorProps {
   onSaveBaseAndReembolso: (newBase: number, newReembolso: number) => Promise<boolean>;
   onClose?: () => void;
   readOnly?: boolean;
+  hasGastos?: boolean;
 }
 
 const fmt = (v: number) =>
@@ -37,6 +38,7 @@ export default function EstadoCajaMenor({
   onRegisterResponsable, onCierre, onLegalizar, onAgregarGasto, onSaveBaseAndReembolso,
   onClose,
   readOnly = false,
+  hasGastos = false,
 }: EstadoCajaMenorProps) {
   const [ajusteOpen, setAjusteOpen] = useState(false);
   const [cierreConfirmOpen, setCierreConfirmOpen] = useState(false);
@@ -57,7 +59,14 @@ export default function EstadoCajaMenor({
         {!readOnly && (
           <div className="flex items-center gap-2 flex-wrap">
             {onClose && (
-              <Button variant="ghost" size="sm" className="text-[11px] h-7" onClick={onClose}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[11px] h-7"
+                onClick={onClose}
+                disabled={hasGastos}
+                title={hasGastos ? "No se puede volver mientras existan solicitudes de caja menor registradas" : undefined}
+              >
                 <ArrowLeft className="h-3 w-3 mr-1" /> Volver
               </Button>
             )}

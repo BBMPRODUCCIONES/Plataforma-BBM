@@ -175,12 +175,12 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
     const gastosParaCierre = gastosLegalizados;
     const valorTotal = gastosParaCierre.reduce((s, g) => s + g.valor, 0);
 
-    // 1. Change all approved gastos to the cierre estado
-    const idsAprobados = gastosAprobados.map((g) => g.id);
+    // 1. Change all legalized gastos to the cierre estado
+    const idsCierre = gastosParaCierre.map((g) => g.id);
     const { error: updateError } = await supabase
       .from("gastos_menores")
       .update({ estado } as any)
-      .in("id", idsAprobados);
+      .in("id", idsCierre);
     if (updateError) { toast.error("Error actualizando gastos: " + updateError.message); return false; }
 
     // Build snapshot of current caja state

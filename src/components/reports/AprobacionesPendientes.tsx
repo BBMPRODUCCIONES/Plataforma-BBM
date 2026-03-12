@@ -1629,11 +1629,13 @@ export default function AprobacionesPendientes() {
                     <TableCell className="text-xs text-right font-medium">
                       {formatCurrency(group.totalValor)}
                     </TableCell>
-                    <TableCell className="text-xs text-center">
-                      <Badge variant="outline" className="text-[10px]">
-                        {group.rows.length}
-                      </Badge>
-                    </TableCell>
+                    {group.tipo !== 'C' && (
+                      <TableCell className="text-xs text-center">
+                        <Badge variant="outline" className="text-[10px]">
+                          {group.rows.length}
+                        </Badge>
+                      </TableCell>
+                    )}
                     <TableCell className="text-xs">
                       {(() => {
                         const isTypeSAndDecided = isTypeS && commonEstado !== "Pendiente";

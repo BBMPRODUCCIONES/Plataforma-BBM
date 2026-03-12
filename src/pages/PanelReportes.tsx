@@ -439,7 +439,7 @@ const PanelReportes = () => {
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Imagen</TableHead>
                       <TableHead>Estado</TableHead>
-                      <TableHead>Aprobado por</TableHead>
+                      <TableHead>Cambio hecho por</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>

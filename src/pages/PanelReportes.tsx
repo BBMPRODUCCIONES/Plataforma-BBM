@@ -452,7 +452,7 @@ const PanelReportes = () => {
                     {currentPeriodGastos.map((g) => (
                       <TableRow key={g.id}>
                         <TableCell>
-                          {g.estado === "Aprobado" ? (
+                          {g.estado === "Aprobado" && !hasActiveUndoForGasto(g.id) ? (
                             <Checkbox
                               checked={selectedGastoIds.has(g.id)}
                               onCheckedChange={() => toggleGastoSelection(g.id)}

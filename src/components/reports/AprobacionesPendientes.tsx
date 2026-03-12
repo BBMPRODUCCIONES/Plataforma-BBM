@@ -1531,7 +1531,7 @@ export default function AprobacionesPendientes() {
               <TableHead className="text-xs">CC</TableHead>
               <TableHead className="text-xs">Relación de eventos</TableHead>
               <TableHead className="text-xs text-right">Valor Total</TableHead>
-              <TableHead className="text-xs text-center">Cant.</TableHead>
+              {tipo !== 'C' && <TableHead className="text-xs text-center">Cant.</TableHead>}
               <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
               <TableHead className="text-xs">Aprobado por</TableHead>
               {showLeg && <TableHead className="text-xs text-right">Legalización</TableHead>}

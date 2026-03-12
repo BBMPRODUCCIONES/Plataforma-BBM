@@ -75,7 +75,7 @@ const PanelReportes = () => {
   }, []);
 
   const toggleAllGastos = useCallback(() => {
-    const selectableGastos = currentPeriodGastos.filter(g => g.estado === "Aprobado" && !hasActiveUndoForGasto(g.id));
+    const selectableGastos = currentPeriodGastos.filter(g => g.estado === "Aprobado" && !hasActiveUndoForGasto(g.id, g.estado));
     if (selectedGastoIds.size === selectableGastos.length && selectableGastos.length > 0) {
       setSelectedGastoIds(new Set());
     } else {

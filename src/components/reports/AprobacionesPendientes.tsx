@@ -208,6 +208,17 @@ export default function AprobacionesPendientes() {
     fetchUndoLog();
   }, [fetchUndoLog]);
 
+  // Realtime subscription for undo log so other users see changes immediately
+  useEffect(() => {
+    const channel = supabase
+      .channel("aprobaciones_undo_log_rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "aprobacion_undo_log" }, () => {
+        fetchUndoLog();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchUndoLog]);
+
   // Tick every 30s to update countdown badges
   useEffect(() => {
     const interval = setInterval(() => {

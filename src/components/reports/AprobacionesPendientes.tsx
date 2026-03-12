@@ -1531,7 +1531,7 @@ export default function AprobacionesPendientes() {
               <TableHead className="text-xs">CC</TableHead>
               <TableHead className="text-xs">Relación de eventos</TableHead>
               <TableHead className="text-xs text-right">Valor Total</TableHead>
-              <TableHead className="text-xs text-center">Cant.</TableHead>
+              {tipo !== 'C' && <TableHead className="text-xs text-center">Cant.</TableHead>}
               <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
               <TableHead className="text-xs">Aprobado por</TableHead>
               {showLeg && <TableHead className="text-xs text-right">Legalización</TableHead>}
@@ -1629,11 +1629,13 @@ export default function AprobacionesPendientes() {
                     <TableCell className="text-xs text-right font-medium">
                       {formatCurrency(group.totalValor)}
                     </TableCell>
-                    <TableCell className="text-xs text-center">
-                      <Badge variant="outline" className="text-[10px]">
-                        {group.rows.length}
-                      </Badge>
-                    </TableCell>
+                    {group.tipo !== 'C' && (
+                      <TableCell className="text-xs text-center">
+                        <Badge variant="outline" className="text-[10px]">
+                          {group.rows.length}
+                        </Badge>
+                      </TableCell>
+                    )}
                     <TableCell className="text-xs">
                       {(() => {
                         const isTypeSAndDecided = isTypeS && commonEstado !== "Pendiente";

@@ -611,6 +611,7 @@ const PanelReportes = () => {
                                       responsable_timestamp: snap.responsable_timestamp || null,
                                       estado_cierre: snap.estado_cierre || c.estado || "Cerrada",
                                       gastos_count: snap.gastos_count ?? null,
+                                      gastos: snap.gastos || null,
                                       fecha_cierre: c.fecha_cierre,
                                     });
                                   }}

@@ -42,6 +42,11 @@ const PanelReportes = () => {
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
   const { config, cierres, stats, currentPeriodGastos, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
   const { canApproveCajaMenor, canAjustarBaseCajaMenor, role } = useUserRole();
+  const { entries: undoEntries } = useActiveUndoLog();
+
+  /** Returns true if gasto has an active undo timer (name should be hidden) */
+  const hasActiveUndoForGasto = (gastoId: string) =>
+    undoEntries.some(e => e.source === "gastoMenor" && e.item_id === `gm-${gastoId}`);
   const isAdmin = role === "administrador";
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   useEffect(() => {

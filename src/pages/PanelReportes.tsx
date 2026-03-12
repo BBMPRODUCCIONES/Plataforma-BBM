@@ -336,11 +336,56 @@ const PanelReportes = () => {
                 onSaveBaseAndReembolso={async () => false}
                 readOnly
               />
-              {viewingCierreSnapshot.gastos_count != null && (
+              {viewingCierreSnapshot.gastos && viewingCierreSnapshot.gastos.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Centro de Costos</TableHead>
+                      <TableHead>Concepto</TableHead>
+                      <TableHead>Categoría</TableHead>
+                      <TableHead>Nombre Comercio</TableHead>
+                      <TableHead>NIT/CC</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Imagen</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Aprobado por</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {viewingCierreSnapshot.gastos.map((g: any, idx: number) => (
+                      <TableRow key={g.id || idx}>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {g.created_at ? format(new Date(g.created_at), "dd/MM/yyyy", { locale: es }) : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs">{g.centro_costos || "—"}</TableCell>
+                        <TableCell className="text-xs">{g.concepto || "—"}</TableCell>
+                        <TableCell className="text-xs">{g.categoria || "—"}</TableCell>
+                        <TableCell className="text-xs">{g.nombre_comercio || "—"}</TableCell>
+                        <TableCell className="text-xs">{g.nit_cc || "—"}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">
+                          $ {(g.valor || 0).toLocaleString("es-CO")}
+                        </TableCell>
+                        <TableCell>
+                          {g.imagen_url ? (
+                            <a href={g.imagen_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">Ver</a>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <CajaMenorEstadoSelect value={g.estado || "Pendiente"} onChange={() => {}} readOnly />
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{g.aprobado_por_nombre || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : viewingCierreSnapshot.gastos_count != null ? (
                 <p className="text-xs text-muted-foreground text-center py-3">
                   {viewingCierreSnapshot.gastos_count} gasto(s) incluidos en este cierre
                 </p>
-              )}
+              ) : null}
             </CardContent>
             <div className="px-4 pb-3 flex justify-end">
               <Button variant="outline" size="sm" onClick={() => setViewingCierreSnapshot(null)}>

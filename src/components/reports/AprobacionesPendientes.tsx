@@ -1539,7 +1539,7 @@ export default function AprobacionesPendientes() {
 
   const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
     const showLeg = tipo === 'S';
-    const colCount = showLeg ? 13 : 9;
+    const colCount = showLeg ? 14 : 10;
     const contentWidth = pendingContentWidths[tipo] || 0;
 
     return (
@@ -1559,14 +1559,13 @@ export default function AprobacionesPendientes() {
               <TableHead className="text-xs">Fecha</TableHead>
               <TableHead className="text-xs">Solicitante</TableHead>
               <TableHead className="text-xs">CC</TableHead>
-              <TableHead className="text-xs">Relación de eventos</TableHead>
+              <TableHead className="text-xs">Eventos</TableHead>
               <TableHead className="text-xs text-right">Valor Total</TableHead>
-              {tipo !== 'C' && <TableHead className="text-xs text-center">Cant.</TableHead>}
               <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
-              <TableHead className="text-xs">Aprobado por</TableHead>
               {showLeg && <TableHead className="text-xs text-right">Legalización</TableHead>}
               {showLeg && <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>}
               {showLeg && <TableHead className="text-xs text-right">Saldo</TableHead>}
+              <TableHead className="text-xs">Resp. aprobaciones</TableHead>
               {showLeg && <TableHead className="text-xs w-[130px]">Plazo Leg.</TableHead>}
               <TableHead className="text-xs w-[100px]">Deshacer</TableHead>
               <TableHead className="text-xs w-[80px]"></TableHead>

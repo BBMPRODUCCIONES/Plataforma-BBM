@@ -942,13 +942,6 @@ export default function AprobacionesPendientes() {
         );
         await updateProject(projectId, "cajaMenor", updatedCajaMenor);
 
-        if (newEstado === "No aprobado") {
-          const employeeNames = new Set(cajaMenorRows.map(r => r.item.empleadoNombre?.toLowerCase()));
-          const updatedLeg = (project.legalizacion || []).map(l =>
-            employeeNames.has(l.empleadoNombre?.toLowerCase()) ? { ...l, estado: "No legalizable" } : l
-          );
-          await updateProject(projectId, "legalizacion", updatedLeg);
-        }
       }
 
       if (recursosPropiosRows.length > 0) {

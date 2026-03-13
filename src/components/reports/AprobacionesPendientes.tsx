@@ -1178,7 +1178,7 @@ export default function AprobacionesPendientes() {
           );
           await updateProject(projectId, "cajaMenor", updatedCajaMenor);
           
-          // Reset linked legalization items to "Revisando" for type S
+          // Reset linked legalization items to "Pendiente" for type S
           const legIdsLinkedToCajaMenor = new Set(
             (project.legalizacion || [])
               .filter(l => l.id && cajaMenorIdsToRestore.has(l.id.replace("leg-", "")))
@@ -1187,13 +1187,13 @@ export default function AprobacionesPendientes() {
           if (legIdsLinkedToCajaMenor.size > 0) {
             const updatedLegForS = (project.legalizacion || []).map(l =>
               legIdsLinkedToCajaMenor.has(l.id)
-                ? { ...l, estado: "Revisando" }
+                ? { ...l, estado: "Pendiente" }
                 : l
             );
             await updateProject(projectId, "legalizacion", updatedLegForS);
           }
           
-          cajaMenorIdsToRestore.forEach(() => toast.info("Solicitud de anticipo restaurada con legalización en Revisando"));
+          cajaMenorIdsToRestore.forEach(() => toast.info("Solicitud de anticipo restaurada con legalización en Pendiente"));
         }
         
         if (legIdsToRestore.size > 0) {

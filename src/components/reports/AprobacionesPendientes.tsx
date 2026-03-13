@@ -2245,7 +2245,7 @@ export default function AprobacionesPendientes() {
                     )];
                     const aprobadoPorDisplay = commonEstado === "Pendiente" ? "—" : (aprobadores.length === 1 ? aprobadores[0] : aprobadores.length > 1 ? aprobadores.join(", ") : "—");
 
-                    const legEstados = isTypeS ? [...new Set(group.rows.map(r => r.legalizacionEstado || "Revisando"))] : [];
+                    const legEstados = isTypeS ? [...new Set(group.rows.map(r => r.legalizacionEstado || "Pendiente"))] : [];
                     const commonLegEstado = legEstados.length === 1 ? legEstados[0] : legEstados.length > 1 ? "Mixto" : "";
 
                     const hasRestoredRows = group.rows.some(r => r.item.restaurada === true);

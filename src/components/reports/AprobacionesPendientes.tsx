@@ -2331,9 +2331,9 @@ export default function AprobacionesPendientes() {
                         <TableCell className="text-xs">
                           {isTypeS ? (
                             <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                              LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === commonLegEstado)?.className || "bg-yellow-500/20 text-yellow-400"
+                              LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === commonLegEstado)?.className || LEGALIZACION_PENDIENTE.className
                             }`}>
-                              {commonLegEstado || "Revisando"}
+                              {commonLegEstado || "Pendiente"}
                             </span>
                           ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>

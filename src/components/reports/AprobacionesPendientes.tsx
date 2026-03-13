@@ -1330,22 +1330,6 @@ export default function AprobacionesPendientes() {
             );
           })()}
         </TableCell>
-        <TableCell className="text-xs">
-          <TruncatedCellWithEye
-            text={(() => {
-              // Don't show approver name when estado is Pendiente
-              if (row.item.estado === "Pendiente") return "—";
-              const r = (row.item.recursos as string) || "";
-              const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
-              if (tipo === "C") {
-                const gm = gastosMenores.find(g => g.id === row.gastoMenorId);
-                return gm?.aprobado_por_nombre || "—";
-              }
-              return row.item.revisadoPor || "—";
-            })()}
-            label="Aprobado por"
-          />
-        </TableCell>
         <TableCell className="text-xs text-right">
           {(() => {
             const r = (row.item.recursos as string) || "";
@@ -1363,31 +1347,31 @@ export default function AprobacionesPendientes() {
             }
             if (row.item.estado === "Pendiente") {
               return (
-                <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_EN_REVISION.className}`}>
-                  {LEGALIZACION_EN_REVISION.label}
+                <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_PENDIENTE.className}`}>
+                  {LEGALIZACION_PENDIENTE.label}
                 </span>
               );
             }
             if (row.item.estado === "No aprobado") {
               return (
-                <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_NO_APROBADO.className}`}>
-                  {LEGALIZACION_NO_APROBADO.label}
+                <span className={`text-xs font-medium px-2 py-0.5 rounded ${LEGALIZACION_PENDIENTE.className}`}>
+                  {LEGALIZACION_PENDIENTE.label}
                 </span>
               );
             }
             if (canApproveCajaMenor() && row.item.estado === "Aprobado" && !readOnly) {
               return (
                 <Select
-                  value={row.legalizacionEstado || "Revisando"}
+                  value={row.legalizacionEstado || "Pendiente"}
                   onValueChange={(v) => handleLegalizacionEstadoChange(row, v)}
                 >
                   <SelectTrigger
                     className={`h-7 text-xs w-full border font-medium ${
-                      LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (row.legalizacionEstado || "Revisando"))?.className || "bg-yellow-500/20 text-yellow-400"
+                      LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (row.legalizacionEstado || "Pendiente"))?.className || LEGALIZACION_PENDIENTE.className
                     }`}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <span>{LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (row.legalizacionEstado || "Revisando"))?.label || "Revisando"}</span>
+                    <span>{LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === (row.legalizacionEstado || "Pendiente"))?.label || "Pendiente"}</span>
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border z-[9999]">
                     {LEGALIZACION_ESTADO_OPTIONS.map((option) => (
@@ -1405,10 +1389,72 @@ export default function AprobacionesPendientes() {
             }
             return (
               <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === row.legalizacionEstado)?.className || "bg-yellow-500/20 text-yellow-400"
+                LEGALIZACION_ESTADO_OPTIONS.find(o => o.value === row.legalizacionEstado)?.className || LEGALIZACION_PENDIENTE.className
               }`}>
-                {row.legalizacionEstado || "Revisando"}
+                {row.legalizacionEstado || "Pendiente"}
               </span>
+            );
+          })()}
+        </TableCell>
+        <TableCell className={`text-xs text-right font-medium ${
+          (() => {
+            const r = (row.item.recursos as string) || "";
+            const isR = r === "Recursos propios";
+            if (row.source === 'gastoMenor' || isR) return "";
+            return row.saldoAFavor > 0 ? "text-green-400" : row.saldoAFavor < 0 ? "text-red-400" : "";
+          })()
+        }`}>
+          {(() => {
+            const r = (row.item.recursos as string) || "";
+            const isR = r === "Recursos propios";
+            if (row.source === 'gastoMenor' || isR) return "—";
+            return formatCurrency(Math.abs(row.saldoAFavor));
+          })()}
+        </TableCell>
+        <TableCell className="text-xs">
+          {(() => {
+            // Don't show approver name when estado is Pendiente
+            if (row.item.estado === "Pendiente") return <span className="text-muted-foreground">—</span>;
+            const r = (row.item.recursos as string) || "";
+            const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
+            const solApprover = (() => {
+              if (tipo === "C") {
+                const gm = gastosMenores.find(g => g.id === row.gastoMenorId);
+                return gm?.aprobado_por_nombre || "";
+              }
+              return row.item.revisadoPor || "";
+            })();
+            // Get legalization approver for type S
+            const legApprover = tipo === "S" ? (() => {
+              const proj = projects.find(p => p.id === row.projectId);
+              const leg = (proj?.legalizacion || []).find(l => l.id === `leg-${row.item.id}`);
+              return leg?.revisadoPor || "";
+            })() : "";
+            const displayText = solApprover || "—";
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button type="button" className="flex items-center gap-1 max-w-[120px] focus:outline-none">
+                    <span className="truncate text-xs">{displayText}</span>
+                    <Eye className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-pointer shrink-0" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="top" className="text-xs max-w-[320px] p-3 space-y-2">
+                  <p className="font-semibold mb-2">Responsables de aprobaciones</p>
+                  <div className="space-y-1.5">
+                    <div className="flex items-start gap-2">
+                      <span className="font-medium text-blue-400 whitespace-nowrap">📋 Solicitud:</span>
+                      <span>{solApprover || "Sin aprobar"}</span>
+                    </div>
+                    {tipo === "S" && (
+                      <div className="flex items-start gap-2">
+                        <span className="font-medium text-emerald-400 whitespace-nowrap">📄 Legalización:</span>
+                        <span>{legApprover || "Sin aprobar"}</span>
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             );
           })()}
         </TableCell>

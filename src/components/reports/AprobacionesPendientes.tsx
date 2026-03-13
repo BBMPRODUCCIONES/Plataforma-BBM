@@ -1001,7 +1001,7 @@ export default function AprobacionesPendientes() {
         contingencia: "No",
         estado: newEstado as any,
         createdAt: new Date().toISOString(),
-        revisadoPor: newEstado === "Revisando" ? "" : currentUserName || "Admin",
+        revisadoPor: newEstado === "Pendiente" ? "" : currentUserName || "Admin",
       };
       updatedLegalizacion = [...currentLeg, newLeg];
     }

@@ -136,7 +136,7 @@ function getLegalizacionForEmployee(
   empleadoNombre?: string,
   cajaMenorIds?: Set<string>
 ): { total: number; estado: string } {
-  if (!legalizacion || !empleadoNombre) return { total: 0, estado: "Revisando" };
+  if (!legalizacion || !empleadoNombre) return { total: 0, estado: "Pendiente" };
   // Only include legalization items linked to an anticipo (leg-xxx), exclude standalone "Recursos propios"
   const matched = legalizacion.filter(
     (l) =>
@@ -145,7 +145,7 @@ function getLegalizacionForEmployee(
   );
   const total = matched.reduce((sum, l) => sum + (l.valor || 0), 0);
   const allLegalized = matched.length > 0 && matched.every((l) => (l.estado as string) === "Legalizado");
-  const estado = matched.length === 0 ? "Revisando" : allLegalized ? "Legalizado" : (matched[0]?.estado as string) || "Revisando";
+  const estado = matched.length === 0 ? "Pendiente" : allLegalized ? "Legalizado" : (matched[0]?.estado as string) || "Pendiente";
   return { total, estado };
 }
 
@@ -155,17 +155,17 @@ const MONTHS = [
 ];
 
 const LEGALIZACION_ESTADO_OPTIONS = [
-  { value: "Revisando", label: "Revisando", className: "bg-yellow-500/20 text-yellow-400" },
-  { value: "Legalizado", label: "Legalizado", className: "bg-green-500/20 text-green-400" },
-  { value: "No legalizable", label: "No legalizable", className: "bg-red-500/20 text-red-400" },
+  { value: "Pendiente", label: "Pendiente", className: "bg-orange-500/20 text-orange-400" },
+  { value: "Aprobado", label: "Aprobado", className: "bg-green-500/20 text-green-400" },
+  { value: "Contabilizado", label: "Contabilizado", className: "bg-blue-500/20 text-blue-400" },
+  { value: "Legalizado", label: "Legalizado", className: "bg-emerald-500/20 text-emerald-400" },
 ];
 
-const LEGALIZACION_EN_REVISION = { value: "En revisión", label: "En revisión", className: "bg-cyan-500/20 text-cyan-400" };
-const LEGALIZACION_NO_APROBADO = { value: "No legalizable", label: "No legalizable", className: "bg-red-500/20 text-red-400" };
+const LEGALIZACION_PENDIENTE = { value: "Pendiente", label: "Pendiente", className: "bg-orange-500/20 text-orange-400" };
 
 const KNOWN_ESTADOS = ["Pendiente", "Aprobado", "No aprobado"];
 const KNOWN_CATEGORIAS = ["Transporte", "Alimentación", "Compras"];
-const KNOWN_LEG_ESTADOS = ["Revisando", "Legalizado", "No legalizable"];
+const KNOWN_LEG_ESTADOS = ["Pendiente", "Aprobado", "Contabilizado", "Legalizado"];
 const KNOWN_TIPOS = [
   { value: "S", label: "S - Solicitud de anticipos" },
   { value: "R", label: "R - Recursos propios" },

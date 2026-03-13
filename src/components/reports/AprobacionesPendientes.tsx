@@ -982,7 +982,7 @@ export default function AprobacionesPendientes() {
           return {
             ...l,
             estado: newEstado,
-            revisadoPor: newEstado === "Revisando" ? "" : currentUserName || "Admin",
+            revisadoPor: newEstado === "Pendiente" ? "" : currentUserName || "Admin",
           };
         }
         return l;

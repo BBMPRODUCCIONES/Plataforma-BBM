@@ -892,15 +892,6 @@ export default function AprobacionesPendientes() {
     );
     await updateProject(row.projectId, "cajaMenor", updatedCajaMenor);
 
-    if (newEstado === "No aprobado") {
-      const updatedLegalizacion = (project.legalizacion || []).map((l) => {
-        if (l.empleadoNombre?.toLowerCase() === row.item.empleadoNombre?.toLowerCase()) {
-          return { ...l, estado: "No legalizable" };
-        }
-        return l;
-      });
-      await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
-    }
 
     await logUndoEntry(row, previousEstado, newEstado, previousRevisadoPor);
     toast.success(`Estado de solicitud actualizado a "${newEstado}"`);

@@ -623,7 +623,7 @@ export default function AprobacionesPendientes() {
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
       if (isTypeS) {
         // Type S stays pending until legalization is complete
-        if (r.legalizacionEstado !== "Legalizado" && r.legalizacionEstado !== "No legalizable") return true;
+        if (r.legalizacionEstado !== "Legalizado") return true;
         // Even if legalized, stay pending while undo window for legalization is active
         const legUndoId = `leg-${r.item.id}`;
         if (hasActiveUndo(legUndoId)) return true;
@@ -642,9 +642,9 @@ export default function AprobacionesPendientes() {
     if (r.item.estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
-      // Type S resolved when legalization is "Legalizado" or "No legalizable" AND undo window expired
+      // Type S resolved when legalization is "Legalizado" AND undo window expired
       if (isTypeS) {
-        const legResolved = r.legalizacionEstado === "Legalizado" || r.legalizacionEstado === "No legalizable";
+        const legResolved = r.legalizacionEstado === "Legalizado";
         if (!legResolved) return false;
         const legUndoId = `leg-${r.item.id}`;
         return !hasActiveUndo(legUndoId);

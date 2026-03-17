@@ -2,20 +2,21 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { UserCheck, Lock, RotateCcw, Plus, FileCheck, ArrowLeft } from "lucide-react";
+import { UserCheck, Lock, Plus, ArrowLeft, Info } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CajaMenorConfig } from "@/hooks/useCajaMenorConfig";
+import { CajaMenorConfig, BASE_ASIGNADA_FIJA } from "@/hooks/useCajaMenorConfig";
 import AjusteBaseDialog from "./AjusteBaseDialog";
 
 interface EstadoCajaMenorProps {
   config: CajaMenorConfig | null;
   stats: {
-    base: number;
-    totalAprobados: number;
+    baseAsignada: number;
+    saldoInicial: number;
+    reembolsadoCajaAnterior: number;
+    totalGastos: number;
     totalPendientes: number;
-    efectivoEnCaja: number;
-    reembolsado: number;
+    saldoEnCaja: number;
   };
   isAdmin: boolean;
   canAjustarBase: boolean;
@@ -28,6 +29,9 @@ interface EstadoCajaMenorProps {
   onClose?: () => void;
   readOnly?: boolean;
   hasGastos?: boolean;
+  // Role-based UI
+  isResponsable?: boolean;
+  isAuditor?: boolean;
 }
 
 const fmt = (v: number) =>
@@ -39,10 +43,11 @@ export default function EstadoCajaMenor({
   onClose,
   readOnly = false,
   hasGastos = false,
+  isResponsable = false,
+  isAuditor = false,
 }: EstadoCajaMenorProps) {
   const [ajusteOpen, setAjusteOpen] = useState(false);
   const [cierreConfirmOpen, setCierreConfirmOpen] = useState(false);
-  const saldoEnCaja = stats.base - stats.totalAprobados;
 
   const handleCierreConfirm = () => {
     setCierreConfirmOpen(false);
@@ -70,20 +75,52 @@ export default function EstadoCajaMenor({
                 <ArrowLeft className="h-3 w-3 mr-1" /> Volver
               </Button>
             )}
-            <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setCierreConfirmOpen(true)}>
-              <Lock className="h-3 w-3 mr-1" /> Cierre de caja
-            </Button>
-            <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={onLegalizar} disabled={selectedGastosCount === 0}>
-              <FileCheck className="h-3 w-3 mr-1" /> Legalizado {selectedGastosCount > 0 && `(${selectedGastosCount})`}
-            </Button>
-            {canAjustarBase && (
-              <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setAjusteOpen(true)}>
-                <RotateCcw className="h-3 w-3 mr-1" /> Reembolsado
-              </Button>
+            {/* Responsable: can close caja and add gastos */}
+            {isResponsable && (
+              <>
+                <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setCierreConfirmOpen(true)}>
+                  <Lock className="h-3 w-3 mr-1" /> Cerrar Caja
+                </Button>
+                <Button size="sm" className="text-[11px] h-7" onClick={onAgregarGasto}>
+                  <Plus className="h-3 w-3 mr-1" /> Agregar Gasto
+                </Button>
+              </>
             )}
-            <Button size="sm" className="text-[11px] h-7" onClick={onAgregarGasto}>
-              <Plus className="h-3 w-3 mr-1" /> Agregar Gasto
-            </Button>
+            {/* Auditor: can legalize, reimburse, but NOT close */}
+            {isAuditor && (
+              <>
+                <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={onLegalizar} disabled={selectedGastosCount === 0}>
+                  Legalizado {selectedGastosCount > 0 && `(${selectedGastosCount})`}
+                </Button>
+                {canAjustarBase && (
+                  <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setAjusteOpen(true)}>
+                    Reembolsado
+                  </Button>
+                )}
+                <Button size="sm" className="text-[11px] h-7" onClick={onAgregarGasto}>
+                  <Plus className="h-3 w-3 mr-1" /> Agregar Gasto
+                </Button>
+              </>
+            )}
+            {/* Fallback: admin without specific sub-role sees all except cierre */}
+            {!isResponsable && !isAuditor && isAdmin && (
+              <>
+                <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setCierreConfirmOpen(true)}>
+                  <Lock className="h-3 w-3 mr-1" /> Cierre de caja
+                </Button>
+                <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={onLegalizar} disabled={selectedGastosCount === 0}>
+                  Legalizado {selectedGastosCount > 0 && `(${selectedGastosCount})`}
+                </Button>
+                {canAjustarBase && (
+                  <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setAjusteOpen(true)}>
+                    Reembolsado
+                  </Button>
+                )}
+                <Button size="sm" className="text-[11px] h-7" onClick={onAgregarGasto}>
+                  <Plus className="h-3 w-3 mr-1" /> Agregar Gasto
+                </Button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -115,14 +152,24 @@ export default function EstadoCajaMenor({
           </div>
 
           <div>
-            <p className="text-[11px] text-muted-foreground font-semibold uppercase mb-1.5">Cierre de Caja</p>
+            <p className="text-[11px] text-muted-foreground font-semibold uppercase mb-1.5">Estado de Caja</p>
             <p className="text-xs">
               Estado: <span className="font-semibold">{config?.estado_cierre || "Abierta"}</span>
             </p>
           </div>
+
+          {/* Informational message for responsable */}
+          {isResponsable && !isAuditor && (
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-md p-2.5 flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 text-blue-400 shrink-0 mt-0.5" />
+              <p className="text-[10px] text-blue-300">
+                Eres responsable de esta caja. Puedes agregar gastos y cerrar la caja cuando todos los gastos estén legalizados. Al cerrar, se abrirá una nueva caja y esta pasará a revisión.
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Center/Right: Financial summary table */}
+        {/* Center/Right: Financial summary table - NEW ORDER */}
         <div className="p-4 md:col-span-2">
           <Table>
             <TableHeader>
@@ -132,45 +179,53 @@ export default function EstadoCajaMenor({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {/* BASE ASIGNADA */}
+              {/* 1. BASE ASIGNADA (fixed, informational) */}
               <TableRow className="bg-primary/5 border-b-2 border-primary/20">
                 <TableCell className="text-xs py-2 font-bold uppercase">
-                  Base Asignada
+                  <div className="flex items-center gap-1.5">
+                    Base Asignada
+                    <span className="text-[9px] font-normal text-muted-foreground">(fija)</span>
+                  </div>
                 </TableCell>
                 <TableCell className="text-sm py-2 text-right font-mono font-bold">
-                  {fmt(stats.base)}
+                  {fmt(stats.baseAsignada)}
                 </TableCell>
               </TableRow>
 
-              {/* Total gastos aprobados */}
+              {/* 2. SALDO INICIAL */}
               <TableRow>
-                <TableCell className="text-xs py-1.5">Total gastos aprobados</TableCell>
+                <TableCell className="text-xs py-1.5">
+                  <div className="flex items-center gap-1.5">
+                    Saldo inicial
+                    <span className="text-[9px] text-muted-foreground">(de caja anterior)</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-xs py-1.5 text-right font-mono font-semibold text-cyan-500">
+                  {fmt(stats.saldoInicial)}
+                </TableCell>
+              </TableRow>
+
+              {/* 3. REEMBOLSADO CAJA ANTERIOR */}
+              <TableRow>
+                <TableCell className="text-xs py-1.5">Reembolsado caja anterior</TableCell>
+                <TableCell className="text-xs py-1.5 text-right font-mono font-semibold text-purple-400">
+                  {fmt(stats.reembolsadoCajaAnterior)}
+                </TableCell>
+              </TableRow>
+
+              {/* 4. TOTAL DE GASTOS */}
+              <TableRow>
+                <TableCell className="text-xs py-1.5">Total de gastos</TableCell>
                 <TableCell className="text-xs py-1.5 text-right font-mono text-emerald-500 font-semibold">
-                  {fmt(stats.totalAprobados)}
+                  {fmt(stats.totalGastos)}
                 </TableCell>
               </TableRow>
 
-              {/* Total gastos pendientes */}
-              <TableRow>
-                <TableCell className="text-xs py-1.5">Total gastos pendientes</TableCell>
-                <TableCell className="text-xs py-1.5 text-right font-mono text-yellow-500">
-                  {fmt(stats.totalPendientes)}
-                </TableCell>
-              </TableRow>
-
-              {/* Saldo en caja */}
-              <TableRow className="border-t-2 border-border/50">
-                <TableCell className="text-xs py-1.5 font-semibold">Saldo en caja</TableCell>
-                <TableCell className={`text-xs py-1.5 text-right font-mono font-bold ${saldoEnCaja >= 0 ? "text-emerald-500" : "text-destructive"}`}>
-                  {saldoEnCaja < 0 ? "- " : ""}{fmt(Math.abs(saldoEnCaja))}
-                </TableCell>
-              </TableRow>
-
-              {/* REEMBOLSADO */}
-              <TableRow className="border-t-2 border-border/50">
-                <TableCell className="text-xs py-1.5 font-bold uppercase">Reembolsado</TableCell>
-                <TableCell className="text-xs py-1.5 text-right font-mono font-bold text-cyan-500">
-                  {fmt(stats.reembolsado)}
+              {/* 5. SALDO EN CAJA (= saldo_inicial + reembolsado - total_gastos) */}
+              <TableRow className="border-t-2 border-border/50 bg-primary/5">
+                <TableCell className="text-xs py-2 font-bold uppercase">Saldo en caja</TableCell>
+                <TableCell className={`text-sm py-2 text-right font-mono font-bold ${stats.saldoEnCaja >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                  {stats.saldoEnCaja < 0 ? "- " : ""}{fmt(Math.abs(stats.saldoEnCaja))}
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -182,9 +237,9 @@ export default function EstadoCajaMenor({
       <AjusteBaseDialog
         open={ajusteOpen}
         onOpenChange={setAjusteOpen}
-        currentBase={stats.base}
-        currentReembolso={stats.reembolsado}
-        saldoEnCaja={saldoEnCaja}
+        currentBase={stats.baseAsignada}
+        currentReembolso={stats.reembolsadoCajaAnterior}
+        saldoEnCaja={stats.saldoEnCaja}
         onSave={onSaveBaseAndReembolso}
       />
 
@@ -199,21 +254,25 @@ export default function EstadoCajaMenor({
                 <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Base Asignada:</span>
-                    <span className="font-mono font-semibold">{fmt(stats.base)}</span>
+                    <span className="font-mono font-semibold">{fmt(stats.baseAsignada)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total gastos aprobados:</span>
-                    <span className="font-mono font-semibold text-emerald-500">{fmt(stats.totalAprobados)}</span>
+                    <span className="text-muted-foreground">Saldo inicial:</span>
+                    <span className="font-mono font-semibold text-cyan-500">{fmt(stats.saldoInicial)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Reembolsado caja anterior:</span>
+                    <span className="font-mono font-semibold text-purple-400">{fmt(stats.reembolsadoCajaAnterior)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total de gastos:</span>
+                    <span className="font-mono font-semibold text-emerald-500">{fmt(stats.totalGastos)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Saldo en caja:</span>
-                    <span className={`font-mono font-semibold ${saldoEnCaja >= 0 ? "text-emerald-500" : "text-destructive"}`}>
-                      {saldoEnCaja < 0 ? "- " : ""}{fmt(Math.abs(saldoEnCaja))}
+                    <span className={`font-mono font-semibold ${stats.saldoEnCaja >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                      {stats.saldoEnCaja < 0 ? "- " : ""}{fmt(Math.abs(stats.saldoEnCaja))}
                     </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Reembolsado:</span>
-                    <span className="font-mono font-semibold text-cyan-500">{fmt(stats.reembolsado)}</span>
                   </div>
                   {config?.responsable_nombre && (
                     <div className="flex justify-between">
@@ -223,7 +282,7 @@ export default function EstadoCajaMenor({
                   )}
                 </div>
                 <p className="text-destructive text-xs font-medium">
-                  Esta acción cerrará la caja actual y creará una nueva con el saldo restante.
+                  Esta acción cerrará la caja actual, la enviará a revisión por los auditores y creará una nueva con el saldo restante.
                 </p>
               </div>
             </AlertDialogDescription>

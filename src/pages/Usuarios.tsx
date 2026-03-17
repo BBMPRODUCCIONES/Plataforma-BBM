@@ -65,6 +65,8 @@ interface UserWithRole {
   puede_ajustar_base_caja_menor: boolean;
   puede_desembolsar: boolean;
   puede_acceder_aprobaciones: boolean;
+  es_responsable_caja_menor: boolean;
+  es_auditor_caja_menor: boolean;
   puede_acceder_usuarios: boolean;
   puede_acceder_clientes: boolean;
   puede_acceder_empleados: boolean;
@@ -128,6 +130,8 @@ const Usuarios = () => {
   const [newPuedeAjustarBaseCajaMenor, setNewPuedeAjustarBaseCajaMenor] = useState(false);
   const [newPuedeDesembolsar, setNewPuedeDesembolsar] = useState(false);
   const [newPuedeAccederAprobaciones, setNewPuedeAccederAprobaciones] = useState(false);
+  const [newEsResponsableCajaMenor, setNewEsResponsableCajaMenor] = useState(false);
+  const [newEsAuditorCajaMenor, setNewEsAuditorCajaMenor] = useState(false);
   const [newPuedeAccederUsuarios, setNewPuedeAccederUsuarios] = useState(true);
   const [newPuedeAccederClientes, setNewPuedeAccederClientes] = useState(true);
   const [newPuedeAccederEmpleados, setNewPuedeAccederEmpleados] = useState(true);
@@ -153,6 +157,8 @@ const Usuarios = () => {
   const [editPuedeAjustarBaseCajaMenor, setEditPuedeAjustarBaseCajaMenor] = useState(false);
   const [editPuedeDesembolsar, setEditPuedeDesembolsar] = useState(false);
   const [editPuedeAccederAprobaciones, setEditPuedeAccederAprobaciones] = useState(false);
+  const [editEsResponsableCajaMenor, setEditEsResponsableCajaMenor] = useState(false);
+  const [editEsAuditorCajaMenor, setEditEsAuditorCajaMenor] = useState(false);
   const [editPuedeAccederUsuarios, setEditPuedeAccederUsuarios] = useState(true);
   const [editPuedeAccederClientes, setEditPuedeAccederClientes] = useState(true);
   const [editPuedeAccederEmpleados, setEditPuedeAccederEmpleados] = useState(true);
@@ -193,7 +199,7 @@ const Usuarios = () => {
       // Fetch users with roles and panels (now includes email and feedback permissions)
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables, puede_restaurar_solicitudes, puede_ajustar_base_caja_menor, puede_desembolsar, puede_acceder_aprobaciones, puede_acceder_usuarios, puede_acceder_clientes, puede_acceder_empleados, puede_acceder_constructor, puede_acceder_agentes");
+        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables, puede_restaurar_solicitudes, puede_ajustar_base_caja_menor, puede_desembolsar, puede_acceder_aprobaciones, es_responsable_caja_menor, es_auditor_caja_menor, puede_acceder_usuarios, puede_acceder_clientes, puede_acceder_empleados, puede_acceder_constructor, puede_acceder_agentes");
 
       if (rolesError) throw rolesError;
 
@@ -228,6 +234,8 @@ const Usuarios = () => {
           puede_ajustar_base_caja_menor: (roleRecord as any).puede_ajustar_base_caja_menor ?? false,
           puede_desembolsar: (roleRecord as any).puede_desembolsar ?? false,
           puede_acceder_aprobaciones: (roleRecord as any).puede_acceder_aprobaciones ?? false,
+          es_responsable_caja_menor: (roleRecord as any).es_responsable_caja_menor ?? false,
+          es_auditor_caja_menor: (roleRecord as any).es_auditor_caja_menor ?? false,
           puede_acceder_usuarios: (roleRecord as any).puede_acceder_usuarios ?? true,
           puede_acceder_clientes: (roleRecord as any).puede_acceder_clientes ?? true,
           puede_acceder_empleados: (roleRecord as any).puede_acceder_empleados ?? true,
@@ -303,6 +311,8 @@ const Usuarios = () => {
             puede_ajustar_base_caja_menor: newPuedeAjustarBaseCajaMenor,
             puede_desembolsar: newPuedeDesembolsar,
             puede_acceder_aprobaciones: newPuedeAccederAprobaciones,
+            es_responsable_caja_menor: newEsResponsableCajaMenor,
+            es_auditor_caja_menor: newEsAuditorCajaMenor,
             puede_acceder_usuarios: newPuedeAccederUsuarios,
             puede_acceder_clientes: newPuedeAccederClientes,
             puede_acceder_empleados: newPuedeAccederEmpleados,
@@ -508,6 +518,8 @@ const Usuarios = () => {
     setNewPuedeAjustarBaseCajaMenor(false);
     setNewPuedeDesembolsar(false);
     setNewPuedeAccederAprobaciones(false);
+    setNewEsResponsableCajaMenor(false);
+    setNewEsAuditorCajaMenor(false);
     setNewPuedeAccederUsuarios(true);
     setNewPuedeAccederClientes(true);
     setNewPuedeAccederEmpleados(true);
@@ -535,6 +547,8 @@ const Usuarios = () => {
     setEditPuedeAjustarBaseCajaMenor(user.puede_ajustar_base_caja_menor);
     setEditPuedeDesembolsar(user.puede_desembolsar);
     setEditPuedeAccederAprobaciones(user.puede_acceder_aprobaciones);
+    setEditEsResponsableCajaMenor(user.es_responsable_caja_menor);
+    setEditEsAuditorCajaMenor(user.es_auditor_caja_menor);
     setEditPuedeAccederUsuarios(user.puede_acceder_usuarios);
     setEditPuedeAccederClientes(user.puede_acceder_clientes);
     setEditPuedeAccederEmpleados(user.puede_acceder_empleados);
@@ -586,6 +600,8 @@ const Usuarios = () => {
            puede_ajustar_base_caja_menor: finalPuedeAjustarBaseCajaMenor,
            puede_desembolsar: editPuedeDesembolsar,
            puede_acceder_aprobaciones: editPuedeAccederAprobaciones,
+           es_responsable_caja_menor: editEsResponsableCajaMenor,
+           es_auditor_caja_menor: editEsAuditorCajaMenor,
            puede_acceder_usuarios: editPuedeAccederUsuarios,
            puede_acceder_clientes: editPuedeAccederClientes,
            puede_acceder_empleados: editPuedeAccederEmpleados,
@@ -997,6 +1013,24 @@ const Usuarios = () => {
                     </div>
                   </div>
 
+                  {/* Sub-roles de Caja Menor - only for admin */}
+                  {newRole === "administrador" && (
+                    <div className="space-y-2">
+                      <Label>Sub-roles de Caja Menor</Label>
+                      <div className="space-y-2 p-3 border rounded-md bg-orange-500/10 border-orange-500/30">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-es-responsable-caja-menor" checked={newEsResponsableCajaMenor} onCheckedChange={(checked) => setNewEsResponsableCajaMenor(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-es-responsable-caja-menor" className="text-sm font-normal cursor-pointer">Responsable de Caja Menor</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-es-auditor-caja-menor" checked={newEsAuditorCajaMenor} onCheckedChange={(checked) => setNewEsAuditorCajaMenor(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-es-auditor-caja-menor" className="text-sm font-normal cursor-pointer">Auditor de Caja Menor</Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">El responsable agrega gastos y cierra la caja. El auditor revisa y legaliza/reembolsa.</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Restaurar Solicitudes - only for admin */}
                   {newRole === "administrador" && (
                     <div className="space-y-2">
@@ -1354,6 +1388,40 @@ const Usuarios = () => {
                   </p>
                 </div>
               </div>
+
+              {/* Sub-roles de Caja Menor */}
+              {editRole === "administrador" && (
+                <div className="space-y-2">
+                  <Label>Sub-roles de Caja Menor</Label>
+                  <div className="space-y-2 p-3 border rounded-md bg-orange-500/10 border-orange-500/30">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-es-responsable-caja-menor"
+                        checked={editEsResponsableCajaMenor}
+                        onCheckedChange={(checked) => setEditEsResponsableCajaMenor(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-es-responsable-caja-menor" className="text-sm font-normal cursor-pointer">
+                        Responsable de Caja Menor
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-es-auditor-caja-menor"
+                        checked={editEsAuditorCajaMenor}
+                        onCheckedChange={(checked) => setEditEsAuditorCajaMenor(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-es-auditor-caja-menor" className="text-sm font-normal cursor-pointer">
+                        Auditor de Caja Menor
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      El responsable puede agregar gastos y cerrar la caja. El auditor revisa las cajas cerradas y puede legalizar/reembolsar.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Restaurar Solicitudes Permission - admin only */}
               {editRole === "administrador" && (

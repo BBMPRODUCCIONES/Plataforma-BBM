@@ -66,6 +66,7 @@ export type Database = {
           deleted_reason: string | null
           desembolsado_por: string | null
           estado: string
+          estado_revision: string
           fecha_cierre: string
           id: string
           responsable_nombre: string
@@ -82,6 +83,7 @@ export type Database = {
           deleted_reason?: string | null
           desembolsado_por?: string | null
           estado?: string
+          estado_revision?: string
           fecha_cierre?: string
           id?: string
           responsable_nombre?: string
@@ -98,6 +100,7 @@ export type Database = {
           deleted_reason?: string | null
           desembolsado_por?: string | null
           estado?: string
+          estado_revision?: string
           fecha_cierre?: string
           id?: string
           responsable_nombre?: string
@@ -116,9 +119,11 @@ export type Database = {
           estado_cierre: string
           fecha_cierre: string | null
           id: string
+          reembolsado_caja_anterior: number
           responsable_nombre: string | null
           responsable_timestamp: string | null
           responsable_user_id: string | null
+          saldo_inicial: number
           updated_at: string
         }
         Insert: {
@@ -129,9 +134,11 @@ export type Database = {
           estado_cierre?: string
           fecha_cierre?: string | null
           id?: string
+          reembolsado_caja_anterior?: number
           responsable_nombre?: string | null
           responsable_timestamp?: string | null
           responsable_user_id?: string | null
+          saldo_inicial?: number
           updated_at?: string
         }
         Update: {
@@ -142,9 +149,11 @@ export type Database = {
           estado_cierre?: string
           fecha_cierre?: string | null
           id?: string
+          reembolsado_caja_anterior?: number
           responsable_nombre?: string | null
           responsable_timestamp?: string | null
           responsable_user_id?: string | null
+          saldo_inicial?: number
           updated_at?: string
         }
         Relationships: []
@@ -967,6 +976,8 @@ export type Database = {
         Row: {
           allowed_panels: string[] | null
           email: string | null
+          es_auditor_caja_menor: boolean | null
+          es_responsable_caja_menor: boolean | null
           id: string
           puede_acceder_agentes: boolean | null
           puede_acceder_aprobaciones: boolean | null
@@ -993,6 +1004,8 @@ export type Database = {
         Insert: {
           allowed_panels?: string[] | null
           email?: string | null
+          es_auditor_caja_menor?: boolean | null
+          es_responsable_caja_menor?: boolean | null
           id?: string
           puede_acceder_agentes?: boolean | null
           puede_acceder_aprobaciones?: boolean | null
@@ -1019,6 +1032,8 @@ export type Database = {
         Update: {
           allowed_panels?: string[] | null
           email?: string | null
+          es_auditor_caja_menor?: boolean | null
+          es_responsable_caja_menor?: boolean | null
           id?: string
           puede_acceder_agentes?: boolean | null
           puede_acceder_aprobaciones?: boolean | null

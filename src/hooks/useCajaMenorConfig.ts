@@ -4,9 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { GastoMenor } from "./useGastosMenores";
 
+// Fixed base amount (constant, informational only)
+export const BASE_ASIGNADA_FIJA = 1_000_000;
+
 export interface CajaMenorConfig {
   id: string;
   base_asignada: number;
+  saldo_inicial: number;
+  reembolsado_caja_anterior: number;
   responsable_user_id: string | null;
   responsable_nombre: string;
   responsable_timestamp: string | null;
@@ -25,6 +30,7 @@ export interface CajaMenorCierre {
   responsable_user_id: string | null;
   valor_total: number;
   estado: string;
+  estado_revision: string;
   desembolsado_por: string;
   cambios_base: string;
   created_at: string;
@@ -32,6 +38,7 @@ export interface CajaMenorCierre {
   deleted_by: string | null;
   deleted_by_email: string | null;
   deleted_reason: string | null;
+  snapshot: any;
 }
 
 export function useCajaMenorConfig(gastos: GastoMenor[]) {
@@ -91,20 +98,40 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
     return gastos.filter(g => new Date(g.created_at).getTime() >= configCreatedAt);
   }, [gastos, config?.created_at]);
 
-  // Derived stats (only current period)
+  // Derived stats with new formula:
+  // Base asignada = 1,000,000 (constant)
+  // Saldo inicial = from previous caja's saldo en caja (stored in config)
+  // Reembolsado caja anterior = manual value set by auditor
+  // Total de gastos = sum of approved/legalized/reembolsado expenses
+  // Saldo en caja = saldo_inicial + reembolsado_caja_anterior - total_gastos
   const stats = useMemo(() => {
-    const base = config?.base_asignada || 0;
-    const totalAprobados = currentPeriodGastos
+    const baseAsignada = BASE_ASIGNADA_FIJA;
+    const saldoInicial = config?.saldo_inicial ?? baseAsignada; // First caja = base
+    const reembolsadoCajaAnterior = config?.reembolsado_caja_anterior ?? 0;
+    const totalGastos = currentPeriodGastos
       .filter((g) => g.estado === "Aprobado" || g.estado === "Legalizado" || g.estado === "Reembolsado")
       .reduce((s, g) => s + g.valor, 0);
     const totalPendientes = currentPeriodGastos
       .filter((g) => g.estado === "Pendiente")
       .reduce((s, g) => s + g.valor, 0);
-    const efectivoEnCaja = base - totalAprobados;
-    const reembolsado = config?.desembolso || 0;
+    const saldoEnCaja = saldoInicial + reembolsadoCajaAnterior - totalGastos;
 
-    return { base, totalAprobados, totalPendientes, efectivoEnCaja, reembolsado };
+    return { baseAsignada, saldoInicial, reembolsadoCajaAnterior, totalGastos, totalPendientes, saldoEnCaja };
   }, [config, currentPeriodGastos]);
+
+  // Get cierres pending review (for auditors)
+  const cierresPendientesRevision = useMemo(() => {
+    return cierres.filter(c => !c.deleted_at && (c as any).estado_revision === "En revisión");
+  }, [cierres]);
+
+  const updateReembolsoCajaAnterior = useCallback(async (newReembolso: number) => {
+    if (!config) return false;
+    const { error } = await supabase.from("caja_menor_config").update({
+      reembolsado_caja_anterior: newReembolso,
+    } as any).eq("id", config.id);
+    if (error) { toast.error("Error: " + error.message); return false; }
+    return true;
+  }, [config]);
 
   const updateBaseAndReembolso = useCallback(async (newBase: number, newReembolso: number) => {
     if (!config) {
@@ -120,7 +147,6 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
       } as any).eq("id", config.id);
       if (error) { toast.error("Error: " + error.message); return false; }
     }
-    // Toast is handled by the caller (AjusteBaseDialog) for richer info
     return true;
   }, [config]);
 
@@ -130,7 +156,8 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
 
     if (!config) {
       const { error } = await supabase.from("caja_menor_config").insert({
-        base_asignada: 0,
+        base_asignada: BASE_ASIGNADA_FIJA,
+        saldo_inicial: BASE_ASIGNADA_FIJA,
         responsable_user_id: user?.id,
         responsable_nombre: nombre,
         responsable_timestamp: new Date().toISOString(),
@@ -148,7 +175,8 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
     return true;
   }, [config, user]);
 
-  const realizarCierre = useCallback(async (estado: "Legalizado" | "Reembolsado") => {
+  // Cierre by responsable: closes current caja → "En revisión", opens new one
+  const realizarCierre = useCallback(async () => {
     const responsableNombre = config?.responsable_nombre || "";
 
     // Validate: no pending expenses allowed
@@ -171,36 +199,18 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
       return false;
     }
 
-    // Use legalized expenses for the cierre
     const gastosParaCierre = gastosLegalizados;
     const valorTotal = gastosParaCierre.reduce((s, g) => s + g.valor, 0);
 
-    // 1. Change all legalized gastos to the cierre estado
-    const idsCierre = gastosParaCierre.map((g) => g.id);
-    const { error: updateError } = await supabase
-      .from("gastos_menores")
-      .update({ estado } as any)
-      .in("id", idsCierre);
-    if (updateError) { toast.error("Error actualizando gastos: " + updateError.message); return false; }
-
-    // Build snapshot of current caja state
-    const base = config?.base_asignada || 0;
-    const totalAprobados = currentPeriodGastos
-      .filter((g) => g.estado === "Aprobado" || g.estado === "Legalizado" || g.estado === "Reembolsado")
-      .reduce((s, g) => s + g.valor, 0);
-    const totalPendientes = currentPeriodGastos
-      .filter((g) => g.estado === "Pendiente")
-      .reduce((s, g) => s + g.valor, 0);
-    const reembolsado = config?.desembolso || 0;
+    // Build snapshot
     const snapshot = {
-      base_asignada: base,
-      total_aprobados: totalAprobados,
-      total_pendientes: totalPendientes,
-      saldo_en_caja: base - totalAprobados,
-      reembolsado,
+      base_asignada: stats.baseAsignada,
+      saldo_inicial: stats.saldoInicial,
+      reembolsado_caja_anterior: stats.reembolsadoCajaAnterior,
+      total_gastos: stats.totalGastos,
+      saldo_en_caja: stats.saldoEnCaja,
       responsable_nombre: responsableNombre,
       responsable_timestamp: config?.responsable_timestamp || null,
-      estado_cierre: estado,
       gastos_count: gastosParaCierre.length,
       gastos: gastosParaCierre.map(g => ({
         id: g.id,
@@ -218,30 +228,33 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
       })),
     };
 
-    // 2. Create cierre record with snapshot
+    // 1. Create cierre record with estado_revision = "En revisión"
     const { error: cierreError } = await supabase.from("caja_menor_cierres").insert({
       responsable_nombre: responsableNombre,
       responsable_user_id: user?.id,
       valor_total: valorTotal,
-      estado,
+      estado: "Cerrada",
+      estado_revision: "En revisión",
       desembolsado_por: config?.desembolsado_por || "",
-      cambios_base: `Base: ${config?.base_asignada || 0}`,
+      cambios_base: `Base: ${BASE_ASIGNADA_FIJA}`,
       snapshot,
     } as any);
     if (cierreError) { toast.error("Error en cierre: " + cierreError.message); return false; }
 
-    // 3. Update current config as closed
+    // 2. Update current config as closed
     if (config) {
       await supabase.from("caja_menor_config").update({
-        estado_cierre: estado,
+        estado_cierre: "Cerrada",
         fecha_cierre: new Date().toISOString(),
       } as any).eq("id", config.id);
     }
 
-    // 4. Create a NEW caja config with the remaining balance (efectivo en caja)
-    const efectivoRestante = (config?.base_asignada || 0) - valorTotal + (config?.desembolso || 0);
+    // 3. Create a NEW caja config with saldo_inicial = saldo en caja of closed caja
+    const nuevoSaldoInicial = Math.max(stats.saldoEnCaja, 0);
     const { error: newConfigError } = await supabase.from("caja_menor_config").insert({
-      base_asignada: Math.max(efectivoRestante, 0),
+      base_asignada: BASE_ASIGNADA_FIJA,
+      saldo_inicial: nuevoSaldoInicial,
+      reembolsado_caja_anterior: 0,
       responsable_user_id: null,
       responsable_nombre: "",
       responsable_timestamp: null,
@@ -251,10 +264,28 @@ export function useCajaMenorConfig(gastos: GastoMenor[]) {
     } as any);
     if (newConfigError) { toast.error("Error creando nueva caja: " + newConfigError.message); return false; }
 
-    toast.success(`Cierre de caja: ${estado}. Nueva caja abierta con ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(Math.max(efectivoRestante, 0))}`);
+    const fmt = (v: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(v);
+    toast.success(`Caja cerrada y enviada a revisión. Nueva caja abierta con saldo inicial de ${fmt(nuevoSaldoInicial)}`);
     await fetchConfig();
     return true;
-  }, [config, currentPeriodGastos, user, fetchConfig]);
+  }, [config, currentPeriodGastos, user, fetchConfig, stats]);
 
-  return { config, cierres, loading, stats, currentPeriodGastos, updateBaseAndReembolso, registerResponsable, realizarCierre, refetch: fetchConfig };
+  // Auditor: update cierre review state
+  const actualizarEstadoRevision = useCallback(async (cierreId: string, nuevoEstado: "Legalizado" | "Reembolsado") => {
+    const { error } = await supabase.from("caja_menor_cierres").update({
+      estado_revision: nuevoEstado,
+    } as any).eq("id", cierreId);
+    if (error) { toast.error("Error: " + error.message); return false; }
+    toast.success(`Cierre actualizado a: ${nuevoEstado}`);
+    await fetchCierres();
+    return true;
+  }, [fetchCierres]);
+
+  return {
+    config, cierres, loading, stats, currentPeriodGastos,
+    cierresPendientesRevision,
+    updateBaseAndReembolso, updateReembolsoCajaAnterior,
+    registerResponsable, realizarCierre, actualizarEstadoRevision,
+    refetch: fetchConfig,
+  };
 }

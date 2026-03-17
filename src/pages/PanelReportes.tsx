@@ -43,7 +43,7 @@ const PanelReportes = () => {
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
   const { config, cierres, stats, currentPeriodGastos, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
-  const { canApproveCajaMenor, canAjustarBaseCajaMenor, canAccessAprobaciones, role } = useUserRole();
+  const { canApproveCajaMenor, canAjustarBaseCajaMenor, canAccessAprobaciones, role, isResponsableCajaMenor, isAuditorCajaMenor } = useUserRole();
   const { entries: undoEntries } = useActiveUndoLog();
 
   /** Returns true if gasto has an active undo timer (name should be hidden) */
@@ -60,7 +60,7 @@ const PanelReportes = () => {
     });
   }, []);
 
-  const chartsBase = viewingCierreSnapshot ? (viewingCierreSnapshot.base_asignada || 0) : stats.base;
+  const chartsBase = viewingCierreSnapshot ? (viewingCierreSnapshot.base_asignada || 0) : stats.baseAsignada;
   const chartsGastos = viewingCierreSnapshot ? [] : currentPeriodGastos;
 
   const handleSaveBaseAndReembolso = async (newBase: number, newReembolso: number) => {
@@ -86,7 +86,7 @@ const PanelReportes = () => {
   }, [currentPeriodGastos, selectedGastoIds, undoEntries]);
 
   const handleCierreCaja = async () => {
-    const result = await realizarCierre("Legalizado");
+    const result = await realizarCierre();
     if (result) {
       setSelectedGastoIds(new Set());
       setCajaOpen(false);
@@ -322,6 +322,8 @@ const PanelReportes = () => {
                 config={{
                   id: "snapshot",
                   base_asignada: viewingCierreSnapshot.base_asignada || 0,
+                  saldo_inicial: viewingCierreSnapshot.saldo_inicial || 0,
+                  reembolsado_caja_anterior: viewingCierreSnapshot.reembolsado_caja_anterior || 0,
                   responsable_user_id: null,
                   responsable_nombre: viewingCierreSnapshot.responsable_nombre || "",
                   responsable_timestamp: viewingCierreSnapshot.responsable_timestamp || null,
@@ -333,11 +335,12 @@ const PanelReportes = () => {
                   updated_at: "",
                 }}
                 stats={{
-                  base: viewingCierreSnapshot.base_asignada || 0,
-                  totalAprobados: viewingCierreSnapshot.total_aprobados || 0,
+                  baseAsignada: viewingCierreSnapshot.base_asignada || 0,
+                  saldoInicial: viewingCierreSnapshot.saldo_inicial || 0,
+                  reembolsadoCajaAnterior: viewingCierreSnapshot.reembolsado_caja_anterior || 0,
+                  totalGastos: viewingCierreSnapshot.total_gastos || viewingCierreSnapshot.total_aprobados || 0,
                   totalPendientes: viewingCierreSnapshot.total_pendientes || 0,
-                  efectivoEnCaja: viewingCierreSnapshot.saldo_en_caja || 0,
-                  reembolsado: viewingCierreSnapshot.reembolsado || 0,
+                  saldoEnCaja: viewingCierreSnapshot.saldo_en_caja || 0,
                 }}
                 isAdmin={false}
                 canAjustarBase={false}
@@ -425,6 +428,8 @@ const PanelReportes = () => {
                 onSaveBaseAndReembolso={handleSaveBaseAndReembolso}
                 onClose={() => setCajaOpen(false)}
                 hasGastos={currentPeriodGastos.length > 0}
+                isResponsable={isResponsableCajaMenor()}
+                isAuditor={isAuditorCajaMenor()}
               />
               {loading ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>

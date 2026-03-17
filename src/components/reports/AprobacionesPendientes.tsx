@@ -1710,6 +1710,15 @@ export default function AprobacionesPendientes() {
 
                 return (
                   <TableRow key={group.key}>
+                    {canApproveCajaMenor() && (
+                      <TableCell className="text-xs">
+                        <Checkbox
+                          checked={selectedForBulk.has(group.key)}
+                          onCheckedChange={() => toggleBulkSelect(group.key)}
+                          className="h-4 w-4"
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="text-xs text-center">
                       <div className="flex items-center gap-1 justify-center">
                         {hasRestoredRows && (() => {

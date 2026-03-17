@@ -130,6 +130,8 @@ const Usuarios = () => {
   const [newPuedeAjustarBaseCajaMenor, setNewPuedeAjustarBaseCajaMenor] = useState(false);
   const [newPuedeDesembolsar, setNewPuedeDesembolsar] = useState(false);
   const [newPuedeAccederAprobaciones, setNewPuedeAccederAprobaciones] = useState(false);
+  const [newEsResponsableCajaMenor, setNewEsResponsableCajaMenor] = useState(false);
+  const [newEsAuditorCajaMenor, setNewEsAuditorCajaMenor] = useState(false);
   const [newPuedeAccederUsuarios, setNewPuedeAccederUsuarios] = useState(true);
   const [newPuedeAccederClientes, setNewPuedeAccederClientes] = useState(true);
   const [newPuedeAccederEmpleados, setNewPuedeAccederEmpleados] = useState(true);

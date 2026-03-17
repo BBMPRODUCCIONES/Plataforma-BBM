@@ -174,7 +174,7 @@ const KNOWN_TIPOS = [
 
 export default function AprobacionesPendientes() {
   const { projects, updateProject } = useProjects();
-  const { canApproveCajaMenor, canRestaurarSolicitudes } = useUserRole();
+  const { canApproveCajaMenor, canRestaurarSolicitudes, canDesembolsar } = useUserRole();
   const isMobile = useIsMobile();
   const { gastos: gastosMenores, refetch: refetchGastos, deleteGasto } = useGastosMenores();
 
@@ -613,43 +613,52 @@ export default function AprobacionesPendientes() {
   }, [undoLog]);
 
   const pendingRows = useMemo(() => filteredRows.filter(r => {
-    if (r.item.estado === "Pendiente") return true;
-    if (r.item.estado === "No aprobado") {
-      // Keep "No aprobado" in pending if undo is still active
+    const estado = r.item.estado as string;
+    if (estado === "Pendiente") return true;
+    if (estado === "No aprobado") {
       return hasActiveUndo(r.item.id);
     }
-    if (r.item.estado === "Aprobado") {
+    if (estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
+      const isTypeR = recursos === "Recursos propios";
       if (isTypeS) {
-        // Type S stays pending until legalization is complete
         if (r.legalizacionEstado !== "Legalizado") return true;
-        // Even if legalized, stay pending while undo window for legalization is active
         const legUndoId = `leg-${r.item.id}`;
         if (hasActiveUndo(legUndoId)) return true;
       }
-      // Type R and C: stay in pending while undo window is active
-      if (!isTypeS) return hasActiveUndo(r.item.id);
+      if (isTypeR) return true;
+      if (!isTypeS && !isTypeR) return hasActiveUndo(r.item.id);
+    }
+    if (estado === "Legalizado") {
+      const recursos = (r.item.recursos as string) || "";
+      if (recursos === "Recursos propios") return true;
+    }
+    if (estado === "Desembolsado") {
+      return hasActiveUndo(r.item.id);
     }
     return false;
   }), [filteredRows, hasActiveUndo]);
   const resolvedRows = useMemo(() => filteredRows.filter(r => {
-    if (r.item.estado === "No aprobado") {
-      // Only go to history if undo window has expired
+    const estado = r.item.estado as string;
+    if (estado === "No aprobado") {
       return !hasActiveUndo(r.item.id);
     }
-    if ((r.item.estado as string) === "Legalizado" || (r.item.estado as string) === "Reembolsado") return true;
-    if (r.item.estado === "Aprobado") {
+    if (estado === "Reembolsado") return true;
+    if (estado === "Desembolsado") {
+      return !hasActiveUndo(r.item.id);
+    }
+    if (estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
-      // Type S resolved when legalization is "Legalizado" AND undo window expired
+      const isTypeR = recursos === "Recursos propios";
       if (isTypeS) {
         const legResolved = r.legalizacionEstado === "Legalizado";
         if (!legResolved) return false;
         const legUndoId = `leg-${r.item.id}`;
         return !hasActiveUndo(legUndoId);
       }
-      // Type R and C go to history only when undo window has expired
+      if (isTypeR) return false;
       return !hasActiveUndo(r.item.id);
     }
     return false;
@@ -1312,12 +1321,21 @@ export default function AprobacionesPendientes() {
             const r = (row.item.recursos as string) || "";
             const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
             const isTypeSAndDecided = tipo === "S" && row.item.estado !== "Pendiente";
+            
+            // Determine allowed values based on type
+            let estadoAllowed = ["Pendiente", "Aprobado", "No aprobado"];
+            if (tipo === "R") {
+              estadoAllowed = canDesembolsar()
+                ? ["Pendiente", "Aprobado", "No aprobado", "Legalizado", "Desembolsado"]
+                : ["Pendiente", "Aprobado", "No aprobado", "Legalizado"];
+            }
+            
             if (canApproveCajaMenor() && !readOnly && !isTypeSAndDecided) {
               return (
                 <CajaMenorEstadoSelect
                   value={row.item.estado}
                   onChange={(v) => handleEstadoChange(row, v)}
-                  allowedValues={["Pendiente", "Aprobado", "No aprobado"]}
+                  allowedValues={estadoAllowed}
                 />
               );
             }
@@ -1664,12 +1682,21 @@ export default function AprobacionesPendientes() {
                         // Check if another user has an active undo — lock editing
                         const undoEntry = getUndoEntryForGroup(group.key, group.rows);
                         const otherUserUndo = undoEntry && currentUserId && undoEntry.changed_by !== currentUserId;
+                        
+                        // Determine allowed values based on type
+                        let estadoAllowed = ["Pendiente", "Aprobado", "No aprobado"];
+                        if (group.tipo === "R") {
+                          estadoAllowed = canDesembolsar()
+                            ? ["Pendiente", "Aprobado", "No aprobado", "Legalizado", "Desembolsado"]
+                            : ["Pendiente", "Aprobado", "No aprobado", "Legalizado"];
+                        }
+                        
                         if (canApproveCajaMenor() && !isTypeSAndDecided && !otherUserUndo) {
                           return (
                             <CajaMenorEstadoSelect
                               value={commonEstado}
                               onChange={(v) => handleGroupedEstadoChange(group, v)}
-                              allowedValues={["Pendiente", "Aprobado", "No aprobado"]}
+                              allowedValues={estadoAllowed}
                             />
                           );
                         }

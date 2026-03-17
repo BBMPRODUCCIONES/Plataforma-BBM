@@ -24,6 +24,8 @@ interface UseUserRoleReturn {
   canRestaurarSolicitudes: () => boolean;
   canAjustarBaseCajaMenor: () => boolean;
   canAccessAdminPage: (page: string) => boolean;
+  canDesembolsar: () => boolean;
+  canAccessAprobaciones: () => boolean;
 }
 
 // Admin-only sections that require administrador role
@@ -188,6 +190,16 @@ export function useUserRole(): UseUserRoleReturn {
     return pageMap[page.toLowerCase()] ?? false;
   };
 
+  const canDesembolsar = (): boolean => {
+    if (!role) return false;
+    return cajaMenorPermissions?.puedeDesembolsar ?? false;
+  };
+
+  const canAccessAprobaciones = (): boolean => {
+    if (!role) return false;
+    return cajaMenorPermissions?.puedeAccederAprobaciones ?? false;
+  };
+
   return {
     role: role as UserRole | null,
     loading,
@@ -211,5 +223,7 @@ export function useUserRole(): UseUserRoleReturn {
     canRestaurarSolicitudes,
     canAjustarBaseCajaMenor,
     canAccessAdminPage,
+    canDesembolsar,
+    canAccessAprobaciones,
   };
 }

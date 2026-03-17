@@ -63,6 +63,8 @@ interface UserWithRole {
   puede_asignar_responsables: boolean;
   puede_restaurar_solicitudes: boolean;
   puede_ajustar_base_caja_menor: boolean;
+  puede_desembolsar: boolean;
+  puede_acceder_aprobaciones: boolean;
   puede_acceder_usuarios: boolean;
   puede_acceder_clientes: boolean;
   puede_acceder_empleados: boolean;
@@ -124,6 +126,8 @@ const Usuarios = () => {
   const [newPuedeAsignarResponsables, setNewPuedeAsignarResponsables] = useState(false);
   const [newPuedeRestaurarSolicitudes, setNewPuedeRestaurarSolicitudes] = useState(false);
   const [newPuedeAjustarBaseCajaMenor, setNewPuedeAjustarBaseCajaMenor] = useState(false);
+  const [newPuedeDesembolsar, setNewPuedeDesembolsar] = useState(false);
+  const [newPuedeAccederAprobaciones, setNewPuedeAccederAprobaciones] = useState(false);
   const [newPuedeAccederUsuarios, setNewPuedeAccederUsuarios] = useState(true);
   const [newPuedeAccederClientes, setNewPuedeAccederClientes] = useState(true);
   const [newPuedeAccederEmpleados, setNewPuedeAccederEmpleados] = useState(true);
@@ -147,6 +151,8 @@ const Usuarios = () => {
   const [editPuedeAsignarResponsables, setEditPuedeAsignarResponsables] = useState(false);
   const [editPuedeRestaurarSolicitudes, setEditPuedeRestaurarSolicitudes] = useState(false);
   const [editPuedeAjustarBaseCajaMenor, setEditPuedeAjustarBaseCajaMenor] = useState(false);
+  const [editPuedeDesembolsar, setEditPuedeDesembolsar] = useState(false);
+  const [editPuedeAccederAprobaciones, setEditPuedeAccederAprobaciones] = useState(false);
   const [editPuedeAccederUsuarios, setEditPuedeAccederUsuarios] = useState(true);
   const [editPuedeAccederClientes, setEditPuedeAccederClientes] = useState(true);
   const [editPuedeAccederEmpleados, setEditPuedeAccederEmpleados] = useState(true);
@@ -187,7 +193,7 @@ const Usuarios = () => {
       // Fetch users with roles and panels (now includes email and feedback permissions)
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables, puede_restaurar_solicitudes, puede_ajustar_base_caja_menor, puede_acceder_usuarios, puede_acceder_clientes, puede_acceder_empleados, puede_acceder_constructor, puede_acceder_agentes");
+        .select("user_id, role, allowed_panels, email, puede_ver_feedback, puede_editar_feedback, puede_aprobar_caja_menor, puede_crear_anticipos, puede_editar_general, puede_editar_operaciones, puede_editar_directivo, puede_editar_personal, puede_editar_inventario, puede_asignar_responsables, puede_restaurar_solicitudes, puede_ajustar_base_caja_menor, puede_desembolsar, puede_acceder_aprobaciones, puede_acceder_usuarios, puede_acceder_clientes, puede_acceder_empleados, puede_acceder_constructor, puede_acceder_agentes");
 
       if (rolesError) throw rolesError;
 
@@ -220,6 +226,8 @@ const Usuarios = () => {
           puede_asignar_responsables: (roleRecord as any).puede_asignar_responsables ?? false,
           puede_restaurar_solicitudes: (roleRecord as any).puede_restaurar_solicitudes ?? false,
           puede_ajustar_base_caja_menor: (roleRecord as any).puede_ajustar_base_caja_menor ?? false,
+          puede_desembolsar: (roleRecord as any).puede_desembolsar ?? false,
+          puede_acceder_aprobaciones: (roleRecord as any).puede_acceder_aprobaciones ?? false,
           puede_acceder_usuarios: (roleRecord as any).puede_acceder_usuarios ?? true,
           puede_acceder_clientes: (roleRecord as any).puede_acceder_clientes ?? true,
           puede_acceder_empleados: (roleRecord as any).puede_acceder_empleados ?? true,
@@ -293,6 +301,8 @@ const Usuarios = () => {
             puede_asignar_responsables: newPuedeAsignarResponsables,
             puede_restaurar_solicitudes: newPuedeRestaurarSolicitudes,
             puede_ajustar_base_caja_menor: newPuedeAjustarBaseCajaMenor,
+            puede_desembolsar: newPuedeDesembolsar,
+            puede_acceder_aprobaciones: newPuedeAccederAprobaciones,
             puede_acceder_usuarios: newPuedeAccederUsuarios,
             puede_acceder_clientes: newPuedeAccederClientes,
             puede_acceder_empleados: newPuedeAccederEmpleados,
@@ -496,6 +506,8 @@ const Usuarios = () => {
     setNewPuedeAsignarResponsables(false);
     setNewPuedeRestaurarSolicitudes(false);
     setNewPuedeAjustarBaseCajaMenor(false);
+    setNewPuedeDesembolsar(false);
+    setNewPuedeAccederAprobaciones(false);
     setNewPuedeAccederUsuarios(true);
     setNewPuedeAccederClientes(true);
     setNewPuedeAccederEmpleados(true);
@@ -521,6 +533,8 @@ const Usuarios = () => {
     setEditPuedeAsignarResponsables(user.puede_asignar_responsables);
     setEditPuedeRestaurarSolicitudes(user.puede_restaurar_solicitudes);
     setEditPuedeAjustarBaseCajaMenor(user.puede_ajustar_base_caja_menor);
+    setEditPuedeDesembolsar(user.puede_desembolsar);
+    setEditPuedeAccederAprobaciones(user.puede_acceder_aprobaciones);
     setEditPuedeAccederUsuarios(user.puede_acceder_usuarios);
     setEditPuedeAccederClientes(user.puede_acceder_clientes);
     setEditPuedeAccederEmpleados(user.puede_acceder_empleados);
@@ -570,6 +584,8 @@ const Usuarios = () => {
            puede_asignar_responsables: finalPuedeAsignarResponsables,
            puede_restaurar_solicitudes: finalPuedeRestaurarSolicitudes,
            puede_ajustar_base_caja_menor: finalPuedeAjustarBaseCajaMenor,
+           puede_desembolsar: editPuedeDesembolsar,
+           puede_acceder_aprobaciones: editPuedeAccederAprobaciones,
            puede_acceder_usuarios: editPuedeAccederUsuarios,
            puede_acceder_clientes: editPuedeAccederClientes,
            puede_acceder_empleados: editPuedeAccederEmpleados,
@@ -1007,6 +1023,23 @@ const Usuarios = () => {
                     </div>
                   )}
 
+                  {/* Desembolsar y Acceso Aprobaciones */}
+                  {(newRole as string) !== "visual" && (
+                    <div className="space-y-2">
+                      <Label>Permisos de Aprobaciones</Label>
+                      <div className="space-y-2 p-3 border rounded-md bg-purple-500/10 border-purple-500/30">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-puede-desembolsar" checked={newPuedeDesembolsar} onCheckedChange={(checked) => setNewPuedeDesembolsar(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-puede-desembolsar" className="text-sm font-normal cursor-pointer">Puede marcar solicitudes como "Desembolsado"</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-puede-acceder-aprobaciones" checked={newPuedeAccederAprobaciones} onCheckedChange={(checked) => setNewPuedeAccederAprobaciones(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-puede-acceder-aprobaciones" className="text-sm font-normal cursor-pointer">Puede acceder al panel de Aprobaciones Pendientes</Label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {newRole === "administrador" && (
                     <div className="space-y-2">
                       <Label>Acceso a Páginas de Administración</Label>
@@ -1366,6 +1399,40 @@ const Usuarios = () => {
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
                       Solo los administradores con este permiso pueden modificar la base asignada y reembolsos de caja menor.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Desembolsar y Acceso Aprobaciones */}
+              {(editRole as string) !== "visual" && (
+                <div className="space-y-2">
+                  <Label>Permisos de Aprobaciones</Label>
+                  <div className="space-y-2 p-3 border rounded-md bg-purple-500/10 border-purple-500/30">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-desembolsar"
+                        checked={editPuedeDesembolsar}
+                        onCheckedChange={(checked) => setEditPuedeDesembolsar(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-desembolsar" className="text-sm font-normal cursor-pointer">
+                        Puede marcar solicitudes como "Desembolsado"
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-acceder-aprobaciones"
+                        checked={editPuedeAccederAprobaciones}
+                        onCheckedChange={(checked) => setEditPuedeAccederAprobaciones(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-acceder-aprobaciones" className="text-sm font-normal cursor-pointer">
+                        Puede acceder al panel de Aprobaciones Pendientes
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Controla el acceso al panel de aprobaciones y la capacidad de marcar desembolsos.
                     </p>
                   </div>
                 </div>

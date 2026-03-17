@@ -43,7 +43,7 @@ const PanelReportes = () => {
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
   const { config, cierres, stats, currentPeriodGastos, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
-  const { canApproveCajaMenor, canAjustarBaseCajaMenor, role } = useUserRole();
+  const { canApproveCajaMenor, canAjustarBaseCajaMenor, canAccessAprobaciones, role } = useUserRole();
   const { entries: undoEntries } = useActiveUndoLog();
 
   /** Returns true if gasto has an active undo timer (name should be hidden) */
@@ -211,6 +211,7 @@ const PanelReportes = () => {
         <p className="text-sm text-muted-foreground">Revisión y aprobación de solicitudes</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {canAccessAprobaciones() && (
         <Card
           className="cursor-pointer hover:border-primary/50 transition-colors group"
           onClick={() => setCurrentView("aprobaciones")}
@@ -225,6 +226,7 @@ const PanelReportes = () => {
             <p className="text-sm text-muted-foreground">Revisión y aprobación de solicitudes de presupuesto.</p>
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Financial Reports */}

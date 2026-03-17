@@ -1492,6 +1492,32 @@ export default function AprobacionesPendientes() {
     const selectedRowCount = groups.filter(g => selectedForBulk.has(g.key)).reduce((sum, g) => sum + g.rows.length, 0);
 
     return (
+      <div className="space-y-2">
+        {/* Bulk action bar */}
+        {canApproveCajaMenor() && selectedCount > 0 && (
+          <div className="flex items-center gap-3 p-2 bg-primary/10 border border-primary/20 rounded-md">
+            <span className="text-xs font-medium">
+              {selectedCount} grupo(s) seleccionado(s) ({selectedRowCount} solicitud(es))
+            </span>
+            <Select value={bulkEstado} onValueChange={setBulkEstado}>
+              <SelectTrigger className="h-7 text-xs w-[180px]">
+                <SelectValue placeholder="Cambiar estado a..." />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border z-[9999]">
+                {bulkEstadoOptions.map(opt => (
+                  <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" className="h-7 text-xs" onClick={handleBulkEstadoChange} disabled={!bulkEstado}>
+              Aplicar
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setSelectedForBulk(new Set()); setBulkEstado(""); }}>
+              Cancelar
+            </Button>
+          </div>
+        )}
+
       <div className="matrix-table-sticky-wrapper border rounded-md">
         <div
           ref={(el) => { pendingTableScrollRefs.current[tipo] = el; }}
@@ -1504,6 +1530,15 @@ export default function AprobacionesPendientes() {
         <Table>
           <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
             <TableRow>
+              {canApproveCajaMenor() && (
+                <TableHead className="text-xs w-[40px]">
+                  <Checkbox
+                    checked={groups.length > 0 && groups.every(g => selectedForBulk.has(g.key))}
+                    onCheckedChange={() => toggleBulkSelectAll(groups)}
+                    className="h-4 w-4"
+                  />
+                </TableHead>
+              )}
               {isTypeC ? (
                 <>
                   <TableHead className="text-xs">Fecha</TableHead>

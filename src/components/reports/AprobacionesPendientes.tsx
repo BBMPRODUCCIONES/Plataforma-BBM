@@ -857,10 +857,6 @@ export default function AprobacionesPendientes() {
         );
         await updateProject(projectId, "legalizacion", updatedLeg);
       }
-      // Log undo entries for each row in this project group
-      for (const row of pRows) {
-        await logUndoEntry(row, row.item.estado, newEstado, row.item.revisadoPor || "");
-      }
     }
 
     toast.success(`Estado actualizado a "${newEstado}" para ${group.rows.length} solicitud(es)`);

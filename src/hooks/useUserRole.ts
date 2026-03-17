@@ -24,6 +24,8 @@ interface UseUserRoleReturn {
   canRestaurarSolicitudes: () => boolean;
   canAjustarBaseCajaMenor: () => boolean;
   canAccessAdminPage: (page: string) => boolean;
+  canDesembolsar: () => boolean;
+  canAccessAprobaciones: () => boolean;
 }
 
 // Admin-only sections that require administrador role

@@ -5,21 +5,8 @@ import { Project, CajaMenorItem, LegalizacionItem } from "@/types";
 import { useGastosMenores, GastoMenor } from "@/hooks/useGastosMenores";
 import { supabase } from "@/integrations/supabase/client";
 
-import { format, parseISO, getMonth, getYear, differenceInMinutes, differenceInSeconds, differenceInDays, differenceInHours } from "date-fns";
+import { format, parseISO, getMonth, getYear, differenceInDays, differenceInHours } from "date-fns";
 
-interface UndoLogEntry {
-  id: string;
-  project_id: string | null;
-  item_id: string;
-  source: string;
-  previous_estado: string;
-  new_estado: string;
-  previous_revisado_por: string;
-  changed_by: string;
-  changed_at: string;
-  expires_at: string;
-  undone: boolean;
-}
 import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,7 +37,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
-import { Search, RotateCcw, Lock, History, Undo2, Clock, AlertTriangle, Globe, Eye } from "lucide-react";
+import { Search, RotateCcw, Lock, History, Clock, AlertTriangle, Globe, Eye } from "lucide-react";
 
 const TruncatedCellWithEye = ({ text, label }: { text: string; label: string }) => {
   if (!text || text === "—") return <span className="text-muted-foreground">—</span>;
@@ -155,13 +142,13 @@ const MONTHS = [
 ];
 
 const LEGALIZACION_ESTADO_OPTIONS = [
-  { value: "Pendiente", label: "Pendiente", className: "bg-orange-500/20 text-orange-400" },
-  { value: "Aprobado", label: "Aprobado", className: "bg-green-500/20 text-green-400" },
-  { value: "Contabilizado", label: "Contabilizado", className: "bg-blue-500/20 text-blue-400" },
-  { value: "Legalizado", label: "Legalizado", className: "bg-emerald-500/20 text-emerald-400" },
+  { value: "Pendiente", label: "Pendiente", className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+  { value: "Aprobado", label: "Aprobado", className: "bg-sky-500/20 text-sky-400 border-sky-500/30" },
+  { value: "Contabilizado", label: "Contabilizado", className: "bg-violet-500/20 text-violet-400 border-violet-500/30" },
+  { value: "Legalizado", label: "Legalizado", className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
 ];
 
-const LEGALIZACION_PENDIENTE = { value: "Pendiente", label: "Pendiente", className: "bg-orange-500/20 text-orange-400" };
+const LEGALIZACION_PENDIENTE = { value: "Pendiente", label: "Pendiente", className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
 
 const KNOWN_ESTADOS = ["Pendiente", "Aprobado", "No aprobado"];
 const KNOWN_CATEGORIAS = ["Transporte", "Alimentación", "Compras"];
@@ -190,77 +177,6 @@ export default function AprobacionesPendientes() {
     });
   }, []);
   
-  // Undo log state
-  const [undoLog, setUndoLog] = useState<UndoLogEntry[]>([]);
-  const [, setUndoTick] = useState(0); // force re-render for countdown
-
-  const fetchUndoLog = useCallback(async () => {
-    const { data } = await supabase
-      .from("aprobacion_undo_log")
-      .select("*")
-      .eq("undone", false)
-      .gte("expires_at", new Date().toISOString())
-      .order("changed_at", { ascending: false });
-    setUndoLog((data as UndoLogEntry[]) || []);
-  }, []);
-
-  useEffect(() => {
-    fetchUndoLog();
-  }, [fetchUndoLog]);
-
-  // Realtime subscription for undo log so other users see changes immediately
-  useEffect(() => {
-    const channel = supabase
-      .channel("aprobaciones_undo_log_rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "aprobacion_undo_log" }, () => {
-        fetchUndoLog();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [fetchUndoLog]);
-
-  // Tick every 30s to update countdown badges
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setUndoTick(t => t + 1);
-      // Also prune expired entries
-      setUndoLog(prev => prev.filter(e => new Date(e.expires_at) > new Date()));
-    }, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const getUndoEntryForGroup = useCallback((groupKey: string, groupRows: FlattenedRow[]) => {
-    // Find the most recent non-expired undo entry for any item in this group (including legalization undos)
-    // Only match entries where the NEW estado is not "Pendiente" (timer only for Aprobado/Rechazado changes)
-    // Also verify the item's CURRENT estado matches the undo entry's new_estado to avoid stale timers
-    const itemIds = new Set<string>();
-    groupRows.forEach(r => {
-      itemIds.add(r.item.id);
-      itemIds.add(`leg-${r.item.id}`);
-    });
-    return undoLog.find(entry => {
-      if (!itemIds.has(entry.item_id) || entry.undone || new Date(entry.expires_at) <= new Date() || entry.new_estado === "Pendiente") return false;
-      // Check that the current estado of the matching row actually matches the undo entry's new_estado
-      const matchingRow = groupRows.find(r => r.item.id === entry.item_id || `leg-${r.item.id}` === entry.item_id);
-      if (!matchingRow) return false;
-      // For legalization entries, check legalizacionEstado
-      if (entry.item_id.startsWith('leg-')) {
-        return matchingRow.legalizacionEstado === entry.new_estado;
-      }
-      // For regular entries, check item estado
-      return matchingRow.item.estado === entry.new_estado;
-    });
-  }, [undoLog]);
-
-  const formatTimeRemaining = (expiresAt: string) => {
-    const now = new Date();
-    const expires = new Date(expiresAt);
-    const mins = differenceInMinutes(expires, now);
-    if (mins <= 0) return null;
-    const hours = Math.floor(mins / 60);
-    const remainMins = mins % 60;
-    return hours > 0 ? `${hours}h ${remainMins}m` : `${remainMins}m`;
-  };
 
   const [mesFilter, setMesFilter] = useState("Todos");
   const [anioFilter, setAnioFilter] = useState("Todos");
@@ -605,64 +521,43 @@ export default function AprobacionesPendientes() {
 
   // Split into pending and resolved
   // Pending: "Pendiente" OR (Aprobado type S with legalization not yet complete)
-  // All R, C, and S with estado "Pendiente" stay pending
-  // S "Aprobado" stays pending until legalization is "Legalizado"
-  // Helper: check if item has active undo entry
-  const hasActiveUndo = useCallback((itemId: string) => {
-    return undoLog.some(e => e.item_id === itemId && !e.undone && new Date(e.expires_at) > new Date() && e.new_estado !== "Pendiente");
-  }, [undoLog]);
 
   const pendingRows = useMemo(() => filteredRows.filter(r => {
     const estado = r.item.estado as string;
     if (estado === "Pendiente") return true;
-    if (estado === "No aprobado") {
-      return hasActiveUndo(r.item.id);
-    }
+    if (estado === "No aprobado") return false;
     if (estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
       const isTypeR = recursos === "Recursos propios";
       if (isTypeS) {
         if (r.legalizacionEstado !== "Legalizado") return true;
-        const legUndoId = `leg-${r.item.id}`;
-        if (hasActiveUndo(legUndoId)) return true;
       }
       if (isTypeR) return true;
-      if (!isTypeS && !isTypeR) return hasActiveUndo(r.item.id);
     }
     if (estado === "Legalizado") {
       const recursos = (r.item.recursos as string) || "";
       if (recursos === "Recursos propios") return true;
     }
-    if (estado === "Desembolsado") {
-      return hasActiveUndo(r.item.id);
-    }
+    if (estado === "Desembolsado") return false;
     return false;
-  }), [filteredRows, hasActiveUndo]);
+  }), [filteredRows]);
   const resolvedRows = useMemo(() => filteredRows.filter(r => {
     const estado = r.item.estado as string;
-    if (estado === "No aprobado") {
-      return !hasActiveUndo(r.item.id);
-    }
+    if (estado === "No aprobado") return true;
     if (estado === "Reembolsado") return true;
-    if (estado === "Desembolsado") {
-      return !hasActiveUndo(r.item.id);
-    }
+    if (estado === "Desembolsado") return true;
     if (estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
       const isTypeR = recursos === "Recursos propios";
       if (isTypeS) {
-        const legResolved = r.legalizacionEstado === "Legalizado";
-        if (!legResolved) return false;
-        const legUndoId = `leg-${r.item.id}`;
-        return !hasActiveUndo(legUndoId);
+        return r.legalizacionEstado === "Legalizado";
       }
       if (isTypeR) return false;
-      return !hasActiveUndo(r.item.id);
     }
     return false;
-  }), [filteredRows, hasActiveUndo]);
+  }), [filteredRows]);
 
   // Group pending rows by (centroCostos, tipo)
   const groupedPendingRows = useMemo((): GroupedPendingRow[] => {
@@ -769,86 +664,6 @@ export default function AprobacionesPendientes() {
     if (found) setActiveTab(found);
   }, [globalSearch, searchQuery, pendingByType, activeTab]);
 
-  // Log a change to the undo log
-  const logUndoEntry = async (row: FlattenedRow, previousEstado: string, newEstado: string, previousRevisadoPor: string) => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user?.id) return;
-    const source = row.source === 'gastoMenor' ? 'gastoMenor' : (row.item.recursos as string) === "Recursos propios" ? 'legalizacion' : 'cajaMenor';
-
-    // If reverting to Pendiente, mark all active undo entries for this item as undone instead of creating a new one
-    if (newEstado === "Pendiente") {
-      await supabase
-        .from("aprobacion_undo_log")
-        .update({ undone: true } as any)
-        .eq("item_id", row.item.id)
-        .eq("undone", false);
-      // Also mark legalization undo entries
-      await supabase
-        .from("aprobacion_undo_log")
-        .update({ undone: true } as any)
-        .eq("item_id", `leg-${row.item.id}`)
-        .eq("undone", false);
-      await fetchUndoLog();
-      return;
-    }
-
-    await supabase.from("aprobacion_undo_log").insert({
-      project_id: row.projectId || null,
-      item_id: row.item.id,
-      source,
-      previous_estado: previousEstado,
-      new_estado: newEstado,
-      previous_revisado_por: previousRevisadoPor,
-      changed_by: userData.user.id,
-    } as any);
-    await fetchUndoLog();
-  };
-
-  // Undo a change from the undo log
-  const handleUndoFromLog = async (entry: UndoLogEntry) => {
-    try {
-      if (entry.source === 'gastoMenor') {
-        const dbId = entry.item_id.replace('gm-', '');
-        const revertData = entry.previous_estado === "Pendiente"
-          ? { estado: entry.previous_estado, aprobado_por_id: null, aprobado_por_nombre: "" }
-          : { estado: entry.previous_estado, aprobado_por_nombre: entry.previous_revisado_por };
-        await supabase.from("gastos_menores").update(revertData as any).eq("id", dbId);
-        refetchGastos();
-      } else {
-        const proj = projects.find(p => p.id === entry.project_id);
-        if (!proj) { toast.error("Proyecto no encontrado"); return; }
-        if (entry.source === 'legalizacion') {
-          const revertedLeg = (proj.legalizacion || []).map(l =>
-            l.id === entry.item_id ? { ...l, estado: entry.previous_estado, revisadoPor: entry.previous_revisado_por } : l
-          );
-          await updateProject(entry.project_id!, "legalizacion", revertedLeg);
-        } else {
-          const revertedCM = (proj.cajaMenor || []).map(item =>
-            item.id === entry.item_id ? { ...item, estado: entry.previous_estado, revisadoPor: entry.previous_revisado_por } : item
-          );
-          await updateProject(entry.project_id!, "cajaMenor", revertedCM);
-        }
-      }
-      await supabase.from("aprobacion_undo_log").update({ undone: true } as any).eq("id", entry.id);
-      await fetchUndoLog();
-      toast.success("Cambio deshecho exitosamente");
-    } catch (err) {
-      toast.error("Error al deshacer el cambio");
-    }
-  };
-
-  // Undo all entries for a group
-  const handleUndoGroup = async (groupRows: FlattenedRow[]) => {
-    const itemIds = new Set<string>();
-    groupRows.forEach(r => {
-      itemIds.add(r.item.id);
-      itemIds.add(`leg-${r.item.id}`);
-    });
-    const entries = undoLog.filter(e => itemIds.has(e.item_id) && !e.undone && new Date(e.expires_at) > new Date());
-    for (const entry of entries) {
-      await handleUndoFromLog(entry);
-    }
-  };
 
   const handleEstadoChange = async (row: FlattenedRow, newEstado: string) => {
     if (!canApproveCajaMenor()) {
@@ -873,7 +688,7 @@ export default function AprobacionesPendientes() {
         return;
       }
       refetchGastos();
-      await logUndoEntry(row, previousEstado, newEstado, previousRevisadoPor);
+      toast.success(`Estado actualizado a "${newEstado}"`);
       toast.success(`Estado actualizado a "${newEstado}"`);
       return;
     }
@@ -889,7 +704,7 @@ export default function AprobacionesPendientes() {
           : l
       );
       await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
-      await logUndoEntry(row, previousEstado, newEstado, previousRevisadoPor);
+      toast.success(`Estado actualizado a "${newEstado}"`);
       toast.success(`Estado actualizado a "${newEstado}"`);
       return;
     }
@@ -902,7 +717,7 @@ export default function AprobacionesPendientes() {
     await updateProject(row.projectId, "cajaMenor", updatedCajaMenor);
 
 
-    await logUndoEntry(row, previousEstado, newEstado, previousRevisadoPor);
+    toast.success(`Estado de solicitud actualizado a "${newEstado}"`);
     toast.success(`Estado de solicitud actualizado a "${newEstado}"`);
   };
 
@@ -923,7 +738,7 @@ export default function AprobacionesPendientes() {
         ? { estado: newEstado, aprobado_por_id: null, aprobado_por_nombre: "" }
         : { estado: newEstado, aprobado_por_id: userData?.user?.id || null, aprobado_por_nombre: currentUserName || "Admin" };
       await supabase.from("gastos_menores").update(updateData as any).eq("id", row.gastoMenorId!);
-      await logUndoEntry(row, previousEstado, newEstado, previousRevisadoPor);
+      // estado change logged
     }
     if (gastoRows.length > 0) refetchGastos();
 
@@ -961,10 +776,6 @@ export default function AprobacionesPendientes() {
             : l
         );
         await updateProject(projectId, "legalizacion", updatedLeg);
-      }
-      // Log undo entries for each row in this project group
-      for (const row of pRows) {
-        await logUndoEntry(row, row.item.estado, newEstado, row.item.revisadoPor || "");
       }
     }
 
@@ -1017,23 +828,6 @@ export default function AprobacionesPendientes() {
 
     await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
 
-    // Log undo entry for legalization estado changes (non-Pendiente)
-    if (newEstado !== "Pendiente") {
-      const previousLegEstado = row.legalizacionEstado || "Pendiente";
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData?.user?.id) {
-        await supabase.from("aprobacion_undo_log").insert({
-          project_id: row.projectId || null,
-          item_id: `leg-${row.item.id}`,
-          source: "legalizacion",
-          previous_estado: previousLegEstado,
-          new_estado: newEstado,
-          previous_revisado_por: "",
-          changed_by: userData.user.id,
-        } as any);
-        await fetchUndoLog();
-      }
-    }
 
     toast.success(`Estado de legalización actualizado a "${newEstado}"`);
   };
@@ -1557,7 +1351,7 @@ export default function AprobacionesPendientes() {
 
   const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
     const showLeg = tipo === 'S';
-    const colCount = showLeg ? 14 : 10;
+    const colCount = showLeg ? 13 : 9;
     const contentWidth = pendingContentWidths[tipo] || 0;
 
     return (
@@ -1585,7 +1379,7 @@ export default function AprobacionesPendientes() {
               {showLeg && <TableHead className="text-xs text-right">Saldo</TableHead>}
               <TableHead className="text-xs">Resp. aprobaciones</TableHead>
               {showLeg && <TableHead className="text-xs w-[130px]">Plazo Leg.</TableHead>}
-              <TableHead className="text-xs w-[100px]">Deshacer</TableHead>
+              
               <TableHead className="text-xs w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -1679,9 +1473,6 @@ export default function AprobacionesPendientes() {
                     <TableCell className="text-xs">
                       {(() => {
                         const isTypeSAndDecided = isTypeS && commonEstado !== "Pendiente";
-                        // Check if another user has an active undo — lock editing
-                        const undoEntry = getUndoEntryForGroup(group.key, group.rows);
-                        const otherUserUndo = undoEntry && currentUserId && undoEntry.changed_by !== currentUserId;
                         
                         // Determine allowed values based on type
                         let estadoAllowed = ["Pendiente", "Aprobado", "No aprobado"];
@@ -1691,7 +1482,7 @@ export default function AprobacionesPendientes() {
                             : ["Pendiente", "Aprobado", "No aprobado", "Legalizado"];
                         }
                         
-                        if (canApproveCajaMenor() && !isTypeSAndDecided && !otherUserUndo) {
+                        if (canApproveCajaMenor() && !isTypeSAndDecided) {
                           return (
                             <CajaMenorEstadoSelect
                               value={commonEstado}
@@ -1728,9 +1519,7 @@ export default function AprobacionesPendientes() {
                             );
                           }
                           const hasApproved = group.rows.some(r => r.item.estado === "Aprobado");
-                          const legUndoEntry = undoLog.find(e => group.rows.some(r => e.item_id === `leg-${r.item.id}`) && !e.undone && new Date(e.expires_at) > new Date() && e.new_estado !== "Pendiente");
-                          const legOtherUserUndo = legUndoEntry && currentUserId && legUndoEntry.changed_by !== currentUserId;
-                          if (canApproveCajaMenor() && hasApproved && !legOtherUserUndo) {
+                          if (canApproveCajaMenor() && hasApproved) {
                             return (
                               <Select
                                 value={commonLegEstado === "Mixto" ? "Pendiente" : (commonLegEstado || "Pendiente")}
@@ -1796,15 +1585,6 @@ export default function AprobacionesPendientes() {
                           return leg?.revisadoPor || "";
                         }).filter(Boolean))] : [];
 
-                        // Get dates from undo log
-                        const solUndoEntry = undoLog.find(e =>
-                          group.rows.some(r => e.item_id === r.item.id) &&
-                          e.source !== 'legalizacion' && !e.undone
-                        );
-                        const legUndoEntryForDate = undoLog.find(e =>
-                          group.rows.some(r => e.item_id === `leg-${r.item.id}`) &&
-                          e.source === 'legalizacion' && !e.undone
-                        );
 
                         const displayText = solApprovers.length > 0 ? solApprovers[0] : "—";
                         const hasInfo = solApprovers.length > 0 || legApprovers.length > 0;
@@ -1824,17 +1604,11 @@ export default function AprobacionesPendientes() {
                                 <div>
                                   <span className="font-medium text-blue-400">📋 Solicitud:</span>
                                   <p className="ml-5">{solApprovers.length > 0 ? solApprovers.join(", ") : "Sin aprobar"}</p>
-                                  {solUndoEntry && (
-                                    <p className="ml-5 text-muted-foreground">{format(parseISO(solUndoEntry.changed_at), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
-                                  )}
                                 </div>
                                 {isTypeS && (
                                   <div>
                                     <span className="font-medium text-emerald-400">📄 Legalización:</span>
                                     <p className="ml-5">{legApprovers.length > 0 ? legApprovers.join(", ") : "Sin aprobar"}</p>
-                                    {legUndoEntryForDate && (
-                                      <p className="ml-5 text-muted-foreground">{format(parseISO(legUndoEntryForDate.changed_at), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
-                                    )}
                                   </div>
                                 )}
                               </div>
@@ -1882,38 +1656,6 @@ export default function AprobacionesPendientes() {
                         })()}
                       </TableCell>
                     )}
-                    <TableCell className="text-xs">
-                      {(() => {
-                        const undoEntry = getUndoEntryForGroup(group.key, group.rows);
-                        if (!undoEntry) return null;
-                        const timeLeft = formatTimeRemaining(undoEntry.expires_at);
-                        if (!timeLeft) return null;
-                        const isOwnChange = currentUserId && undoEntry.changed_by === currentUserId;
-                        if (isOwnChange) {
-                          return (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 gap-1 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleUndoGroup(group.rows);
-                              }}
-                            >
-                              <Undo2 className="w-3 h-3" />
-                              {timeLeft}
-                            </Button>
-                          );
-                        }
-                        // Read-only badge for other users
-                        return (
-                          <Badge variant="outline" className="h-7 gap-1 text-xs border-muted-foreground/30 text-muted-foreground cursor-default">
-                            <Lock className="w-3 h-3" />
-                            {timeLeft}
-                          </Badge>
-                        );
-                      })()}
-                    </TableCell>
                     <TableCell>
                       {firstProjectRow && (
                         <Button

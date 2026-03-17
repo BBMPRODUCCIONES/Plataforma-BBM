@@ -797,7 +797,7 @@ export default function AprobacionesPendientes() {
     await updateProject(row.projectId, "cajaMenor", updatedCajaMenor);
 
 
-    await logUndoEntry(row, previousEstado, newEstado, previousRevisadoPor);
+    toast.success(`Estado de solicitud actualizado a "${newEstado}"`);
     toast.success(`Estado de solicitud actualizado a "${newEstado}"`);
   };
 

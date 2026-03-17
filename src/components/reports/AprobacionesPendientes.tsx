@@ -1666,7 +1666,7 @@ export default function AprobacionesPendientes() {
                           return (
                             <CajaMenorEstadoSelect
                               value={commonEstado}
-                              onChange={(v) => handleGroupedEstadoChange(group, v)}
+                              onChange={(v) => confirmGroupedEstadoChange(group, v)}
                               allowedValues={estadoAllowed}
                             />
                           );

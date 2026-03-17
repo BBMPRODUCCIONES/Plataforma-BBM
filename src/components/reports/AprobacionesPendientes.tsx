@@ -1312,12 +1312,21 @@ export default function AprobacionesPendientes() {
             const r = (row.item.recursos as string) || "";
             const tipo = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
             const isTypeSAndDecided = tipo === "S" && row.item.estado !== "Pendiente";
+            
+            // Determine allowed values based on type
+            let estadoAllowed = ["Pendiente", "Aprobado", "No aprobado"];
+            if (tipo === "R") {
+              estadoAllowed = canDesembolsar()
+                ? ["Pendiente", "Aprobado", "No aprobado", "Legalizado", "Desembolsado"]
+                : ["Pendiente", "Aprobado", "No aprobado", "Legalizado"];
+            }
+            
             if (canApproveCajaMenor() && !readOnly && !isTypeSAndDecided) {
               return (
                 <CajaMenorEstadoSelect
                   value={row.item.estado}
                   onChange={(v) => handleEstadoChange(row, v)}
-                  allowedValues={["Pendiente", "Aprobado", "No aprobado"]}
+                  allowedValues={estadoAllowed}
                 />
               );
             }

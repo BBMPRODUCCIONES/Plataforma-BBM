@@ -1013,6 +1013,24 @@ const Usuarios = () => {
                     </div>
                   </div>
 
+                  {/* Sub-roles de Caja Menor - only for admin */}
+                  {newRole === "administrador" && (
+                    <div className="space-y-2">
+                      <Label>Sub-roles de Caja Menor</Label>
+                      <div className="space-y-2 p-3 border rounded-md bg-orange-500/10 border-orange-500/30">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-es-responsable-caja-menor" checked={newEsResponsableCajaMenor} onCheckedChange={(checked) => setNewEsResponsableCajaMenor(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-es-responsable-caja-menor" className="text-sm font-normal cursor-pointer">Responsable de Caja Menor</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-es-auditor-caja-menor" checked={newEsAuditorCajaMenor} onCheckedChange={(checked) => setNewEsAuditorCajaMenor(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-es-auditor-caja-menor" className="text-sm font-normal cursor-pointer">Auditor de Caja Menor</Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">El responsable agrega gastos y cierra la caja. El auditor revisa y legaliza/reembolsa.</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Restaurar Solicitudes - only for admin */}
                   {newRole === "administrador" && (
                     <div className="space-y-2">

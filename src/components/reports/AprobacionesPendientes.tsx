@@ -1351,7 +1351,8 @@ export default function AprobacionesPendientes() {
 
   const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
     const showLeg = tipo === 'S';
-    const colCount = showLeg ? 13 : 9;
+    const isTypeC = tipo === 'C';
+    const colCount = isTypeC ? 8 : showLeg ? 13 : 9;
     const contentWidth = pendingContentWidths[tipo] || 0;
 
     return (
@@ -1367,20 +1368,34 @@ export default function AprobacionesPendientes() {
         <Table>
           <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
             <TableRow>
-              <TableHead className="text-xs w-[30px]"></TableHead>
-              <TableHead className="text-xs">Fecha</TableHead>
-              <TableHead className="text-xs">Solicitante</TableHead>
-              <TableHead className="text-xs">CC</TableHead>
-              <TableHead className="text-xs">Eventos</TableHead>
-              <TableHead className="text-xs text-right">Valor Total</TableHead>
-              <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
-              {showLeg && <TableHead className="text-xs text-right">Legalización</TableHead>}
-              {showLeg && <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>}
-              {showLeg && <TableHead className="text-xs text-right">Saldo</TableHead>}
-              <TableHead className="text-xs">Resp. aprobaciones</TableHead>
-              {showLeg && <TableHead className="text-xs w-[130px]">Plazo Leg.</TableHead>}
-              
-              <TableHead className="text-xs w-[80px]"></TableHead>
+              {isTypeC ? (
+                <>
+                  <TableHead className="text-xs">Fecha</TableHead>
+                  <TableHead className="text-xs">Solicitante</TableHead>
+                  <TableHead className="text-xs">Periodo</TableHead>
+                  <TableHead className="text-xs text-right">Valor</TableHead>
+                  <TableHead className="text-xs text-right">Valor cierre</TableHead>
+                  <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
+                  <TableHead className="text-xs">Resp. de aprobaciones</TableHead>
+                  <TableHead className="text-xs w-[80px]"></TableHead>
+                </>
+              ) : (
+                <>
+                  <TableHead className="text-xs w-[30px]"></TableHead>
+                  <TableHead className="text-xs">Fecha</TableHead>
+                  <TableHead className="text-xs">Solicitante</TableHead>
+                  <TableHead className="text-xs">CC</TableHead>
+                  <TableHead className="text-xs">Eventos</TableHead>
+                  <TableHead className="text-xs text-right">Valor Total</TableHead>
+                  <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
+                  {showLeg && <TableHead className="text-xs text-right">Legalización</TableHead>}
+                  {showLeg && <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>}
+                  {showLeg && <TableHead className="text-xs text-right">Saldo</TableHead>}
+                  <TableHead className="text-xs">Resp. aprobaciones</TableHead>
+                  {showLeg && <TableHead className="text-xs w-[130px]">Plazo Leg.</TableHead>}
+                  <TableHead className="text-xs w-[80px]"></TableHead>
+                </>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1419,6 +1434,99 @@ export default function AprobacionesPendientes() {
                 const legEstados = isTypeS ? [...new Set(group.rows.map(r => r.legalizacionEstado || "Pendiente"))] : [];
                 const commonLegEstado = legEstados.length === 1 ? legEstados[0] : legEstados.length > 1 ? "Mixto" : "";
                 const hasRestoredRows = group.rows.some(r => r.item.restaurada === true);
+
+                // Type C specific rendering
+                if (isTypeC) {
+                  const cRow = group.rows[0];
+                  const cDate = cRow ? parseDateSafe(cRow.item.createdAt) : null;
+                  const periodo = cDate ? format(cDate, "MMM yyyy", { locale: es }) : "—";
+                  
+                  // Estado allowed for C
+                  const estadoAllowedC = ["Pendiente", "Aprobado", "Legalizado"];
+
+                  return (
+                    <TableRow key={group.key}>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {cDate ? format(cDate, "dd/MM/yyyy") : "—"}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <TruncatedCellWithEye
+                          text={(() => {
+                            const names = [...new Set(group.rows.map(r => r.item.empleadoNombre).filter(Boolean))];
+                            return names.length > 0 ? names.join(", ") : "—";
+                          })()}
+                          label="Solicitante"
+                        />
+                      </TableCell>
+                      <TableCell className="text-xs capitalize">{periodo}</TableCell>
+                      <TableCell className="text-xs text-right font-medium">
+                        {formatCurrency(group.totalValor)}
+                      </TableCell>
+                      <TableCell className="text-xs text-right font-medium text-muted-foreground">
+                        —
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {canApproveCajaMenor() ? (
+                          <CajaMenorEstadoSelect
+                            value={commonEstado}
+                            onChange={(v) => handleGroupedEstadoChange(group, v)}
+                            allowedValues={estadoAllowedC}
+                          />
+                        ) : (
+                          <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {(() => {
+                          if (commonEstado === "Pendiente") return <span className="text-muted-foreground">—</span>;
+                          const solApprovers = [...new Set(group.rows
+                            .filter(r => r.item.estado !== "Pendiente")
+                            .map(r => {
+                              const gm = gastosMenores.find(g => g.id === r.gastoMenorId);
+                              return gm?.aprobado_por_nombre || "";
+                            })
+                            .filter(Boolean)
+                          )];
+                          const displayText = solApprovers.length > 0 ? solApprovers[0] : "—";
+                          if (solApprovers.length === 0) return <span className="text-muted-foreground">—</span>;
+                          return (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button type="button" className="flex items-center gap-1 max-w-[120px] focus:outline-none">
+                                  <span className="truncate text-xs">{displayText}</span>
+                                  <Eye className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-pointer shrink-0" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent side="top" className="text-xs max-w-[320px] p-3 space-y-2">
+                                <p className="font-semibold mb-2">Responsables de aprobaciones</p>
+                                <div className="space-y-1.5">
+                                  <div className="flex items-start gap-2">
+                                    <span className="font-medium text-amber-400 whitespace-nowrap">📋 Solicitud:</span>
+                                    <span>{solApprovers.join(", ") || "Sin aprobar"}</span>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-7 px-1 text-xs text-primary underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const params = new URLSearchParams({ section: "cajaMenor" });
+                            window.open(`/panel-reportes?${params.toString()}`, "_blank");
+                          }}
+                        >
+                          Ver más
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
 
                 return (
                   <TableRow key={group.key}>

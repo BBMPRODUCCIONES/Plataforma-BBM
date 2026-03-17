@@ -37,7 +37,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
-import { Search, RotateCcw, Lock, History, Clock, AlertTriangle, Globe, Eye } from "lucide-react";
+import { Search, RotateCcw, Lock, History, Globe, Eye, AlertCircle } from "lucide-react";
 
 const TruncatedCellWithEye = ({ text, label }: { text: string; label: string }) => {
   if (!text || text === "—") return <span className="text-muted-foreground">—</span>;
@@ -196,6 +196,15 @@ export default function AprobacionesPendientes() {
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [globalSearch, setGlobalSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("S");
+
+  // Confirmation dialog state for estado changes
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => Promise<void>;
+  }>({ open: false, title: "", description: "", onConfirm: async () => {} });
+  const [isConfirming, setIsConfirming] = useState(false);
 
   // Clear stale selections when history dialog opens or resolved rows change
   const openHistoryDialog = useCallback(() => {
@@ -852,7 +861,63 @@ export default function AprobacionesPendientes() {
     }
   };
 
-  // Handle delete
+  // Confirmation wrappers — show dialog before applying estado changes
+  const confirmEstadoChange = (row: FlattenedRow, newEstado: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Confirmar cambio de estado",
+      description: `¿Estás seguro de cambiar el estado de la solicitud de "${row.item.estado}" a "${newEstado}"?`,
+      onConfirm: async () => {
+        await handleEstadoChange(row, newEstado);
+      },
+    });
+  };
+
+  const confirmGroupedEstadoChange = (group: GroupedPendingRow, newEstado: string) => {
+    const currentEstados = [...new Set(group.rows.map(r => r.item.estado))];
+    const fromLabel = currentEstados.length === 1 ? currentEstados[0] : "Mixto";
+    setConfirmDialog({
+      open: true,
+      title: "Confirmar cambio de estado",
+      description: `¿Estás seguro de cambiar el estado de ${group.rows.length} solicitud(es) de "${fromLabel}" a "${newEstado}"?`,
+      onConfirm: async () => {
+        await handleGroupedEstadoChange(group, newEstado);
+      },
+    });
+  };
+
+  const confirmLegalizacionChange = (row: FlattenedRow, newEstado: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Confirmar cambio de legalización",
+      description: `¿Estás seguro de cambiar el estado de legalización de "${row.legalizacionEstado || "Pendiente"}" a "${newEstado}"?`,
+      onConfirm: async () => {
+        await handleLegalizacionEstadoChange(row, newEstado);
+      },
+    });
+  };
+
+  const confirmGroupedLegalizacionChange = (group: GroupedPendingRow, newEstado: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Confirmar cambio de legalización",
+      description: `¿Estás seguro de cambiar el estado de legalización a "${newEstado}" para ${group.rows.filter(r => r.item.estado === "Aprobado").length} solicitud(es)?`,
+      onConfirm: async () => {
+        await handleGroupedLegalizacionChange(group, newEstado);
+      },
+    });
+  };
+
+  const executeConfirmation = async () => {
+    setIsConfirming(true);
+    try {
+      await confirmDialog.onConfirm();
+    } finally {
+      setIsConfirming(false);
+      setConfirmDialog(prev => ({ ...prev, open: false }));
+    }
+  };
+
   const handleDelete = async (row: FlattenedRow) => {
     if (!canApproveCajaMenor()) {
       toast.error("No tienes permisos para eliminar solicitudes");
@@ -1135,7 +1200,7 @@ export default function AprobacionesPendientes() {
               return (
                 <CajaMenorEstadoSelect
                   value={row.item.estado}
-                  onChange={(v) => handleEstadoChange(row, v)}
+                  onChange={(v) => confirmEstadoChange(row, v)}
                   allowedValues={estadoAllowed}
                 />
               );
@@ -1182,7 +1247,7 @@ export default function AprobacionesPendientes() {
               return (
                 <Select
                   value={row.legalizacionEstado || "Pendiente"}
-                  onValueChange={(v) => handleLegalizacionEstadoChange(row, v)}
+                  onValueChange={(v) => confirmLegalizacionChange(row, v)}
                 >
                   <SelectTrigger
                     className={`h-7 text-xs w-full border font-medium ${
@@ -1359,7 +1424,7 @@ export default function AprobacionesPendientes() {
   const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
     const showLeg = tipo === 'S';
     const isTypeC = tipo === 'C';
-    const colCount = isTypeC ? 8 : showLeg ? 13 : 9;
+    const colCount = isTypeC ? 8 : showLeg ? 12 : 9;
     const contentWidth = pendingContentWidths[tipo] || 0;
 
     return (
@@ -1398,8 +1463,8 @@ export default function AprobacionesPendientes() {
                   {showLeg && <TableHead className="text-xs text-right">Legalización</TableHead>}
                   {showLeg && <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>}
                   {showLeg && <TableHead className="text-xs text-right">Saldo</TableHead>}
-                  <TableHead className="text-xs">Resp. aprobaciones</TableHead>
-                  {showLeg && <TableHead className="text-xs w-[130px]">Plazo Leg.</TableHead>}
+                   <TableHead className="text-xs">Resp. aprobaciones</TableHead>
+                  <TableHead className="text-xs w-[80px]"></TableHead>
                   <TableHead className="text-xs w-[80px]"></TableHead>
                 </>
               )}
@@ -1476,7 +1541,7 @@ export default function AprobacionesPendientes() {
                         {canApproveCajaMenor() ? (
                           <CajaMenorEstadoSelect
                             value={commonEstado}
-                            onChange={(v) => handleGroupedEstadoChange(group, v)}
+                            onChange={(v) => confirmGroupedEstadoChange(group, v)}
                             allowedValues={estadoAllowedC}
                           />
                         ) : (
@@ -1601,7 +1666,7 @@ export default function AprobacionesPendientes() {
                           return (
                             <CajaMenorEstadoSelect
                               value={commonEstado}
-                              onChange={(v) => handleGroupedEstadoChange(group, v)}
+                              onChange={(v) => confirmGroupedEstadoChange(group, v)}
                               allowedValues={estadoAllowed}
                             />
                           );
@@ -1638,7 +1703,7 @@ export default function AprobacionesPendientes() {
                             return (
                               <Select
                                 value={commonLegEstado === "Mixto" ? "Pendiente" : (commonLegEstado || "Pendiente")}
-                                onValueChange={(v) => handleGroupedLegalizacionChange(group, v)}
+                                onValueChange={(v) => confirmGroupedLegalizacionChange(group, v)}
                               >
                                 <SelectTrigger
                                   className={`h-7 text-xs w-full border font-medium ${
@@ -1732,45 +1797,6 @@ export default function AprobacionesPendientes() {
                         );
                       })()}
                     </TableCell>
-                    {showLeg && (
-                      <TableCell className="text-xs">
-                        {(() => {
-                          if (commonEstado === "Pendiente") return <span className="text-muted-foreground">—</span>;
-                          if (!group.fechaDesmontajeFin) return <span className="text-muted-foreground text-[10px]">Sin fecha desm.</span>;
-                          try {
-                            const desmFin = parseISO(group.fechaDesmontajeFin);
-                            const deadline = new Date(desmFin.getTime() + 2 * 24 * 60 * 60 * 1000);
-                            const now = new Date();
-                            const diffMs = deadline.getTime() - now.getTime();
-                            const isLate = diffMs <= 0;
-                            if (isLate) {
-                              const daysLate = Math.ceil(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
-                              return (
-                                <div className="flex items-center gap-1">
-                                  <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                                  <span className="text-[10px] font-semibold text-red-400 leading-tight">
-                                    Tardía ({daysLate}d vencido)
-                                  </span>
-                                </div>
-                              );
-                            } else {
-                              const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                              const hoursLeft = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                              return (
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                                  <span className="text-[10px] font-medium text-green-400 leading-tight">
-                                    {daysLeft > 0 ? `${daysLeft}d ${hoursLeft}h` : `${hoursLeft}h`}
-                                  </span>
-                                </div>
-                              );
-                            }
-                          } catch {
-                            return <span className="text-muted-foreground">—</span>;
-                          }
-                        })()}
-                      </TableCell>
-                    )}
                     <TableCell>
                       {firstProjectRow && (
                         <Button
@@ -2254,6 +2280,29 @@ export default function AprobacionesPendientes() {
               </TableBody>
             </Table>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Estado Change Confirmation Dialog */}
+      <Dialog open={confirmDialog.open} onOpenChange={(open) => { if (!open && !isConfirming) setConfirmDialog(prev => ({ ...prev, open: false })); }}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-primary" />
+              {confirmDialog.title}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmDialog.description}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))} disabled={isConfirming}>
+              Cancelar
+            </Button>
+            <Button onClick={executeConfirmation} disabled={isConfirming}>
+              {isConfirming ? "Aplicando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

@@ -1379,7 +1379,7 @@ export default function AprobacionesPendientes() {
               {showLeg && <TableHead className="text-xs text-right">Saldo</TableHead>}
               <TableHead className="text-xs">Resp. aprobaciones</TableHead>
               {showLeg && <TableHead className="text-xs w-[130px]">Plazo Leg.</TableHead>}
-              <TableHead className="text-xs w-[100px]">Deshacer</TableHead>
+              
               <TableHead className="text-xs w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>

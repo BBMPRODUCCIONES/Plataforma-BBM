@@ -1024,7 +1024,7 @@ const Usuarios = () => {
                   )}
 
                   {/* Desembolsar y Acceso Aprobaciones */}
-                  {newRole !== "visual" && (
+                  {(newRole as string) !== "visual" && (
                     <div className="space-y-2">
                       <Label>Permisos de Aprobaciones</Label>
                       <div className="space-y-2 p-3 border rounded-md bg-purple-500/10 border-purple-500/30">

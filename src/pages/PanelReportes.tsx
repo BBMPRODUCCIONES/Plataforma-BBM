@@ -60,7 +60,7 @@ const PanelReportes = () => {
     });
   }, []);
 
-  const chartsBase = viewingCierreSnapshot ? (viewingCierreSnapshot.base_asignada || 0) : stats.base;
+  const chartsBase = viewingCierreSnapshot ? (viewingCierreSnapshot.base_asignada || 0) : stats.baseAsignada;
   const chartsGastos = viewingCierreSnapshot ? [] : currentPeriodGastos;
 
   const handleSaveBaseAndReembolso = async (newBase: number, newReembolso: number) => {

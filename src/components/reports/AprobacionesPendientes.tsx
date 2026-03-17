@@ -1936,6 +1936,7 @@ export default function AprobacionesPendientes() {
           </div>
         )}
       </div>
+      </div>
     );
   };
 

@@ -7,19 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { format, parseISO, getMonth, getYear, differenceInMinutes, differenceInSeconds, differenceInDays, differenceInHours } from "date-fns";
 
-interface UndoLogEntry {
-  id: string;
-  project_id: string | null;
-  item_id: string;
-  source: string;
-  previous_estado: string;
-  new_estado: string;
-  previous_revisado_por: string;
-  changed_by: string;
-  changed_at: string;
-  expires_at: string;
-  undone: boolean;
-}
 import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

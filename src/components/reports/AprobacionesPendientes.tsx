@@ -37,7 +37,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
-import { Search, RotateCcw, History, Clock, AlertTriangle, Globe, Eye } from "lucide-react";
+import { Search, RotateCcw, Lock, History, Clock, AlertTriangle, Globe, Eye } from "lucide-react";
 
 const TruncatedCellWithEye = ({ text, label }: { text: string; label: string }) => {
   if (!text || text === "—") return <span className="text-muted-foreground">—</span>;

@@ -86,7 +86,7 @@ const PanelReportes = () => {
   }, [currentPeriodGastos, selectedGastoIds, undoEntries]);
 
   const handleCierreCaja = async () => {
-    const result = await realizarCierre("Legalizado");
+    const result = await realizarCierre();
     if (result) {
       setSelectedGastoIds(new Set());
       setCajaOpen(false);

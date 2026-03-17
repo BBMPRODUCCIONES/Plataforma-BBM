@@ -43,7 +43,7 @@ const PanelReportes = () => {
   const isMobile = useIsMobile();
   const { gastos, loading, addGasto, deleteGasto } = useGastosMenores(undefined, { applyUndoOverlay: true });
   const { config, cierres, stats, currentPeriodGastos, updateBaseAndReembolso: saveBaseAndReembolso, registerResponsable, realizarCierre } = useCajaMenorConfig(gastos);
-  const { canApproveCajaMenor, canAjustarBaseCajaMenor, canAccessAprobaciones, role } = useUserRole();
+  const { canApproveCajaMenor, canAjustarBaseCajaMenor, canAccessAprobaciones, role, isResponsableCajaMenor, isAuditorCajaMenor } = useUserRole();
   const { entries: undoEntries } = useActiveUndoLog();
 
   /** Returns true if gasto has an active undo timer (name should be hidden) */

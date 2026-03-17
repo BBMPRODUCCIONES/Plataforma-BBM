@@ -1480,8 +1480,9 @@ export default function AprobacionesPendientes() {
     const contentWidth = pendingContentWidths[tipo] || 0;
 
     // Determine allowed estados for bulk action based on type
+    // For S tab, bulk changes affect legalization estado (2nd estado column)
     const bulkEstadoOptions = tipo === 'S'
-      ? ["Pendiente", "Aprobado", "No aprobado"]
+      ? ["Pendiente", "Aprobado", "Contabilizado", "Legalizado"]
       : tipo === 'R'
         ? canDesembolsar()
           ? ["Pendiente", "Aprobado", "No aprobado", "Legalizado", "Desembolsado"]

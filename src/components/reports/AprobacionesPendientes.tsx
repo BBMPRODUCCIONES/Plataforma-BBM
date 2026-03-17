@@ -197,6 +197,16 @@ export default function AprobacionesPendientes() {
   const [globalSearch, setGlobalSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("S");
 
+  // Bulk selection state for mass estado changes
+  const [selectedForBulk, setSelectedForBulk] = useState<Set<string>>(new Set());
+  const [bulkEstado, setBulkEstado] = useState<string>("");
+
+  // Clear bulk selection when switching tabs
+  useEffect(() => {
+    setSelectedForBulk(new Set());
+    setBulkEstado("");
+  }, [activeTab]);
+
   // Confirmation dialog state for estado changes
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -918,6 +928,48 @@ export default function AprobacionesPendientes() {
     }
   };
 
+  // Bulk estado change for multiple selected groups
+  const toggleBulkSelect = (key: string) => {
+    setSelectedForBulk(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleBulkSelectAll = (groups: GroupedPendingRow[]) => {
+    const keys = groups.map(g => g.key);
+    const allSelected = keys.length > 0 && keys.every(k => selectedForBulk.has(k));
+    setSelectedForBulk(prev => {
+      const next = new Set(prev);
+      if (allSelected) keys.forEach(k => next.delete(k));
+      else keys.forEach(k => next.add(k));
+      return next;
+    });
+  };
+
+  const handleBulkEstadoChange = () => {
+    if (!bulkEstado || selectedForBulk.size === 0) return;
+    const currentType = activeTab as 'S' | 'R' | 'C';
+    const selectedGroups = pendingByType[currentType].filter(g => selectedForBulk.has(g.key));
+    if (selectedGroups.length === 0) return;
+
+    const totalRows = selectedGroups.reduce((sum, g) => sum + g.rows.length, 0);
+    setConfirmDialog({
+      open: true,
+      title: "Confirmar cambio masivo de estado",
+      description: `¿Estás seguro de cambiar el estado de ${totalRows} solicitud(es) en ${selectedGroups.length} grupo(s) a "${bulkEstado}"?`,
+      onConfirm: async () => {
+        for (const group of selectedGroups) {
+          await handleGroupedEstadoChange(group, bulkEstado);
+        }
+        setSelectedForBulk(new Set());
+        setBulkEstado("");
+      },
+    });
+  };
+
   const handleDelete = async (row: FlattenedRow) => {
     if (!canApproveCajaMenor()) {
       toast.error("No tienes permisos para eliminar solicitudes");
@@ -1424,10 +1476,48 @@ export default function AprobacionesPendientes() {
   const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
     const showLeg = tipo === 'S';
     const isTypeC = tipo === 'C';
-    const colCount = isTypeC ? 8 : showLeg ? 12 : 9;
+    const colCount = (isTypeC ? 8 : showLeg ? 12 : 9) + 1; // +1 for checkbox column
     const contentWidth = pendingContentWidths[tipo] || 0;
 
+    // Determine allowed estados for bulk action based on type
+    const bulkEstadoOptions = tipo === 'S'
+      ? ["Pendiente", "Aprobado", "No aprobado"]
+      : tipo === 'R'
+        ? canDesembolsar()
+          ? ["Pendiente", "Aprobado", "No aprobado", "Legalizado", "Desembolsado"]
+          : ["Pendiente", "Aprobado", "No aprobado", "Legalizado"]
+        : ["Pendiente", "Aprobado", "Legalizado"];
+
+    const selectedCount = groups.filter(g => selectedForBulk.has(g.key)).length;
+    const selectedRowCount = groups.filter(g => selectedForBulk.has(g.key)).reduce((sum, g) => sum + g.rows.length, 0);
+
     return (
+      <div className="space-y-2">
+        {/* Bulk action bar */}
+        {canApproveCajaMenor() && selectedCount > 0 && (
+          <div className="flex items-center gap-3 p-2 bg-primary/10 border border-primary/20 rounded-md">
+            <span className="text-xs font-medium">
+              {selectedCount} grupo(s) seleccionado(s) ({selectedRowCount} solicitud(es))
+            </span>
+            <Select value={bulkEstado} onValueChange={setBulkEstado}>
+              <SelectTrigger className="h-7 text-xs w-[180px]">
+                <SelectValue placeholder="Cambiar estado a..." />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border z-[9999]">
+                {bulkEstadoOptions.map(opt => (
+                  <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" className="h-7 text-xs" onClick={handleBulkEstadoChange} disabled={!bulkEstado}>
+              Aplicar
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setSelectedForBulk(new Set()); setBulkEstado(""); }}>
+              Cancelar
+            </Button>
+          </div>
+        )}
+
       <div className="matrix-table-sticky-wrapper border rounded-md">
         <div
           ref={(el) => { pendingTableScrollRefs.current[tipo] = el; }}
@@ -1440,6 +1530,15 @@ export default function AprobacionesPendientes() {
         <Table>
           <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
             <TableRow>
+              {canApproveCajaMenor() && (
+                <TableHead className="text-xs w-[40px]">
+                  <Checkbox
+                    checked={groups.length > 0 && groups.every(g => selectedForBulk.has(g.key))}
+                    onCheckedChange={() => toggleBulkSelectAll(groups)}
+                    className="h-4 w-4"
+                  />
+                </TableHead>
+              )}
               {isTypeC ? (
                 <>
                   <TableHead className="text-xs">Fecha</TableHead>
@@ -1518,6 +1617,15 @@ export default function AprobacionesPendientes() {
 
                   return (
                     <TableRow key={group.key}>
+                      {canApproveCajaMenor() && (
+                        <TableCell className="text-xs">
+                          <Checkbox
+                            checked={selectedForBulk.has(group.key)}
+                            onCheckedChange={() => toggleBulkSelect(group.key)}
+                            className="h-4 w-4"
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="text-xs whitespace-nowrap">
                         {cDate ? format(cDate, "dd/MM/yyyy") : "—"}
                       </TableCell>
@@ -1602,6 +1710,15 @@ export default function AprobacionesPendientes() {
 
                 return (
                   <TableRow key={group.key}>
+                    {canApproveCajaMenor() && (
+                      <TableCell className="text-xs">
+                        <Checkbox
+                          checked={selectedForBulk.has(group.key)}
+                          onCheckedChange={() => toggleBulkSelect(group.key)}
+                          className="h-4 w-4"
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="text-xs text-center">
                       <div className="flex items-center gap-1 justify-center">
                         {hasRestoredRows && (() => {
@@ -1836,6 +1953,7 @@ export default function AprobacionesPendientes() {
             <div style={{ width: contentWidth, height: 1 }} />
           </div>
         )}
+      </div>
       </div>
     );
   };

@@ -142,13 +142,13 @@ const MONTHS = [
 ];
 
 const LEGALIZACION_ESTADO_OPTIONS = [
-  { value: "Pendiente", label: "Pendiente", className: "bg-orange-500/20 text-orange-400" },
-  { value: "Aprobado", label: "Aprobado", className: "bg-green-500/20 text-green-400" },
-  { value: "Contabilizado", label: "Contabilizado", className: "bg-blue-500/20 text-blue-400" },
-  { value: "Legalizado", label: "Legalizado", className: "bg-emerald-500/20 text-emerald-400" },
+  { value: "Pendiente", label: "Pendiente", className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+  { value: "Aprobado", label: "Aprobado", className: "bg-sky-500/20 text-sky-400 border-sky-500/30" },
+  { value: "Contabilizado", label: "Contabilizado", className: "bg-violet-500/20 text-violet-400 border-violet-500/30" },
+  { value: "Legalizado", label: "Legalizado", className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
 ];
 
-const LEGALIZACION_PENDIENTE = { value: "Pendiente", label: "Pendiente", className: "bg-orange-500/20 text-orange-400" };
+const LEGALIZACION_PENDIENTE = { value: "Pendiente", label: "Pendiente", className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
 
 const KNOWN_ESTADOS = ["Pendiente", "Aprobado", "No aprobado"];
 const KNOWN_CATEGORIAS = ["Transporte", "Alimentación", "Compras"];

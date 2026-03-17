@@ -30,18 +30,15 @@ const fmtCOP = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 const PanelReportes = () => {
-  const [currentView, setCurrentView] = useState<ReportView>("main");
-
-  // Deep-link: read ?section=cajaMenor from URL to navigate directly
-  useEffect(() => {
+  const [currentView, setCurrentView] = useState<ReportView>(() => {
     const params = new URLSearchParams(window.location.search);
     const section = params.get("section");
     if (section === "cajaMenor") {
-      setCurrentView("caja-menor");
-      // Clean the URL param without reload
       window.history.replaceState({}, "", window.location.pathname);
+      return "caja-menor";
     }
-  }, []);
+    return "main";
+  });
   const [gastoDialogOpen, setGastoDialogOpen] = useState(false);
   const [selectedGastoIds, setSelectedGastoIds] = useState<Set<string>>(new Set());
   const [cajaOpen, setCajaOpen] = useState(true);

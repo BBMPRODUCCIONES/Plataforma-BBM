@@ -591,8 +591,8 @@ export default function AprobacionesPendientes() {
     pendingRows.forEach(row => {
       const r = (row.item.recursos as string) || "";
       const tipo: 'S' | 'R' | 'C' = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
-      // For tipo C (Caja menor), each row is individual (not grouped by CC)
-      const key = tipo === "C" ? `gm-individual-${row.item.id}` : `${row.centroCostos || "sin-cc"}-${tipo}`;
+      // For tipo C (Caja menor), group ALL items into a single request
+      const key = tipo === "C" ? `caja-menor-all` : `${row.centroCostos || "sin-cc"}-${tipo}`;
       if (!groups.has(key)) {
         groups.set(key, {
           key,
@@ -647,7 +647,7 @@ export default function AprobacionesPendientes() {
     resolvedRows.forEach(row => {
       const r = (row.item.recursos as string) || "";
       const tipo: 'S' | 'R' | 'C' = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
-      const key = tipo === "C" ? `gm-individual-${row.item.id}` : `${row.centroCostos || "sin-cc"}-${tipo}`;
+      const key = tipo === "C" ? `caja-menor-all-resolved` : `${row.centroCostos || "sin-cc"}-${tipo}`;
       if (!groups.has(key)) {
         groups.set(key, { key, tipo, centroCostos: row.centroCostos, evento: row.evento, totalValor: 0, totalLegalizacion: 0, totalSaldo: 0, latestDate: undefined, rows: [] });
       }
@@ -1483,7 +1483,7 @@ export default function AprobacionesPendientes() {
   const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
     const showLeg = tipo === 'S';
     const isTypeC = tipo === 'C';
-    const colCount = (isTypeC ? 8 : showLeg ? 12 : 9) + 1; // +1 for checkbox column
+    const colCount = (isTypeC ? 6 : showLeg ? 12 : 9) + 1; // +1 for checkbox column
     const contentWidth = pendingContentWidths[tipo] || 0;
 
     // Determine allowed estados for bulk action based on type
@@ -1550,11 +1550,9 @@ export default function AprobacionesPendientes() {
               {isTypeC ? (
                 <>
                   <TableHead className="text-xs">Fecha</TableHead>
-                  <TableHead className="text-xs">Solicitante</TableHead>
-                  <TableHead className="text-xs">Periodo</TableHead>
-                  <TableHead className="text-xs text-right">Valor</TableHead>
-                  <TableHead className="text-xs text-right">Valor cierre</TableHead>
-                  <TableHead className="text-xs w-[140px]">Estado Solicitud</TableHead>
+                  <TableHead className="text-xs">Solicitudes</TableHead>
+                  <TableHead className="text-xs text-right">Valor Total</TableHead>
+                  <TableHead className="text-xs w-[140px]">Estado</TableHead>
                   <TableHead className="text-xs">Resp. de aprobaciones</TableHead>
                   <TableHead className="text-xs w-[80px]"></TableHead>
                 </>
@@ -1616,9 +1614,7 @@ export default function AprobacionesPendientes() {
 
                 // Type C specific rendering
                 if (isTypeC) {
-                  const cRow = group.rows[0];
-                  const cDate = cRow ? parseDateSafe(cRow.item.createdAt) : null;
-                  const periodo = cDate ? format(cDate, "MMM yyyy", { locale: es }) : "—";
+                  const cDate = d;
                   
                   // Estado allowed for C
                   const estadoAllowedC = ["Pendiente", "Aprobado", "Legalizado"];
@@ -1638,20 +1634,12 @@ export default function AprobacionesPendientes() {
                         {cDate ? format(cDate, "dd/MM/yyyy") : "—"}
                       </TableCell>
                       <TableCell className="text-xs">
-                        <TruncatedCellWithEye
-                          text={(() => {
-                            const names = [...new Set(group.rows.map(r => r.item.empleadoNombre).filter(Boolean))];
-                            return names.length > 0 ? names.join(", ") : "—";
-                          })()}
-                          label="Solicitante"
-                        />
+                        <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/40 text-xs">
+                          {group.rows.length} gasto(s)
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-xs capitalize">{periodo}</TableCell>
                       <TableCell className="text-xs text-right font-medium">
                         {formatCurrency(group.totalValor)}
-                      </TableCell>
-                      <TableCell className="text-xs text-right font-medium text-muted-foreground">
-                        —
                       </TableCell>
                       <TableCell className="text-xs">
                         {canApproveCajaMenor() ? (

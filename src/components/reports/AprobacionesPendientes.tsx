@@ -1408,7 +1408,7 @@ export default function AprobacionesPendientes() {
                   {showLeg && <TableHead className="text-xs w-[140px]">Estado Legaliz.</TableHead>}
                   {showLeg && <TableHead className="text-xs text-right">Saldo</TableHead>}
                    <TableHead className="text-xs">Resp. aprobaciones</TableHead>
-                  {showLeg && <TableHead className="text-xs w-[130px]">Plazo Leg.</TableHead>}
+                  <TableHead className="text-xs w-[80px]"></TableHead>
                   <TableHead className="text-xs w-[80px]"></TableHead>
                 </>
               )}

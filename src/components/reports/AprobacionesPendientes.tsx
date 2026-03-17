@@ -591,8 +591,8 @@ export default function AprobacionesPendientes() {
     pendingRows.forEach(row => {
       const r = (row.item.recursos as string) || "";
       const tipo: 'S' | 'R' | 'C' = r === "Recursos propios" ? "R" : r === "BBM" ? "C" : "S";
-      // For tipo C (Caja menor), each row is individual (not grouped by CC)
-      const key = tipo === "C" ? `gm-individual-${row.item.id}` : `${row.centroCostos || "sin-cc"}-${tipo}`;
+      // For tipo C (Caja menor), group ALL items into a single request
+      const key = tipo === "C" ? `caja-menor-all` : `${row.centroCostos || "sin-cc"}-${tipo}`;
       if (!groups.has(key)) {
         groups.set(key, {
           key,

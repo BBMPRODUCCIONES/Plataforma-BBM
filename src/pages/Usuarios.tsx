@@ -518,6 +518,8 @@ const Usuarios = () => {
     setNewPuedeAjustarBaseCajaMenor(false);
     setNewPuedeDesembolsar(false);
     setNewPuedeAccederAprobaciones(false);
+    setNewEsResponsableCajaMenor(false);
+    setNewEsAuditorCajaMenor(false);
     setNewPuedeAccederUsuarios(true);
     setNewPuedeAccederClientes(true);
     setNewPuedeAccederEmpleados(true);

@@ -197,6 +197,16 @@ export default function AprobacionesPendientes() {
   const [globalSearch, setGlobalSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("S");
 
+  // Bulk selection state for mass estado changes
+  const [selectedForBulk, setSelectedForBulk] = useState<Set<string>>(new Set());
+  const [bulkEstado, setBulkEstado] = useState<string>("");
+
+  // Clear bulk selection when switching tabs
+  useEffect(() => {
+    setSelectedForBulk(new Set());
+    setBulkEstado("");
+  }, [activeTab]);
+
   // Confirmation dialog state for estado changes
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;

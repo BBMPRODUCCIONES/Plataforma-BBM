@@ -828,23 +828,6 @@ export default function AprobacionesPendientes() {
 
     await updateProject(row.projectId, "legalizacion", updatedLegalizacion);
 
-    // Log undo entry for legalization estado changes (non-Pendiente)
-    if (newEstado !== "Pendiente") {
-      const previousLegEstado = row.legalizacionEstado || "Pendiente";
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData?.user?.id) {
-        await supabase.from("aprobacion_undo_log").insert({
-          project_id: row.projectId || null,
-          item_id: `leg-${row.item.id}`,
-          source: "legalizacion",
-          previous_estado: previousLegEstado,
-          new_estado: newEstado,
-          previous_revisado_por: "",
-          changed_by: userData.user.id,
-        } as any);
-        await fetchUndoLog();
-      }
-    }
 
     toast.success(`Estado de legalización actualizado a "${newEstado}"`);
   };

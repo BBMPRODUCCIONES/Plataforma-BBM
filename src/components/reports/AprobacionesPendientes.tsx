@@ -521,40 +521,27 @@ export default function AprobacionesPendientes() {
 
   // Split into pending and resolved
   // Pending: "Pendiente" OR (Aprobado type S with legalization not yet complete)
-  // All R, C, and S with estado "Pendiente" stay pending
-  // S "Aprobado" stays pending until legalization is "Legalizado"
-  // Helper: check if item has active undo entry
-  const hasActiveUndo = useCallback((itemId: string) => {
-    return undoLog.some(e => e.item_id === itemId && !e.undone && new Date(e.expires_at) > new Date() && e.new_estado !== "Pendiente");
-  }, [undoLog]);
 
   const pendingRows = useMemo(() => filteredRows.filter(r => {
     const estado = r.item.estado as string;
     if (estado === "Pendiente") return true;
-    if (estado === "No aprobado") {
-      return hasActiveUndo(r.item.id);
-    }
+    if (estado === "No aprobado") return false;
     if (estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
       const isTypeR = recursos === "Recursos propios";
       if (isTypeS) {
         if (r.legalizacionEstado !== "Legalizado") return true;
-        const legUndoId = `leg-${r.item.id}`;
-        if (hasActiveUndo(legUndoId)) return true;
       }
       if (isTypeR) return true;
-      if (!isTypeS && !isTypeR) return hasActiveUndo(r.item.id);
     }
     if (estado === "Legalizado") {
       const recursos = (r.item.recursos as string) || "";
       if (recursos === "Recursos propios") return true;
     }
-    if (estado === "Desembolsado") {
-      return hasActiveUndo(r.item.id);
-    }
+    if (estado === "Desembolsado") return false;
     return false;
-  }), [filteredRows, hasActiveUndo]);
+  }), [filteredRows]);
   const resolvedRows = useMemo(() => filteredRows.filter(r => {
     const estado = r.item.estado as string;
     if (estado === "No aprobado") {

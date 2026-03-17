@@ -1673,12 +1673,21 @@ export default function AprobacionesPendientes() {
                         // Check if another user has an active undo — lock editing
                         const undoEntry = getUndoEntryForGroup(group.key, group.rows);
                         const otherUserUndo = undoEntry && currentUserId && undoEntry.changed_by !== currentUserId;
+                        
+                        // Determine allowed values based on type
+                        let estadoAllowed = ["Pendiente", "Aprobado", "No aprobado"];
+                        if (group.tipo === "R") {
+                          estadoAllowed = canDesembolsar()
+                            ? ["Pendiente", "Aprobado", "No aprobado", "Legalizado", "Desembolsado"]
+                            : ["Pendiente", "Aprobado", "No aprobado", "Legalizado"];
+                        }
+                        
                         if (canApproveCajaMenor() && !isTypeSAndDecided && !otherUserUndo) {
                           return (
                             <CajaMenorEstadoSelect
                               value={commonEstado}
                               onChange={(v) => handleGroupedEstadoChange(group, v)}
-                              allowedValues={["Pendiente", "Aprobado", "No aprobado"]}
+                              allowedValues={estadoAllowed}
                             />
                           );
                         }

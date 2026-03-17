@@ -1604,9 +1604,6 @@ export default function AprobacionesPendientes() {
                                 <div>
                                   <span className="font-medium text-blue-400">📋 Solicitud:</span>
                                   <p className="ml-5">{solApprovers.length > 0 ? solApprovers.join(", ") : "Sin aprobar"}</p>
-                                  {solUndoEntry && (
-                                    <p className="ml-5 text-muted-foreground">{format(parseISO(solUndoEntry.changed_at), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
-                                  )}
                                 </div>
                                 {isTypeS && (
                                   <div>

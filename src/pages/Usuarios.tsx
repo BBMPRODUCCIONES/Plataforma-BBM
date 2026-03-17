@@ -226,6 +226,8 @@ const Usuarios = () => {
           puede_asignar_responsables: (roleRecord as any).puede_asignar_responsables ?? false,
           puede_restaurar_solicitudes: (roleRecord as any).puede_restaurar_solicitudes ?? false,
           puede_ajustar_base_caja_menor: (roleRecord as any).puede_ajustar_base_caja_menor ?? false,
+          puede_desembolsar: (roleRecord as any).puede_desembolsar ?? false,
+          puede_acceder_aprobaciones: (roleRecord as any).puede_acceder_aprobaciones ?? false,
           puede_acceder_usuarios: (roleRecord as any).puede_acceder_usuarios ?? true,
           puede_acceder_clientes: (roleRecord as any).puede_acceder_clientes ?? true,
           puede_acceder_empleados: (roleRecord as any).puede_acceder_empleados ?? true,

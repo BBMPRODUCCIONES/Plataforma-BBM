@@ -1482,7 +1482,7 @@ export default function AprobacionesPendientes() {
                             : ["Pendiente", "Aprobado", "No aprobado", "Legalizado"];
                         }
                         
-                        if (canApproveCajaMenor() && !isTypeSAndDecided && !otherUserUndo) {
+                        if (canApproveCajaMenor() && !isTypeSAndDecided) {
                           return (
                             <CajaMenorEstadoSelect
                               value={commonEstado}

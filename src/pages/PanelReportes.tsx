@@ -322,6 +322,8 @@ const PanelReportes = () => {
                 config={{
                   id: "snapshot",
                   base_asignada: viewingCierreSnapshot.base_asignada || 0,
+                  saldo_inicial: viewingCierreSnapshot.saldo_inicial || 0,
+                  reembolsado_caja_anterior: viewingCierreSnapshot.reembolsado_caja_anterior || 0,
                   responsable_user_id: null,
                   responsable_nombre: viewingCierreSnapshot.responsable_nombre || "",
                   responsable_timestamp: viewingCierreSnapshot.responsable_timestamp || null,
@@ -333,11 +335,12 @@ const PanelReportes = () => {
                   updated_at: "",
                 }}
                 stats={{
-                  base: viewingCierreSnapshot.base_asignada || 0,
-                  totalAprobados: viewingCierreSnapshot.total_aprobados || 0,
+                  baseAsignada: viewingCierreSnapshot.base_asignada || 0,
+                  saldoInicial: viewingCierreSnapshot.saldo_inicial || 0,
+                  reembolsadoCajaAnterior: viewingCierreSnapshot.reembolsado_caja_anterior || 0,
+                  totalGastos: viewingCierreSnapshot.total_gastos || viewingCierreSnapshot.total_aprobados || 0,
                   totalPendientes: viewingCierreSnapshot.total_pendientes || 0,
-                  efectivoEnCaja: viewingCierreSnapshot.saldo_en_caja || 0,
-                  reembolsado: viewingCierreSnapshot.reembolsado || 0,
+                  saldoEnCaja: viewingCierreSnapshot.saldo_en_caja || 0,
                 }}
                 isAdmin={false}
                 canAjustarBase={false}

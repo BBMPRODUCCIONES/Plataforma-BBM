@@ -79,6 +79,8 @@ const defaultCajaMenorPermissions: CajaMenorPermissions = {
   puedeAjustarBaseCajaMenor: false,
   puedeDesembolsar: false,
   puedeAccederAprobaciones: false,
+  esResponsableCajaMenor: false,
+  esAuditorCajaMenor: false,
 };
 
 const defaultPanelEditPermissions: PanelEditPermissions = {

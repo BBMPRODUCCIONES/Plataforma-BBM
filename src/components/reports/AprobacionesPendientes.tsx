@@ -1247,7 +1247,7 @@ export default function AprobacionesPendientes() {
               return (
                 <Select
                   value={row.legalizacionEstado || "Pendiente"}
-                  onValueChange={(v) => handleLegalizacionEstadoChange(row, v)}
+                  onValueChange={(v) => confirmLegalizacionChange(row, v)}
                 >
                   <SelectTrigger
                     className={`h-7 text-xs w-full border font-medium ${

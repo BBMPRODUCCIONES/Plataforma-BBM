@@ -4,6 +4,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Project, CajaMenorItem, LegalizacionItem } from "@/types";
 import { useGastosMenores, GastoMenor } from "@/hooks/useGastosMenores";
 import { supabase } from "@/integrations/supabase/client";
+import { useCajaMenorConfig } from "@/hooks/useCajaMenorConfig";
 
 import { format, parseISO, getMonth, getYear, differenceInDays, differenceInHours } from "date-fns";
 

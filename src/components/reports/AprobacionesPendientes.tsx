@@ -197,6 +197,15 @@ export default function AprobacionesPendientes() {
   const [globalSearch, setGlobalSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("S");
 
+  // Confirmation dialog state for estado changes
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => Promise<void>;
+  }>({ open: false, title: "", description: "", onConfirm: async () => {} });
+  const [isConfirming, setIsConfirming] = useState(false);
+
   // Clear stale selections when history dialog opens or resolved rows change
   const openHistoryDialog = useCallback(() => {
     setSelectedForRestore(new Set());

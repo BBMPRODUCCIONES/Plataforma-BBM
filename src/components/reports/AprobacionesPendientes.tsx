@@ -1509,7 +1509,7 @@ export default function AprobacionesPendientes() {
             </span>
             <Select value={bulkEstado} onValueChange={setBulkEstado}>
               <SelectTrigger className="h-7 text-xs w-[180px]">
-                <SelectValue placeholder="Cambiar estado a..." />
+                <SelectValue placeholder={tipo === 'S' ? "Cambiar legalización a..." : "Cambiar estado a..."} />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border z-[9999]">
                 {bulkEstadoOptions.map(opt => (

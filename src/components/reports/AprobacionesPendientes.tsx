@@ -165,6 +165,7 @@ export default function AprobacionesPendientes() {
   const { canApproveCajaMenor, canRestaurarSolicitudes, canDesembolsar } = useUserRole();
   const isMobile = useIsMobile();
   const { gastos: gastosMenores, refetch: refetchGastos, deleteGasto } = useGastosMenores();
+  const { config: cajaMenorConfig, stats: cajaMenorStats } = useCajaMenorConfig(gastosMenores);
 
   // Get current user's employee name and ID for approver tracking
   const [currentUserName, setCurrentUserName] = useState("");

@@ -544,28 +544,20 @@ export default function AprobacionesPendientes() {
   }), [filteredRows]);
   const resolvedRows = useMemo(() => filteredRows.filter(r => {
     const estado = r.item.estado as string;
-    if (estado === "No aprobado") {
-      return !hasActiveUndo(r.item.id);
-    }
+    if (estado === "No aprobado") return true;
     if (estado === "Reembolsado") return true;
-    if (estado === "Desembolsado") {
-      return !hasActiveUndo(r.item.id);
-    }
+    if (estado === "Desembolsado") return true;
     if (estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
       const isTypeR = recursos === "Recursos propios";
       if (isTypeS) {
-        const legResolved = r.legalizacionEstado === "Legalizado";
-        if (!legResolved) return false;
-        const legUndoId = `leg-${r.item.id}`;
-        return !hasActiveUndo(legUndoId);
+        return r.legalizacionEstado === "Legalizado";
       }
       if (isTypeR) return false;
-      return !hasActiveUndo(r.item.id);
     }
     return false;
-  }), [filteredRows, hasActiveUndo]);
+  }), [filteredRows]);
 
   // Group pending rows by (centroCostos, tipo)
   const groupedPendingRows = useMemo((): GroupedPendingRow[] => {

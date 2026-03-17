@@ -861,7 +861,63 @@ export default function AprobacionesPendientes() {
     }
   };
 
-  // Handle delete
+  // Confirmation wrappers — show dialog before applying estado changes
+  const confirmEstadoChange = (row: FlattenedRow, newEstado: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Confirmar cambio de estado",
+      description: `¿Estás seguro de cambiar el estado de la solicitud de "${row.item.estado}" a "${newEstado}"?`,
+      onConfirm: async () => {
+        await handleEstadoChange(row, newEstado);
+      },
+    });
+  };
+
+  const confirmGroupedEstadoChange = (group: GroupedPendingRow, newEstado: string) => {
+    const currentEstados = [...new Set(group.rows.map(r => r.item.estado))];
+    const fromLabel = currentEstados.length === 1 ? currentEstados[0] : "Mixto";
+    setConfirmDialog({
+      open: true,
+      title: "Confirmar cambio de estado",
+      description: `¿Estás seguro de cambiar el estado de ${group.rows.length} solicitud(es) de "${fromLabel}" a "${newEstado}"?`,
+      onConfirm: async () => {
+        await handleGroupedEstadoChange(group, newEstado);
+      },
+    });
+  };
+
+  const confirmLegalizacionChange = (row: FlattenedRow, newEstado: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Confirmar cambio de legalización",
+      description: `¿Estás seguro de cambiar el estado de legalización de "${row.legalizacionEstado || "Pendiente"}" a "${newEstado}"?`,
+      onConfirm: async () => {
+        await handleLegalizacionEstadoChange(row, newEstado);
+      },
+    });
+  };
+
+  const confirmGroupedLegalizacionChange = (group: GroupedPendingRow, newEstado: string) => {
+    setConfirmDialog({
+      open: true,
+      title: "Confirmar cambio de legalización",
+      description: `¿Estás seguro de cambiar el estado de legalización a "${newEstado}" para ${group.rows.filter(r => r.item.estado === "Aprobado").length} solicitud(es)?`,
+      onConfirm: async () => {
+        await handleGroupedLegalizacionChange(group, newEstado);
+      },
+    });
+  };
+
+  const executeConfirmation = async () => {
+    setIsConfirming(true);
+    try {
+      await confirmDialog.onConfirm();
+    } finally {
+      setIsConfirming(false);
+      setConfirmDialog(prev => ({ ...prev, open: false }));
+    }
+  };
+
   const handleDelete = async (row: FlattenedRow) => {
     if (!canApproveCajaMenor()) {
       toast.error("No tienes permisos para eliminar solicitudes");

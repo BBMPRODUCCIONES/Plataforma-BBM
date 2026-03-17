@@ -1552,10 +1552,12 @@ export default function AprobacionesPendientes() {
               {isTypeC ? (
                 <>
                   <TableHead className="text-xs">Fecha</TableHead>
-                  <TableHead className="text-xs">Solicitudes</TableHead>
-                  <TableHead className="text-xs text-right">Valor Total</TableHead>
+                  <TableHead className="text-xs">Solicitante</TableHead>
+                  <TableHead className="text-xs">Periodo</TableHead>
+                  <TableHead className="text-xs text-right">Valor</TableHead>
+                  <TableHead className="text-xs text-right">Valor cierre</TableHead>
                   <TableHead className="text-xs w-[140px]">Estado</TableHead>
-                  <TableHead className="text-xs">Resp. de aprobaciones</TableHead>
+                  <TableHead className="text-xs">Resp. Aprobaciones</TableHead>
                   <TableHead className="text-xs w-[80px]"></TableHead>
                 </>
               ) : (

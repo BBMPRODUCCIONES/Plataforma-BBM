@@ -5,7 +5,7 @@ import { Project, CajaMenorItem, LegalizacionItem } from "@/types";
 import { useGastosMenores, GastoMenor } from "@/hooks/useGastosMenores";
 import { supabase } from "@/integrations/supabase/client";
 
-import { format, parseISO, getMonth, getYear, differenceInMinutes, differenceInSeconds, differenceInDays, differenceInHours } from "date-fns";
+import { format, parseISO, getMonth, getYear, differenceInDays, differenceInHours } from "date-fns";
 
 import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";

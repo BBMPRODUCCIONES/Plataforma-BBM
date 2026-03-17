@@ -1614,9 +1614,7 @@ export default function AprobacionesPendientes() {
 
                 // Type C specific rendering
                 if (isTypeC) {
-                  const cRow = group.rows[0];
-                  const cDate = cRow ? parseDateSafe(cRow.item.createdAt) : null;
-                  const periodo = cDate ? format(cDate, "MMM yyyy", { locale: es }) : "—";
+                  const cDate = d;
                   
                   // Estado allowed for C
                   const estadoAllowedC = ["Pendiente", "Aprobado", "Legalizado"];
@@ -1636,20 +1634,12 @@ export default function AprobacionesPendientes() {
                         {cDate ? format(cDate, "dd/MM/yyyy") : "—"}
                       </TableCell>
                       <TableCell className="text-xs">
-                        <TruncatedCellWithEye
-                          text={(() => {
-                            const names = [...new Set(group.rows.map(r => r.item.empleadoNombre).filter(Boolean))];
-                            return names.length > 0 ? names.join(", ") : "—";
-                          })()}
-                          label="Solicitante"
-                        />
+                        <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/40 text-xs">
+                          {group.rows.length} gasto(s)
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-xs capitalize">{periodo}</TableCell>
                       <TableCell className="text-xs text-right font-medium">
                         {formatCurrency(group.totalValor)}
-                      </TableCell>
-                      <TableCell className="text-xs text-right font-medium text-muted-foreground">
-                        —
                       </TableCell>
                       <TableCell className="text-xs">
                         {canApproveCajaMenor() ? (

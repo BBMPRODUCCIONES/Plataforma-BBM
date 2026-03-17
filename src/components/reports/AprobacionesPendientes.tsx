@@ -1476,8 +1476,20 @@ export default function AprobacionesPendientes() {
   const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
     const showLeg = tipo === 'S';
     const isTypeC = tipo === 'C';
-    const colCount = isTypeC ? 8 : showLeg ? 12 : 9;
+    const colCount = (isTypeC ? 8 : showLeg ? 12 : 9) + 1; // +1 for checkbox column
     const contentWidth = pendingContentWidths[tipo] || 0;
+
+    // Determine allowed estados for bulk action based on type
+    const bulkEstadoOptions = tipo === 'S'
+      ? ["Pendiente", "Aprobado", "No aprobado"]
+      : tipo === 'R'
+        ? canDesembolsar()
+          ? ["Pendiente", "Aprobado", "No aprobado", "Legalizado", "Desembolsado"]
+          : ["Pendiente", "Aprobado", "No aprobado", "Legalizado"]
+        : ["Pendiente", "Aprobado", "Legalizado"];
+
+    const selectedCount = groups.filter(g => selectedForBulk.has(g.key)).length;
+    const selectedRowCount = groups.filter(g => selectedForBulk.has(g.key)).reduce((sum, g) => sum + g.rows.length, 0);
 
     return (
       <div className="matrix-table-sticky-wrapper border rounded-md">

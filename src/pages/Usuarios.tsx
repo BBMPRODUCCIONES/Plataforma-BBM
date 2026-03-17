@@ -1399,7 +1399,7 @@ const Usuarios = () => {
                     </p>
                   </div>
                 </div>
-              )
+              )}
 
               {/* Restaurar Solicitudes Permission - admin only */}
               {editRole === "administrador" && (

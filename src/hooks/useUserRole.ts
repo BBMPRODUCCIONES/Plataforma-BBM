@@ -202,6 +202,16 @@ export function useUserRole(): UseUserRoleReturn {
     return cajaMenorPermissions?.puedeAccederAprobaciones ?? false;
   };
 
+  const isResponsableCajaMenor = (): boolean => {
+    if (!role) return false;
+    return (cajaMenorPermissions as any)?.esResponsableCajaMenor ?? false;
+  };
+
+  const isAuditorCajaMenor = (): boolean => {
+    if (!role) return false;
+    return (cajaMenorPermissions as any)?.esAuditorCajaMenor ?? false;
+  };
+
   return {
     role: role as UserRole | null,
     loading,
@@ -227,5 +237,7 @@ export function useUserRole(): UseUserRoleReturn {
     canAccessAdminPage,
     canDesembolsar,
     canAccessAprobaciones,
+    isResponsableCajaMenor,
+    isAuditorCajaMenor,
   };
 }

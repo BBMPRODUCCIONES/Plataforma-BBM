@@ -613,61 +613,52 @@ export default function AprobacionesPendientes() {
   }, [undoLog]);
 
   const pendingRows = useMemo(() => filteredRows.filter(r => {
-    if (r.item.estado === "Pendiente") return true;
-    if (r.item.estado === "No aprobado") {
-      // Keep "No aprobado" in pending if undo is still active
+    const estado = r.item.estado as string;
+    if (estado === "Pendiente") return true;
+    if (estado === "No aprobado") {
       return hasActiveUndo(r.item.id);
     }
-    if (r.item.estado === "Aprobado") {
+    if (estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
       const isTypeR = recursos === "Recursos propios";
       if (isTypeS) {
-        // Type S stays pending until legalization is complete
         if (r.legalizacionEstado !== "Legalizado") return true;
-        // Even if legalized, stay pending while undo window for legalization is active
         const legUndoId = `leg-${r.item.id}`;
         if (hasActiveUndo(legUndoId)) return true;
       }
-      // Type R: stays pending (Aprobado is not terminal for R, needs Legalizado or Desembolsado)
       if (isTypeR) return true;
-      // Type C: stay in pending while undo window is active
       if (!isTypeS && !isTypeR) return hasActiveUndo(r.item.id);
     }
-    // Type R intermediate states: Legalizado stays pending (until Desembolsado)
-    if (r.item.estado === "Legalizado") {
+    if (estado === "Legalizado") {
       const recursos = (r.item.recursos as string) || "";
-      if (recursos === "Recursos propios") return hasActiveUndo(r.item.id) || true;
+      if (recursos === "Recursos propios") return true;
     }
-    if (r.item.estado === "Desembolsado") {
+    if (estado === "Desembolsado") {
       return hasActiveUndo(r.item.id);
     }
     return false;
   }), [filteredRows, hasActiveUndo]);
   const resolvedRows = useMemo(() => filteredRows.filter(r => {
-    if (r.item.estado === "No aprobado") {
-      // Only go to history if undo window has expired
+    const estado = r.item.estado as string;
+    if (estado === "No aprobado") {
       return !hasActiveUndo(r.item.id);
     }
-    if ((r.item.estado as string) === "Reembolsado") return true;
-    // Type R: Desembolsado goes to history when undo expires
-    if (r.item.estado === "Desembolsado") {
+    if (estado === "Reembolsado") return true;
+    if (estado === "Desembolsado") {
       return !hasActiveUndo(r.item.id);
     }
-    if (r.item.estado === "Aprobado") {
+    if (estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
       const isTypeR = recursos === "Recursos propios";
-      // Type S resolved when legalization is "Legalizado" AND undo window expired
       if (isTypeS) {
         const legResolved = r.legalizacionEstado === "Legalizado";
         if (!legResolved) return false;
         const legUndoId = `leg-${r.item.id}`;
         return !hasActiveUndo(legUndoId);
       }
-      // Type R: Aprobado is NOT resolved (needs Legalizado/Desembolsado)
       if (isTypeR) return false;
-      // Type C go to history only when undo window has expired
       return !hasActiveUndo(r.item.id);
     }
     return false;

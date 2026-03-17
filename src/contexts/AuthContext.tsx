@@ -18,6 +18,8 @@ interface CajaMenorPermissions {
   puedeAjustarBaseCajaMenor: boolean;
   puedeDesembolsar: boolean;
   puedeAccederAprobaciones: boolean;
+  esResponsableCajaMenor: boolean;
+  esAuditorCajaMenor: boolean;
 }
 
 interface PanelEditPermissions {

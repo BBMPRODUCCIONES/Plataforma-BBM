@@ -533,6 +533,8 @@ const Usuarios = () => {
     setEditPuedeAsignarResponsables(user.puede_asignar_responsables);
     setEditPuedeRestaurarSolicitudes(user.puede_restaurar_solicitudes);
     setEditPuedeAjustarBaseCajaMenor(user.puede_ajustar_base_caja_menor);
+    setEditPuedeDesembolsar(user.puede_desembolsar);
+    setEditPuedeAccederAprobaciones(user.puede_acceder_aprobaciones);
     setEditPuedeAccederUsuarios(user.puede_acceder_usuarios);
     setEditPuedeAccederClientes(user.puede_acceder_clientes);
     setEditPuedeAccederEmpleados(user.puede_acceder_empleados);

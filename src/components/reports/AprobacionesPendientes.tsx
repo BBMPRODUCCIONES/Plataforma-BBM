@@ -2283,6 +2283,29 @@ export default function AprobacionesPendientes() {
         </DialogContent>
       </Dialog>
 
+      {/* Estado Change Confirmation Dialog */}
+      <Dialog open={confirmDialog.open} onOpenChange={(open) => { if (!open && !isConfirming) setConfirmDialog(prev => ({ ...prev, open: false })); }}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-primary" />
+              {confirmDialog.title}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmDialog.description}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))} disabled={isConfirming}>
+              Cancelar
+            </Button>
+            <Button onClick={executeConfirmation} disabled={isConfirming}>
+              {isConfirming ? "Aplicando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Password Confirmation Dialog */}
       <Dialog open={showPasswordDialog} onOpenChange={(open) => { if (!open) { setShowPasswordDialog(false); setPasswordInput(""); setRestoreReasonInput(""); } }}>
         <DialogContent className="sm:max-w-[400px]">

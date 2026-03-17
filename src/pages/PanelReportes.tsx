@@ -31,6 +31,17 @@ const fmtCOP = (v: number) =>
 
 const PanelReportes = () => {
   const [currentView, setCurrentView] = useState<ReportView>("main");
+
+  // Deep-link: read ?section=cajaMenor from URL to navigate directly
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const section = params.get("section");
+    if (section === "cajaMenor") {
+      setCurrentView("caja-menor");
+      // Clean the URL param without reload
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
   const [gastoDialogOpen, setGastoDialogOpen] = useState(false);
   const [selectedGastoIds, setSelectedGastoIds] = useState<Set<string>>(new Set());
   const [cajaOpen, setCajaOpen] = useState(true);

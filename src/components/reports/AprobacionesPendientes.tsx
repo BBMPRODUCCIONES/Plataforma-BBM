@@ -1719,8 +1719,7 @@ export default function AprobacionesPendientes() {
                           className="h-7 px-1 text-xs text-primary underline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const params = new URLSearchParams({ section: "cajaMenor" });
-                            window.open(`/panel-reportes?${params.toString()}`, "_blank");
+                            window.location.href = `/panel-reportes?section=cajaMenor`;
                           }}
                         >
                           Ver más

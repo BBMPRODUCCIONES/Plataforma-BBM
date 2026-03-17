@@ -428,6 +428,8 @@ const PanelReportes = () => {
                 onSaveBaseAndReembolso={handleSaveBaseAndReembolso}
                 onClose={() => setCajaOpen(false)}
                 hasGastos={currentPeriodGastos.length > 0}
+                isResponsable={isResponsableCajaMenor()}
+                isAuditor={isAuditorCajaMenor()}
               />
               {loading ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Cargando gastos...</p>

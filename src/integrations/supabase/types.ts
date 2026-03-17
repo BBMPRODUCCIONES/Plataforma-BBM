@@ -969,6 +969,7 @@ export type Database = {
           email: string | null
           id: string
           puede_acceder_agentes: boolean | null
+          puede_acceder_aprobaciones: boolean | null
           puede_acceder_clientes: boolean | null
           puede_acceder_constructor: boolean | null
           puede_acceder_empleados: boolean | null
@@ -977,6 +978,7 @@ export type Database = {
           puede_aprobar_caja_menor: boolean | null
           puede_asignar_responsables: boolean | null
           puede_crear_anticipos: boolean | null
+          puede_desembolsar: boolean | null
           puede_editar_directivo: boolean | null
           puede_editar_feedback: boolean | null
           puede_editar_general: boolean | null
@@ -993,6 +995,7 @@ export type Database = {
           email?: string | null
           id?: string
           puede_acceder_agentes?: boolean | null
+          puede_acceder_aprobaciones?: boolean | null
           puede_acceder_clientes?: boolean | null
           puede_acceder_constructor?: boolean | null
           puede_acceder_empleados?: boolean | null
@@ -1001,6 +1004,7 @@ export type Database = {
           puede_aprobar_caja_menor?: boolean | null
           puede_asignar_responsables?: boolean | null
           puede_crear_anticipos?: boolean | null
+          puede_desembolsar?: boolean | null
           puede_editar_directivo?: boolean | null
           puede_editar_feedback?: boolean | null
           puede_editar_general?: boolean | null
@@ -1017,6 +1021,7 @@ export type Database = {
           email?: string | null
           id?: string
           puede_acceder_agentes?: boolean | null
+          puede_acceder_aprobaciones?: boolean | null
           puede_acceder_clientes?: boolean | null
           puede_acceder_constructor?: boolean | null
           puede_acceder_empleados?: boolean | null
@@ -1025,6 +1030,7 @@ export type Database = {
           puede_aprobar_caja_menor?: boolean | null
           puede_asignar_responsables?: boolean | null
           puede_crear_anticipos?: boolean | null
+          puede_desembolsar?: boolean | null
           puede_editar_directivo?: boolean | null
           puede_editar_feedback?: boolean | null
           puede_editar_general?: boolean | null

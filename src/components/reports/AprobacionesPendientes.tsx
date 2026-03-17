@@ -768,7 +768,7 @@ export default function AprobacionesPendientes() {
         return;
       }
       refetchGastos();
-      await logUndoEntry(row, previousEstado, newEstado, previousRevisadoPor);
+      toast.success(`Estado actualizado a "${newEstado}"`);
       toast.success(`Estado actualizado a "${newEstado}"`);
       return;
     }

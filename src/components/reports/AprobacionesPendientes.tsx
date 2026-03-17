@@ -818,7 +818,7 @@ export default function AprobacionesPendientes() {
         ? { estado: newEstado, aprobado_por_id: null, aprobado_por_nombre: "" }
         : { estado: newEstado, aprobado_por_id: userData?.user?.id || null, aprobado_por_nombre: currentUserName || "Admin" };
       await supabase.from("gastos_menores").update(updateData as any).eq("id", row.gastoMenorId!);
-      await logUndoEntry(row, previousEstado, newEstado, previousRevisadoPor);
+      // estado change logged
     }
     if (gastoRows.length > 0) refetchGastos();
 

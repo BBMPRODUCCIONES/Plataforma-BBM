@@ -4,6 +4,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Project, CajaMenorItem, LegalizacionItem } from "@/types";
 import { useGastosMenores, GastoMenor } from "@/hooks/useGastosMenores";
 import { supabase } from "@/integrations/supabase/client";
+import { useCajaMenorConfig } from "@/hooks/useCajaMenorConfig";
 
 import { format, parseISO, getMonth, getYear, differenceInDays, differenceInHours } from "date-fns";
 
@@ -164,6 +165,7 @@ export default function AprobacionesPendientes() {
   const { canApproveCajaMenor, canRestaurarSolicitudes, canDesembolsar } = useUserRole();
   const isMobile = useIsMobile();
   const { gastos: gastosMenores, refetch: refetchGastos, deleteGasto } = useGastosMenores();
+  const { config: cajaMenorConfig, stats: cajaMenorStats } = useCajaMenorConfig(gastosMenores);
 
   // Get current user's employee name and ID for approver tracking
   const [currentUserName, setCurrentUserName] = useState("");
@@ -1483,7 +1485,7 @@ export default function AprobacionesPendientes() {
   const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
     const showLeg = tipo === 'S';
     const isTypeC = tipo === 'C';
-    const colCount = (isTypeC ? 6 : showLeg ? 12 : 9) + 1; // +1 for checkbox column
+    const colCount = (isTypeC ? 8 : showLeg ? 12 : 9) + 1; // +1 for checkbox column
     const contentWidth = pendingContentWidths[tipo] || 0;
 
     // Determine allowed estados for bulk action based on type
@@ -1550,10 +1552,12 @@ export default function AprobacionesPendientes() {
               {isTypeC ? (
                 <>
                   <TableHead className="text-xs">Fecha</TableHead>
-                  <TableHead className="text-xs">Solicitudes</TableHead>
-                  <TableHead className="text-xs text-right">Valor Total</TableHead>
+                  <TableHead className="text-xs">Solicitante</TableHead>
+                  <TableHead className="text-xs">Periodo</TableHead>
+                  <TableHead className="text-xs text-right">Valor</TableHead>
+                  <TableHead className="text-xs text-right">Valor cierre</TableHead>
                   <TableHead className="text-xs w-[140px]">Estado</TableHead>
-                  <TableHead className="text-xs">Resp. de aprobaciones</TableHead>
+                  <TableHead className="text-xs">Resp. Aprobaciones</TableHead>
                   <TableHead className="text-xs w-[80px]"></TableHead>
                 </>
               ) : (
@@ -1614,10 +1618,13 @@ export default function AprobacionesPendientes() {
 
                 // Type C specific rendering
                 if (isTypeC) {
-                  const cDate = d;
-                  
                   // Estado allowed for C
                   const estadoAllowedC = ["Pendiente", "Aprobado", "Legalizado"];
+
+                  // Get period and cierre info from config
+                  const configCreatedAt = cajaMenorConfig?.created_at ? parseDateSafe(cajaMenorConfig.created_at) : null;
+                  const responsableNombre = cajaMenorConfig?.responsable_nombre || "—";
+                  const saldoEnCaja = cajaMenorStats?.saldoEnCaja ?? 0;
 
                   return (
                     <TableRow key={group.key}>
@@ -1630,17 +1637,34 @@ export default function AprobacionesPendientes() {
                           />
                         </TableCell>
                       )}
+                      {/* Fecha - latest date of gastos */}
                       <TableCell className="text-xs whitespace-nowrap">
-                        {cDate ? format(cDate, "dd/MM/yyyy") : "—"}
+                        {d ? format(d, "dd/MM/yyyy") : "—"}
                       </TableCell>
+                      {/* Solicitante - responsable de la caja */}
                       <TableCell className="text-xs">
-                        <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/40 text-xs">
-                          {group.rows.length} gasto(s)
-                        </Badge>
+                        <TruncatedCellWithEye
+                          text={responsableNombre || "—"}
+                          label="Responsable de caja"
+                        />
                       </TableCell>
+                      {/* Periodo - apertura a fecha actual */}
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {configCreatedAt
+                          ? `${format(configCreatedAt, "dd/MM/yy")} - Abierta`
+                          : "—"}
+                      </TableCell>
+                      {/* Valor - total de solicitudes */}
                       <TableCell className="text-xs text-right font-medium">
                         {formatCurrency(group.totalValor)}
                       </TableCell>
+                      {/* Valor cierre - saldo en caja */}
+                      <TableCell className="text-xs text-right font-medium">
+                        <span className={saldoEnCaja >= 0 ? "text-green-400" : "text-red-400"}>
+                          {formatCurrency(saldoEnCaja)}
+                        </span>
+                      </TableCell>
+                      {/* Estado */}
                       <TableCell className="text-xs">
                         {canApproveCajaMenor() ? (
                           <CajaMenorEstadoSelect
@@ -1652,6 +1676,7 @@ export default function AprobacionesPendientes() {
                           <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />
                         )}
                       </TableCell>
+                      {/* Resp. Aprobaciones */}
                       <TableCell className="text-xs">
                         {(() => {
                           if (commonEstado === "Pendiente") return <span className="text-muted-foreground">—</span>;
@@ -1686,6 +1711,7 @@ export default function AprobacionesPendientes() {
                           );
                         })()}
                       </TableCell>
+                      {/* Ver más */}
                       <TableCell>
                         <Button
                           variant="link"

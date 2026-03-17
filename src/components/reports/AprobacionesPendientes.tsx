@@ -1741,45 +1741,6 @@ export default function AprobacionesPendientes() {
                         );
                       })()}
                     </TableCell>
-                    {showLeg && (
-                      <TableCell className="text-xs">
-                        {(() => {
-                          if (commonEstado === "Pendiente") return <span className="text-muted-foreground">—</span>;
-                          if (!group.fechaDesmontajeFin) return <span className="text-muted-foreground text-[10px]">Sin fecha desm.</span>;
-                          try {
-                            const desmFin = parseISO(group.fechaDesmontajeFin);
-                            const deadline = new Date(desmFin.getTime() + 2 * 24 * 60 * 60 * 1000);
-                            const now = new Date();
-                            const diffMs = deadline.getTime() - now.getTime();
-                            const isLate = diffMs <= 0;
-                            if (isLate) {
-                              const daysLate = Math.ceil(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
-                              return (
-                                <div className="flex items-center gap-1">
-                                  <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                                  <span className="text-[10px] font-semibold text-red-400 leading-tight">
-                                    Tardía ({daysLate}d vencido)
-                                  </span>
-                                </div>
-                              );
-                            } else {
-                              const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                              const hoursLeft = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                              return (
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                                  <span className="text-[10px] font-medium text-green-400 leading-tight">
-                                    {daysLeft > 0 ? `${daysLeft}d ${hoursLeft}h` : `${hoursLeft}h`}
-                                  </span>
-                                </div>
-                              );
-                            }
-                          } catch {
-                            return <span className="text-muted-foreground">—</span>;
-                          }
-                        })()}
-                      </TableCell>
-                    )}
                     <TableCell>
                       {firstProjectRow && (
                         <Button

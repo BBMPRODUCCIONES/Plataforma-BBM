@@ -928,6 +928,48 @@ export default function AprobacionesPendientes() {
     }
   };
 
+  // Bulk estado change for multiple selected groups
+  const toggleBulkSelect = (key: string) => {
+    setSelectedForBulk(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleBulkSelectAll = (groups: GroupedPendingRow[]) => {
+    const keys = groups.map(g => g.key);
+    const allSelected = keys.length > 0 && keys.every(k => selectedForBulk.has(k));
+    setSelectedForBulk(prev => {
+      const next = new Set(prev);
+      if (allSelected) keys.forEach(k => next.delete(k));
+      else keys.forEach(k => next.add(k));
+      return next;
+    });
+  };
+
+  const handleBulkEstadoChange = () => {
+    if (!bulkEstado || selectedForBulk.size === 0) return;
+    const currentType = activeTab as 'S' | 'R' | 'C';
+    const selectedGroups = pendingByType[currentType].filter(g => selectedForBulk.has(g.key));
+    if (selectedGroups.length === 0) return;
+
+    const totalRows = selectedGroups.reduce((sum, g) => sum + g.rows.length, 0);
+    setConfirmDialog({
+      open: true,
+      title: "Confirmar cambio masivo de estado",
+      description: `¿Estás seguro de cambiar el estado de ${totalRows} solicitud(es) en ${selectedGroups.length} grupo(s) a "${bulkEstado}"?`,
+      onConfirm: async () => {
+        for (const group of selectedGroups) {
+          await handleGroupedEstadoChange(group, bulkEstado);
+        }
+        setSelectedForBulk(new Set());
+        setBulkEstado("");
+      },
+    });
+  };
+
   const handleDelete = async (row: FlattenedRow) => {
     if (!canApproveCajaMenor()) {
       toast.error("No tienes permisos para eliminar solicitudes");

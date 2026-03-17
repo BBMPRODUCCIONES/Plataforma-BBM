@@ -211,6 +211,7 @@ const PanelReportes = () => {
         <p className="text-sm text-muted-foreground">Revisión y aprobación de solicitudes</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {canAccessAprobaciones() && (
         <Card
           className="cursor-pointer hover:border-primary/50 transition-colors group"
           onClick={() => setCurrentView("aprobaciones")}
@@ -225,6 +226,7 @@ const PanelReportes = () => {
             <p className="text-sm text-muted-foreground">Revisión y aprobación de solicitudes de presupuesto.</p>
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Financial Reports */}

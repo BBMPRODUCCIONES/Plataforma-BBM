@@ -530,14 +530,17 @@ export default function AprobacionesPendientes() {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";
       const isTypeR = recursos === "Recursos propios";
+      const isTypeC = recursos === "BBM";
       if (isTypeS) {
         if (r.legalizacionEstado !== "Legalizado") return true;
       }
       if (isTypeR) return true;
+      if (isTypeC) return true; // C stays pending until Legalizado
     }
     if (estado === "Legalizado") {
       const recursos = (r.item.recursos as string) || "";
       if (recursos === "Recursos propios") return true;
+      if (recursos === "BBM") return false; // C: Legalizado is terminal
     }
     if (estado === "Desembolsado") return false;
     return false;
@@ -547,6 +550,10 @@ export default function AprobacionesPendientes() {
     if (estado === "No aprobado") return true;
     if (estado === "Reembolsado") return true;
     if (estado === "Desembolsado") return true;
+    if (estado === "Legalizado") {
+      const recursos = (r.item.recursos as string) || "";
+      if (recursos === "BBM") return true; // C: Legalizado goes to history
+    }
     if (estado === "Aprobado") {
       const recursos = (r.item.recursos as string) || "";
       const isTypeS = recursos !== "Recursos propios" && recursos !== "BBM";

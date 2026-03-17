@@ -1585,15 +1585,6 @@ export default function AprobacionesPendientes() {
                           return leg?.revisadoPor || "";
                         }).filter(Boolean))] : [];
 
-                        // Get dates from undo log
-                        const solUndoEntry = undoLog.find(e =>
-                          group.rows.some(r => e.item_id === r.item.id) &&
-                          e.source !== 'legalizacion' && !e.undone
-                        );
-                        const legUndoEntryForDate = undoLog.find(e =>
-                          group.rows.some(r => e.item_id === `leg-${r.item.id}`) &&
-                          e.source === 'legalizacion' && !e.undone
-                        );
 
                         const displayText = solApprovers.length > 0 ? solApprovers[0] : "—";
                         const hasInfo = solApprovers.length > 0 || legApprovers.length > 0;

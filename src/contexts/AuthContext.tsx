@@ -214,6 +214,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           puedeCrearAnticipos: data.puede_crear_anticipos ?? false,
           puedeRestaurarSolicitudes: (data as any).puede_restaurar_solicitudes ?? false,
           puedeAjustarBaseCajaMenor: (data as any).puede_ajustar_base_caja_menor ?? false,
+          puedeDesembolsar: (data as any).puede_desembolsar ?? false,
+          puedeAccederAprobaciones: (data as any).puede_acceder_aprobaciones ?? false,
         },
         panelEditPermissions: {
           puedeEditarGeneral: (data as any).puede_editar_general ?? false,

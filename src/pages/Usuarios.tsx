@@ -63,6 +63,8 @@ interface UserWithRole {
   puede_asignar_responsables: boolean;
   puede_restaurar_solicitudes: boolean;
   puede_ajustar_base_caja_menor: boolean;
+  puede_desembolsar: boolean;
+  puede_acceder_aprobaciones: boolean;
   puede_acceder_usuarios: boolean;
   puede_acceder_clientes: boolean;
   puede_acceder_empleados: boolean;

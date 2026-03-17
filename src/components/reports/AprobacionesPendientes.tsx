@@ -1473,9 +1473,6 @@ export default function AprobacionesPendientes() {
                     <TableCell className="text-xs">
                       {(() => {
                         const isTypeSAndDecided = isTypeS && commonEstado !== "Pendiente";
-                        // Check if another user has an active undo — lock editing
-                        const undoEntry = getUndoEntryForGroup(group.key, group.rows);
-                        const otherUserUndo = undoEntry && currentUserId && undoEntry.changed_by !== currentUserId;
                         
                         // Determine allowed values based on type
                         let estadoAllowed = ["Pendiente", "Aprobado", "No aprobado"];

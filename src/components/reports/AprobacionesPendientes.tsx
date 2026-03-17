@@ -1351,7 +1351,7 @@ export default function AprobacionesPendientes() {
 
   const renderPendingTable = (tipo: 'S' | 'R' | 'C', groups: GroupedPendingRow[]) => {
     const showLeg = tipo === 'S';
-    const colCount = showLeg ? 14 : 10;
+    const colCount = showLeg ? 13 : 9;
     const contentWidth = pendingContentWidths[tipo] || 0;
 
     return (

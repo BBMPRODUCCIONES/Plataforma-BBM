@@ -1609,9 +1609,6 @@ export default function AprobacionesPendientes() {
                                   <div>
                                     <span className="font-medium text-emerald-400">📄 Legalización:</span>
                                     <p className="ml-5">{legApprovers.length > 0 ? legApprovers.join(", ") : "Sin aprobar"}</p>
-                                    {legUndoEntryForDate && (
-                                      <p className="ml-5 text-muted-foreground">{format(parseISO(legUndoEntryForDate.changed_at), "dd/MM/yyyy hh:mm a", { locale: es })}</p>
-                                    )}
                                   </div>
                                 )}
                               </div>

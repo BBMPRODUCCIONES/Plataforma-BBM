@@ -1367,6 +1367,40 @@ const Usuarios = () => {
                 </div>
               </div>
 
+              {/* Sub-roles de Caja Menor */}
+              {editRole === "administrador" && (
+                <div className="space-y-2">
+                  <Label>Sub-roles de Caja Menor</Label>
+                  <div className="space-y-2 p-3 border rounded-md bg-orange-500/10 border-orange-500/30">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-es-responsable-caja-menor"
+                        checked={editEsResponsableCajaMenor}
+                        onCheckedChange={(checked) => setEditEsResponsableCajaMenor(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-es-responsable-caja-menor" className="text-sm font-normal cursor-pointer">
+                        Responsable de Caja Menor
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-es-auditor-caja-menor"
+                        checked={editEsAuditorCajaMenor}
+                        onCheckedChange={(checked) => setEditEsAuditorCajaMenor(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-es-auditor-caja-menor" className="text-sm font-normal cursor-pointer">
+                        Auditor de Caja Menor
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      El responsable puede agregar gastos y cerrar la caja. El auditor revisa las cajas cerradas y puede legalizar/reembolsar.
+                    </p>
+                  </div>
+                </div>
+              )
+
               {/* Restaurar Solicitudes Permission - admin only */}
               {editRole === "administrador" && (
                 <div className="space-y-2">

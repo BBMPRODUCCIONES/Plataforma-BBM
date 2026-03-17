@@ -150,6 +150,8 @@ serve(async (req) => {
         puede_asignar_responsables: permissions.puede_asignar_responsables ?? false,
         puede_restaurar_solicitudes: permissions.puede_restaurar_solicitudes ?? false,
         puede_ajustar_base_caja_menor: permissions.puede_ajustar_base_caja_menor ?? false,
+        puede_desembolsar: permissions.puede_desembolsar ?? false,
+        puede_acceder_aprobaciones: permissions.puede_acceder_aprobaciones ?? false,
         puede_acceder_usuarios: permissions.puede_acceder_usuarios ?? true,
         puede_acceder_clientes: permissions.puede_acceder_clientes ?? true,
         puede_acceder_empleados: permissions.puede_acceder_empleados ?? true,

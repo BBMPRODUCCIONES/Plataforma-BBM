@@ -1404,6 +1404,40 @@ const Usuarios = () => {
                 </div>
               )}
 
+              {/* Desembolsar y Acceso Aprobaciones */}
+              {(editRole as string) !== "visual" && (
+                <div className="space-y-2">
+                  <Label>Permisos de Aprobaciones</Label>
+                  <div className="space-y-2 p-3 border rounded-md bg-purple-500/10 border-purple-500/30">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-desembolsar"
+                        checked={editPuedeDesembolsar}
+                        onCheckedChange={(checked) => setEditPuedeDesembolsar(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-desembolsar" className="text-sm font-normal cursor-pointer">
+                        Puede marcar solicitudes como "Desembolsado"
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-puede-acceder-aprobaciones"
+                        checked={editPuedeAccederAprobaciones}
+                        onCheckedChange={(checked) => setEditPuedeAccederAprobaciones(checked as boolean)}
+                        disabled={isSaving}
+                      />
+                      <Label htmlFor="edit-puede-acceder-aprobaciones" className="text-sm font-normal cursor-pointer">
+                        Puede acceder al panel de Aprobaciones Pendientes
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Controla el acceso al panel de aprobaciones y la capacidad de marcar desembolsos.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {editRole === "administrador" && (
                 <div className="space-y-2">
                   <Label>Acceso a Páginas de Administración</Label>

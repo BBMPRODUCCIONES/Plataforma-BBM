@@ -1618,10 +1618,13 @@ export default function AprobacionesPendientes() {
 
                 // Type C specific rendering
                 if (isTypeC) {
-                  const cDate = d;
-                  
                   // Estado allowed for C
                   const estadoAllowedC = ["Pendiente", "Aprobado", "Legalizado"];
+
+                  // Get period and cierre info from config
+                  const configCreatedAt = cajaMenorConfig?.created_at ? parseDateSafe(cajaMenorConfig.created_at) : null;
+                  const responsableNombre = cajaMenorConfig?.responsable_nombre || "—";
+                  const saldoEnCaja = cajaMenorStats?.saldoEnCaja ?? 0;
 
                   return (
                     <TableRow key={group.key}>
@@ -1634,17 +1637,34 @@ export default function AprobacionesPendientes() {
                           />
                         </TableCell>
                       )}
+                      {/* Fecha - latest date of gastos */}
                       <TableCell className="text-xs whitespace-nowrap">
-                        {cDate ? format(cDate, "dd/MM/yyyy") : "—"}
+                        {d ? format(d, "dd/MM/yyyy") : "—"}
                       </TableCell>
+                      {/* Solicitante - responsable de la caja */}
                       <TableCell className="text-xs">
-                        <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/40 text-xs">
-                          {group.rows.length} gasto(s)
-                        </Badge>
+                        <TruncatedCellWithEye
+                          text={responsableNombre || "—"}
+                          label="Responsable de caja"
+                        />
                       </TableCell>
+                      {/* Periodo - apertura a fecha actual */}
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {configCreatedAt
+                          ? `${format(configCreatedAt, "dd/MM/yy")} - Abierta`
+                          : "—"}
+                      </TableCell>
+                      {/* Valor - total de solicitudes */}
                       <TableCell className="text-xs text-right font-medium">
                         {formatCurrency(group.totalValor)}
                       </TableCell>
+                      {/* Valor cierre - saldo en caja */}
+                      <TableCell className="text-xs text-right font-medium">
+                        <span className={saldoEnCaja >= 0 ? "text-green-400" : "text-red-400"}>
+                          {formatCurrency(saldoEnCaja)}
+                        </span>
+                      </TableCell>
+                      {/* Estado */}
                       <TableCell className="text-xs">
                         {canApproveCajaMenor() ? (
                           <CajaMenorEstadoSelect
@@ -1656,6 +1676,7 @@ export default function AprobacionesPendientes() {
                           <CajaMenorEstadoSelect value={commonEstado} onChange={() => {}} readOnly />
                         )}
                       </TableCell>
+                      {/* Resp. Aprobaciones */}
                       <TableCell className="text-xs">
                         {(() => {
                           if (commonEstado === "Pendiente") return <span className="text-muted-foreground">—</span>;
@@ -1690,6 +1711,7 @@ export default function AprobacionesPendientes() {
                           );
                         })()}
                       </TableCell>
+                      {/* Ver más */}
                       <TableCell>
                         <Button
                           variant="link"

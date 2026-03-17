@@ -956,13 +956,20 @@ export default function AprobacionesPendientes() {
     if (selectedGroups.length === 0) return;
 
     const totalRows = selectedGroups.reduce((sum, g) => sum + g.rows.length, 0);
+    const isLegChange = currentType === 'S';
     setConfirmDialog({
       open: true,
-      title: "Confirmar cambio masivo de estado",
-      description: `¿Estás seguro de cambiar el estado de ${totalRows} solicitud(es) en ${selectedGroups.length} grupo(s) a "${bulkEstado}"?`,
+      title: isLegChange ? "Confirmar cambio masivo de legalización" : "Confirmar cambio masivo de estado",
+      description: isLegChange
+        ? `¿Estás seguro de cambiar el estado de legalización de ${totalRows} solicitud(es) a "${bulkEstado}"?`
+        : `¿Estás seguro de cambiar el estado de ${totalRows} solicitud(es) en ${selectedGroups.length} grupo(s) a "${bulkEstado}"?`,
       onConfirm: async () => {
         for (const group of selectedGroups) {
-          await handleGroupedEstadoChange(group, bulkEstado);
+          if (isLegChange) {
+            await handleGroupedLegalizacionChange(group, bulkEstado);
+          } else {
+            await handleGroupedEstadoChange(group, bulkEstado);
+          }
         }
         setSelectedForBulk(new Set());
         setBulkEstado("");
@@ -1480,8 +1487,9 @@ export default function AprobacionesPendientes() {
     const contentWidth = pendingContentWidths[tipo] || 0;
 
     // Determine allowed estados for bulk action based on type
+    // For S tab, bulk changes affect legalization estado (2nd estado column)
     const bulkEstadoOptions = tipo === 'S'
-      ? ["Pendiente", "Aprobado", "No aprobado"]
+      ? ["Pendiente", "Aprobado", "Contabilizado", "Legalizado"]
       : tipo === 'R'
         ? canDesembolsar()
           ? ["Pendiente", "Aprobado", "No aprobado", "Legalizado", "Desembolsado"]
@@ -1501,7 +1509,7 @@ export default function AprobacionesPendientes() {
             </span>
             <Select value={bulkEstado} onValueChange={setBulkEstado}>
               <SelectTrigger className="h-7 text-xs w-[180px]">
-                <SelectValue placeholder="Cambiar estado a..." />
+                <SelectValue placeholder={tipo === 'S' ? "Cambiar legalización a..." : "Cambiar estado a..."} />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border z-[9999]">
                 {bulkEstadoOptions.map(opt => (

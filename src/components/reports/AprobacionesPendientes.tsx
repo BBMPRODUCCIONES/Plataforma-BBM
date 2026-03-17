@@ -1200,7 +1200,7 @@ export default function AprobacionesPendientes() {
               return (
                 <CajaMenorEstadoSelect
                   value={row.item.estado}
-                  onChange={(v) => handleEstadoChange(row, v)}
+                  onChange={(v) => confirmEstadoChange(row, v)}
                   allowedValues={estadoAllowed}
                 />
               );

@@ -1023,6 +1023,23 @@ const Usuarios = () => {
                     </div>
                   )}
 
+                  {/* Desembolsar y Acceso Aprobaciones */}
+                  {newRole !== "visual" && (
+                    <div className="space-y-2">
+                      <Label>Permisos de Aprobaciones</Label>
+                      <div className="space-y-2 p-3 border rounded-md bg-purple-500/10 border-purple-500/30">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-puede-desembolsar" checked={newPuedeDesembolsar} onCheckedChange={(checked) => setNewPuedeDesembolsar(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-puede-desembolsar" className="text-sm font-normal cursor-pointer">Puede marcar solicitudes como "Desembolsado"</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox id="new-puede-acceder-aprobaciones" checked={newPuedeAccederAprobaciones} onCheckedChange={(checked) => setNewPuedeAccederAprobaciones(checked as boolean)} disabled={isSubmitting} />
+                          <Label htmlFor="new-puede-acceder-aprobaciones" className="text-sm font-normal cursor-pointer">Puede acceder al panel de Aprobaciones Pendientes</Label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {newRole === "administrador" && (
                     <div className="space-y-2">
                       <Label>Acceso a Páginas de Administración</Label>

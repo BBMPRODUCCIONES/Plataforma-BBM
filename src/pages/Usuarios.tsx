@@ -311,6 +311,8 @@ const Usuarios = () => {
             puede_ajustar_base_caja_menor: newPuedeAjustarBaseCajaMenor,
             puede_desembolsar: newPuedeDesembolsar,
             puede_acceder_aprobaciones: newPuedeAccederAprobaciones,
+            es_responsable_caja_menor: newEsResponsableCajaMenor,
+            es_auditor_caja_menor: newEsAuditorCajaMenor,
             puede_acceder_usuarios: newPuedeAccederUsuarios,
             puede_acceder_clientes: newPuedeAccederClientes,
             puede_acceder_empleados: newPuedeAccederEmpleados,

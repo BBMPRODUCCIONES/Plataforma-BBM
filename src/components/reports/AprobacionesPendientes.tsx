@@ -1703,7 +1703,7 @@ export default function AprobacionesPendientes() {
                             return (
                               <Select
                                 value={commonLegEstado === "Mixto" ? "Pendiente" : (commonLegEstado || "Pendiente")}
-                                onValueChange={(v) => handleGroupedLegalizacionChange(group, v)}
+                                onValueChange={(v) => confirmGroupedLegalizacionChange(group, v)}
                               >
                                 <SelectTrigger
                                   className={`h-7 text-xs w-full border font-medium ${

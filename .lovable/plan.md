@@ -1,41 +1,27 @@
 
 
-## Plan: Ventana de deshacer de 2 horas + Reset de solicitudes
+# Plan: Informe PDF - Paso a Paso de Opciones de Respaldo de Data
 
-### Problema
-Un toast de 6 segundos es insuficiente. Se necesita una ventana de 2 horas para deshacer cambios de estado. Un toast no puede permanecer visible 2 horas, por lo que se necesita un mecanismo persistente.
+## Objetivo
+Generar un PDF profesional que documente en detalle cada una de las 4 opciones de respaldo de datos discutidas previamente, con pasos específicos, comandos, requisitos y consideraciones para cada método.
 
-### Diseño propuesto
+## Estructura del PDF
 
-**1. Mecanismo de deshacer persistente (2 horas)**
+### Secciones
+1. **Portada** - Título, fecha, proyecto
+2. **Contexto** - Estado actual (base de datos compartida, riesgo identificado)
+3. **Opción 1: Exportación Manual (CSV/JSON)** - Paso a paso desde la interfaz y mediante SQL
+4. **Opción 2: pg_dump (Backup completo PostgreSQL)** - Requisitos, comandos, restauración
+5. **Opción 3: Replicación en Tiempo Real** - Configuración de logical replication hacia servidor externo
+6. **Opción 4: Edge Functions Programadas** - Función serverless que exporta snapshots periódicos a storage externo
+7. **Tabla Comparativa** - Complejidad, costo, frecuencia, cobertura de cada opción
+8. **Requisitos Previos por Opción** - Lo que se necesita antes de implementar cada una
 
-En lugar de un toast efímero, se implementará:
+## Implementación
+- Script Python con reportlab
+- Diagrama visual comparativo
+- QA visual obligatorio de todas las páginas
 
-- **Tabla en base de datos** `aprobacion_undo_log` para registrar cada cambio de estado con: `id`, `project_id`, `item_id`, `source` (cajaMenor/gastoMenor), `previous_estado`, `new_estado`, `previous_revisado_por`, `changed_by`, `changed_at`, `expires_at` (changed_at + 2h), `undone` (boolean).
-
-- **UI persistente**: Un botón "Deshacer" visible en cada fila que haya sido modificada en las últimas 2 horas (por el usuario actual). El botón desaparece automáticamente al vencer el plazo. Se mostrará un badge con el tiempo restante junto al botón.
-
-- **Toast inmediato**: Se mantiene un toast breve confirmando el cambio, pero ahora solo informativo (sin acción de deshacer en el toast).
-
-**2. Reset global de solicitudes a Pendiente**
-
-Migración SQL para:
-- Actualizar `gastos_menores` → `estado = 'Pendiente'`, limpiar campos de aprobación
-- Actualizar `projects.caja_menor` y `projects.legalizacion` (JSONB) → estados a `Pendiente`/`Revisando`
-
-### Cambios técnicos
-
-| Archivo/Recurso | Cambio |
-|---|---|
-| **Nueva migración SQL** | Crear tabla `aprobacion_undo_log` + reset masivo de estados |
-| **AprobacionesPendientes.tsx** | Reemplazar toast-undo por consulta al undo_log; mostrar botón "Deshacer" en filas con cambios recientes (<2h); implementar lógica de reversión al hacer clic |
-| **RLS en undo_log** | INSERT para authenticated, SELECT/UPDATE solo para el propio `changed_by`, DELETE solo admin |
-
-### Flujo de usuario
-
-1. Admin cambia estado → se guarda registro en `aprobacion_undo_log` con `expires_at = now() + 2h`
-2. Toast informativo aparece brevemente
-3. En la tabla, la fila muestra un botón "Deshacer (1h 45m)" mientras esté dentro del plazo
-4. Al hacer clic en "Deshacer", se revierte el estado y se marca `undone = true`
-5. Pasadas las 2 horas, el botón desaparece automáticamente
+## Archivos
+- `/mnt/documents/informe_opciones_respaldo_data.pdf`
 

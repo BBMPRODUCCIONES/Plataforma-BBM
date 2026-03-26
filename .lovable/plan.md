@@ -1,26 +1,30 @@
 
 
-# Plan: Informe PDF Completo - Los 3 Entornos del Sistema
+# Plan: PDF Actualizado - Ramas, Conexión Vercel y Flujo de Despliegue
 
 ## Objetivo
-Generar un PDF profesional que documente en detalle los 3 entornos que existen en GitHub (main, develop, lovable-hierarchical-text-change), explicando para cada uno: su funcionamiento, cómo se actualiza, sus conexiones, infraestructura, DNS, backend, y comportamiento real.
+Generar un PDF profesional que documente quién creó cada rama en GitHub, cómo se conectan a Vercel, y el flujo completo de despliegue de cada entorno.
 
 ## Estructura del PDF
 
-1. **Portada** - Titulo, fecha, proyecto BBM Producciones
-2. **Resumen Ejecutivo** - Vista general de los 3 entornos
-3. **Diagrama Visual** - Mapa de los 3 entornos con sus conexiones (ASCII)
-4. **Entorno 1: Produccion (main)** - Funcionamiento completo, despliegue manual via Lovable, DNS Hostinger -> IP 185.158.133.1, dominio bbmproducciones.com.co, PWA negro, theme #0f172a, backend Supabase compartido, Edge Functions, Storage
-5. **Entorno 2: Demo (develop)** - Auto-deploy via Vercel, DNS Hostinger -> CNAME Vercel, dominio demo.bbmproducciones.com.co, PWA morado, theme #7c3aed, manifest-demo.json, deteccion automatica de hostname
-6. **Entorno 3: Rama Temporal (lovable-hierarchical-text-change)** - Rama de sincronizacion intermedia de Lovable, no es entorno de despliegue, comportamiento y ciclo de vida
-7. **Backend Compartido** - Supabase unico: PostgreSQL, Auth, Storage (4 buckets), 12 Edge Functions, variables de entorno, secrets
-8. **Tabla Comparativa** - Los 3 entornos lado a lado (infraestructura, deploy, DNS, PWA, backend)
-9. **Flujo de Actualizacion** - Paso a paso de como se actualiza cada entorno
-10. **Riesgos Identificados** - Data compartida, backend acoplado, Edge Functions/migraciones inmediatas
+1. **Portada** - Título, fecha, proyecto BBM Producciones
+2. **Las 3 Ramas en GitHub** - Origen de cada una (quién la creó y por qué):
+   - `main`: creada automáticamente por Lovable al conectar GitHub
+   - `develop`: creada manualmente por el equipo para el entorno Demo
+   - `lovable-hierarchical-text-change`: creada automáticamente por Lovable como rama temporal de sincronización
+3. **Conexión con Vercel** - Paso a paso de cómo se vinculó el repositorio a Vercel, configuración del branch `develop`, `vercel.json` (SPA rewrites), CNAME en Hostinger
+4. **Conexión con Lovable Hosting** - Cómo `main` se publica manualmente, DNS A record en Hostinger → IP 185.158.133.1
+5. **Flujo Completo de Despliegue** - Diagrama paso a paso:
+   - Cambio en Lovable → push a GitHub → rama temporal → merge a main
+   - main → Publish manual → Producción (bbmproducciones.com.co)
+   - develop → auto-deploy Vercel → Demo (demo.bbmproducciones.com.co)
+   - Backend (Edge Functions + migraciones) → deploy inmediato a Supabase compartido
+6. **Detección Automática de Entorno** - Lógica en `index.html` que detecta hostname para aplicar manifest y theme correcto (negro vs morado)
+7. **Tabla Resumen** - Las 3 ramas lado a lado: creador, propósito, plataforma de deploy, dominio, DNS, PWA theme
+8. **Riesgos del Modelo Actual** - Backend compartido, deploys inmediatos de Edge Functions
 
-## Implementacion
+## Implementación
 - Script Python con reportlab
-- Diagrama ASCII profesional incluido
-- QA visual obligatorio de todas las paginas
-- Archivo: `/mnt/documents/informe_3_entornos_bbm.pdf`
+- QA visual obligatorio de todas las páginas
+- Archivo: `/mnt/documents/informe_ramas_vercel_deploy_bbm.pdf`
 

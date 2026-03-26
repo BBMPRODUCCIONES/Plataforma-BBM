@@ -1,27 +1,26 @@
 
 
-# Plan: Informe PDF - Paso a Paso de Opciones de Respaldo de Data
+# Plan: Informe PDF Completo - Los 3 Entornos del Sistema
 
 ## Objetivo
-Generar un PDF profesional que documente en detalle cada una de las 4 opciones de respaldo de datos discutidas previamente, con pasos específicos, comandos, requisitos y consideraciones para cada método.
+Generar un PDF profesional que documente en detalle los 3 entornos que existen en GitHub (main, develop, lovable-hierarchical-text-change), explicando para cada uno: su funcionamiento, cómo se actualiza, sus conexiones, infraestructura, DNS, backend, y comportamiento real.
 
 ## Estructura del PDF
 
-### Secciones
-1. **Portada** - Título, fecha, proyecto
-2. **Contexto** - Estado actual (base de datos compartida, riesgo identificado)
-3. **Opción 1: Exportación Manual (CSV/JSON)** - Paso a paso desde la interfaz y mediante SQL
-4. **Opción 2: pg_dump (Backup completo PostgreSQL)** - Requisitos, comandos, restauración
-5. **Opción 3: Replicación en Tiempo Real** - Configuración de logical replication hacia servidor externo
-6. **Opción 4: Edge Functions Programadas** - Función serverless que exporta snapshots periódicos a storage externo
-7. **Tabla Comparativa** - Complejidad, costo, frecuencia, cobertura de cada opción
-8. **Requisitos Previos por Opción** - Lo que se necesita antes de implementar cada una
+1. **Portada** - Titulo, fecha, proyecto BBM Producciones
+2. **Resumen Ejecutivo** - Vista general de los 3 entornos
+3. **Diagrama Visual** - Mapa de los 3 entornos con sus conexiones (ASCII)
+4. **Entorno 1: Produccion (main)** - Funcionamiento completo, despliegue manual via Lovable, DNS Hostinger -> IP 185.158.133.1, dominio bbmproducciones.com.co, PWA negro, theme #0f172a, backend Supabase compartido, Edge Functions, Storage
+5. **Entorno 2: Demo (develop)** - Auto-deploy via Vercel, DNS Hostinger -> CNAME Vercel, dominio demo.bbmproducciones.com.co, PWA morado, theme #7c3aed, manifest-demo.json, deteccion automatica de hostname
+6. **Entorno 3: Rama Temporal (lovable-hierarchical-text-change)** - Rama de sincronizacion intermedia de Lovable, no es entorno de despliegue, comportamiento y ciclo de vida
+7. **Backend Compartido** - Supabase unico: PostgreSQL, Auth, Storage (4 buckets), 12 Edge Functions, variables de entorno, secrets
+8. **Tabla Comparativa** - Los 3 entornos lado a lado (infraestructura, deploy, DNS, PWA, backend)
+9. **Flujo de Actualizacion** - Paso a paso de como se actualiza cada entorno
+10. **Riesgos Identificados** - Data compartida, backend acoplado, Edge Functions/migraciones inmediatas
 
-## Implementación
+## Implementacion
 - Script Python con reportlab
-- Diagrama visual comparativo
-- QA visual obligatorio de todas las páginas
-
-## Archivos
-- `/mnt/documents/informe_opciones_respaldo_data.pdf`
+- Diagrama ASCII profesional incluido
+- QA visual obligatorio de todas las paginas
+- Archivo: `/mnt/documents/informe_3_entornos_bbm.pdf`
 

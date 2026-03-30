@@ -3897,9 +3897,22 @@ const PanelOperaciones = () => {
                                           const canEdit = canEditCajaMenorRecord(cm) && !isSolicitudAprobada;
                                           if (!canEdit) {
                                             return (
-                                              <span className="text-sm text-muted-foreground truncate block max-w-[200px]" title={cm.concepto || "-"}>
-                                                {cm.concepto || "-"}
-                                              </span>
+                                              <div className="flex items-center gap-1 max-w-[200px]">
+                                                <span className="text-sm text-muted-foreground truncate">{cm.concepto || "-"}</span>
+                                                {cm.concepto && cm.concepto.length > 20 && (
+                                                  <Popover>
+                                                    <PopoverTrigger asChild>
+                                                      <button type="button" className="shrink-0 focus:outline-none" onClick={(e) => e.stopPropagation()}>
+                                                        <Eye className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-pointer" />
+                                                      </button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent side="top" className="text-xs max-w-[280px] p-3">
+                                                      <p className="font-semibold mb-1">Concepto de solicitud</p>
+                                                      <p className="whitespace-pre-wrap">{cm.concepto}</p>
+                                                    </PopoverContent>
+                                                  </Popover>
+                                                )}
+                                              </div>
                                             );
                                           }
                                           return (

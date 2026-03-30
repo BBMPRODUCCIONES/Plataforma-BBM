@@ -330,6 +330,20 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
         </div>
       )}
 
+      {/* Save button - always visible when there are entries and user can edit */}
+      {!isFullyLocked && canEdit && localEntries.length > 0 && (
+        <Button
+          size="sm"
+          variant={hasUnsavedChanges ? "default" : "outline"}
+          className={`h-7 text-xs gap-1.5 w-full ${hasUnsavedChanges ? "animate-pulse" : ""}`}
+          onClick={(e) => { e.stopPropagation(); handleSave(); }}
+          disabled={isSaving}
+        >
+          <Save className="h-3 w-3" />
+          {isSaving ? "Guardando..." : hasUnsavedChanges ? "Guardar cambios" : "Guardado ✓"}
+        </Button>
+      )}
+
       {localEntries.length === 0 && isFullyLocked && (
         <span className="text-xs text-muted-foreground">Sin datos de relación de gastos</span>
       )}

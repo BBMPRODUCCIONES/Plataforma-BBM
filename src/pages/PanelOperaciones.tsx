@@ -3949,10 +3949,26 @@ const PanelOperaciones = () => {
                                           const canEdit = canEditCajaMenorRecord(cm);
                                           const isEmpty = !cm.valor || cm.valor === 0;
                                           if (!canEdit || isSolicitudAprobada) {
+                                            const valorText = isEmpty ? "$ 0 (Requerido)" : `$ ${(cm.valor || 0).toLocaleString('es-CO')}`;
                                             return (
-                                              <span className={`text-base font-semibold font-mono ${isEmpty ? "text-destructive" : "text-foreground"}`}>
-                                                {isEmpty ? "$ 0 (Requerido)" : `$ ${(cm.valor || 0).toLocaleString('es-CO')}`}
-                                              </span>
+                                              <div className="flex items-center gap-1">
+                                                <span className={`text-base font-semibold font-mono truncate ${isEmpty ? "text-destructive" : "text-foreground"}`}>
+                                                  {valorText}
+                                                </span>
+                                                {!isEmpty && valorText.length > 12 && (
+                                                  <Popover>
+                                                    <PopoverTrigger asChild>
+                                                      <button type="button" className="shrink-0 focus:outline-none" onClick={(e) => e.stopPropagation()}>
+                                                        <Eye className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-pointer" />
+                                                      </button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent side="top" className="text-xs max-w-[280px] p-3">
+                                                      <p className="font-semibold mb-1">Valor anticipo</p>
+                                                      <p className="text-base font-mono">{valorText}</p>
+                                                    </PopoverContent>
+                                                  </Popover>
+                                                )}
+                                              </div>
                                             );
                                           }
                                           return (

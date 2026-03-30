@@ -96,12 +96,15 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
   const prevEntriesRef = useRef<string>("");
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraTargetIdx, setCameraTargetIdx] = useState<number | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const serialized = JSON.stringify(entries);
     if (serialized !== prevEntriesRef.current) {
       prevEntriesRef.current = serialized;
       setLocalEntries(entries);
+      setHasUnsavedChanges(false);
     }
   }, [entries]);
 
@@ -111,7 +114,7 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
   const updateEntry = (idx: number, field: keyof RelacionGastoEntry, value: string | number | undefined) => {
     const updated = localEntries.map((e, i) => i === idx ? { ...e, [field]: value } : e);
     setLocalEntries(updated);
-    onUpdate(updated);
+    setHasUnsavedChanges(true);
   };
 
   const deleteEntry = (idx: number) => {

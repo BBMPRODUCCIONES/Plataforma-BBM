@@ -153,7 +153,12 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
     const { error } = await supabase.storage.from("notes-images").upload(path, file);
     if (error) { toast.error("Error al subir imagen"); return; }
     const { data: urlData } = supabase.storage.from("notes-images").getPublicUrl(path);
-    updateEntry(idx, "imagen_url", urlData.publicUrl);
+    const updated = localEntries.map((e, i) => i === idx ? { ...e, imagen_url: urlData.publicUrl } : e);
+    setLocalEntries(updated);
+    // Auto-save on image upload since images are uploaded to storage
+    onUpdate(updated);
+    setHasUnsavedChanges(false);
+  };
   };
 
   return (

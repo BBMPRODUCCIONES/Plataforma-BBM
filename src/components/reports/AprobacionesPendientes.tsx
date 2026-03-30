@@ -2148,17 +2148,17 @@ export default function AprobacionesPendientes() {
               <TabsTrigger value="S" className="gap-1.5 text-xs px-3 py-1.5">
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] bg-blue-500/20 text-blue-400 border-blue-500/40">S</span>
                 Solicitud de anticipos
-                <Badge variant="outline" className="text-[10px] ml-1">{pendingCountByType.S}</Badge>
+                <Badge variant="outline" className="text-[10px] ml-1">{pendingByType.S.length}</Badge>
               </TabsTrigger>
               <TabsTrigger value="R" className="gap-1.5 text-xs px-3 py-1.5">
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] bg-emerald-500/20 text-emerald-400 border-emerald-500/40">R</span>
                 Recursos propios
-                <Badge variant="outline" className="text-[10px] ml-1">{pendingCountByType.R}</Badge>
+                <Badge variant="outline" className="text-[10px] ml-1">{pendingByType.R.length}</Badge>
               </TabsTrigger>
               <TabsTrigger value="C" className="gap-1.5 text-xs px-3 py-1.5">
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded border font-bold text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/40">C</span>
                 Caja menor
-                <Badge variant="outline" className="text-[10px] ml-1">{pendingCountByType.C}</Badge>
+                <Badge variant="outline" className="text-[10px] ml-1">{pendingByType.C.length}</Badge>
               </TabsTrigger>
             </TabsList>
             {resolvedRows.length > 0 && (

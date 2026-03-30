@@ -52,7 +52,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, ArrowUpDown, X, Paperclip, Upload, Image, AlertTriangle, Eye, Camera, HelpCircle, Timer } from "lucide-react";
+import { Search, Users, Package, FileText, FileDown, Settings, Plus, StickyNote, Loader2, Trash2, MessageSquare, Wallet, FileSpreadsheet, ChevronDown, Clock, Lock, ArrowUp, ArrowDown, ArrowUpDown, X, Paperclip, Upload, Image, AlertTriangle, Eye, Camera, HelpCircle, Timer, Save } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { printPersonal, printInventario, printCotizaciones, printPersonalYInventario, printSolicitudPresupuesto, printLegalizacion, exportSolicitudToExcel, exportLegalizacionToExcel } from "@/utils/pdfGenerator";
@@ -96,12 +96,15 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
   const prevEntriesRef = useRef<string>("");
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraTargetIdx, setCameraTargetIdx] = useState<number | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const serialized = JSON.stringify(entries);
     if (serialized !== prevEntriesRef.current) {
       prevEntriesRef.current = serialized;
       setLocalEntries(entries);
+      setHasUnsavedChanges(false);
     }
   }, [entries]);
 
@@ -111,13 +114,13 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
   const updateEntry = (idx: number, field: keyof RelacionGastoEntry, value: string | number | undefined) => {
     const updated = localEntries.map((e, i) => i === idx ? { ...e, [field]: value } : e);
     setLocalEntries(updated);
-    onUpdate(updated);
+    setHasUnsavedChanges(true);
   };
 
   const deleteEntry = (idx: number) => {
     const updated = localEntries.filter((_, i) => i !== idx);
     setLocalEntries(updated);
-    onUpdate(updated);
+    setHasUnsavedChanges(true);
   };
 
   const addEntry = () => {
@@ -129,11 +132,19 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
 
     const updated = [...localEntries, { comercio, nitCedula, concepto, valor }];
     setLocalEntries(updated);
-    onUpdate(updated);
+    setHasUnsavedChanges(true);
     setNewComercio("");
     setNewNit("");
     setNewConcepto("");
     setNewValor("");
+  };
+
+  const handleSave = () => {
+    setIsSaving(true);
+    onUpdate(localEntries);
+    setHasUnsavedChanges(false);
+    setTimeout(() => setIsSaving(false), 500);
+    toast.success("Relación de gastos guardada");
   };
 
   const handleImageUpload = async (idx: number, file: File) => {
@@ -142,7 +153,11 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
     const { error } = await supabase.storage.from("notes-images").upload(path, file);
     if (error) { toast.error("Error al subir imagen"); return; }
     const { data: urlData } = supabase.storage.from("notes-images").getPublicUrl(path);
-    updateEntry(idx, "imagen_url", urlData.publicUrl);
+    const updated = localEntries.map((e, i) => i === idx ? { ...e, imagen_url: urlData.publicUrl } : e);
+    setLocalEntries(updated);
+    // Auto-save on image upload since images are uploaded to storage
+    onUpdate(updated);
+    setHasUnsavedChanges(false);
   };
 
   return (
@@ -313,6 +328,20 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
             <Plus className="h-4 w-4" />
           </button>
         </div>
+      )}
+
+      {/* Save button - always visible when there are entries and user can edit */}
+      {!isFullyLocked && canEdit && localEntries.length > 0 && (
+        <Button
+          size="sm"
+          variant={hasUnsavedChanges ? "default" : "outline"}
+          className={`h-7 text-xs gap-1.5 w-full ${hasUnsavedChanges ? "animate-pulse" : ""}`}
+          onClick={(e) => { e.stopPropagation(); handleSave(); }}
+          disabled={isSaving}
+        >
+          <Save className="h-3 w-3" />
+          {isSaving ? "Guardando..." : hasUnsavedChanges ? "Guardar cambios" : "Guardado ✓"}
+        </Button>
       )}
 
       {localEntries.length === 0 && isFullyLocked && (
@@ -3868,9 +3897,22 @@ const PanelOperaciones = () => {
                                           const canEdit = canEditCajaMenorRecord(cm) && !isSolicitudAprobada;
                                           if (!canEdit) {
                                             return (
-                                              <span className="text-sm text-muted-foreground truncate block max-w-[200px]" title={cm.concepto || "-"}>
-                                                {cm.concepto || "-"}
-                                              </span>
+                                              <div className="flex items-center gap-1 max-w-[200px]">
+                                                <span className="text-sm text-muted-foreground truncate">{cm.concepto || "-"}</span>
+                                                {cm.concepto && cm.concepto.length > 20 && (
+                                                  <Popover>
+                                                    <PopoverTrigger asChild>
+                                                      <button type="button" className="shrink-0 focus:outline-none" onClick={(e) => e.stopPropagation()}>
+                                                        <Eye className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-pointer" />
+                                                      </button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent side="top" className="text-xs max-w-[280px] p-3">
+                                                      <p className="font-semibold mb-1">Concepto de solicitud</p>
+                                                      <p className="whitespace-pre-wrap">{cm.concepto}</p>
+                                                    </PopoverContent>
+                                                  </Popover>
+                                                )}
+                                              </div>
                                             );
                                           }
                                           return (
@@ -3907,10 +3949,26 @@ const PanelOperaciones = () => {
                                           const canEdit = canEditCajaMenorRecord(cm);
                                           const isEmpty = !cm.valor || cm.valor === 0;
                                           if (!canEdit || isSolicitudAprobada) {
+                                            const valorText = isEmpty ? "$ 0 (Requerido)" : `$ ${(cm.valor || 0).toLocaleString('es-CO')}`;
                                             return (
-                                              <span className={`text-base font-semibold font-mono ${isEmpty ? "text-destructive" : "text-foreground"}`}>
-                                                {isEmpty ? "$ 0 (Requerido)" : `$ ${(cm.valor || 0).toLocaleString('es-CO')}`}
-                                              </span>
+                                              <div className="flex items-center gap-1">
+                                                <span className={`text-base font-semibold font-mono truncate ${isEmpty ? "text-destructive" : "text-foreground"}`}>
+                                                  {valorText}
+                                                </span>
+                                                {!isEmpty && valorText.length > 12 && (
+                                                  <Popover>
+                                                    <PopoverTrigger asChild>
+                                                      <button type="button" className="shrink-0 focus:outline-none" onClick={(e) => e.stopPropagation()}>
+                                                        <Eye className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-pointer" />
+                                                      </button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent side="top" className="text-xs max-w-[280px] p-3">
+                                                      <p className="font-semibold mb-1">Valor anticipo</p>
+                                                      <p className="text-base font-mono">{valorText}</p>
+                                                    </PopoverContent>
+                                                  </Popover>
+                                                )}
+                                              </div>
                                             );
                                           }
                                           return (

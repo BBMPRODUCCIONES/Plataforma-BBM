@@ -120,7 +120,7 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
   const deleteEntry = (idx: number) => {
     const updated = localEntries.filter((_, i) => i !== idx);
     setLocalEntries(updated);
-    onUpdate(updated);
+    setHasUnsavedChanges(true);
   };
 
   const addEntry = () => {
@@ -132,11 +132,19 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
 
     const updated = [...localEntries, { comercio, nitCedula, concepto, valor }];
     setLocalEntries(updated);
-    onUpdate(updated);
+    setHasUnsavedChanges(true);
     setNewComercio("");
     setNewNit("");
     setNewConcepto("");
     setNewValor("");
+  };
+
+  const handleSave = () => {
+    setIsSaving(true);
+    onUpdate(localEntries);
+    setHasUnsavedChanges(false);
+    setTimeout(() => setIsSaving(false), 500);
+    toast.success("Relación de gastos guardada");
   };
 
   const handleImageUpload = async (idx: number, file: File) => {

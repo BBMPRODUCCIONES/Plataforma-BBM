@@ -159,7 +159,6 @@ function RelacionGastosEditor({ entries, isFullyLocked, canEdit, valorAnticipo, 
     onUpdate(updated);
     setHasUnsavedChanges(false);
   };
-  };
 
   return (
     <div className="flex flex-col gap-1.5 min-w-[300px]">

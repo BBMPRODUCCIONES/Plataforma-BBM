@@ -182,7 +182,10 @@ export function EditableCell({
             ? typeof value === "number"
               ? `$ ${value.toLocaleString('es-CO')}`
               : value
-            : value || placeholder}
+            : value ||
+              // En movil los textos de ejemplo largos ("Ej: 3-00814") llenaban
+              // de ruido cada celda vacia y ensanchaban las columnas.
+              (isMobile && placeholder.length > 3 ? "—" : placeholder)}
         </span>
       </div>
     );

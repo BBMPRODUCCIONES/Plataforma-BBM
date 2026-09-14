@@ -86,9 +86,9 @@ export function PWAUpdateBanner() {
   if (!showUpdate) return null;
 
   return (
-    <div className="fixed bottom-20 md:bottom-4 right-4 z-50 flex items-center gap-3 p-3 bg-primary text-primary-foreground rounded-lg shadow-lg animate-in slide-in-from-bottom-4">
+    <div className="notif-toast flex items-center gap-2 rounded-full bg-primary py-1.5 pl-3 pr-1.5 text-primary-foreground shadow-sm">
       <RefreshCw className="h-4 w-4" />
-      <span className="text-sm font-medium">Nueva versión disponible</span>
+      <span className="flex-1 truncate text-xs font-medium">Nueva versión disponible</span>
       <Button 
         size="sm" 
         variant="secondary" 

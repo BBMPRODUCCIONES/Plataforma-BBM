@@ -1488,7 +1488,7 @@
 
   /* Mobile table cells - compact density */
   .mobile-table-th {
-    padding: 10px 10px;
+    padding: 7px 8px;
     vertical-align: middle;
     font-size: 10px;
     font-weight: 600;
@@ -1500,7 +1500,7 @@
   }
 
   .mobile-table-td {
-    padding: 8px 10px;
+    padding: 5px 8px;
     vertical-align: middle;
     font-size: 13px;
     line-height: 1.4;
@@ -2094,7 +2094,7 @@
   }
 
   .mobile-bottom-nav-inner {
-    height: 44px !important;
+    height: var(--bottom-nav-height) !important;
     padding-bottom: 0 !important;
   }
 
@@ -3141,3 +3141,65 @@ tr[data-highlighted="true"] {
   }
 }
 
+
+
+/* ============================================================
+   AJUSTES MOVILES — barra inferior, avisos y densidad de tabla
+   ============================================================ */
+
+:root {
+  /* Alto de la barra de navegacion inferior en movil. Lo usan la propia barra,
+     el padding del contenido y los avisos flotantes, para que no se pisen. */
+  --bottom-nav-height: 56px;
+}
+
+/* Avisos flotantes (notificaciones y "nueva version"): una sola linea,
+   siempre por encima de la barra inferior y respetando el area segura. */
+.notif-toast {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 10px);
+  z-index: 50;
+  animation: notif-toast-in 220ms ease-out;
+}
+
+@keyframes notif-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notif-toast { animation: none; }
+}
+
+@media (min-width: 768px) {
+  .notif-toast {
+    left: auto;
+    right: 24px;
+    bottom: 24px;
+    max-width: 22rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  /* El contenido deja libre exactamente lo que ocupa la barra, ni mas ni menos. */
+  .content-scroll-area > div {
+    padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 12px) !important;
+  }
+
+  /* Celdas mas bajas: la altura la marcaba el relleno del editor de celda. */
+  .mobile-matrix-table td .cursor-pointer,
+  .mobile-matrix-table td [role="button"].cursor-pointer {
+    min-height: 30px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
+  /* Encabezado de la tabla siempre visible al bajar por la lista. */
+  .mobile-matrix-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+  }
+}

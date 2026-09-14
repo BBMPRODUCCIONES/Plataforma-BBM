@@ -1,0 +1,18 @@
+# El service worker y el manifest nunca se cachean: si se cachean,
+# el celular se queda con una version vieja de la app.
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/registerSW.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest.webmanifest
+  Cache-Control: no-cache
+  Content-Type: application/manifest+json
+
+# Los assets llevan hash en el nombre: se pueden cachear para siempre.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

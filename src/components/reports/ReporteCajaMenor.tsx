@@ -1087,7 +1087,7 @@ const ReporteCajaMenor = () => {
                           alt={img.name}
                           className="w-full h-40 object-cover transition-transform group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-black/50 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <Button 
                             size="icon" 
                             variant="secondary" 

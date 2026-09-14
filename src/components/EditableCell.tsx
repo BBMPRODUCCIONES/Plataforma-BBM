@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AttachmentButton } from "@/components/AttachmentManager";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Attachment } from "@/types";
 
 export type CellType = "text" | "number" | "date" | "select" | "file" | "boolean";
@@ -43,9 +44,23 @@ export function EditableCell({
   className,
   disabled = false,
 }: EditableCellProps) {
+  const isMobile = useIsMobile();
   const [isEditing, setIsEditing] = useState(false);
   const [localValue, setLocalValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * Convierte el texto crudo del input a numero solo al guardar.
+   * Mientras se escribe NUNCA se toca el texto, para poder teclear
+   * "12." (decimales) o "-" (negativos) sin que el campo se reescriba solo.
+   */
+  const parseNumericInput = (raw: unknown): number | null => {
+    if (raw === null || raw === undefined) return null;
+    const text = String(raw).trim().replace(",", ".");
+    if (text === "" || text === "-" || text === "." || text === "-.") return null;
+    const parsed = Number(text);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
 
   useEffect(() => {
     // Only sync when not actively editing to prevent input from being "erased"
@@ -55,15 +70,28 @@ export function EditableCell({
   }, [value, isEditing]);
 
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+    if (!isEditing || !inputRef.current) return;
+    const input = inputRef.current;
+    input.focus();
+    if (isMobile) {
+      // En tactil: cursor al final (seleccionar todo hace que la primera
+      // tecla borre el dato existente) y subir la celda sobre el teclado.
+      const end = input.value?.length ?? 0;
+      try {
+        input.setSelectionRange(end, end);
+      } catch {
+        /* algunos tipos de input no soportan setSelectionRange */
+      }
+      requestAnimationFrame(() => {
+        input.scrollIntoView({ block: "center", inline: "nearest" });
+      });
+    } else {
+      input.select();
     }
-  }, [isEditing]);
+  }, [isEditing, isMobile]);
 
   const handleSave = () => {
-    // For number type, convert empty string to null/undefined so parent can handle it
-    const finalValue = type === "number" && localValue === "" ? null : localValue;
+    const finalValue = type === "number" ? parseNumericInput(localValue) : localValue;
     onChange(finalValue);
     setIsEditing(false);
   };
@@ -88,13 +116,48 @@ export function EditableCell({
         <div className="flex items-center gap-1">
           <Input
             ref={inputRef}
-            type={type === "number" ? "number" : "text"}
+            type="text"
+            inputMode={type === "number" ? "decimal" : undefined}
             value={localValue ?? ""}
-            onChange={(e) => setLocalValue(type === "number" ? (e.target.value === "" ? "" : parseFloat(e.target.value) || 0) : e.target.value)}
+            // Se guarda el texto tal cual se escribe; la conversion a numero
+            // ocurre en handleSave.
+            onChange={(e) => setLocalValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            onBlur={handleSave}
-            className="h-7 text-xs w-full"
+            // En tactil no se autoguarda al perder el foco: un toque accidental
+            // durante un montaje sobrescribia el dato. Se confirma con el boton.
+            onBlur={isMobile ? undefined : handleSave}
+            className={cn(
+              "w-full",
+              // 16px en movil evita el zoom automatico de iOS al enfocar.
+              isMobile ? "h-9 text-base" : "h-7 text-xs"
+            )}
           />
+          {isMobile && (
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label="Guardar"
+                className="h-9 w-9 text-emerald-600"
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={handleSave}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label="Cancelar"
+                className="h-9 w-9 text-muted-foreground"
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={handleCancel}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       );
     }

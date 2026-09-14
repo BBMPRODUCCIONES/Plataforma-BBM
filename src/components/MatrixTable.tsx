@@ -24,6 +24,13 @@ interface MatrixTableProps<T extends { id: string }> {
   getRowClassName?: (item: T) => string;
 }
 
+/**
+ * Clase que marca la columna congelada (sticky) al hacer scroll horizontal.
+ * El CSS engancha con esta clase, no con :first-child, para que la columna
+ * congelada siga siendo la correcta aunque el usuario reordene columnas.
+ */
+const STICKY_COL_CLASS = "matrix-sticky-col";
+
 export function MatrixTable<T extends { id: string }>({
   data,
   columns,
@@ -68,9 +75,30 @@ export function MatrixTable<T extends { id: string }>({
     return () => observer.disconnect();
   }, [isMobile, noHorizontalScroll, columns.length, data.length]);
 
+  /**
+   * En movil la columna marcada con STICKY_COL_CLASS se mueve al primer lugar
+   * (en el Panel de Operaciones es "Evento": al deslizar en horizontal hay que
+   * seguir viendo de que evento se trata, no su centro de costos).
+   * En escritorio se conserva el orden tal cual y se congela la primera columna.
+   */
+  const orderedColumns = (() => {
+    if (!isMobile) return columns;
+    const idx = columns.findIndex((col) => col.className?.includes(STICKY_COL_CLASS));
+    if (idx <= 0) return columns;
+    return [columns[idx], ...columns.filter((_, i) => i !== idx)];
+  })();
+
+  const resolvedColumns = orderedColumns.map((col, i) => ({
+    ...col,
+    className: cn(
+      col.className?.split(" ").filter((c) => c !== STICKY_COL_CLASS).join(" "),
+      i === 0 && STICKY_COL_CLASS
+    ),
+  }));
+
   // Calculate minimum table width for proper horizontal scroll
   // Mobile uses mobileWidth if available, desktop ALWAYS uses width only
-  const totalWidth = columns.reduce((acc, col) => {
+  const totalWidth = resolvedColumns.reduce((acc, col) => {
     const widthStr = isMobile ? (col.mobileWidth || col.width) : col.width;
     const width = widthStr ? parseInt(widthStr) : 100;
     return acc + width;
@@ -123,7 +151,7 @@ export function MatrixTable<T extends { id: string }>({
           <table className="matrix-table mobile-matrix-table">
             <thead>
               <tr>
-                {columns.map((col) => {
+                {resolvedColumns.map((col) => {
                   // Use mobileWidth if available, otherwise fall back to width
                   const mobileW = col.mobileWidth || col.width;
                   return (
@@ -151,7 +179,7 @@ export function MatrixTable<T extends { id: string }>({
                     getRowClassName?.(item)
                   )}
                 >
-                  {columns.map((col) => {
+                  {resolvedColumns.map((col) => {
                     const mobileW = col.mobileWidth || col.width;
                     return (
                       <td 
@@ -192,7 +220,7 @@ export function MatrixTable<T extends { id: string }>({
         )}>
           <thead>
             <tr>
-              {columns.map((col) => (
+              {resolvedColumns.map((col) => (
                 <th
                   key={col.key}
                   style={{ width: col.width, minWidth: col.width }}
@@ -215,7 +243,7 @@ export function MatrixTable<T extends { id: string }>({
                   getRowClassName?.(item)
                 )}
               >
-                {columns.map((col) => (
+                {resolvedColumns.map((col) => (
                   <td
                     key={col.key}
                     style={{ width: col.width, minWidth: col.width }}

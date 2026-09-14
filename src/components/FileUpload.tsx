@@ -154,7 +154,9 @@ export function FileUpload({
                   {formatFileSize(attachment.size)}
                 </p>
               </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* En tactil no existe :hover: los botones deben verse siempre.
+                  El efecto de aparecer al pasar el mouse queda solo en escritorio. */}
+              <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                 <Button
                   variant="ghost"
                   size="icon"

@@ -1134,6 +1134,9 @@ const PanelOperaciones = () => {
       header: col.header,
       width: col.width,
       render: getColumnRender(col),
+      // "Evento" es la columna que se congela al deslizar en horizontal:
+      // en movil MatrixTable la mueve al primer lugar.
+      className: col.key === "evento" ? "matrix-sticky-col" : undefined,
     }));
 
   // Generate a unique key for the table to force re-renders when columns change

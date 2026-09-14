@@ -1563,9 +1563,10 @@
 
     /* ========== STICKY COLUMN & HEADER SYSTEM ========== */
     
-    /* First column sticky (Evento/Nombre) - enhanced */
-    .matrix-table tr td:first-child,
-    .mobile-matrix-table tr td:first-child {
+    /* Columna congelada: la marca MatrixTable con .matrix-sticky-col
+       (en el Panel de Operaciones es "Evento", no el centro de costos). */
+    .matrix-table tr td.matrix-sticky-col,
+    .mobile-matrix-table tr td.matrix-sticky-col {
       position: sticky;
       left: 0;
       background: hsl(var(--card));
@@ -1574,8 +1575,8 @@
       border-right: 1px solid hsl(var(--border) / 0.3);
     }
 
-    .matrix-table tr th:first-child,
-    .mobile-matrix-table tr th:first-child {
+    .matrix-table tr th.matrix-sticky-col,
+    .mobile-matrix-table tr th.matrix-sticky-col {
       position: sticky;
       left: 0;
       top: 0;
@@ -1666,8 +1667,8 @@
     }
 
     /* Don't override sticky column background on active */
-    .matrix-table tr td:first-child:active,
-    .mobile-matrix-table tr td:first-child:active {
+    .matrix-table tr td.matrix-sticky-col:active,
+    .mobile-matrix-table tr td.matrix-sticky-col:active {
       background-color: hsl(var(--accent) / 0.4);
     }
 
@@ -2461,9 +2462,14 @@
     overflow-x: hidden !important;
   }
 
-  /* Compact mobile app header */
+  /* Compact mobile app header.
+     OJO: no usar height fijo. Con la app instalada en un iPhone con notch,
+     .mobile-app-header recibe padding-top: env(safe-area-inset-top) (47-59px)
+     y con box-sizing: border-box la caja de contenido quedaba en 0px:
+     el boton atras, el titulo y la campana se desbordaban. */
   .mobile-app-header {
-    height: 40px !important;
+    height: auto !important;
+    min-height: calc(40px + env(safe-area-inset-top, 0px)) !important;
     padding-left: 12px !important;
     padding-right: 8px !important;
     border-bottom-color: hsl(var(--border) / 0.3) !important;

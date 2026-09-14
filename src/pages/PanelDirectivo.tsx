@@ -6,7 +6,7 @@ import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
 import { StatusSelect } from "@/components/StatusSelect";
-import { GanttChart } from "@/components/GanttChart";
+import { EventCalendar } from "@/components/EventCalendar";
 import { DashboardStats } from "@/components/DashboardStats";
 import { CalendarFilter } from "@/components/CalendarFilter";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
@@ -931,7 +931,7 @@ const PanelDirectivo = () => {
             <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
               <TabsList className={isMobile ? 'w-full h-8' : ''}>
                 <TabsTrigger value="tabla" className={isMobile ? 'flex-1 h-7 text-xs px-2.5' : ''}>Tabla</TabsTrigger>
-                <TabsTrigger value="gantt" className={isMobile ? 'flex-1 h-7 text-xs px-2.5' : ''}>Gantt</TabsTrigger>
+                <TabsTrigger value="gantt" className={isMobile ? 'flex-1 h-7 text-xs px-2.5' : ''}>Calendario</TabsTrigger>
                 <TabsTrigger value="dashboard" className={isMobile ? 'flex-1 h-7 text-xs px-2.5' : ''}>Dashboard</TabsTrigger>
               </TabsList>
               <div className="flex items-center gap-2">
@@ -1020,14 +1020,11 @@ const PanelDirectivo = () => {
           </TabsContent>
 
           <TabsContent value="gantt" className="mt-4">
-            <GanttChart
-              projects={filteredProjects}
-              startDate={globalSelectedDate}
-              monthsToShow={globalViewMode === "year" ? 12 : globalViewMode === "quarter" ? 3 : globalViewMode === "month" ? 3 : 1}
-              viewMode={globalViewMode}
-              customDateRange={dateRange}
-              onProjectClick={handleGanttProjectClick}
-            />
+            <EventCalendar
+                projects={filteredProjects}
+                startDate={globalSelectedDate}
+                onProjectClick={handleGanttProjectClick}
+              />
           </TabsContent>
 
           <TabsContent value="dashboard" className="mt-4">

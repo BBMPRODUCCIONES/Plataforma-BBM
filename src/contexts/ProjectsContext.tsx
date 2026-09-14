@@ -231,6 +231,39 @@ function fieldToColumn(field: string): string {
   return mapping[field] || field;
 }
 
+/**
+ * Orden por proximo evento a ejecutar, no por fecha de cargue.
+ * Primero lo que viene (de la fecha mas cercana a la mas lejana) y despues
+ * lo que ya paso (del mas reciente al mas antiguo). Los eventos sin fecha
+ * de ejecucion quedan al final.
+ */
+function fechaEjecucionMs(p: Project): number | null {
+  const valor = p.fechaEjecucionInicio;
+  if (!valor) return null;
+  const d = new Date(valor.length > 10 ? valor : `${valor}T00:00:00`);
+  return isNaN(d.getTime()) ? null : d.getTime();
+}
+
+export function porProximoEvento(a: Project, b: Project): number {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const inicioHoy = hoy.getTime();
+
+  const fa = fechaEjecucionMs(a);
+  const fb = fechaEjecucionMs(b);
+
+  if (fa === null && fb === null) return 0;
+  if (fa === null) return 1;
+  if (fb === null) return -1;
+
+  const aFuturo = fa >= inicioHoy;
+  const bFuturo = fb >= inicioHoy;
+
+  if (aFuturo && bFuturo) return fa - fb;   // lo mas cercano arriba
+  if (!aFuturo && !bFuturo) return fb - fa; // lo mas reciente primero
+  return aFuturo ? -1 : 1;                  // el futuro siempre antes que el pasado
+}
+
 export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -250,7 +283,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const projectsList = (data || []).map(dbRowToProject);
+      const projectsList = (data || []).map(dbRowToProject).sort(porProximoEvento);
       setProjects(projectsList);
       logger.debug("[ProjectsContext] Loaded", projectsList.length, "projects");
     } catch (err) {
@@ -301,11 +334,11 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
               if (prev.some(p => p.id === newProject.id)) {
                 return prev;
               }
-              return [newProject, ...prev];
+              return [newProject, ...prev].sort(porProximoEvento);
             });
           } else if (payload.eventType === "UPDATE") {
             const updatedProject = dbRowToProject(payload.new);
-            setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
+            setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p).sort(porProximoEvento));
           } else if (payload.eventType === "DELETE") {
             const deletedId = payload.old.id;
             setProjects(prev => prev.filter(p => p.id !== deletedId));
@@ -363,7 +396,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     };
 
     // Optimistic update - add immediately
-    setProjects(prev => [optimisticProject, ...prev]);
+    setProjects(prev => [optimisticProject, ...prev].sort(porProximoEvento));
 
     const newProjectData = {
       centro_costos: optimisticProject.centroCostos,
@@ -418,7 +451,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
     // Replace temp project with real one
     const realProject = dbRowToProject(data);
-    setProjects(prev => prev.map(p => p.id === tempId ? realProject : p));
+    setProjects(prev => prev.map(p => p.id === tempId ? realProject : p).sort(porProximoEvento));
     logger.debug("[ProjectsContext] Created new project:", data.id);
 
     // Send push notification and create in-app notifications for new project
@@ -500,7 +533,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       toast.error("Error al eliminar el proyecto");
       // Revert optimistic update
       if (projectToDelete) {
-        setProjects(prev => [projectToDelete, ...prev]);
+        setProjects(prev => [projectToDelete, ...prev].sort(porProximoEvento));
       }
       return;
     }

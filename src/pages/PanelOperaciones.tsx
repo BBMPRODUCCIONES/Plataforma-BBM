@@ -8,7 +8,7 @@ import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
 import { DragReorderHandle } from "@/components/DragReorderHandle";
 import { StatusSelect } from "@/components/StatusSelect";
-import { GanttChart } from "@/components/GanttChart";
+import { EventCalendar } from "@/components/EventCalendar";
 import { CalendarFilter } from "@/components/CalendarFilter";
 import { AttachmentButton, AttachmentManager } from "@/components/AttachmentManager";
 import { PurchaseOrderUpload } from "@/components/PurchaseOrderUpload";
@@ -2877,7 +2877,7 @@ const PanelOperaciones = () => {
             <div className="flex items-center gap-3 flex-wrap">
               <TabsList className="w-full sm:w-auto">
                 <TabsTrigger value="matriz" className="flex-1 sm:flex-none">Matriz</TabsTrigger>
-                <TabsTrigger value="gantt" className="flex-1 sm:flex-none">Gantt</TabsTrigger>
+                <TabsTrigger value="gantt" className="flex-1 sm:flex-none">Calendario</TabsTrigger>
               </TabsList>
               <div className="flex items-center gap-2">
                 <Switch
@@ -2940,14 +2940,11 @@ const PanelOperaciones = () => {
           </TabsContent>
 
           <TabsContent value="gantt" className="mt-4">
-            <GanttChart
-              projects={filteredProjects}
-              startDate={globalSelectedDate}
-              monthsToShow={globalViewMode === "year" ? 12 : globalViewMode === "quarter" ? 3 : globalViewMode === "month" ? 3 : 1}
-              viewMode={globalViewMode}
-              customDateRange={dateRange}
-              onProjectClick={handleGanttProjectClick}
-            />
+            <EventCalendar
+                projects={filteredProjects}
+                startDate={globalSelectedDate}
+                onProjectClick={handleGanttProjectClick}
+              />
           </TabsContent>
         </Tabs>
 

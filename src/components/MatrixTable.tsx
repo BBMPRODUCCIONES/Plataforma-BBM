@@ -32,6 +32,11 @@ interface MatrixTableProps<T extends { id: string }> {
   mobileKeys?: string[];
   /** Clave para recordar si el usuario prefiere ver todas las columnas. */
   mobilePreferenceKey?: string;
+  /**
+   * Franja de color al inicio de la fila (por ejemplo, el autor del evento).
+   * Devolver null para las filas que no llevan color.
+   */
+  getRowAccent?: (item: T) => { color: string; label: string } | null;
 }
 
 /**
@@ -51,6 +56,7 @@ export function MatrixTable<T extends { id: string }>({
   getRowClassName,
   mobileKeys,
   mobilePreferenceKey,
+  getRowAccent,
 }: MatrixTableProps<T>) {
   const isMobile = useIsMobile();
 
@@ -256,10 +262,15 @@ export function MatrixTable<T extends { id: string }>({
                   {resolvedColumns.map((col, colIdx) => {
                     const qw = quickWidth(colIdx);
                     const mobileW = qw || col.mobileWidth || col.width;
+                    const accent = colIdx === 0 ? getRowAccent?.(item) : null;
                     return (
                       <td 
                         key={col.key} 
-                        style={qw ? { width: qw } : { width: mobileW, minWidth: mobileW }} 
+                        style={{
+                          ...(qw ? { width: qw } : { width: mobileW, minWidth: mobileW }),
+                          ...(accent ? { borderLeft: `4px solid ${accent.color}` } : {}),
+                        }}
+                        title={accent?.label}
                         className={cn("mobile-table-td touch-manipulation mobile-touch-cell", col.className)}
                       >
                         {col.render
@@ -319,17 +330,25 @@ export function MatrixTable<T extends { id: string }>({
                   getRowClassName?.(item)
                 )}
               >
-                {resolvedColumns.map((col) => (
+                {resolvedColumns.map((col, colIdx) => {
+                  const accent = colIdx === 0 ? getRowAccent?.(item) : null;
+                  return (
                   <td
                     key={col.key}
-                    style={{ width: col.width, minWidth: col.width }}
+                    style={{
+                      width: col.width,
+                      minWidth: col.width,
+                      ...(accent ? { borderLeft: `4px solid ${accent.color}` } : {}),
+                    }}
+                    title={accent?.label}
                     className={cn("touch-manipulation", col.className)}
                   >
                     {col.render
                       ? col.render(item, idx)
                       : (item as Record<string, unknown>)[col.key]?.toString() || "-"}
                   </td>
-                ))}
+                  );
+                })}
               </tr>
             ))}
           </tbody>

@@ -112,6 +112,7 @@ function dbRowToProject(row: any): Project {
     deletedAt: row.deleted_at || null,
     deletedBy: row.deleted_by || null,
     deletedByEmail: row.deleted_by_email || null,
+    createdByEmail: row.created_by_email || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -391,6 +392,9 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       inventario: projectData.inventario || [],
       cotizaciones: projectData.cotizaciones || [],
       ordenesCompra: projectData.ordenesCompra || [],
+      // Solo para que el color aparezca de una. El valor real lo sella el
+      // servidor y llega con la respuesta del INSERT.
+      createdByEmail: user?.email?.toLowerCase(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

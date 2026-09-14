@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Project } from "@/types";
+import { autorDeEvento, AUTORES_EVENTO } from "@/lib/autorEvento";
 
 interface EventCalendarProps {
   projects: Project[];
@@ -146,11 +147,21 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-3 sm:flex">
+          <div className="hidden flex-wrap items-center gap-3 sm:flex">
             {(Object.keys(FASE_ESTILO) as Fase[]).map((fase) => (
               <span key={fase} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className={cn("h-2.5 w-2.5 rounded-full", FASE_ESTILO[fase].punto)} />
                 {FASE_ESTILO[fase].nombre}
+              </span>
+            ))}
+            <span className="text-border">|</span>
+            {AUTORES_EVENTO.map((autor) => (
+              <span key={autor.email} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: autor.color }}
+                />
+                {autor.nombre}
               </span>
             ))}
           </div>
@@ -216,12 +227,20 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
                 {maxChips === 0 ? (
                   delDia.length > 0 && (
                     <span className="mt-0.5 flex flex-wrap gap-1">
-                      {delDia.slice(0, 4).map(({ proyecto, fase }) => (
-                        <span
-                          key={proyecto.id + fase}
-                          className={cn("h-1.5 w-1.5 rounded-full", FASE_ESTILO[fase].punto)}
-                        />
-                      ))}
+                      {delDia.slice(0, 4).map(({ proyecto, fase }) => {
+                        const autor = autorDeEvento(proyecto);
+                        return (
+                          <span
+                            key={proyecto.id + fase}
+                            title={autor ? `${proyecto.evento} · ${autor.nombre}` : proyecto.evento}
+                            style={autor ? { backgroundColor: autor.color } : undefined}
+                            className={cn(
+                              "h-1.5 w-1.5 rounded-full",
+                              !autor && FASE_ESTILO[fase].punto
+                            )}
+                          />
+                        );
+                      })}
                       {delDia.length > 4 && (
                         <span className="text-[9px] leading-none text-muted-foreground">
                           +{delDia.length - 4}
@@ -231,23 +250,30 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
                   )
                 ) : (
                   <span className="flex flex-col gap-0.5">
-                    {delDia.slice(0, maxChips).map(({ proyecto, fase }) => (
-                      <span
-                        key={proyecto.id + fase}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onProjectClick?.(proyecto.id);
-                        }}
-                        className={cn(
-                          "truncate rounded border px-1 py-0.5 text-[10px] leading-tight",
-                          FASE_ESTILO[fase].chip,
-                          onProjectClick && "cursor-pointer hover:brightness-110"
-                        )}
-                        title={`${proyecto.evento} · ${FASE_ESTILO[fase].nombre}`}
-                      >
-                        {proyecto.evento || "Sin nombre"}
-                      </span>
-                    ))}
+                    {delDia.slice(0, maxChips).map(({ proyecto, fase }) => {
+                      const autor = autorDeEvento(proyecto);
+                      return (
+                        <span
+                          key={proyecto.id + fase}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onProjectClick?.(proyecto.id);
+                          }}
+                          className={cn(
+                            "truncate rounded border px-1 py-0.5 text-[10px] leading-tight",
+                            autor ? autor.chip : FASE_ESTILO[fase].chip,
+                            onProjectClick && "cursor-pointer hover:brightness-110"
+                          )}
+                          title={
+                            autor
+                              ? `${proyecto.evento} · ${FASE_ESTILO[fase].nombre} · creado por ${autor.nombre}`
+                              : `${proyecto.evento} · ${FASE_ESTILO[fase].nombre}`
+                          }
+                        >
+                          {proyecto.evento || "Sin nombre"}
+                        </span>
+                      );
+                    })}
                     {delDia.length > maxChips && (
                       <span className="pl-1 text-[10px] text-muted-foreground">
                         +{delDia.length - maxChips} más
@@ -271,25 +297,44 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
             <p className="text-sm text-muted-foreground">No hay eventos este día.</p>
           ) : (
             <ul className="flex flex-col gap-1.5">
-              {listaDelDia.map(({ proyecto, fase }) => (
-                <li key={proyecto.id + fase}>
-                  <button
-                    type="button"
-                    onClick={() => onProjectClick?.(proyecto.id)}
-                    className="flex w-full items-center gap-2 rounded-md border border-border/60 px-2.5 py-2 text-left transition-colors hover:bg-accent/40"
-                  >
-                    <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", FASE_ESTILO[fase].punto)} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">
-                        {proyecto.evento || "Sin nombre"}
+              {listaDelDia.map(({ proyecto, fase }) => {
+                const autor = autorDeEvento(proyecto);
+                return (
+                  <li key={proyecto.id + fase}>
+                    <button
+                      type="button"
+                      onClick={() => onProjectClick?.(proyecto.id)}
+                      className="flex w-full items-center gap-2 rounded-md border border-border/60 px-2.5 py-2 text-left transition-colors hover:bg-accent/40"
+                    >
+                      <span
+                        style={autor ? { backgroundColor: autor.color } : undefined}
+                        className={cn(
+                          "h-2.5 w-2.5 shrink-0 rounded-full",
+                          !autor && FASE_ESTILO[fase].punto
+                        )}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">
+                          {proyecto.evento || "Sin nombre"}
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {proyecto.cliente || "Sin cliente"} · {FASE_ESTILO[fase].nombre}
+                        </span>
                       </span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {proyecto.cliente || "Sin cliente"} · {FASE_ESTILO[fase].nombre}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
+                      {autor && (
+                        <span
+                          className={cn(
+                            "shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium",
+                            autor.chip
+                          )}
+                        >
+                          {autor.nombre}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

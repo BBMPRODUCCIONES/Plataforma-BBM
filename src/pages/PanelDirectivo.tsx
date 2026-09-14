@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
+import { accentPorAutor } from "@/lib/autorEvento";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1015,6 +1016,7 @@ const PanelDirectivo = () => {
                 getRowClassName={getRowClassName}
                 mobileKeys={["evento", "cliente", "estado", "ingresoTotal"]}
                 mobilePreferenceKey="panel-directivo"
+                getRowAccent={accentPorAutor}
               />
             </div>
           </TabsContent>

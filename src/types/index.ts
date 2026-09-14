@@ -67,6 +67,8 @@ export interface Project {
   deletedAt?: string;
   deletedBy?: string;
   deletedByEmail?: string;
+  /** Correo de quien creo el evento. Lo sella el servidor; se usa para el color por autor. */
+  createdByEmail?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -30,6 +30,7 @@ import { useEmpleados } from "@/contexts/EmpleadosContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Project, PersonalItem, InventarioItem, CajaMenorItem, LegalizacionItem, ProjectStatus, CalendarViewMode, Attachment, RelacionGastoEntry } from "@/types";
+import { accentPorAutor } from "@/lib/autorEvento";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -2935,6 +2936,7 @@ const PanelOperaciones = () => {
                 onRowClick={(item) => setSelectedProject(item as Project)}
                 mobileKeys={["evento", "cliente", "fechaMontaje", "estado"]}
                 mobilePreferenceKey="panel-operaciones"
+                getRowAccent={accentPorAutor}
               />
             </div>
           </TabsContent>

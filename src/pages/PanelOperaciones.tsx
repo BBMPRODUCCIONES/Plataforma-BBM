@@ -2846,7 +2846,7 @@ const PanelOperaciones = () => {
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {focusedEventSource === "gantt" 
-                    ? "Desde vista Gantt" 
+                    ? "Desde el calendario" 
                     : focusedEventSource === "reportes" 
                       ? "Desde Panel de Reportes"
                       : focusedEventSource === "directivo"

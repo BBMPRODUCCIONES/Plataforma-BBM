@@ -280,7 +280,7 @@ export function CalendarFilter({
     <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-card border border-border rounded-lg calendar-filter-container">
       {/* View Mode Tabs - horizontal scroll on mobile */}
       <div className="flex items-center bg-muted rounded-md p-0.5 overflow-x-auto max-w-full scrollbar-thin">
-        {(["day", "week", "month", "quarter", "year"] as CalendarViewMode[]).map((mode) => (
+        {(["day", "week", "month"] as CalendarViewMode[]).map((mode) => (
           <Button
             key={mode}
             variant="ghost"

@@ -497,7 +497,7 @@ export const GestionHorarios = () => {
             
             {/* View Mode Tabs */}
             <div className="view-mode-tabs-mobile">
-              {(['day', 'week', 'month', 'quarter', 'year'] as ViewMode[]).map((mode) => (
+              {(['day', 'week', 'month'] as ViewMode[]).map((mode) => (
                 <Button
                   key={mode}
                   variant={viewMode === mode ? 'secondary' : 'ghost'}
@@ -765,7 +765,7 @@ export const GestionHorarios = () => {
       <div className="flex items-center gap-2 flex-wrap bg-card/50 p-2 rounded-lg border border-border/50">
         {/* View mode tabs */}
         <div className="flex bg-muted/50 rounded-md p-0.5">
-          {(['day', 'week', 'month', 'quarter', 'year'] as ViewMode[]).map((mode) => (
+          {(['day', 'week', 'month'] as ViewMode[]).map((mode) => (
             <Button
               key={mode}
               variant={viewMode === mode ? 'secondary' : 'ghost'}

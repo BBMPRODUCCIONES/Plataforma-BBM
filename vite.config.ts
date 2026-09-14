@@ -14,7 +14,11 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "prompt",
+      // autoUpdate: el service worker nuevo toma el control de inmediato.
+      // Con "prompt" + skipWaiting:false el worker viejo se quedaba mandando y
+      // seguia sirviendo un index.html que apuntaba a archivos ya borrados del
+      // servidor, y el celular respondia ERR_FAILED en vez de abrir la app.
+      registerType: "autoUpdate",
       includeAssets: ["favicon.png", "robots.txt", "pwa-192x192.png", "pwa-512x512.png", "pwa-192x192-demo.png", "pwa-512x512-demo.png", "manifest-demo.json"],
       manifest: {
         name: "BBM Producciones",
@@ -44,8 +48,8 @@ export default defineConfig(({ mode }) => ({
     workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-        skipWaiting: false,
-        clientsClaim: false,
+        skipWaiting: true,
+        clientsClaim: true,
         cleanupOutdatedCaches: true,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/, /^\/auth/, /supabase/],

@@ -39,6 +39,35 @@
 
     <link rel="canonical" href="/" />
 
+    <!-- Red de seguridad contra service workers viejos.
+         Si el navegador no logra cargar el JS o el CSS de la app (tipico cuando
+         una version cacheada apunta a archivos que ya no existen en el servidor),
+         se desregistra el service worker, se vacian las caches y se recarga UNA
+         sola vez. Sin esto el celular se queda en "No se puede acceder a este sitio". -->
+    <script>
+      (function () {
+        window.addEventListener('error', function (e) {
+          var t = e && e.target;
+          if (!t || (t.tagName !== 'SCRIPT' && t.tagName !== 'LINK')) return;
+          try {
+            if (sessionStorage.getItem('bbm_sw_reset')) return;
+            sessionStorage.setItem('bbm_sw_reset', '1');
+          } catch (err) { return; }
+          var done = function () { location.reload(); };
+          if (!('serviceWorker' in navigator)) { done(); return; }
+          navigator.serviceWorker.getRegistrations()
+            .then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })
+            .then(function () {
+              if (!window.caches) return null;
+              return caches.keys().then(function (ks) {
+                return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+              });
+            })
+            .then(done, done);
+        }, true);
+      })();
+    </script>
+
     <!-- OneSignal SDK -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     

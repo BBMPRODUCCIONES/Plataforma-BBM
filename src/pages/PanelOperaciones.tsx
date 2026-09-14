@@ -2933,6 +2933,8 @@ const PanelOperaciones = () => {
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
                 onRowClick={(item) => setSelectedProject(item as Project)}
+                mobileKeys={["evento", "cliente", "fechaMontaje", "estado"]}
+                mobilePreferenceKey="panel-operaciones"
               />
             </div>
           </TabsContent>

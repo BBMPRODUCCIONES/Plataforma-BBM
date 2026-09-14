@@ -1,4 +1,6 @@
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { Columns3, Minimize2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -22,6 +24,14 @@ interface MatrixTableProps<T extends { id: string }> {
   noHorizontalScroll?: boolean;
   /** Custom class name generator for rows */
   getRowClassName?: (item: T) => string;
+  /**
+   * Columnas que se muestran por defecto en celular ("vista rapida").
+   * Sin esto, el celular hereda las 21 columnas del escritorio y toca
+   * deslizar media docena de pantallas para llegar al final.
+   */
+  mobileKeys?: string[];
+  /** Clave para recordar si el usuario prefiere ver todas las columnas. */
+  mobilePreferenceKey?: string;
 }
 
 /**
@@ -39,8 +49,37 @@ export function MatrixTable<T extends { id: string }>({
   highlightedId,
   noHorizontalScroll = false,
   getRowClassName,
+  mobileKeys,
+  mobilePreferenceKey,
 }: MatrixTableProps<T>) {
   const isMobile = useIsMobile();
+
+  const preferenceKey = mobilePreferenceKey ? `bbm_matrix_all_cols_${mobilePreferenceKey}` : null;
+  const [showAllColumns, setShowAllColumns] = useState<boolean>(() => {
+    if (!preferenceKey) return false;
+    try {
+      return localStorage.getItem(preferenceKey) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleAllColumns = useCallback(() => {
+    setShowAllColumns((prev) => {
+      const next = !prev;
+      if (preferenceKey) {
+        try {
+          localStorage.setItem(preferenceKey, next ? "1" : "0");
+        } catch {
+          /* modo incognito */
+        }
+      }
+      return next;
+    });
+  }, [preferenceKey]);
+
+  const hasQuickView = Boolean(isMobile && mobileKeys && mobileKeys.length > 0);
+  const isQuickView = hasQuickView && !showAllColumns;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasScrolledRight, setHasScrolledRight] = useState(false);
 
@@ -81,11 +120,18 @@ export function MatrixTable<T extends { id: string }>({
    * seguir viendo de que evento se trata, no su centro de costos).
    * En escritorio se conserva el orden tal cual y se congela la primera columna.
    */
+  // En vista rapida solo quedan las columnas clave, en el orden en que se pidieron.
+  const baseColumns = isQuickView
+    ? (mobileKeys as string[])
+        .map((key) => columns.find((col) => col.key === key))
+        .filter((col): col is Column<T> => Boolean(col))
+    : columns;
+
   const orderedColumns = (() => {
-    if (!isMobile) return columns;
-    const idx = columns.findIndex((col) => col.className?.includes(STICKY_COL_CLASS));
-    if (idx <= 0) return columns;
-    return [columns[idx], ...columns.filter((_, i) => i !== idx)];
+    if (!isMobile) return baseColumns;
+    const idx = baseColumns.findIndex((col) => col.className?.includes(STICKY_COL_CLASS));
+    if (idx <= 0) return baseColumns;
+    return [baseColumns[idx], ...baseColumns.filter((_, i) => i !== idx)];
   })();
 
   const resolvedColumns = orderedColumns.map((col, i) => ({
@@ -129,35 +175,63 @@ export function MatrixTable<T extends { id: string }>({
     return () => container.removeEventListener("scroll", handleScroll);
   }, [isMobile]);
 
+  // Reparto de ancho en vista rapida: la columna del evento se lleva el 38%
+  // y el resto se divide en partes iguales. Asi cabe todo sin scroll lateral.
+  const quickWidth = (index: number) => {
+    if (!isQuickView) return undefined;
+    if (resolvedColumns.length === 1) return "100%";
+    return index === 0 ? "38%" : `${(62 / (resolvedColumns.length - 1)).toFixed(2)}%`;
+  };
+
   // Mobile: Always render as matrix with horizontal touch scroll
   if (isMobile) {
     return (
-      <div 
-        ref={scrollRef}
-        className={cn(
-          "mobile-scroll-container mobile-table-scroll",
-          hasScrolledRight && "scrolled-right",
-          className
+      <div className="flex flex-col">
+        {hasQuickView && (
+          <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+            <span className="text-[11px] text-muted-foreground">
+              {isQuickView
+                ? `Vista rápida · ${resolvedColumns.length} de ${columns.length} columnas`
+                : `Todas las columnas (${columns.length})`}
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={toggleAllColumns}
+              className="h-8 shrink-0 gap-1.5 px-3 text-xs"
+            >
+              {isQuickView ? <Columns3 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
+              {isQuickView ? "Ver todas" : "Vista rápida"}
+            </Button>
+          </div>
         )}
-        style={{ 
-          overscrollBehavior: 'contain',
-          touchAction: 'pan-x pan-y'
-        }}
-      >
+        <div
+          ref={scrollRef}
+          className={cn(
+            "mobile-scroll-container mobile-table-scroll",
+            hasScrolledRight && "scrolled-right",
+            className
+          )}
+          style={{
+            overscrollBehavior: 'contain',
+            touchAction: 'pan-x pan-y'
+          }}
+        >
         <div 
           className="mobile-scroll-inner"
-          style={{ minWidth: `${Math.max(totalWidth, 800)}px` }}
+          style={isQuickView ? { minWidth: "100%", width: "100%", display: "block" } : { minWidth: `${Math.max(totalWidth, 800)}px` }}
         >
-          <table className="matrix-table mobile-matrix-table">
+          <table className={cn("matrix-table mobile-matrix-table", isQuickView && "mobile-matrix-reduced")}>
             <thead>
               <tr>
-                {resolvedColumns.map((col) => {
-                  // Use mobileWidth if available, otherwise fall back to width
-                  const mobileW = col.mobileWidth || col.width;
+                {resolvedColumns.map((col, colIdx) => {
+                  const qw = quickWidth(colIdx);
+                  const mobileW = qw || col.mobileWidth || col.width;
                   return (
                     <th
                       key={col.key}
-                      style={{ width: mobileW, minWidth: mobileW }}
+                      style={qw ? { width: qw } : { width: mobileW, minWidth: mobileW }}
                       className={cn("mobile-table-th", col.className)}
                     >
                       {col.header}
@@ -179,12 +253,13 @@ export function MatrixTable<T extends { id: string }>({
                     getRowClassName?.(item)
                   )}
                 >
-                  {resolvedColumns.map((col) => {
-                    const mobileW = col.mobileWidth || col.width;
+                  {resolvedColumns.map((col, colIdx) => {
+                    const qw = quickWidth(colIdx);
+                    const mobileW = qw || col.mobileWidth || col.width;
                     return (
                       <td 
                         key={col.key} 
-                        style={{ width: mobileW, minWidth: mobileW }} 
+                        style={qw ? { width: qw } : { width: mobileW, minWidth: mobileW }} 
                         className={cn("mobile-table-td touch-manipulation mobile-touch-cell", col.className)}
                       >
                         {col.render
@@ -197,6 +272,7 @@ export function MatrixTable<T extends { id: string }>({
               ))}
             </tbody>
           </table>
+        </div>
         </div>
       </div>
     );

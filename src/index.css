@@ -3203,3 +3203,41 @@ tr[data-highlighted="true"] {
     z-index: 12;
   }
 }
+
+
+/* ============================================================
+   VISTA RAPIDA DE LA MATRIZ EN CELULAR
+   Solo las columnas clave, repartidas en el ancho de la pantalla,
+   para no tener que deslizar de lado en lo del dia a dia.
+   ============================================================ */
+.mobile-matrix-reduced {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.mobile-matrix-reduced th,
+.mobile-matrix-reduced td {
+  white-space: normal;
+  word-break: break-word;
+  min-width: 0;
+}
+
+/* Sin scroll lateral no hace falta congelar ni ensombrecer la primera columna. */
+.mobile-matrix-reduced tr td.matrix-sticky-col,
+.mobile-matrix-reduced tr th.matrix-sticky-col {
+  position: static;
+  box-shadow: none;
+}
+
+.mobile-matrix-reduced td .truncate {
+  max-width: none;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* El nombre del evento es lo que se lee primero: que tenga peso. */
+.mobile-matrix-reduced td:first-child {
+  font-weight: 500;
+  line-height: 1.3;
+}

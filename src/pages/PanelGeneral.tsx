@@ -487,6 +487,8 @@ const PanelGeneral = () => {
         header: col.header,
         width: col.width,
         render: getColumnRender(col),
+        // "Evento" es la columna que se congela al deslizar en horizontal.
+        className: col.key === "evento" ? "matrix-sticky-col" : undefined,
       }));
     
     return [...visibleColumns, panelColumn];
@@ -588,6 +590,8 @@ const PanelGeneral = () => {
                 columns={columns}
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
+                mobileKeys={["evento", "cliente", "fechaMontaje", "estado"]}
+                mobilePreferenceKey="panel-general"
               />
             </div>
           </TabsContent>

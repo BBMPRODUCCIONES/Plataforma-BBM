@@ -859,6 +859,8 @@ const PanelDirectivo = () => {
         ),
         width: col.width,
         render: getColumnRender(col),
+        // "Evento" es la columna que se congela al deslizar en horizontal.
+        className: col.key === "evento" ? "matrix-sticky-col" : undefined,
       }));
     
     return [...visibleColumns, panelColumn];
@@ -1011,6 +1013,8 @@ const PanelDirectivo = () => {
                 onRowClick={(p) => setHighlightedProjectId(p.id)}
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
+                mobileKeys={["evento", "cliente", "estado", "ingresoTotal"]}
+                mobilePreferenceKey="panel-directivo"
               />
             </div>
           </TabsContent>

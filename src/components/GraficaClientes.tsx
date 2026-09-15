@@ -257,7 +257,10 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
         : (comerciales.lista.find((x) => x.valor === comercial)?.nombre ?? "—");
 
   return (
-    <div className="space-y-3">
+    /* min-w-0: dentro de un flex o un grid, un hijo no baja de su ancho minimo
+       de contenido salvo que se le diga. Como la tabla pide 420 px, sin esto el
+       dialogo entero se estiraba y se salia de la pantalla por la derecha. */
+    <div className="w-full min-w-0 space-y-3">
       {/* El filtro va arriba de la grafica: lo que se elige aqui manda sobre
           todo lo de abajo. */}
       <Select value={comercial} onValueChange={setComercial}>
@@ -370,7 +373,7 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
 
       {/* Con un cliente desplegado la tabla necesita mas aire: si no, el
           detalle sale por una rendija de 260 px. */}
-      <div className="max-h-[260px] overflow-auto rounded-lg border border-border">
+      <div className="w-full min-w-0 max-h-[260px] overflow-auto rounded-lg border border-border">
         <table className="w-full min-w-[420px] text-sm">
           <thead className="sticky top-0 bg-muted/80 backdrop-blur">
             <tr className="text-left">
@@ -435,7 +438,7 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
           valores y los botones de los archivos quedaban cortados a la derecha.
           Aqui ocupa el ancho del dialogo y no se corta nada. */}
       {clienteAbierto && (
-        <div className="rounded-lg border border-border p-3">
+        <div className="w-full min-w-0 rounded-lg border border-border p-3">
           <div className="flex items-center justify-between gap-2">
             <h4 className="min-w-0 break-words text-sm font-semibold">
               {filas.find((f) => f.k === clienteAbierto)?.nombre ?? "Cliente"}

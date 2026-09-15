@@ -133,7 +133,7 @@ export function GraficaVentasComercial({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl sm:max-h-[85vh] sm:overflow-y-auto">
+      <DialogContent className="max-w-3xl overflow-x-hidden sm:max-h-[85vh] sm:overflow-y-auto">
         <DialogHeader className="pr-10">
           <DialogTitle className="text-left">Ventas</DialogTitle>
           <DialogDescription className="text-left">
@@ -141,17 +141,17 @@ export function GraficaVentasComercial({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="comercial" className="space-y-3">
+        <Tabs defaultValue="comercial" className="w-full min-w-0 space-y-3">
           <TabsList className="w-full">
             <TabsTrigger value="comercial" className="flex-1">Por comercial</TabsTrigger>
             <TabsTrigger value="cliente" className="flex-1">Por cliente</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="cliente" className="mt-3">
+          <TabsContent value="cliente" className="mt-3 w-full min-w-0">
             <GraficaClientes projects={projects} meses={meses} />
           </TabsContent>
 
-          <TabsContent value="comercial" className="mt-3 space-y-3">
+          <TabsContent value="comercial" className="mt-3 w-full min-w-0 space-y-3">
 
         {/* Totales del periodo: el titular va antes que el detalle. */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -251,7 +251,7 @@ export function GraficaVentasComercial({
         {/* Mes a mes en numeros. La grafica muestra la forma; la tabla, el dato
             exacto, que es lo que se copia a un informe. */}
         {hayDatos && (
-          <div className="max-h-[220px] overflow-auto rounded-lg border border-border">
+          <div className="w-full min-w-0 max-h-[220px] overflow-auto rounded-lg border border-border">
             <table className="w-full min-w-[420px] text-sm">
               <thead className="sticky top-0 bg-muted/80 backdrop-blur">
                 <tr className="text-left">

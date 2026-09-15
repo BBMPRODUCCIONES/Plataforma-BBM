@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { parseISO, startOfMonth, subMonths, isAfter } from "date-fns";
 import { Project } from "@/types";
 import { COLORES_DE_COMERCIAL, buscarColor, colorVisualDeEvento } from "@/lib/coloresProyecto";
+import { ListaAdjuntos } from "@/components/ListaAdjuntos";
+import { StatusBadge } from "@/components/StatusBadge";
+import { format, parseISO as parseISOFecha } from "date-fns";
+import { es } from "date-fns/locale";
+import { ChevronDown, ChevronRight, MapPin } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -82,15 +88,30 @@ function comercialDe(p: Project): { valor: string; nombre: string } | null {
 }
 
 interface FilaCliente {
+  /** Clave con la que se agrupo, para poder volver a sus eventos. */
+  k: string;
   nombre: string;
   valor: number;
   eventos: number;
   porcentaje: number;
 }
 
+/** "2026-09-08" -> "8 sep 2026" */
+function diaCorto(valor?: string | null): string {
+  if (!valor) return "sin fecha";
+  try {
+    const d = parseISOFecha(valor.length > 10 ? valor : `${valor}T00:00:00`);
+    return isNaN(d.getTime()) ? "sin fecha" : format(d, "d MMM yyyy", { locale: es });
+  } catch {
+    return "sin fecha";
+  }
+}
+
 export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) {
   const [oscuro, setOscuro] = useState(false);
   const [comercial, setComercial] = useState<string>(TODOS);
+  /** Cliente cuyo detalle esta abierto en la tabla. */
+  const [clienteAbierto, setClienteAbierto] = useState<string | null>(null);
   useEffect(() => {
     const mirar = () => setOscuro(document.documentElement.classList.contains("dark"));
     mirar();
@@ -152,6 +173,24 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
     return delPeriodo.filter((p) => comercialDe(p)?.valor === comercial);
   }, [delPeriodo, comercial]);
 
+  /** Los eventos de cada cliente, para poder mostrarlos al pulsar su fila. */
+  const eventosPorCliente = useMemo(() => {
+    const mapa = new Map<string, Project[]>();
+    elegidos.forEach((p) => {
+      const nombre = (p.cliente || "").trim();
+      if (!nombre) return;
+      const k = clave(nombre);
+      const lista = mapa.get(k);
+      if (lista) lista.push(p);
+      else mapa.set(k, [p]);
+    });
+    // Del mas caro al mas barato: el que explica la cifra va primero.
+    mapa.forEach((lista) =>
+      lista.sort((a, b) => (Number(b.ingresoTotal) || 0) - (Number(a.ingresoTotal) || 0))
+    );
+    return mapa;
+  }, [elegidos]);
+
   const { filas, total, sinCliente } = useMemo(() => {
     const porCliente = new Map<string, FilaCliente>();
     let anonimo = 0;
@@ -172,7 +211,7 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
         actual.valor += monto;
         actual.eventos += 1;
       } else {
-        porCliente.set(k, { nombre, valor: monto, eventos: 1, porcentaje: 0 });
+        porCliente.set(k, { k, nombre, valor: monto, eventos: 1, porcentaje: 0 });
       }
     });
 
@@ -319,7 +358,18 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
 
       {/* La torta da la forma; esto da el dato exacto, que es lo que se copia a
           un informe. Salen todos los clientes, no solo los de la torta. */}
-      <div className="max-h-[260px] overflow-auto rounded-lg border border-border">
+      <p className="text-[11px] text-muted-foreground">
+        Pulsa un cliente para ver sus eventos y sus cotizaciones.
+      </p>
+
+      {/* Con un cliente desplegado la tabla necesita mas aire: si no, el
+          detalle sale por una rendija de 260 px. */}
+      <div
+        className={cn(
+          "overflow-auto rounded-lg border border-border",
+          clienteAbierto ? "max-h-[420px]" : "max-h-[260px]"
+        )}
+      >
         <table className="w-full min-w-[420px] text-sm">
           <thead className="sticky top-0 bg-muted/80 backdrop-blur">
             <tr className="text-left">
@@ -330,16 +380,102 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
             </tr>
           </thead>
           <tbody>
-            {filas.map((f) => (
-              <tr key={f.nombre} className="border-t border-border/60">
-                <td className="px-3 py-1.5">{f.nombre}</td>
-                <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">
-                  {f.eventos}
-                </td>
-                <td className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums">{pesos.format(f.valor)}</td>
-                <td className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums">{f.porcentaje.toFixed(1)}%</td>
-              </tr>
-            ))}
+            {filas.map((f) => {
+              const abierto = clienteAbierto === f.k;
+              const susEventos = eventosPorCliente.get(f.k) ?? [];
+              return (
+                <Fragment key={f.k}>
+                  <tr
+                    className="cursor-pointer border-t border-border/60 hover:bg-accent/40"
+                    onClick={() => setClienteAbierto(abierto ? null : f.k)}
+                    title={abierto ? "Ocultar sus eventos" : "Ver sus eventos y sus cotizaciones"}
+                  >
+                    <td className="px-3 py-1.5">
+                      <span className="flex items-center gap-1.5">
+                        {abierto ? (
+                          <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-40" />
+                        )}
+                        <span className="min-w-0">{f.nombre}</span>
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">
+                      {f.eventos}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums">
+                      {pesos.format(f.valor)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums">
+                      {f.porcentaje.toFixed(1)}%
+                    </td>
+                  </tr>
+
+                  {abierto && (
+                    <tr className="border-t border-border/60 bg-muted/20">
+                      <td colSpan={4} className="px-3 py-2">
+                        <div className="flex flex-col gap-2">
+                          {susEventos.map((p) => {
+                            const marca = colorVisualDeEvento(p);
+                            return (
+                              <div
+                                key={p.id}
+                                className="rounded-md border border-border/70 bg-background/60 p-2.5"
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <span className="min-w-0 flex-1 break-words text-sm font-medium">
+                                    {p.evento || "Sin nombre"}
+                                  </span>
+                                  <span className="whitespace-nowrap text-sm tabular-nums">
+                                    {pesos.format(Number(p.ingresoTotal) || 0)}
+                                  </span>
+                                </div>
+
+                                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                  <StatusBadge status={p.estado} />
+                                  <span>{diaCorto(p.fechaEjecucionInicio)}</span>
+                                  {p.ubicacion && (
+                                    <span className="flex min-w-0 items-center gap-1">
+                                      <MapPin className="h-3 w-3 shrink-0" />
+                                      <span className="truncate">{p.ubicacion}</span>
+                                    </span>
+                                  )}
+                                  {marca && <span>{marca.nombre}</span>}
+                                  {p.productor && <span>· {p.productor}</span>}
+                                </div>
+
+                                {p.notas && (
+                                  <p className="mt-1.5 whitespace-pre-wrap break-words text-xs text-foreground/70">
+                                    {p.notas}
+                                  </p>
+                                )}
+
+                                <div className="mt-2 space-y-2">
+                                  <ListaAdjuntos
+                                    adjuntos={p.cotizaciones || []}
+                                    etiqueta="Cotización"
+                                  />
+                                  <ListaAdjuntos
+                                    adjuntos={p.ordenesCompra || []}
+                                    etiqueta="Orden de compra"
+                                  />
+                                  {(p.cotizaciones || []).length === 0 &&
+                                    (p.ordenesCompra || []).length === 0 && (
+                                      <p className="text-[11px] text-muted-foreground">
+                                        Este evento no tiene cotización cargada.
+                                      </p>
+                                    )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
             {sinCliente > 0 && (
               <tr className="border-t border-border/60 text-muted-foreground">
                 <td className="px-3 py-1.5 italic">Sin cliente anotado</td>

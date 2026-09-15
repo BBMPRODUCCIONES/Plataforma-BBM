@@ -150,7 +150,6 @@ const PanelDirectivo = () => {
     { key: "ingresoBruto", header: "Ing. Bruto", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
     { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 10 },
     { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "75px", visible: true, isCustom: false, order: 11 },
-    { key: "ordenCompra", header: "OC", type: "file" as CellType, width: "55px", visible: true, isCustom: false, order: 12 },
     { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 13 },
     { key: "numFactura", header: "#Fact.", type: "text" as CellType, width: "65px", visible: true, isCustom: false, order: 14 },
     { key: "notas", header: "Notas", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 15 },
@@ -446,14 +445,20 @@ const PanelDirectivo = () => {
     { key: "ingresoBruto", header: "Ing. Bruto", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 9 },
     { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 10 },
     { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "85px", visible: true, isCustom: false, order: 11 },
-    { key: "ordenCompra", header: "OC", type: "file" as CellType, width: "70px", visible: true, isCustom: false, order: 12 },
     { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 13 },
     { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 14 },
     { key: "notas", header: "Notas", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 15 },
   ], []);
 
   // Get all columns (base + managed) - direct calculation for immediate updates
-  const allColumnConfigs = managedColumns.length > 0 ? managedColumns : baseColumnDefs;
+  // OC salio del Panel Directivo: la orden de compra se sigue cargando desde
+  // Panel General y Panel Operaciones, y los archivos ya subidos siguen ahi.
+  // Se filtra ademas de quitarla de los valores por defecto, porque la
+  // estructura guardada en panel_column_configs manda sobre ellos y traeria la
+  // columna de vuelta.
+  const COLUMNAS_RETIRADAS = ["ordenCompra"];
+  const allColumnConfigs = (managedColumns.length > 0 ? managedColumns : baseColumnDefs)
+    .filter((col) => !COLUMNAS_RETIRADAS.includes(col.key));
 
   // Handle columns change from manager - force new array reference
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {

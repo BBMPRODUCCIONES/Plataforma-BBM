@@ -12,6 +12,7 @@ import {
   Loader2,
   FileBarChart,
   Briefcase,
+  TrendingUp,
 } from "lucide-react";
 import bbmLogo from "@/assets/bbm-logo.png";
 import { useNavigate } from "react-router-dom";
@@ -38,7 +39,11 @@ const mainNavItems = [
   { title: "Panel General", url: "/panel-general", icon: Grid3X3, panel: "general" },
   { title: "Panel Operaciones", url: "/panel-operaciones", icon: Wrench, panel: "operaciones" },
   
-  { title: "Panel de Reportes", url: "/panel-reportes", icon: FileBarChart, panel: "reportes", adminOnly: true },
+  // Reportes salio del menu; en su lugar va Ventas por comercial, que antes
+  // era una ventana dentro del Panel Directivo. La ruta /panel-reportes sigue
+  // viva y devolver su boton es descomentar la linea de abajo.
+  // { title: "Panel de Reportes", url: "/panel-reportes", icon: FileBarChart, panel: "reportes", adminOnly: true },
+  { title: "Ventas por comercial", url: "/panel-ventas", icon: TrendingUp, panel: "directivo" },
   { title: "Proveedores", url: "/proveedores", icon: Users, panel: "proveedores" },
 ];
 

@@ -19,7 +19,7 @@ import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { EventLink } from "@/components/EventLink";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
-import { anclarPrimero } from "@/lib/columnasPanel";
+import { anclarPrimero, renombrar } from "@/lib/columnasPanel";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
@@ -27,7 +27,6 @@ import { useDateRange } from "@/contexts/DateRangeContext";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { acentoVisualDeEvento, estiloFilaVisual } from "@/lib/coloresProyecto";
 import { SelectorColorProyecto } from "@/components/SelectorColorProyecto";
-import { GraficaVentasComercial } from "@/components/GraficaVentasComercial";
 import { CostosEventoDialog } from "@/components/CostosEventoDialog";
 import { DetalleEventoDialog } from "@/components/DetalleEventoDialog";
 import { ProductorSelect } from "@/components/ProductorSelect";
@@ -35,7 +34,7 @@ import { CostoEvento } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, Eye, Loader2, Plus, RotateCcw, Search, Settings, Trash2, TrendingUp, Receipt } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, Eye, Loader2, Plus, RotateCcw, Search, Settings, Trash2, TrendingUp, Receipt, Paperclip } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
@@ -83,6 +82,7 @@ const BotonCostos = ({
 }) => {
   const lineas = proyecto.costos || [];
   const total = lineas.reduce((suma, c) => suma + (Number(c.valor) || 0), 0);
+  const soportes = (proyecto.costosAdjuntos || []).length;
   return (
     <Button
       variant="ghost"
@@ -93,9 +93,14 @@ const BotonCostos = ({
         onAbrir(proyecto.id);
       }}
       title={
-        lineas.length > 0
-          ? `${lineas.length} costo${lineas.length === 1 ? "" : "s"} cargado${lineas.length === 1 ? "" : "s"}`
-          : "Cargar los costos del evento"
+        [
+          lineas.length > 0
+            ? `${lineas.length} costo${lineas.length === 1 ? "" : "s"} cargado${lineas.length === 1 ? "" : "s"}`
+            : "Cargar los costos del evento",
+          soportes > 0 ? `${soportes} soporte${soportes === 1 ? "" : "s"}` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ")
       }
     >
       <Receipt className="mr-1 h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -105,6 +110,9 @@ const BotonCostos = ({
         </span>
       ) : (
         <span className="truncate text-muted-foreground">Cargar costos</span>
+      )}
+      {soportes > 0 && (
+        <Paperclip className="ml-1 h-3 w-3 shrink-0 opacity-60" />
       )}
     </Button>
   );
@@ -117,7 +125,6 @@ const PanelDirectivo = () => {
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple, addProject, softDeleteProject, restoreProject } = useProjects();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const isAdmin = role?.toLowerCase() === "administrador";
-  const [graficaVentasAbierta, setGraficaVentasAbierta] = useState(false);
   const [costosDeProyectoId, setCostosDeProyectoId] = useState<string | null>(null);
   const [fichaDeProyectoId, setFichaDeProyectoId] = useState<string | null>(null);
   const isMobile = useIsMobile();
@@ -152,7 +159,7 @@ const PanelDirectivo = () => {
     { key: "estado", header: "Estado", type: "select" as CellType, width: "115px", visible: true, isCustom: false, order: 8 },
     { key: "ingresoBruto", header: "Ing. Bruto", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
     { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 10 },
-    { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "75px", visible: true, isCustom: false, order: 11 },
+    { key: "cotizaciones", header: "OC o Cotización", type: "file" as CellType, width: "115px", visible: true, isCustom: false, order: 11 },
     { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 13 },
     { key: "numFactura", header: "#Fact.", type: "text" as CellType, width: "65px", visible: true, isCustom: false, order: 14 },
     { key: "notas", header: "Notas", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 15 },
@@ -469,7 +476,7 @@ const PanelDirectivo = () => {
     { key: "estado", header: "Estado", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 8 },
     { key: "ingresoBruto", header: "Ing. Bruto", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 9 },
     { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 10 },
-    { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "85px", visible: true, isCustom: false, order: 11 },
+    { key: "cotizaciones", header: "OC o Cotización", type: "file" as CellType, width: "125px", visible: true, isCustom: false, order: 11 },
     { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 13 },
     { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 14 },
     { key: "notas", header: "Notas", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 15 },
@@ -482,10 +489,15 @@ const PanelDirectivo = () => {
   // estructura guardada en panel_column_configs manda sobre ellos y traeria la
   // columna de vuelta.
   const COLUMNAS_RETIRADAS = ["ordenCompra"];
-  const allColumnConfigs = anclarPrimero(
-    (managedColumns.length > 0 ? managedColumns : baseColumnDefs)
-      .filter((col) => !COLUMNAS_RETIRADAS.includes(col.key)),
-    "productor"
+  // Con la columna OC fuera de este panel, la de archivos carga las dos cosas:
+  // el titulo lo dice para que nadie busque la OC donde ya no esta.
+  const allColumnConfigs = renombrar(
+    anclarPrimero(
+      (managedColumns.length > 0 ? managedColumns : baseColumnDefs)
+        .filter((col) => !COLUMNAS_RETIRADAS.includes(col.key)),
+      "productor"
+    ),
+    { cotizaciones: "OC o Cotización" }
   );
 
   // Handle columns change from manager - force new array reference
@@ -974,12 +986,6 @@ const PanelDirectivo = () => {
   return (
     <Layout>
       <div className={isMobile ? "space-y-2 px-2 pt-1" : "space-y-6"}>
-        <GraficaVentasComercial
-          open={graficaVentasAbierta}
-          onOpenChange={setGraficaVentasAbierta}
-          projects={projects}
-        />
-
         {/* La ficha del evento, la misma del calendario. Se abre al tocar la
             fila; las celdas que se editan detienen el clic por su cuenta, asi
             que escribir en una casilla no la abre. */}
@@ -998,6 +1004,9 @@ const PanelDirectivo = () => {
           onGuardar={async (costos: CostoEvento[]) => {
             if (costosDeProyectoId) await updateProject(costosDeProyectoId, "costos", costos);
           }}
+          onGuardarAdjuntos={async (archivos) => {
+            if (costosDeProyectoId) await updateProject(costosDeProyectoId, "costosAdjuntos", archivos);
+          }}
         />
         <PanelHeader
           title="Panel Directivo"
@@ -1007,7 +1016,7 @@ const PanelDirectivo = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setGraficaVentasAbierta(true)}
+                onClick={() => navigate("/panel-ventas")}
                 className={isMobile ? 'h-9 w-full justify-center text-xs' : ''}
               >
                 <TrendingUp className={isMobile ? 'h-3.5 w-3.5 mr-1' : 'h-4 w-4 mr-2'} />

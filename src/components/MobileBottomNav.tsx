@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, Grid3X3, Wrench, Users, MoreHorizontal, X, Calendar, Settings, LogOut, FileBarChart } from "lucide-react";
+import { Briefcase, Grid3X3, Wrench, Users, MoreHorizontal, X, Calendar, Settings, LogOut, FileBarChart, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,7 +24,9 @@ const mainNavItems = [
 // Items in "More" menu
 const moreNavItems = [
   { title: "Google Calendar", url: "/calendar", icon: Calendar, panel: "calendar" },
-  { title: "Reportes", url: "/panel-reportes", icon: FileBarChart, panel: "reportes", adminOnly: true },
+  // Reportes salio del menu (ver AppSidebar.tsx); en su lugar va Ventas.
+  // { title: "Reportes", url: "/panel-reportes", icon: FileBarChart, panel: "reportes", adminOnly: true },
+  { title: "Ventas por comercial", url: "/panel-ventas", icon: TrendingUp, panel: "directivo" },
   { title: "Usuarios", url: "/usuarios", icon: Users, panel: "usuarios", adminOnly: true },
   { title: "Clientes", url: "/clientes", icon: Users, panel: "clientes", adminOnly: true },
   { title: "Empleados", url: "/empleados", icon: Users, panel: "empleados", adminOnly: true },

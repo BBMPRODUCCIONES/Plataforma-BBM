@@ -30,6 +30,7 @@ import NotFound from "./pages/NotFound";
 import InstalarApp from "./pages/InstalarApp";
 
 import PanelReportes from "./pages/PanelReportes";
+import PanelVentas from "./pages/PanelVentas";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,13 @@ const App = () => (
                       <HistorialCotizaciones />
                     </ProtectedRoute>
                   } />
+                  {/* Ventas por comercial - ocupa el lugar que tenia Reportes en el menu */}
+                  <Route path="/panel-ventas" element={
+                    <ProtectedRoute requiredPanel="directivo">
+                      <PanelVentas />
+                    </ProtectedRoute>
+                  } />
+
                   {/* Panel de Reportes - Admin only */}
                   <Route path="/panel-reportes" element={
                     <ProtectedRoute adminOnly>

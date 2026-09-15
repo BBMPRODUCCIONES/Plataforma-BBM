@@ -19,3 +19,19 @@ export function anclarPrimero(columnas: ColumnConfig[], clave: string): ColumnCo
   const resto = columnas.filter((_, n) => n !== i);
   return [anclada, ...resto].map((c, n) => ({ ...c, order: n }));
 }
+
+/**
+ * Cambia el titulo de una columna, pase lo que pase.
+ *
+ * Igual que con el orden: el titulo tambien viaja dentro de la estructura
+ * guardada en panel_column_configs, asi que cambiarlo en los valores por
+ * defecto no se ve. Hay que imponerlo al dibujar.
+ */
+export function renombrar(
+  columnas: ColumnConfig[],
+  titulos: Record<string, string>
+): ColumnConfig[] {
+  return columnas.map((c) =>
+    titulos[c.key] ? { ...c, header: titulos[c.key] } : c
+  );
+}

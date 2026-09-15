@@ -73,6 +73,8 @@ export interface Project {
   color?: string | null;
   /** Costos reales del evento. Ver CostoEvento. */
   costos?: CostoEvento[];
+  /** Soportes de los costos: facturas, recibos, cuentas de cobro. */
+  costosAdjuntos?: Attachment[];
   createdAt: string;
   updatedAt: string;
 }

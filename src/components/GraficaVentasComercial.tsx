@@ -1,12 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
   BarChart,
   Bar,
   XAxis,
@@ -24,8 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GraficaClientes } from "@/components/GraficaClientes";
 
 interface GraficaVentasComercialProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   projects: Project[];
   /** Cuantos meses hacia atras mostrar. */
   meses?: number;
@@ -55,8 +46,6 @@ function millones(v: number): string {
 }
 
 export function GraficaVentasComercial({
-  open,
-  onOpenChange,
   projects,
   meses = 12,
 }: GraficaVentasComercialProps) {
@@ -132,15 +121,7 @@ export function GraficaVentasComercial({
   const hayDatos = COLORES_DE_COMERCIAL.some((c) => (totales[c.valor] || 0) > 0);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl overflow-x-hidden sm:max-h-[85vh] sm:overflow-y-auto">
-        <DialogHeader className="pr-10">
-          <DialogTitle className="text-left">Ventas</DialogTitle>
-          <DialogDescription className="text-left">
-            Ingreso total de los eventos, por mes de ejecución, en los últimos {meses} meses.
-          </DialogDescription>
-        </DialogHeader>
-
+    <div className="w-full min-w-0">
         <Tabs defaultValue="comercial" className="w-full min-w-0 space-y-3">
           <TabsList className="w-full">
             <TabsTrigger value="comercial" className="flex-1">Por comercial</TabsTrigger>
@@ -303,7 +284,6 @@ export function GraficaVentasComercial({
         )}
           </TabsContent>
         </Tabs>
-      </DialogContent>
-    </Dialog>
+    </div>
   );
 }

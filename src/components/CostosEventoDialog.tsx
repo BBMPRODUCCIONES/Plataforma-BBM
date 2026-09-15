@@ -20,14 +20,18 @@ import {
 } from "@/components/ui/select";
 import { EmpleadoAutocomplete } from "@/components/EmpleadoAutocomplete";
 import { ProveedorAutocomplete } from "@/components/ProveedorAutocomplete";
-import { CostoEvento, Project, TipoCosto } from "@/types";
+import { Attachment, CostoEvento, Project, TipoCosto } from "@/types";
+import { AttachmentManager } from "@/components/AttachmentManager";
 import { toast } from "@/hooks/use-toast";
+import { ListaAdjuntos } from "@/components/ListaAdjuntos";
 
 interface CostosEventoDialogProps {
   proyecto: Project | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onGuardar: (costos: CostoEvento[]) => Promise<void>;
+  /** Guarda los archivos que respaldan los costos. */
+  onGuardarAdjuntos: (archivos: Attachment[]) => Promise<void>;
   /** Sin permiso de editar Directivo se puede mirar, no tocar. */
   soloLectura?: boolean;
 }
@@ -72,6 +76,7 @@ export function CostosEventoDialog({
   open,
   onOpenChange,
   onGuardar,
+  onGuardarAdjuntos,
   soloLectura = false,
 }: CostosEventoDialogProps) {
   const [lineas, setLineas] = useState<CostoEvento[]>([]);
@@ -276,6 +281,30 @@ export function CostosEventoDialog({
               <Plus className="mr-2 h-4 w-4" />
               Agregar línea
             </Button>
+          )}
+        </div>
+
+        {/* Los papeles que respaldan lo anterior. Se suben y se guardan al
+            momento, no al dar Guardar: un archivo a medio subir que se pierde
+            porque alguien cerro la ventana es peor que uno de mas. */}
+        <div className="shrink-0 space-y-2 rounded-lg border border-border p-3">
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Soportes (facturas, recibos, cuentas de cobro)
+          </div>
+          {soloLectura ? (
+            (proyecto.costosAdjuntos || []).length > 0 ? (
+              <ListaAdjuntos adjuntos={proyecto.costosAdjuntos || []} etiqueta="Archivos" />
+            ) : (
+              <p className="text-[11px] text-muted-foreground">Sin soportes cargados.</p>
+            )
+          ) : (
+            <AttachmentManager
+              attachments={proyecto.costosAdjuntos || []}
+              onAttachmentsChange={(archivos) => { void onGuardarAdjuntos(archivos); }}
+              acceptedTypes=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx"
+              fieldName="costos"
+              projectId={proyecto.id}
+            />
           )}
         </div>
 

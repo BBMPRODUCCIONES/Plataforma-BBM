@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Project } from "@/types";
-import { autorDeEvento, AUTORES_EVENTO } from "@/lib/autorEvento";
+import { colorVisualDeEvento, COLORES_PROYECTO, fondoDeColor } from "@/lib/coloresProyecto";
 
 interface EventCalendarProps {
   projects: Project[];
@@ -155,13 +155,10 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
               </span>
             ))}
             <span className="text-border">|</span>
-            {AUTORES_EVENTO.map((autor) => (
-              <span key={autor.email} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: autor.color }}
-                />
-                {autor.nombre}
+            {COLORES_PROYECTO.map((c) => (
+              <span key={c.valor} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: c.valor }} />
+                {c.nombre}
               </span>
             ))}
           </div>
@@ -228,15 +225,15 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
                   delDia.length > 0 && (
                     <span className="mt-0.5 flex flex-wrap gap-1">
                       {delDia.slice(0, 4).map(({ proyecto, fase }) => {
-                        const autor = autorDeEvento(proyecto);
+                        const marca = colorVisualDeEvento(proyecto);
                         return (
                           <span
                             key={proyecto.id + fase}
-                            title={autor ? `${proyecto.evento} · ${autor.nombre}` : proyecto.evento}
-                            style={autor ? { backgroundColor: autor.color } : undefined}
+                            title={marca ? `${proyecto.evento} · ${marca.nombre}` : proyecto.evento}
+                            style={marca ? { backgroundColor: marca.color } : undefined}
                             className={cn(
                               "h-1.5 w-1.5 rounded-full",
-                              !autor && FASE_ESTILO[fase].punto
+                              !marca && FASE_ESTILO[fase].punto
                             )}
                           />
                         );
@@ -251,7 +248,7 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
                 ) : (
                   <span className="flex flex-col gap-0.5">
                     {delDia.slice(0, maxChips).map(({ proyecto, fase }) => {
-                      const autor = autorDeEvento(proyecto);
+                      const marca = colorVisualDeEvento(proyecto);
                       return (
                         <span
                           key={proyecto.id + fase}
@@ -259,14 +256,24 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
                             e.stopPropagation();
                             onProjectClick?.(proyecto.id);
                           }}
+                          style={
+                            marca
+                              ? {
+                                  // Fondo suave y borde del color, para que el
+                                  // nombre del evento se siga leyendo encima.
+                                  backgroundColor: fondoDeColor(marca.color, 0.22),
+                                  borderColor: marca.color,
+                                }
+                              : undefined
+                          }
                           className={cn(
                             "truncate rounded border px-1 py-0.5 text-[10px] leading-tight",
-                            autor ? autor.chip : FASE_ESTILO[fase].chip,
+                            !marca && FASE_ESTILO[fase].chip,
                             onProjectClick && "cursor-pointer hover:brightness-110"
                           )}
                           title={
-                            autor
-                              ? `${proyecto.evento} · ${FASE_ESTILO[fase].nombre} · creado por ${autor.nombre}`
+                            marca
+                              ? `${proyecto.evento} · ${FASE_ESTILO[fase].nombre} · ${marca.nombre}`
                               : `${proyecto.evento} · ${FASE_ESTILO[fase].nombre}`
                           }
                         >
@@ -298,7 +305,7 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
           ) : (
             <ul className="flex flex-col gap-1.5">
               {listaDelDia.map(({ proyecto, fase }) => {
-                const autor = autorDeEvento(proyecto);
+                const marca = colorVisualDeEvento(proyecto);
                 return (
                   <li key={proyecto.id + fase}>
                     <button
@@ -307,10 +314,10 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
                       className="flex w-full items-center gap-2 rounded-md border border-border/60 px-2.5 py-2 text-left transition-colors hover:bg-accent/40"
                     >
                       <span
-                        style={autor ? { backgroundColor: autor.color } : undefined}
+                        style={marca ? { backgroundColor: marca.color } : undefined}
                         className={cn(
                           "h-2.5 w-2.5 shrink-0 rounded-full",
-                          !autor && FASE_ESTILO[fase].punto
+                          !marca && FASE_ESTILO[fase].punto
                         )}
                       />
                       <span className="min-w-0 flex-1">
@@ -321,14 +328,15 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
                           {proyecto.cliente || "Sin cliente"} · {FASE_ESTILO[fase].nombre}
                         </span>
                       </span>
-                      {autor && (
+                      {marca && (
                         <span
-                          className={cn(
-                            "shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium",
-                            autor.chip
-                          )}
+                          style={{
+                            backgroundColor: fondoDeColor(marca.color, 0.22),
+                            borderColor: marca.color,
+                          }}
+                          className="shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium"
                         >
-                          {autor.nombre}
+                          {marca.nombre}
                         </span>
                       )}
                     </button>

@@ -82,3 +82,21 @@ export function estiloFilaPorColor(proyecto: unknown): React.CSSProperties | und
   const fondo = fondoDeColor(color);
   return fondo ? { backgroundColor: fondo } : undefined;
 }
+
+/**
+ * Color con el que se dibuja un evento fuera de la matriz: en el calendario,
+ * por ejemplo. Manda el color puesto a mano; si no hay, se usa el del autor.
+ * Devuelve null cuando el evento no tiene ninguno de los dos.
+ */
+export function colorVisualDeEvento(
+  proyecto: unknown
+): { color: string; nombre: string } | null {
+  const manual = buscarColor((proyecto as { color?: string | null } | null)?.color);
+  if (manual) return { color: manual.valor, nombre: manual.nombre };
+
+  const correo = (proyecto as { createdByEmail?: string | null } | null)?.createdByEmail;
+  const porAutor = COLORES_PROYECTO.find(
+    (c) => c.comercial && correo?.toLowerCase().startsWith(c.comercial.toLowerCase() + ".")
+  );
+  return porAutor ? { color: porAutor.valor, nombre: porAutor.nombre } : null;
+}

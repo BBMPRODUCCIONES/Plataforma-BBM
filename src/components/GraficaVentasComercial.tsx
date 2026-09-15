@@ -79,6 +79,8 @@ export function GraficaVentasComercial({
       const fila: Record<string, number | string> = {
         clave,
         etiqueta: format(mes, "MMM yy", { locale: es }),
+        mesLargo: format(mes, "MMMM yyyy", { locale: es }),
+        total: 0,
       };
       COLORES_DE_COMERCIAL.forEach((c) => { fila[c.valor] = 0; });
       cajones.set(clave, fila);
@@ -110,6 +112,7 @@ export function GraficaVentasComercial({
       const fila = cajones.get(clave);
       if (!fila) return;
       fila[comercial.valor] = (Number(fila[comercial.valor]) || 0) + monto;
+      fila.total = (Number(fila.total) || 0) + monto;
       acumulado[comercial.valor] += monto;
     });
 
@@ -181,6 +184,12 @@ export function GraficaVentasComercial({
                 <Tooltip
                   cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }}
                   formatter={(valor: number, nombre: string) => [pesos.format(valor), nombre]}
+                  labelFormatter={(etiqueta, carga) => {
+                    const total = carga?.[0]?.payload?.total;
+                    return total
+                      ? `${etiqueta} · total ${pesos.format(Number(total))}`
+                      : String(etiqueta);
+                  }}
                   contentStyle={{
                     background: "hsl(var(--popover))",
                     border: "1px solid hsl(var(--border))",
@@ -216,6 +225,52 @@ export function GraficaVentasComercial({
               para pintarlo de amarillo (Bayron) o azul (Abraham).
               La gráfica se llena sola.
             </p>
+          </div>
+        )}
+
+        {/* Mes a mes en numeros. La grafica muestra la forma; la tabla, el dato
+            exacto, que es lo que se copia a un informe. */}
+        {hayDatos && (
+          <div className="max-h-[220px] overflow-y-auto rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-muted/80 backdrop-blur">
+                <tr className="text-left">
+                  <th className="px-3 py-2 font-medium">Mes</th>
+                  {COLORES_DE_COMERCIAL.map((c) => (
+                    <th key={c.valor} className="px-3 py-2 text-right font-medium">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: oscuro ? c.graficaOscuro : c.graficaClaro }}
+                        />
+                        {c.nombre}
+                      </span>
+                    </th>
+                  ))}
+                  <th className="px-3 py-2 text-right font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {datos
+                  .filter((f) => Number(f.total) > 0)
+                  .reverse()
+                  .map((fila) => (
+                    <tr key={String(fila.clave)} className="border-t border-border/60">
+                      <td className="px-3 py-1.5 capitalize">{String(fila.mesLargo)}</td>
+                      {COLORES_DE_COMERCIAL.map((c) => (
+                        <td key={c.valor} className="px-3 py-1.5 text-right tabular-nums">
+                          {Number(fila[c.valor]) > 0
+                            ? pesos.format(Number(fila[c.valor]))
+                            : <span className="text-muted-foreground">—</span>}
+                        </td>
+                      ))}
+                      <td className="px-3 py-1.5 text-right font-medium tabular-nums">
+                        {pesos.format(Number(fila.total))}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
           </div>
         )}
 

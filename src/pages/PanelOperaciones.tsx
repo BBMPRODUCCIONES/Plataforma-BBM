@@ -24,7 +24,16 @@ import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDia
 import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
 import { InventarioResponsablesSelector, ResponsableAutoLog } from "@/components/InventarioResponsablesSelector";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
-import { anclarPrimero } from "@/lib/columnasPanel";
+import { anclarPrimero, colocarDespuesDe } from "@/lib/columnasPanel";
+import { BodegaEventoDialog } from "@/components/BodegaEventoDialog";
+
+/**
+ * Columnas que ya no se muestran en Panel Operaciones.
+ *
+ * Se esconden, no se borran: el dato sigue guardado y volver a mostrarlas es
+ * sacar la clave de esta lista.
+ */
+const COLUMNAS_RETIRADAS = ["jefeOperaciones", "formatoPreproduccion", "aCargoDe"];
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
@@ -424,6 +433,7 @@ const PanelOperaciones = () => {
     { key: "cotizacionProveedor", header: "Cot. Prov", type: "file" as CellType, width: "75px", visible: true, isCustom: false, order: 15 },
     { key: "ordenCompraOCR", header: "OC + OCR", type: "file" as CellType, width: "90px", visible: true, isCustom: false, order: 16 },
     { key: "notas", header: "Notas", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 17 },
+    { key: "bodega", header: "Bodega", type: "text" as CellType, width: "80px", visible: true, isCustom: false, order: 18 },
     { key: "inventario", header: "Inventario", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 18 },
     { key: "cajaMenor", header: "Gasto", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 19 },
     { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "65px", visible: true, isCustom: false, order: 20 },
@@ -435,6 +445,7 @@ const PanelOperaciones = () => {
   const [showDeleted, setShowDeleted] = useState(false);
   const [montajeSort, setMontajeSort] = useState<"asc" | "desc" | null>(null);
   const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
+  const [bodegaDeProyectoId, setBodegaDeProyectoId] = useState<string | null>(null);
   // Computed dateRange from global context
   const dateRange = globalDateRange?.from && globalDateRange?.to 
     ? { start: globalDateRange.from, end: globalDateRange.to } 
@@ -667,8 +678,21 @@ const PanelOperaciones = () => {
   };
 
   // Use managed columns directly (already initialized)
-  // Productor de primera, igual que en los otros paneles.
-  const allColumnConfigs = anclarPrimero(managedColumns, "productor");
+  // Productor de primera, igual que en los otros paneles, y Bodega pegada a
+  // Notas: useGlobalColumns agrega la columna que falta pero la deja de
+  // ultima, fuera de pantalla.
+  //
+  // Jefe Ops, Formato y A Cargo salen de la vista a peticion de BBM. Se
+  // filtran aqui y no se borran: el dato sigue en la base y devolverlas es
+  // quitarlas de esta lista.
+  const allColumnConfigs = colocarDespuesDe(
+    anclarPrimero(
+      managedColumns.filter((col) => !COLUMNAS_RETIRADAS.includes(col.key)),
+      "productor"
+    ),
+    "bodega",
+    "notas"
+  );
 
   const getDateRange = () => {
     if (globalViewMode === "custom" && dateRange) {
@@ -1059,6 +1083,27 @@ const PanelOperaciones = () => {
               )}
             </div>
           );
+        case "bodega": {
+          const cuantos = (p.bodegaArchivos || []).length;
+          const hayNota = Boolean(p.bodegaObservaciones && p.bodegaObservaciones.trim());
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 gap-1 px-2 text-xs"
+              onClick={(e) => { e.stopPropagation(); setBodegaDeProyectoId(p.id); }}
+              title={
+                cuantos || hayNota
+                  ? `Bodega: ${cuantos} archivo${cuantos === 1 ? "" : "s"}${hayNota ? " y una observación" : ""}`
+                  : "Bodega: sin archivos ni observaciones"
+              }
+            >
+              <Package className="h-3 w-3 shrink-0" />
+              <span className="tabular-nums">{cuantos || "—"}</span>
+              {hayNota && <Eye className="h-3 w-3 shrink-0 text-muted-foreground" />}
+            </Button>
+          );
+        }
         case "inventario":
           return (
             <Button
@@ -2928,7 +2973,7 @@ const PanelOperaciones = () => {
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
                 onRowClick={(item) => setSelectedProject(item as Project)}
-                mobileKeys={["evento", "cliente", "productor", "fechaMontaje", "fechaEjecucion", "estado"]}
+                mobileKeys={["evento", "cliente", "productor", "fechaMontaje", "fechaEjecucion", "estado", "notas", "bodega"]}
                 mobilePreferenceKey="panel-operaciones"
                 getRowAccent={acentoVisualDeEvento}
                 getRowStyle={estiloFilaVisual}
@@ -4309,6 +4354,19 @@ const PanelOperaciones = () => {
           defaultEmpleadoId={currentUserEmpleado?.id}
         />
       </div>
+
+      <BodegaEventoDialog
+        proyecto={projects.find((p) => p.id === bodegaDeProyectoId) ?? null}
+        open={Boolean(bodegaDeProyectoId)}
+        onOpenChange={(abierto) => { if (!abierto) setBodegaDeProyectoId(null); }}
+        soloLectura={operativoReadOnly}
+        onGuardarObservaciones={async (texto) => {
+          if (bodegaDeProyectoId) await updateProject(bodegaDeProyectoId, "bodegaObservaciones", texto);
+        }}
+        onGuardarArchivos={async (archivos) => {
+          if (bodegaDeProyectoId) await updateProject(bodegaDeProyectoId, "bodegaArchivos", archivos);
+        }}
+      />
 
       {/* Dialog para ver nota completa */}
       <Dialog open={!!notaExpandida} onOpenChange={(open) => !open && setNotaExpandida(null)}>

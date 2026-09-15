@@ -75,6 +75,10 @@ export interface Project {
   costos?: CostoEvento[];
   /** Soportes de los costos: facturas, recibos, cuentas de cobro. */
   costosAdjuntos?: Attachment[];
+  /** Archivos de bodega: remisiones, listas de despacho, fotos de salida y entrada. */
+  bodegaArchivos?: Attachment[];
+  /** Observaciones de bodega del evento: novedades del despacho, faltantes, estado de los equipos. */
+  bodegaObservaciones?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -35,3 +35,27 @@ export function renombrar(
     titulos[c.key] ? { ...c, header: titulos[c.key] } : c
   );
 }
+
+/**
+ * Deja una columna justo despues de otra, pase lo que pase.
+ *
+ * Misma razon que anclarPrimero: useGlobalColumns agrega la columna que falta,
+ * pero la deja de ultima, fuera de la pantalla. Aqui se lleva a su sitio.
+ *
+ * Si falta cualquiera de las dos, se devuelve la lista tal cual.
+ */
+export function colocarDespuesDe(
+  columnas: ColumnConfig[],
+  clave: string,
+  referencia: string
+): ColumnConfig[] {
+  const i = columnas.findIndex((c) => c.key === clave);
+  const j = columnas.findIndex((c) => c.key === referencia);
+  if (i === -1 || j === -1 || i === j) return columnas;
+
+  const movida = { ...columnas[i], visible: true };
+  const resto = columnas.filter((_, n) => n !== i);
+  const destino = resto.findIndex((c) => c.key === referencia);
+  resto.splice(destino + 1, 0, movida);
+  return resto.map((c, n) => ({ ...c, order: n }));
+}

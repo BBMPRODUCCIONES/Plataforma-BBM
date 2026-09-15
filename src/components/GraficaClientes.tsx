@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { parseISO, startOfMonth, subMonths, isAfter } from "date-fns";
 import { Project } from "@/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface GraficaClientesProps {
   projects: Project[];
@@ -47,6 +54,20 @@ function aFecha(valor?: string | null): Date | null {
   }
 }
 
+/** Agrupa ignorando mayusculas y tildes. */
+function clave(texto: string): string {
+  return texto
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Valor reservado del filtro: todos los productores juntos. */
+const TODOS = "__todos__";
+/** Eventos sin productor asignado. */
+const SIN_PRODUCTOR = "__sin_productor__";
+
 interface FilaCliente {
   nombre: string;
   valor: number;
@@ -56,6 +77,7 @@ interface FilaCliente {
 
 export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) {
   const [oscuro, setOscuro] = useState(false);
+  const [productor, setProductor] = useState<string>(TODOS);
   useEffect(() => {
     const mirar = () => setOscuro(document.documentElement.classList.contains("dark"));
     mirar();
@@ -64,19 +86,54 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
     return () => obs.disconnect();
   }, []);
 
-  const { filas, total, sinCliente } = useMemo(() => {
+  /** Eventos con ingreso dentro del periodo. Base de todo lo de abajo. */
+  const delPeriodo = useMemo(() => {
     const desde = startOfMonth(subMonths(new Date(), meses - 1));
+    return projects.filter((p) => {
+      if (p.isDeleted) return false;
+      const fecha = aFecha(p.fechaEjecucionInicio);
+      if (!fecha || !isAfter(fecha, subMonths(desde, 1))) return false;
+      return (Number(p.ingresoTotal) || 0) > 0;
+    });
+  }, [projects, meses]);
+
+  /** Productores con ventas en el periodo, de mayor a menor. */
+  const productores = useMemo(() => {
+    const mapa = new Map<string, { clave: string; nombre: string; valor: number; eventos: number }>();
+    let sinNadie = { valor: 0, eventos: 0 };
+    delPeriodo.forEach((p) => {
+      const monto = Number(p.ingresoTotal) || 0;
+      const nombre = (p.productor || "").trim();
+      if (!nombre) {
+        sinNadie = { valor: sinNadie.valor + monto, eventos: sinNadie.eventos + 1 };
+        return;
+      }
+      const k = clave(nombre);
+      const actual = mapa.get(k);
+      if (actual) {
+        actual.valor += monto;
+        actual.eventos += 1;
+      } else {
+        mapa.set(k, { clave: k, nombre, valor: monto, eventos: 1 });
+      }
+    });
+    const lista = [...mapa.values()].sort((a, b) => b.valor - a.valor);
+    return { lista, sinNadie };
+  }, [delPeriodo]);
+
+  /** Lo que entra en la torta segun el productor elegido. */
+  const elegidos = useMemo(() => {
+    if (productor === TODOS) return delPeriodo;
+    if (productor === SIN_PRODUCTOR) return delPeriodo.filter((p) => !(p.productor || "").trim());
+    return delPeriodo.filter((p) => clave(p.productor || "") === productor);
+  }, [delPeriodo, productor]);
+
+  const { filas, total, sinCliente } = useMemo(() => {
     const porCliente = new Map<string, FilaCliente>();
     let anonimo = 0;
 
-    projects.forEach((p) => {
-      if (p.isDeleted) return;
-      const fecha = aFecha(p.fechaEjecucionInicio);
-      if (!fecha || !isAfter(fecha, subMonths(desde, 1))) return;
-
+    elegidos.forEach((p) => {
       const monto = Number(p.ingresoTotal) || 0;
-      if (monto <= 0) return;
-
       const nombre = (p.cliente || "").trim();
       if (!nombre) {
         anonimo += monto;
@@ -85,16 +142,13 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
       // Se agrupa sin distinguir mayusculas ni tildes: "compumundo" y
       // "COMPUMUNDO" son el mismo cliente, y si se separan las dos cifras
       // quedan mal las dos.
-      const clave = nombre
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "");
-      const actual = porCliente.get(clave);
+      const k = clave(nombre);
+      const actual = porCliente.get(k);
       if (actual) {
         actual.valor += monto;
         actual.eventos += 1;
       } else {
-        porCliente.set(clave, { nombre, valor: monto, eventos: 1, porcentaje: 0 });
+        porCliente.set(k, { nombre, valor: monto, eventos: 1, porcentaje: 0 });
       }
     });
 
@@ -105,7 +159,7 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
     });
 
     return { filas: lista, total: suma, sinCliente: anonimo };
-  }, [projects, meses]);
+  }, [elegidos]);
 
   // La torta solo aguanta unas pocas porciones antes de volverse ilegible; el
   // detalle completo vive en la tabla de abajo.
@@ -130,28 +184,60 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
   const colorDe = (i: number, esOtros?: boolean) =>
     esOtros ? gris : rampa[Math.min(i, rampa.length - 1)];
 
-  if (filas.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed border-border p-8 text-center">
-        <p className="text-sm font-medium">No hay ventas en el periodo</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Se cuentan los eventos con ingreso, por su mes de ejecución, en los
-          últimos {meses} meses.
-        </p>
-      </div>
-    );
-  }
+
+  const nombreElegido =
+    productor === TODOS
+      ? "Todos los directores"
+      : productor === SIN_PRODUCTOR
+        ? "Sin director asignado"
+        : (productores.lista.find((x) => x.clave === productor)?.nombre ?? "—");
 
   return (
     <div className="space-y-3">
+      {/* El filtro va arriba de la grafica: lo que se elige aqui manda sobre
+          todo lo de abajo. */}
+      <Select value={productor} onValueChange={setProductor}>
+        <SelectTrigger className="h-9">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={TODOS}>Todos los directores</SelectItem>
+          {productores.lista.map((d) => (
+            <SelectItem key={d.clave} value={d.clave}>
+              {d.nombre} · {pesos.format(d.valor)}
+            </SelectItem>
+          ))}
+          {productores.sinNadie.eventos > 0 && (
+            <SelectItem value={SIN_PRODUCTOR}>
+              Sin director asignado · {pesos.format(productores.sinNadie.valor)}
+            </SelectItem>
+          )}
+        </SelectContent>
+      </Select>
+
       <div className="rounded-lg border border-border p-3">
-        <div className="text-xs text-muted-foreground">Total facturado a clientes</div>
+        <div className="text-xs text-muted-foreground">{nombreElegido}</div>
         <div className="mt-0.5 text-2xl font-semibold tabular-nums">{pesos.format(total)}</div>
         <div className="text-[11px] text-muted-foreground">
           {filas.length} cliente{filas.length === 1 ? "" : "s"} en los últimos {meses} meses
         </div>
       </div>
 
+      {filas.length === 0 && (
+        <div className="rounded-lg border border-dashed border-border p-8 text-center">
+          <p className="text-sm font-medium">
+            {productor === TODOS
+              ? "No hay ventas en el periodo"
+              : `${nombreElegido} no tiene ventas en el periodo`}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Se cuentan los eventos con ingreso, por su mes de ejecución, en los
+            últimos {meses} meses.
+          </p>
+        </div>
+      )}
+
+      {filas.length > 0 && (
       <div className="h-[230px] w-full sm:h-[260px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -186,6 +272,10 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
           </PieChart>
         </ResponsiveContainer>
       </div>
+      )}
+
+      {filas.length > 0 && (
+      <>
 
       {/* Leyenda propia: la de recharts corta los nombres largos de cliente. */}
       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
@@ -239,6 +329,9 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
           </tbody>
         </table>
       </div>
+
+      </>
+      )}
 
       <p className="text-[11px] text-muted-foreground">
         Es el valor de venta de los eventos, por su mes de ejecución. No dice si

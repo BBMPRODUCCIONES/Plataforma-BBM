@@ -36,6 +36,8 @@ import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import { TimeInputManual } from "@/components/TimeInputManual";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { AttachmentManager } from "@/components/AttachmentManager";
+import { Attachment } from "@/types";
 
 interface NewProjectDialogProps {
   open: boolean;
@@ -118,7 +120,7 @@ const DateRangePickerField = ({
 const NUEVO_CLIENTE = "__nuevo_cliente__";
 
 /** Pasos del formulario en celular, en orden. */
-const PASOS = ["Evento", "Fechas", "Extras"] as const;
+const PASOS = ["Evento", "Fechas", "Valor"] as const;
 
 export function NewProjectDialog({
   open,
@@ -294,6 +296,96 @@ export function NewProjectDialog({
   // --- Bloques del formulario -------------------------------------------------
   // Se nombran uno a uno para poder repartirlos en pasos en celular sin
   // duplicar el JSX ni cambiar como se ve en escritorio.
+  const pesosCO = new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  });
+
+  /**
+   * Valor del evento y su cotizacion.
+   *
+   * Antes el evento nacia en cero y habia que volver a la tabla a ponerle el
+   * valor; mientras tanto no contaba en ningun total ni en ninguna grafica.
+   *
+   * La cotizacion sube de una vez al almacenamiento, no se queda esperando: se
+   * usa AttachmentManager y no FileUpload, que solo hace un enlace temporal del
+   * navegador y se pierde al recargar. El proyecto todavia no tiene id, asi que
+   * el archivo se guarda bajo "nuevos"; el enlace guardado apunta al archivo
+   * real y sigue sirviendo despues.
+   */
+  const bloqueValor = (
+    <>
+      <div className="rounded-lg border bg-muted/30 p-3 sm:p-4 space-y-3 sm:space-y-4">
+        <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-primary"></span>
+          VALOR
+        </h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="ingresoBruto">Ingreso bruto</Label>
+            <Input
+              id="ingresoBruto"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={1000}
+              placeholder="0"
+              value={formData.ingresoBruto || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, ingresoBruto: Number(e.target.value) || 0 })
+              }
+            />
+            {Number(formData.ingresoBruto) > 0 && (
+              <p className="text-[11px] text-muted-foreground tabular-nums">
+                {pesosCO.format(Number(formData.ingresoBruto))}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ingresoTotal">Ingreso total</Label>
+            <Input
+              id="ingresoTotal"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={1000}
+              placeholder="0"
+              value={formData.ingresoTotal || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, ingresoTotal: Number(e.target.value) || 0 })
+              }
+            />
+            {Number(formData.ingresoTotal) > 0 && (
+              <p className="text-[11px] text-muted-foreground tabular-nums">
+                {pesosCO.format(Number(formData.ingresoTotal))}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Cotización</Label>
+          <AttachmentManager
+            attachments={(formData.cotizaciones as Attachment[]) || []}
+            onAttachmentsChange={(archivos) =>
+              setFormData({ ...formData, cotizaciones: archivos })
+            }
+            acceptedTypes=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx"
+            fieldName="cotizaciones"
+            projectId="nuevos"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Puedes adjuntar la cotización, escribir el valor, o las dos cosas.
+            Nada de esto es obligatorio para crear el evento.
+          </p>
+        </div>
+      </div>
+    </>
+  );
+
   const bloqueIdentificacion = (
     <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -662,6 +754,7 @@ export function NewProjectDialog({
                 {bloqueIdentificacion}
                 {bloqueClienteEvento}
                 {bloqueAvanzadaEstado}
+                {bloqueValor}
                 {bloqueMontaje}
                 {bloqueEjecucion}
                 {bloqueDesmontaje}
@@ -684,9 +777,10 @@ export function NewProjectDialog({
               </>
             ) : (
               <>
+                {bloqueValor}
                 <p className="text-xs text-muted-foreground">
-                  Todo lo de este paso es opcional: puedes crear el evento ya y
-                  completarlo despues desde la tabla.
+                  Lo que sigue también es opcional: puedes crear el evento ya y
+                  completarlo después desde la tabla.
                 </p>
                 {bloqueIdentificacion}
                 {bloqueAvanzadaEstado}

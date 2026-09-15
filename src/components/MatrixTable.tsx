@@ -283,14 +283,19 @@ export function MatrixTable<T extends { id: string }>({
                       {principal ? valorDe(principal, item, idx) : null}
                     </div>
                     {acento && (
+                      /* Mismo criterio que en la ficha: el nombre en tinta
+                         normal, el color en el punto. */
                       <span
-                        className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+                        className="flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold text-foreground"
                         style={{
-                          color: acento.color,
                           borderColor: acento.color,
                           backgroundColor: fondoDeColor(acento.color, 0.14),
                         }}
                       >
+                        <span
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ backgroundColor: acento.color }}
+                        />
                         {acento.label}
                       </span>
                     )}

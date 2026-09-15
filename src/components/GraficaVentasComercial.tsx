@@ -212,8 +212,11 @@ export function GraficaVentasComercial({
                     border: "1px solid hsl(var(--border))",
                     borderRadius: 8,
                     fontSize: 12,
-                    color: "hsl(var(--popover-foreground))",
                   }}
+                  // Mismo criterio que en la torta: el texto con color de
+                  // texto, la identidad la lleva el cuadrito de color.
+                  itemStyle={{ color: "hsl(var(--popover-foreground))" }}
+                  labelStyle={{ color: "hsl(var(--popover-foreground))", fontWeight: 600 }}
                 />
                 <Legend
                   wrapperStyle={{ fontSize: 12 }}

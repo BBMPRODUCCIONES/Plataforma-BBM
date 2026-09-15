@@ -30,8 +30,7 @@ import { useEmpleados } from "@/contexts/EmpleadosContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Project, PersonalItem, InventarioItem, CajaMenorItem, LegalizacionItem, ProjectStatus, CalendarViewMode, Attachment, RelacionGastoEntry } from "@/types";
-import { accentPorAutor } from "@/lib/autorEvento";
-import { estiloFilaPorColor } from "@/lib/coloresProyecto";
+import { acentoVisualDeEvento, estiloFilaVisual } from "@/lib/coloresProyecto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -1133,6 +1132,7 @@ const PanelOperaciones = () => {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map(col => ({
       key: col.key,
+      label: col.header,
       header: col.header,
       width: col.width,
       render: getColumnRender(col),
@@ -2781,11 +2781,6 @@ const PanelOperaciones = () => {
         <PanelHeader
           title="Panel de Operaciones"
           description="Gestión operativa, personal e inventario"
-          panelLinks={[
-            { label: "Directivo", to: "/panel-directivo" },
-            { label: "General", to: "/panel-general" },
-            { label: "Proveedores", to: "/proveedores" },
-          ]}
           actions={
             <div className="flex items-center gap-2">
               <Button 
@@ -2935,10 +2930,10 @@ const PanelOperaciones = () => {
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
                 onRowClick={(item) => setSelectedProject(item as Project)}
-                mobileKeys={["evento", "cliente", "fechaMontaje", "estado"]}
+                mobileKeys={["evento", "cliente", "fechaMontaje", "fechaEjecucion", "estado"]}
                 mobilePreferenceKey="panel-operaciones"
-                getRowAccent={accentPorAutor}
-                getRowStyle={estiloFilaPorColor}
+                getRowAccent={acentoVisualDeEvento}
+                getRowStyle={estiloFilaVisual}
               />
             </div>
           </TabsContent>

@@ -100,3 +100,25 @@ export function colorVisualDeEvento(
   );
   return porAutor ? { color: porAutor.valor, nombre: porAutor.nombre } : null;
 }
+
+/**
+ * Franja y etiqueta de color para la fila o la tarjeta. Manda el color puesto
+ * a mano; si no hay, el del autor. Sustituye a accentPorAutor, que solo miraba
+ * el correo y por eso dejaba sin marca a los eventos pintados a mano.
+ */
+export function acentoVisualDeEvento(
+  proyecto: unknown
+): { color: string; label: string } | null {
+  const visual = colorVisualDeEvento(proyecto);
+  return visual ? { color: visual.color, label: visual.nombre } : null;
+}
+
+/**
+ * Fondo de la fila con el mismo criterio que el acento: color manual primero,
+ * autor despues. Asi la fila y su franja nunca discrepan.
+ */
+export function estiloFilaVisual(proyecto: unknown): React.CSSProperties | undefined {
+  const visual = colorVisualDeEvento(proyecto);
+  const fondo = fondoDeColor(visual?.color);
+  return fondo ? { backgroundColor: fondo } : undefined;
+}

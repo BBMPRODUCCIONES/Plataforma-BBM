@@ -35,6 +35,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import { TimeInputManual } from "@/components/TimeInputManual";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface NewProjectDialogProps {
   open: boolean;
@@ -116,6 +117,9 @@ const DateRangePickerField = ({
 /** Valor reservado del selector para "crear cliente nuevo". */
 const NUEVO_CLIENTE = "__nuevo_cliente__";
 
+/** Pasos del formulario en celular, en orden. */
+const PASOS = ["Evento", "Fechas", "Extras"] as const;
+
 export function NewProjectDialog({
   open,
   onOpenChange,
@@ -139,6 +143,36 @@ export function NewProjectDialog({
   const [ejecucionRange, setEjecucionRange] = useState<DateRange | undefined>();
   const [desmontajeRange, setDesmontajeRange] = useState<DateRange | undefined>();
   const [errors, setErrors] = useState<ValidationErrors>({});
+  const isMobile = useIsMobile();
+  const [paso, setPaso] = useState(0);
+
+  /**
+   * Valida solo lo que se pide en ese paso. Avanzar con un campo vacio y
+   * enterarse al final, tres pantallas despues, es lo que hace que crear un
+   * evento desde el celular se sienta imposible.
+   */
+  const validarPaso = (n: number): boolean => {
+    const e: ValidationErrors = {};
+    if (n === 0) {
+      if (!formData.cliente) e.cliente = "Este campo es obligatorio";
+      if (!formData.evento?.trim()) e.evento = "Este campo es obligatorio";
+      if (!formData.ubicacion?.trim()) e.ubicacion = "Este campo es obligatorio";
+    }
+    if (n === 1) {
+      if (!montajeRange?.from) e.fechaMontaje = "Seleccione la fecha";
+      if (!ejecucionRange?.from) e.fechaEjecucion = "Seleccione la fecha";
+    }
+    setErrors(e);
+    if (Object.keys(e).length > 0) {
+      toast({
+        title: "Falta un dato",
+        description: "Completa lo que quedó marcado en rojo para seguir.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
 
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
@@ -177,6 +211,15 @@ export function NewProjectDialog({
 
   const handleSubmit = () => {
     if (!validateForm()) {
+      // En celular no sirve decir "falta la ubicacion" si esa casilla vive en
+      // otro paso: hay que llevar al usuario hasta ella.
+      if (isMobile) {
+        if (!formData.cliente || !formData.evento?.trim() || !formData.ubicacion?.trim()) {
+          setPaso(0);
+        } else if (!montajeRange?.from || !ejecucionRange?.from) {
+          setPaso(1);
+        }
+      }
       const missingFields = [];
       if (!formData.cliente) missingFields.push("Cliente");
       if (!formData.evento?.trim()) missingFields.push("Evento");
@@ -229,7 +272,8 @@ export function NewProjectDialog({
     setDesmontajeRange(undefined);
     setErrors({});
     setCreandoCliente(false);
-    
+    setPaso(0);
+
     onOpenChange(false);
 
     toast({
@@ -242,34 +286,16 @@ export function NewProjectDialog({
     if (!isOpen) {
       setErrors({});
     }
+    // Abrir de nuevo siempre empieza por el primer paso.
+    setPaso(0);
     onOpenChange(isOpen);
   };
 
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className={cn(
-        "sm:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden",
-        "max-sm:fixed max-sm:inset-0 max-sm:max-w-full max-sm:max-h-full max-sm:w-full max-sm:h-[100dvh]",
-        "max-sm:rounded-none max-sm:border-0 max-sm:p-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:top-0 max-sm:left-0"
-      )}>
-        <div className="flex flex-col h-full overflow-hidden">
-          <DialogHeader className={cn(
-            "shrink-0",
-            "max-sm:sticky max-sm:top-0 max-sm:z-10 max-sm:bg-background",
-            "max-sm:pt-[calc(env(safe-area-inset-top)+12px)]",
-            "max-sm:px-4 max-sm:pb-3 max-sm:border-b"
-          )}>
-            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Plus className="h-5 w-5" />
-              Nuevo Proyecto
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className={cn(
-            "flex-1 overflow-y-auto space-y-4 sm:space-y-6 py-4 px-1",
-            "max-sm:overscroll-contain max-sm:touch-pan-y max-sm:[-webkit-overflow-scrolling:touch] max-sm:px-4 max-sm:pb-[calc(env(safe-area-inset-bottom)+16px)]"
-          )}>
-          {/* Información General */}
+  // --- Bloques del formulario -------------------------------------------------
+  // Se nombran uno a uno para poder repartirlos en pasos en celular sin
+  // duplicar el JSX ni cambiar como se ve en escritorio.
+  const bloqueIdentificacion = (
+    <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="centroCostos">Centro de Costos</Label>
@@ -291,7 +317,11 @@ export function NewProjectDialog({
               />
             </div>
           </div>
+    </>
+  );
 
+  const bloqueClienteEvento = (
+    <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="cliente">Cliente *</Label>
@@ -362,7 +392,11 @@ export function NewProjectDialog({
               {errors.evento && <p className="text-sm text-destructive">{errors.evento}</p>}
             </div>
           </div>
+    </>
+  );
 
+  const bloqueAvanzadaEstado = (
+    <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="avanzada">Avanzada</Label>
@@ -400,7 +434,11 @@ export function NewProjectDialog({
               </Select>
             </div>
           </div>
+    </>
+  );
 
+  const bloqueMontaje = (
+    <>
           {/* Sección Montaje */}
           <div className="rounded-lg border bg-muted/30 p-3 sm:p-4 space-y-3 sm:space-y-4">
             <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
@@ -436,7 +474,11 @@ export function NewProjectDialog({
               </div>
             </div>
           </div>
+    </>
+  );
 
+  const bloqueEjecucion = (
+    <>
           {/* Sección Ejecución */}
           <div className="rounded-lg border bg-muted/30 p-3 sm:p-4 space-y-3 sm:space-y-4">
             <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
@@ -472,7 +514,11 @@ export function NewProjectDialog({
               </div>
             </div>
           </div>
+    </>
+  );
 
+  const bloqueDesmontaje = (
+    <>
           {/* Sección Desmontaje - Opcional */}
           <div className="rounded-lg border bg-muted/30 p-3 sm:p-4 space-y-3 sm:space-y-4">
             <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
@@ -506,9 +552,11 @@ export function NewProjectDialog({
               </div>
             </div>
           </div>
+    </>
+  );
 
-          {/* Información Adicional */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+  const bloqueResponsable = (
+    <>
             <div className="space-y-2">
               <Label htmlFor="administrativoResponsable">Administrativo Responsable</Label>
               <Input
@@ -518,7 +566,11 @@ export function NewProjectDialog({
                 onChange={(e) => setFormData({ ...formData, administrativoResponsable: e.target.value })}
               />
             </div>
+    </>
+  );
 
+  const bloqueUbicacion = (
+    <>
             <div className="space-y-2">
               <Label htmlFor="ubicacion">Ubicación *</Label>
               <Input
@@ -533,8 +585,11 @@ export function NewProjectDialog({
               />
               {errors.ubicacion && <p className="text-sm text-destructive">{errors.ubicacion}</p>}
             </div>
-          </div>
+    </>
+  );
 
+  const bloqueNotas = (
+    <>
           <div className="space-y-2">
             <Label htmlFor="notas">Notas</Label>
             <Textarea
@@ -544,6 +599,101 @@ export function NewProjectDialog({
               onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
             />
           </div>
+    </>
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className={cn(
+        "sm:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden",
+        "max-sm:fixed max-sm:inset-0 max-sm:max-w-full max-sm:max-h-full max-sm:w-full max-sm:h-[100dvh]",
+        "max-sm:rounded-none max-sm:border-0 max-sm:p-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:top-0 max-sm:left-0"
+      )}>
+        <div className="flex flex-col h-full overflow-hidden">
+          <DialogHeader className={cn(
+            "shrink-0",
+            "max-sm:sticky max-sm:top-0 max-sm:z-10 max-sm:bg-background",
+            "max-sm:pt-[calc(env(safe-area-inset-top)+12px)]",
+            "max-sm:px-4 max-sm:pb-3 max-sm:border-b"
+          )}>
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Plus className="h-5 w-5" />
+              Nuevo Proyecto
+            </DialogTitle>
+
+            {/* En celular el formulario va por pasos: una pantalla con veinte
+                campos se llena mal y se abandona a la mitad. La barra dice
+                cuanto falta. */}
+            {isMobile && (
+              <div className="flex items-end gap-1.5 pt-2">
+                {PASOS.map((nombre, i) => (
+                  <button
+                    key={nombre}
+                    type="button"
+                    onClick={() => { if (i < paso) setPaso(i); }}
+                    className="flex-1 text-left"
+                  >
+                    <span
+                      className={cn(
+                        "block h-1 rounded-full transition-colors",
+                        i <= paso ? "bg-primary" : "bg-muted"
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        "mt-1 block text-[10px] leading-tight",
+                        i === paso ? "font-semibold text-foreground" : "text-muted-foreground"
+                      )}
+                    >
+                      {nombre}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </DialogHeader>
+
+          <div className={cn(
+            "flex-1 overflow-y-auto space-y-4 sm:space-y-6 py-4 px-1",
+            "max-sm:overscroll-contain max-sm:touch-pan-y max-sm:[-webkit-overflow-scrolling:touch] max-sm:px-4 max-sm:pb-[calc(env(safe-area-inset-bottom)+16px)]"
+          )}>
+            {!isMobile ? (
+              <>
+                {bloqueIdentificacion}
+                {bloqueClienteEvento}
+                {bloqueAvanzadaEstado}
+                {bloqueMontaje}
+                {bloqueEjecucion}
+                {bloqueDesmontaje}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  {bloqueResponsable}
+                  {bloqueUbicacion}
+                </div>
+                {bloqueNotas}
+              </>
+            ) : paso === 0 ? (
+              <>
+                {bloqueClienteEvento}
+                {bloqueUbicacion}
+              </>
+            ) : paso === 1 ? (
+              <>
+                {bloqueMontaje}
+                {bloqueEjecucion}
+                {bloqueDesmontaje}
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Todo lo de este paso es opcional: puedes crear el evento ya y
+                  completarlo despues desde la tabla.
+                </p>
+                {bloqueIdentificacion}
+                {bloqueAvanzadaEstado}
+                {bloqueResponsable}
+                {bloqueNotas}
+              </>
+            )}
           </div>
 
           <DialogFooter className={cn(
@@ -552,13 +702,40 @@ export function NewProjectDialog({
             "max-sm:pb-[calc(env(safe-area-inset-bottom)+12px)]",
             "max-sm:px-4 max-sm:pt-3"
           )}>
-            <Button variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              Crear Proyecto
-            </Button>
+            {isMobile ? (
+              <div className="flex w-full gap-2">
+                <Button
+                  variant="outline"
+                  className="h-11 flex-1"
+                  onClick={() => (paso === 0 ? handleOpenChange(false) : setPaso(paso - 1))}
+                >
+                  {paso === 0 ? "Cancelar" : "Atrás"}
+                </Button>
+                {paso < PASOS.length - 1 ? (
+                  <Button
+                    className="h-11 flex-[2]"
+                    onClick={() => { if (validarPaso(paso)) setPaso(paso + 1); }}
+                  >
+                    Siguiente
+                  </Button>
+                ) : (
+                  <Button className="h-11 flex-[2]" onClick={handleSubmit}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Crear Proyecto
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">
+                  Cancelar
+                </Button>
+                <Button onClick={handleSubmit} className="w-full sm:w-auto">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Crear Proyecto
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </div>
       </DialogContent>

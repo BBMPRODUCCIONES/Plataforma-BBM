@@ -19,7 +19,7 @@ import {
 import { format, parseISO, startOfMonth, subMonths, isAfter } from "date-fns";
 import { es } from "date-fns/locale";
 import { Project } from "@/types";
-import { COLORES_DE_COMERCIAL, buscarColor } from "@/lib/coloresProyecto";
+import { COLORES_DE_COMERCIAL, buscarColor, colorVisualDeEvento } from "@/lib/coloresProyecto";
 
 interface GraficaVentasComercialProps {
   open: boolean;
@@ -97,9 +97,12 @@ export function GraficaVentasComercial({
       if (!fecha || !isAfter(fecha, subMonths(desde, 1))) return;
 
       const monto = Number(p.ingresoTotal) || 0;
-      // La atribucion sale del color de la fila. El rojo es solo una marca:
-      // no pertenece a ningun comercial y cuenta como sin asignar.
-      const color = buscarColor(p.color);
+      // La atribucion sale del color de la fila: el que se pone a mano, y si no
+      // hay, el del correo que subio el evento. Asi un evento nuevo cuenta solo,
+      // sin tener que acordarse de pintarlo. El rojo es solo una marca: no
+      // pertenece a ningun comercial y cuenta como sin asignar.
+      const visual = colorVisualDeEvento(p);
+      const color = buscarColor(visual?.color);
       const comercial = color && color.comercial ? color : null;
 
       if (!comercial) {
@@ -128,7 +131,7 @@ export function GraficaVentasComercial({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl sm:max-h-[85vh] sm:overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ventas por comercial</DialogTitle>
           <DialogDescription>
@@ -164,7 +167,7 @@ export function GraficaVentasComercial({
         </div>
 
         {hayDatos ? (
-          <div className="h-[320px] w-full">
+          <div className="h-[240px] w-full sm:h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={datos} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
@@ -221,9 +224,9 @@ export function GraficaVentasComercial({
           <div className="rounded-lg border border-dashed border-border p-8 text-center">
             <p className="text-sm font-medium">Todavía no hay ventas asignadas</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              En la columna Acciones de cada evento, usa el botón de la paleta
-              para pintarlo de amarillo (Bayron) o azul (Abraham).
-              La gráfica se llena sola.
+              Los eventos nuevos se atribuyen solos según el correo que los
+              sube. Para los anteriores, usa el botón de la paleta en la columna
+              Acciones y píntalos de amarillo (Bayron) o azul (Abraham).
             </p>
           </div>
         )}
@@ -231,8 +234,8 @@ export function GraficaVentasComercial({
         {/* Mes a mes en numeros. La grafica muestra la forma; la tabla, el dato
             exacto, que es lo que se copia a un informe. */}
         {hayDatos && (
-          <div className="max-h-[220px] overflow-y-auto rounded-lg border border-border">
-            <table className="w-full text-sm">
+          <div className="max-h-[220px] overflow-auto rounded-lg border border-border">
+            <table className="w-full min-w-[420px] text-sm">
               <thead className="sticky top-0 bg-muted/80 backdrop-blur">
                 <tr className="text-left">
                   <th className="px-3 py-2 font-medium">Mes</th>

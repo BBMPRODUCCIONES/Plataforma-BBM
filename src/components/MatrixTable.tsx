@@ -3,10 +3,16 @@ import { Columns3, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { fondoDeColor } from "@/lib/coloresProyecto";
 
 interface Column<T> {
   key: string;
   header: ReactNode;
+  /**
+   * Titulo en texto plano. El header suele ser un boton con flechas de orden,
+   * que en una tarjeta no sirve: ahi hace falta la palabra sola.
+   */
+  label?: string;
   width?: string;
   /** Mobile-specific width (used only in ACW/mobile view) */
   mobileWidth?: string;
@@ -43,6 +49,13 @@ interface MatrixTableProps<T extends { id: string }> {
    * tambien quede del mismo color.
    */
   getRowStyle?: (item: T) => React.CSSProperties | undefined;
+  /**
+   * En celular, la vista rapida se dibuja como tarjetas en vez de tabla.
+   * Una tabla de cuatro columnas en 380 px parte las palabras y descuadra las
+   * casillas; la tarjeta usa el ancho completo y se lee de un vistazo.
+   * Pasar false para conservar la tabla reducida de siempre.
+   */
+  mobileCards?: boolean;
 }
 
 /**
@@ -64,6 +77,7 @@ export function MatrixTable<T extends { id: string }>({
   mobilePreferenceKey,
   getRowAccent,
   getRowStyle,
+  mobileCards = true,
 }: MatrixTableProps<T>) {
   const isMobile = useIsMobile();
 
@@ -196,29 +210,120 @@ export function MatrixTable<T extends { id: string }>({
     return index === 0 ? "38%" : `${(62 / (resolvedColumns.length - 1)).toFixed(2)}%`;
   };
 
+  const etiquetaDe = (col: Column<T>): string =>
+    col.label ?? (typeof col.header === "string" ? col.header : col.key);
+
+  const valorDe = (col: Column<T>, item: T, idx: number): ReactNode =>
+    col.render
+      ? col.render(item, idx)
+      : ((item as Record<string, unknown>)[col.key]?.toString() || "—");
+
+  /** Cabecera compartida por la tabla reducida y las tarjetas. */
+  const barraVistaRapida = hasQuickView ? (
+    <div className="flex items-center justify-between gap-2 px-1 py-1.5">
+      <span className="text-[11px] text-muted-foreground">
+        {isQuickView
+          ? `${data.length} evento${data.length === 1 ? "" : "s"}`
+          : `Todas las columnas (${columns.length})`}
+      </span>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={toggleAllColumns}
+        className="h-8 shrink-0 gap-1.5 px-3 text-xs"
+      >
+        {isQuickView ? <Columns3 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
+        {isQuickView ? "Ver tabla" : "Ver tarjetas"}
+      </Button>
+    </div>
+  ) : null;
+
+  /**
+   * Celular, vista rapida: tarjetas.
+   * La primera columna (el evento) es el titulo; las demas van como
+   * etiqueta/valor en dos columnas. El color del comercial se ve tres veces —
+   * franja lateral, fondo suave y nombre — para que no dependa de fijarse.
+   */
+  if (isMobile && isQuickView && mobileCards) {
+    const [principal, ...secundarias] = resolvedColumns;
+    return (
+      <div className="flex flex-col">
+        {barraVistaRapida}
+        {data.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            No hay eventos que coincidan con el filtro.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 pb-2">
+            {data.map((item, idx) => {
+              const acento = getRowAccent?.(item) ?? null;
+              const estilo = getRowStyle?.(item);
+              const resaltada = highlightedId === item.id;
+              return (
+                <div
+                  key={item.id}
+                  data-project-id={item.id}
+                  onClick={() => onRowClick?.(item)}
+                  className={cn(
+                    "matrix-card rounded-xl border border-border/70 bg-card px-3 py-2.5 shadow-sm",
+                    onRowClick && "cursor-pointer touch-manipulation active:opacity-80",
+                    resaltada && "ring-2 ring-primary",
+                    getRowClassName?.(item)
+                  )}
+                  style={{
+                    ...(estilo || {}),
+                    ...(acento
+                      ? { borderLeftWidth: 4, borderLeftStyle: "solid", borderLeftColor: acento.color }
+                      : {}),
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1 break-words text-[15px] font-semibold leading-snug">
+                      {principal ? valorDe(principal, item, idx) : null}
+                    </div>
+                    {acento && (
+                      <span
+                        className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+                        style={{
+                          color: acento.color,
+                          borderColor: acento.color,
+                          backgroundColor: fondoDeColor(acento.color, 0.14),
+                        }}
+                      >
+                        {acento.label}
+                      </span>
+                    )}
+                  </div>
+
+                  {secundarias.length > 0 && (
+                    <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
+                      {secundarias.map((col) => (
+                        <div key={col.key} className="min-w-0">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {etiquetaDe(col)}
+                          </div>
+                          <div className="mt-0.5 min-w-0 break-words text-sm leading-tight">
+                            {valorDe(col, item, idx)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // Mobile: Always render as matrix with horizontal touch scroll
   if (isMobile) {
     return (
       <div className="flex flex-col">
-        {hasQuickView && (
-          <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-            <span className="text-[11px] text-muted-foreground">
-              {isQuickView
-                ? `Vista rápida · ${resolvedColumns.length} de ${columns.length} columnas`
-                : `Todas las columnas (${columns.length})`}
-            </span>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={toggleAllColumns}
-              className="h-8 shrink-0 gap-1.5 px-3 text-xs"
-            >
-              {isQuickView ? <Columns3 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
-              {isQuickView ? "Ver todas" : "Vista rápida"}
-            </Button>
-          </div>
-        )}
+        {barraVistaRapida}
         <div
           ref={scrollRef}
           className={cn(

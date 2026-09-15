@@ -429,33 +429,36 @@ const Proveedores = () => {
         <PanelHeader
           title="Panel de Proveedores"
           description="Gestión de proveedores y cotizaciones"
-          panelLinks={[
-            { label: "Directivo", to: "/panel-directivo" },
-            { label: "General", to: "/panel-general" },
-            { label: "Operaciones", to: "/panel-operaciones" },
-          ]}
           actions={
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:gap-2">
               <Button
                 variant="outline"
                 size="sm"
+                className="max-sm:h-9 max-sm:flex-1 max-sm:text-xs"
                 onClick={() => navigate("/historial-cotizaciones")}
               >
-                <History className="h-4 w-4 mr-2" />
-                Historial Cotizaciones
+                <History className="h-4 w-4 mr-1.5 sm:mr-2" />
+                <span className="sm:hidden">Historial</span>
+                <span className="max-sm:hidden">Historial Cotizaciones</span>
               </Button>
               {isAdmin && (
                 <Button
                   variant="outline"
                   size="sm"
+                  className="max-sm:h-9 max-sm:flex-1 max-sm:text-xs"
                   onClick={() => setColumnManagerOpen(true)}
                 >
-                  <Columns className="h-4 w-4 mr-2" />
-                  Gestionar Columnas
+                  <Columns className="h-4 w-4 mr-1.5 sm:mr-2" />
+                  <span className="sm:hidden">Columnas</span>
+                  <span className="max-sm:hidden">Gestionar Columnas</span>
                 </Button>
               )}
-              <Button size="sm" onClick={() => setNewProveedorOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
+              <Button
+                size="sm"
+                className="max-sm:h-9 max-sm:w-full max-sm:justify-center max-sm:text-xs"
+                onClick={() => setNewProveedorOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-1.5 sm:mr-2" />
                 Nuevo Proveedor
               </Button>
             </div>

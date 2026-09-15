@@ -21,8 +21,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
-import { accentPorAutor } from "@/lib/autorEvento";
-import { estiloFilaPorColor } from "@/lib/coloresProyecto";
+import { acentoVisualDeEvento, estiloFilaVisual } from "@/lib/coloresProyecto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -486,6 +485,7 @@ const PanelGeneral = () => {
       .sort((a, b) => a.order - b.order)
       .map(col => ({
         key: col.key,
+        label: col.header,
         header: col.header,
         width: col.width,
         render: getColumnRender(col),
@@ -512,10 +512,6 @@ const PanelGeneral = () => {
         <PanelHeader
           title="Panel General"
           description="Vista general de proyectos y variables SSOT"
-          panelLinks={[
-            { label: "Directivo", to: "/panel-directivo" },
-            { label: "Operaciones", to: "/panel-operaciones" },
-          ]}
           actions={
             isAdmin && (
               <Button variant="outline" size="sm" onClick={initializeColumns}>
@@ -592,10 +588,10 @@ const PanelGeneral = () => {
                 columns={columns}
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
-                mobileKeys={["evento", "cliente", "fechaMontaje", "estado"]}
+                mobileKeys={["evento", "cliente", "fechaMontaje", "fechaEjecucion", "estado"]}
                 mobilePreferenceKey="panel-general"
-                getRowAccent={accentPorAutor}
-                getRowStyle={estiloFilaPorColor}
+                getRowAccent={acentoVisualDeEvento}
+                getRowStyle={estiloFilaVisual}
               />
             </div>
           </TabsContent>

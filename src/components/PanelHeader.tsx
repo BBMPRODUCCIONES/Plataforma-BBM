@@ -22,8 +22,12 @@ export function PanelHeader({ title, description, backLink, panelLinks, actions 
   
   return (
     <div className={`flex flex-col animate-fade-in ${isMobile ? 'gap-2 mb-2' : 'gap-4 mb-6'}`}>
-      {/* Title and Actions Row */}
-      <div className={`flex items-start justify-between ${isMobile ? 'gap-2' : ''}`}>
+      {/* Title and Actions Row.
+          En celular los botones ya no comparten renglon con el titulo: apretados
+          contra el borde derecho se salian de la pantalla y quedaban sin tocar
+          (por eso 'Ventas por comercial' era inalcanzable). Ahora van en su
+          propia fila, envolviendo, y cada uno ocupa lo que necesita. */}
+      <div className={isMobile ? "flex flex-col gap-2" : "flex items-start justify-between"}>
         <div className="flex items-center gap-2 min-w-0">
           {backLink && (
             <Link to={backLink}>
@@ -40,7 +44,13 @@ export function PanelHeader({ title, description, backLink, panelLinks, actions 
           </div>
         </div>
         {actions && (
-          <div className={`flex items-center shrink-0 ${isMobile ? 'gap-1.5' : 'gap-2'}`}>
+          <div
+            className={
+              isMobile
+                ? "panel-header-actions flex w-full flex-wrap items-center gap-1.5"
+                : "flex items-center shrink-0 gap-2"
+            }
+          >
             {actions}
           </div>
         )}

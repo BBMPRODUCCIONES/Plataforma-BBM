@@ -180,6 +180,11 @@ export function useUserRole(): UseUserRoleReturn {
   const canAccessAdminPage = (page: string): boolean => {
     if (!role) return false;
     if (role.toLowerCase() !== "administrador") return false;
+
+    // Usuarios es la pantalla donde se conceden estos mismos permisos. Si un
+    // administrador se la quita por accidente queda encerrado fuera y ya no
+    // hay forma de arreglarlo sin tocar la base de datos. Nunca se bloquea.
+    if (page.toLowerCase() === "usuarios") return true;
     
     const pageMap: Record<string, boolean> = {
       usuarios: adminPagePermissions?.puedeAccederUsuarios ?? true,

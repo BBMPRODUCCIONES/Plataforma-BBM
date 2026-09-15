@@ -3241,3 +3241,50 @@ tr[data-highlighted="true"] {
   font-weight: 500;
   line-height: 1.3;
 }
+
+/* ---------------------------------------------------------------------------
+   Celular: tarjetas de la matriz y formularios comodos al tacto.
+   --------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  /* El contenido de una celda venia pensado para una columna de 80 px: dentro
+     de una tarjeta ese recorte sobra y solo esconde datos. */
+  .matrix-card .truncate {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .matrix-card input,
+  .matrix-card select,
+  .matrix-card button {
+    max-width: 100%;
+  }
+
+  /* Las celdas venian en 12 px para caber en la tabla. En una tarjeta hay
+     espacio de sobra y 12 px se lee mal a pulso. */
+  .matrix-card .text-xs {
+    font-size: 0.8125rem;
+    line-height: 1.2rem;
+  }
+
+  /* El nombre del evento es el titulo de la tarjeta, no una celda mas. */
+  .matrix-card > div:first-child .text-xs,
+  .matrix-card > div:first-child a,
+  .matrix-card > div:first-child span {
+    font-size: 0.9375rem;
+    line-height: 1.3rem;
+  }
+
+  /* Campos del formulario: 44 px es el minimo comodo para el dedo. */
+  [data-lovable-dialog-content] input:not([type="checkbox"]):not([type="radio"]),
+  [data-lovable-dialog-content] button[role="combobox"],
+  [data-lovable-dialog-content] textarea {
+    min-height: 44px;
+    font-size: 16px; /* evita el zoom automatico de iOS al enfocar */
+  }
+
+  /* Los botones de accion del encabezado no se salen de la pantalla. */
+  .panel-header-actions > * {
+    min-width: 0;
+  }
+}

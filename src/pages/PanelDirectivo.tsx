@@ -24,8 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
-import { accentPorAutor } from "@/lib/autorEvento";
-import { estiloFilaPorColor } from "@/lib/coloresProyecto";
+import { acentoVisualDeEvento, estiloFilaVisual } from "@/lib/coloresProyecto";
 import { SelectorColorProyecto } from "@/components/SelectorColorProyecto";
 import { GraficaVentasComercial } from "@/components/GraficaVentasComercial";
 import { Button } from "@/components/ui/button";
@@ -842,6 +841,7 @@ const PanelDirectivo = () => {
       .sort((a, b) => a.order - b.order)
       .map(col => ({
         key: col.key,
+        label: col.header,
         header: (
           <button
             className="flex items-center gap-1 hover:text-primary transition-colors w-full text-left"
@@ -887,12 +887,12 @@ const PanelDirectivo = () => {
           title="Panel Directivo"
           description="Gestión ejecutiva de proyectos y control de ingresos"
           actions={
-            <div className={`flex ${isMobile ? 'flex-col gap-1.5' : 'gap-2'}`}>
+            <div className={`flex ${isMobile ? 'w-full flex-wrap gap-1.5' : 'gap-2'}`}>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setGraficaVentasAbierta(true)}
-                className={isMobile ? 'h-8 text-xs px-2.5' : ''}
+                className={isMobile ? 'h-9 w-full justify-center text-xs' : ''}
               >
                 <TrendingUp className={isMobile ? 'h-3.5 w-3.5 mr-1' : 'h-4 w-4 mr-2'} />
                 Ventas por comercial
@@ -902,7 +902,7 @@ const PanelDirectivo = () => {
                   variant="outline" 
                   size="sm" 
                   onClick={initializeColumns}
-                  className={isMobile ? 'h-8 text-xs px-2.5' : ''}
+                  className={isMobile ? 'h-9 flex-1 text-xs px-2.5' : ''}
                 >
                   <Settings className={isMobile ? 'h-3.5 w-3.5 mr-1' : 'h-4 w-4 mr-2'} />
                   {isMobile ? 'Columnas' : 'Gestionar Columnas'}
@@ -911,7 +911,7 @@ const PanelDirectivo = () => {
               <Button 
                 size="sm" 
                 onClick={() => setNewProjectOpen(true)}
-                className={isMobile ? 'h-8 text-xs px-2.5' : ''}
+                className={isMobile ? 'h-9 flex-1 text-xs px-2.5' : ''}
               >
                 <Plus className={isMobile ? 'h-3.5 w-3.5 mr-1' : 'h-4 w-4 mr-2'} />
                 {isMobile ? 'Nuevo' : 'Nuevo Proyecto'}
@@ -1021,10 +1021,10 @@ const PanelDirectivo = () => {
                 onRowClick={(p) => setHighlightedProjectId(p.id)}
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
-                mobileKeys={["evento", "cliente", "estado", "ingresoTotal"]}
+                mobileKeys={["evento", "cliente", "fechaMontaje", "fechaEjecucion", "estado", "ingresoTotal"]}
                 mobilePreferenceKey="panel-directivo"
-                getRowAccent={accentPorAutor}
-                getRowStyle={estiloFilaPorColor}
+                getRowAccent={acentoVisualDeEvento}
+                getRowStyle={estiloFilaVisual}
               />
             </div>
           </TabsContent>

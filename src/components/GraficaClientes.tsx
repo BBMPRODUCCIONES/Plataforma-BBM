@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { parseISO, startOfMonth, subMonths, isAfter } from "date-fns";
 import { Project } from "@/types";
+import { COLORES_DE_COMERCIAL, buscarColor, colorVisualDeEvento } from "@/lib/coloresProyecto";
 import {
   Select,
   SelectContent,
@@ -63,10 +64,22 @@ function clave(texto: string): string {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-/** Valor reservado del filtro: todos los productores juntos. */
+/** Valor reservado del filtro: todos los comerciales juntos. */
 const TODOS = "__todos__";
-/** Eventos sin productor asignado. */
-const SIN_PRODUCTOR = "__sin_productor__";
+/** Eventos sin comercial atribuido. */
+const SIN_COMERCIAL = "__sin_comercial__";
+
+/**
+ * A que comercial pertenece un evento. Mismo criterio que la pestana de
+ * comerciales: manda el color puesto a mano y si no hay, el correo de quien lo
+ * subio. Devuelve null cuando no pertenece a ninguno (sin color, o en rojo,
+ * que es solo una marca).
+ */
+function comercialDe(p: Project): { valor: string; nombre: string } | null {
+  const visual = colorVisualDeEvento(p);
+  const color = buscarColor(visual?.color);
+  return color && color.comercial ? { valor: color.valor, nombre: color.nombre } : null;
+}
 
 interface FilaCliente {
   nombre: string;
@@ -77,7 +90,7 @@ interface FilaCliente {
 
 export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) {
   const [oscuro, setOscuro] = useState(false);
-  const [productor, setProductor] = useState<string>(TODOS);
+  const [comercial, setComercial] = useState<string>(TODOS);
   useEffect(() => {
     const mirar = () => setOscuro(document.documentElement.classList.contains("dark"));
     mirar();
@@ -97,36 +110,47 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
     });
   }, [projects, meses]);
 
-  /** Productores con ventas en el periodo, de mayor a menor. */
-  const productores = useMemo(() => {
-    const mapa = new Map<string, { clave: string; nombre: string; valor: number; eventos: number }>();
+  /**
+   * Los comerciales, con lo que lleva cada uno en el periodo.
+   *
+   * No sale del campo productor: ese fue texto libre durante mucho tiempo y
+   * guarda lo que cada quien escribio (nombres de logisticos, pruebas, siglas),
+   * que no son comerciales. La atribucion de una venta es el color, igual que
+   * en la otra pestana.
+   */
+  const comerciales = useMemo(() => {
+    const mapa = new Map<string, { valor: string; nombre: string; total: number; eventos: number }>();
+    COLORES_DE_COMERCIAL.forEach((c) => {
+      mapa.set(c.valor, { valor: c.valor, nombre: c.nombre, total: 0, eventos: 0 });
+    });
     let sinNadie = { valor: 0, eventos: 0 };
+
     delPeriodo.forEach((p) => {
       const monto = Number(p.ingresoTotal) || 0;
-      const nombre = (p.productor || "").trim();
-      if (!nombre) {
+      const quien = comercialDe(p);
+      if (!quien) {
         sinNadie = { valor: sinNadie.valor + monto, eventos: sinNadie.eventos + 1 };
         return;
       }
-      const k = clave(nombre);
-      const actual = mapa.get(k);
-      if (actual) {
-        actual.valor += monto;
-        actual.eventos += 1;
-      } else {
-        mapa.set(k, { clave: k, nombre, valor: monto, eventos: 1 });
+      const fila = mapa.get(quien.valor);
+      if (fila) {
+        fila.total += monto;
+        fila.eventos += 1;
       }
     });
-    const lista = [...mapa.values()].sort((a, b) => b.valor - a.valor);
-    return { lista, sinNadie };
+
+    return {
+      lista: [...mapa.values()].filter((c) => c.eventos > 0).sort((a, b) => b.total - a.total),
+      sinNadie,
+    };
   }, [delPeriodo]);
 
-  /** Lo que entra en la torta segun el productor elegido. */
+  /** Lo que entra en la torta segun el comercial elegido. */
   const elegidos = useMemo(() => {
-    if (productor === TODOS) return delPeriodo;
-    if (productor === SIN_PRODUCTOR) return delPeriodo.filter((p) => !(p.productor || "").trim());
-    return delPeriodo.filter((p) => clave(p.productor || "") === productor);
-  }, [delPeriodo, productor]);
+    if (comercial === TODOS) return delPeriodo;
+    if (comercial === SIN_COMERCIAL) return delPeriodo.filter((p) => !comercialDe(p));
+    return delPeriodo.filter((p) => comercialDe(p)?.valor === comercial);
+  }, [delPeriodo, comercial]);
 
   const { filas, total, sinCliente } = useMemo(() => {
     const porCliente = new Map<string, FilaCliente>();
@@ -186,30 +210,30 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
 
 
   const nombreElegido =
-    productor === TODOS
-      ? "Todos los directores"
-      : productor === SIN_PRODUCTOR
-        ? "Sin director asignado"
-        : (productores.lista.find((x) => x.clave === productor)?.nombre ?? "—");
+    comercial === TODOS
+      ? "Todos los comerciales"
+      : comercial === SIN_COMERCIAL
+        ? "Sin comercial asignado"
+        : (comerciales.lista.find((x) => x.valor === comercial)?.nombre ?? "—");
 
   return (
     <div className="space-y-3">
       {/* El filtro va arriba de la grafica: lo que se elige aqui manda sobre
           todo lo de abajo. */}
-      <Select value={productor} onValueChange={setProductor}>
+      <Select value={comercial} onValueChange={setComercial}>
         <SelectTrigger className="h-9">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={TODOS}>Todos los directores</SelectItem>
-          {productores.lista.map((d) => (
-            <SelectItem key={d.clave} value={d.clave}>
-              {d.nombre} · {pesos.format(d.valor)}
+          <SelectItem value={TODOS}>Todos los comerciales</SelectItem>
+          {comerciales.lista.map((c) => (
+            <SelectItem key={c.valor} value={c.valor}>
+              {c.nombre} · {pesos.format(c.total)}
             </SelectItem>
           ))}
-          {productores.sinNadie.eventos > 0 && (
-            <SelectItem value={SIN_PRODUCTOR}>
-              Sin director asignado · {pesos.format(productores.sinNadie.valor)}
+          {comerciales.sinNadie.eventos > 0 && (
+            <SelectItem value={SIN_COMERCIAL}>
+              Sin comercial asignado · {pesos.format(comerciales.sinNadie.valor)}
             </SelectItem>
           )}
         </SelectContent>
@@ -226,7 +250,7 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
       {filas.length === 0 && (
         <div className="rounded-lg border border-dashed border-border p-8 text-center">
           <p className="text-sm font-medium">
-            {productor === TODOS
+            {comercial === TODOS
               ? "No hay ventas en el periodo"
               : `${nombreElegido} no tiene ventas en el periodo`}
           </p>

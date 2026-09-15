@@ -674,7 +674,20 @@ const Usuarios = () => {
         body: { user_id: userToDelete.id },
       });
 
-      if (error) throw error;
+      if (error) {
+        // supabase-js solo dice "Edge Function returned a non-2xx status code".
+        // El motivo real viene en el cuerpo de la respuesta, asi que se lee de
+        // ahi antes de mostrarlo: sin esto el usuario no sabe que hacer.
+        let detalle = "";
+        try {
+          const cuerpo = await (error as { context?: { json?: () => Promise<{ error?: string }> } })
+            ?.context?.json?.();
+          detalle = cuerpo?.error || "";
+        } catch {
+          /* la respuesta no era JSON; nos quedamos con el mensaje generico */
+        }
+        throw new Error(detalle || error.message);
+      }
       if (data?.error) throw new Error(data.error);
 
       toast({

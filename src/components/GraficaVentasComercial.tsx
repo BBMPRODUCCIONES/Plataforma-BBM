@@ -20,6 +20,8 @@ import { format, parseISO, startOfMonth, subMonths, isAfter } from "date-fns";
 import { es } from "date-fns/locale";
 import { Project } from "@/types";
 import { COLORES_DE_COMERCIAL, buscarColor, colorVisualDeEvento } from "@/lib/coloresProyecto";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GraficaClientes } from "@/components/GraficaClientes";
 
 interface GraficaVentasComercialProps {
   open: boolean;
@@ -132,12 +134,24 @@ export function GraficaVentasComercial({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl sm:max-h-[85vh] sm:overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Ventas por comercial</DialogTitle>
-          <DialogDescription>
+        <DialogHeader className="pr-10">
+          <DialogTitle className="text-left">Ventas</DialogTitle>
+          <DialogDescription className="text-left">
             Ingreso total de los eventos, por mes de ejecución, en los últimos {meses} meses.
           </DialogDescription>
         </DialogHeader>
+
+        <Tabs defaultValue="comercial" className="space-y-3">
+          <TabsList className="w-full">
+            <TabsTrigger value="comercial" className="flex-1">Por comercial</TabsTrigger>
+            <TabsTrigger value="cliente" className="flex-1">Por cliente</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="cliente" className="mt-3">
+            <GraficaClientes projects={projects} meses={meses} />
+          </TabsContent>
+
+          <TabsContent value="comercial" className="mt-3 space-y-3">
 
         {/* Totales del periodo: el titular va antes que el detalle. */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -284,6 +298,8 @@ export function GraficaVentasComercial({
             No entran en las barras, para que la comparación no quede inflada.
           </p>
         )}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

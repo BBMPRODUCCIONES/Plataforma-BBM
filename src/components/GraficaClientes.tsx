@@ -329,13 +329,8 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
                 border: "1px solid hsl(var(--border))",
                 borderRadius: 8,
                 fontSize: 12,
+                color: "hsl(var(--popover-foreground))",
               }}
-              // El texto lleva color de texto, no el de la porcion. Recharts
-              // pinta cada renglon del color de su serie, y un gris o un azul
-              // oscuro sobre el fondo del globo no se lee. El cuadrito de
-              // color que va al lado ya dice de que porcion se trata.
-              itemStyle={{ color: "hsl(var(--popover-foreground))" }}
-              labelStyle={{ color: "hsl(var(--popover-foreground))", fontWeight: 600 }}
             />
           </PieChart>
         </ResponsiveContainer>

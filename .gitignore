@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Estado local de la CLI de Supabase: es de cada maquina, no del repo
+supabase/.temp/
+supabase/.branches/

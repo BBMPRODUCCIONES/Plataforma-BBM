@@ -39,28 +39,21 @@ window.addEventListener('unhandledrejection', (e) => {
   }
 });
 
-// Register service worker - user controls when to update (no automatic refresh)
+// Service worker: se actualiza solo y sin preguntar.
+//
+// Ya no hay aviso de "nueva version". Antes lo habia, y era peor el remedio
+// que la enfermedad: al pulsarlo se recargaba sobre un index.html guardado que
+// apuntaba a archivos ya borrados del servidor, y la app quedaba en ERR_FAILED.
+// Ahora las navegaciones van siempre a la red, el worker nuevo toma el control
+// de inmediato y el usuario ve la version nueva en la siguiente carga.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then((registration) => {
-      // Check for updates every 30 minutes (less aggressive)
+      // Buscar version nueva cada 30 minutos.
       setInterval(() => registration.update(), 30 * 60 * 1000);
-      
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // Just log - user will be notified via PWAUpdateBanner
-              console.log('[PWA] Nueva versión disponible - el usuario puede actualizar cuando desee');
-            }
-          });
-        }
-      });
     }).catch(() => {
-      // Service worker registration failed silently
+      // Si falla el registro, la app funciona igual: solo se pierde el cache.
     });
-    // NO controllerchange listener - prevents forced page reloads
   });
 }
 

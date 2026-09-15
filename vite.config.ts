@@ -51,7 +51,18 @@ export default defineConfig(({ mode }) => ({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        navigateFallback: '/index.html',
+        // Sin navigateFallback a proposito.
+        //
+        // Con el fallback, el service worker respondia toda navegacion con el
+        // index.html que tenia guardado. Tras cada despliegue ese index apuntaba
+        // a archivos con hash que Cloudflare ya no sirve, y el resultado era
+        // ERR_FAILED: la app dejaba de abrir hasta limpiar el navegador a mano.
+        //
+        // El planner no sirve sin conexion de todos modos: todo sale de Supabase.
+        // Asi que las navegaciones van siempre a la red y el problema desaparece
+        // de raiz, no se mitiga. Cloudflare Pages ya devuelve index.html para
+        // cualquier ruta desconocida, asi que el enrutado sigue funcionando.
+        navigateFallback: null,
         navigateFallbackDenylist: [/^\/api/, /^\/auth/, /supabase/],
         runtimeCaching: [
           {

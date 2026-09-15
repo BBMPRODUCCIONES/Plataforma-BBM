@@ -11,7 +11,6 @@ import { ProveedoresProvider } from "@/contexts/ProveedoresContext";
 import { DateRangeProvider } from "@/contexts/DateRangeContext";
 import { HorariosProvider } from "@/contexts/HorariosContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { PWAUpdateBanner } from "@/components/PWAUpdateBanner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -47,7 +46,6 @@ const App = () => (
               <DateRangeProvider>
               <Toaster />
               <Sonner />
-              <PWAUpdateBanner />
               <BrowserRouter>
                 <Routes>
                   {/* Public routes */}

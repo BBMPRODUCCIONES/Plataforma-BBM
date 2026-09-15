@@ -69,6 +69,8 @@ export interface Project {
   deletedByEmail?: string;
   /** Correo de quien creo el evento. Lo sella el servidor; se usa para el color por autor. */
   createdByEmail?: string;
+  /** Color manual de la fila, puesto desde el Panel Directivo. Hex o vacio. */
+  color?: string | null;
   createdAt: string;
   updatedAt: string;
 }

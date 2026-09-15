@@ -37,6 +37,12 @@ interface MatrixTableProps<T extends { id: string }> {
    * Devolver null para las filas que no llevan color.
    */
   getRowAccent?: (item: T) => { color: string; label: string } | null;
+  /**
+   * Estilo que se aplica a toda la fila (por ejemplo, el color manual del
+   * Panel Directivo). Se pinta celda por celda para que la columna congelada
+   * tambien quede del mismo color.
+   */
+  getRowStyle?: (item: T) => React.CSSProperties | undefined;
 }
 
 /**
@@ -57,6 +63,7 @@ export function MatrixTable<T extends { id: string }>({
   mobileKeys,
   mobilePreferenceKey,
   getRowAccent,
+  getRowStyle,
 }: MatrixTableProps<T>) {
   const isMobile = useIsMobile();
 
@@ -263,11 +270,13 @@ export function MatrixTable<T extends { id: string }>({
                     const qw = quickWidth(colIdx);
                     const mobileW = qw || col.mobileWidth || col.width;
                     const accent = colIdx === 0 ? getRowAccent?.(item) : null;
+                    const rowStyle = getRowStyle?.(item);
                     return (
                       <td 
                         key={col.key} 
                         style={{
                           ...(qw ? { width: qw } : { width: mobileW, minWidth: mobileW }),
+                          ...(rowStyle || {}),
                           ...(accent ? { borderLeft: `4px solid ${accent.color}` } : {}),
                         }}
                         title={accent?.label}
@@ -332,12 +341,14 @@ export function MatrixTable<T extends { id: string }>({
               >
                 {resolvedColumns.map((col, colIdx) => {
                   const accent = colIdx === 0 ? getRowAccent?.(item) : null;
+                  const rowStyle = getRowStyle?.(item);
                   return (
                   <td
                     key={col.key}
                     style={{
                       width: col.width,
                       minWidth: col.width,
+                      ...(rowStyle || {}),
                       ...(accent ? { borderLeft: `4px solid ${accent.color}` } : {}),
                     }}
                     title={accent?.label}

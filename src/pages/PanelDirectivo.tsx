@@ -25,6 +25,8 @@ import { useProjects } from "@/contexts/ProjectsContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { accentPorAutor } from "@/lib/autorEvento";
+import { estiloFilaPorColor } from "@/lib/coloresProyecto";
+import { SelectorColorProyecto } from "@/components/SelectorColorProyecto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -756,9 +758,15 @@ const PanelDirectivo = () => {
   const panelColumn = {
     key: "acciones",
     header: "Acciones",
-    width: "220px",
+    width: "250px",
     render: (p: Project) => (
       <div className="flex gap-1 items-center">
+        {isAdmin && (
+          <SelectorColorProyecto
+            valor={p.color}
+            onCambio={(color) => updateProject(p.id, "color", color)}
+          />
+        )}
         {p.isDeleted && (
           <Badge variant="destructive" className="text-[10px] px-1 py-0 mr-1">
             ELIMINADO
@@ -1017,6 +1025,7 @@ const PanelDirectivo = () => {
                 mobileKeys={["evento", "cliente", "estado", "ingresoTotal"]}
                 mobilePreferenceKey="panel-directivo"
                 getRowAccent={accentPorAutor}
+                getRowStyle={estiloFilaPorColor}
               />
             </div>
           </TabsContent>

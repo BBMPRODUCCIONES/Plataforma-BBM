@@ -22,6 +22,7 @@ import { useProjects } from "@/contexts/ProjectsContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { accentPorAutor } from "@/lib/autorEvento";
+import { estiloFilaPorColor } from "@/lib/coloresProyecto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -594,6 +595,7 @@ const PanelGeneral = () => {
                 mobileKeys={["evento", "cliente", "fechaMontaje", "estado"]}
                 mobilePreferenceKey="panel-general"
                 getRowAccent={accentPorAutor}
+                getRowStyle={estiloFilaPorColor}
               />
             </div>
           </TabsContent>

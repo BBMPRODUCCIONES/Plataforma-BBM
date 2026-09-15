@@ -209,7 +209,10 @@ export function DetalleEventoDialog({
             />
           </div>
 
-          {mostrarDinero && (proyecto.ingresoTotal || proyecto.ingresoBruto) && (
+          {/* Boolean() no sobra: con los dos ingresos en cero, la expresion
+              valia 0 y React pinta el 0 como texto. Salia un cero suelto entre
+              las fechas y las notas. */}
+          {mostrarDinero && Boolean(proyecto.ingresoTotal || proyecto.ingresoBruto) && (
             <div className="grid grid-cols-2 gap-3 rounded-lg border border-border/70 p-3">
               <Dato
                 etiqueta="Ingreso total"

@@ -114,7 +114,6 @@ function dbRowToProject(row: any): Project {
     deletedByEmail: row.deleted_by_email || null,
     createdByEmail: row.created_by_email || undefined,
     color: row.color || null,
-    comercial: row.comercial || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -153,7 +152,6 @@ function projectToDbRow(project: Partial<Project>): Record<string, any> {
   if (project.notas !== undefined) row.notas = project.notas;
   if (project.notasImagenes !== undefined) row.notas_imagenes = project.notasImagenes;
   if (project.color !== undefined) row.color = project.color;
-  if (project.comercial !== undefined) row.comercial = project.comercial;
   if (project.personal !== undefined) row.personal = project.personal;
   if (project.inventario !== undefined) row.inventario = project.inventario;
   if (project.cotizaciones !== undefined) row.cotizaciones = project.cotizaciones;
@@ -234,8 +232,6 @@ function fieldToColumn(field: string): string {
     inventarioResponsableEventoTimestamp: "inventario_responsable_evento_timestamp",
     // Color manual de la fila, desde el Panel Directivo
     color: "color",
-    // Comercial al que se atribuye la venta
-    comercial: "comercial",
   };
   return mapping[field] || field;
 }

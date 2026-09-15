@@ -27,7 +27,6 @@ import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { accentPorAutor } from "@/lib/autorEvento";
 import { estiloFilaPorColor } from "@/lib/coloresProyecto";
 import { SelectorColorProyecto } from "@/components/SelectorColorProyecto";
-import { SelectorComercial } from "@/components/SelectorComercial";
 import { GraficaVentasComercial } from "@/components/GraficaVentasComercial";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -764,12 +763,6 @@ const PanelDirectivo = () => {
     width: "180px",
     render: (p: Project) => (
       <div className="flex gap-1 items-center">
-        {isAdmin && (
-          <SelectorComercial
-            valor={p.comercial}
-            onCambio={(comercial) => updateProject(p.id, "comercial", comercial)}
-          />
-        )}
         {isAdmin && (
           <SelectorColorProyecto
             valor={p.color}

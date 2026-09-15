@@ -31,8 +31,8 @@ export function SelectorColorProyecto({ valor, onCambio, disabled }: SelectorCol
           size="sm"
           className="h-6 w-6 p-0"
           disabled={disabled}
-          title={nombre ? `Color: ${nombre}` : "Poner color a la fila"}
-          aria-label={nombre ? `Color: ${nombre}` : "Poner color a la fila"}
+          title={nombre ? `Venta de ${nombre}` : "Asignar la venta"}
+          aria-label={nombre ? `Venta de ${nombre}` : "Asignar la venta"}
           onClick={(e) => e.stopPropagation()}
         >
           {valor ? (
@@ -52,10 +52,10 @@ export function SelectorColorProyecto({ valor, onCambio, disabled }: SelectorCol
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1.5 px-0.5 text-xs font-medium text-muted-foreground">
-          Color de la fila
+          Venta de
         </div>
 
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="flex flex-col gap-0.5">
           {COLORES_PROYECTO.map((color) => {
             const elegido = valor?.toLowerCase() === color.valor.toLowerCase();
             return (
@@ -69,12 +69,16 @@ export function SelectorColorProyecto({ valor, onCambio, disabled }: SelectorCol
                   onCambio(elegido ? null : color.valor);
                 }}
                 className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-md border transition-transform hover:scale-110",
-                  elegido ? "border-foreground" : "border-transparent"
+                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent",
+                  elegido && "bg-accent"
                 )}
-                style={{ backgroundColor: color.valor }}
               >
-                {elegido && <Check className="h-3.5 w-3.5 text-white drop-shadow" />}
+                <span
+                  className="h-3.5 w-3.5 shrink-0 rounded-full border border-border"
+                  style={{ backgroundColor: color.valor }}
+                />
+                <span className="flex-1 text-left">{color.nombre}</span>
+                {elegido && <Check className="h-3.5 w-3.5" />}
               </button>
             );
           })}
@@ -90,7 +94,7 @@ export function SelectorColorProyecto({ valor, onCambio, disabled }: SelectorCol
           className="mt-2 flex w-full items-center gap-1.5 rounded-md px-1.5 py-1.5 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
         >
           <Ban className="h-3.5 w-3.5" />
-          Quitar color
+          Sin asignar
         </button>
       </PopoverContent>
     </Popover>

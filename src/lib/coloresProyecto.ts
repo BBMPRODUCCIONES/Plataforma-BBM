@@ -1,40 +1,69 @@
 /**
- * Colores manuales de proyecto.
+ * Color de fila: es a la vez la marca visual y la atribucion de la venta.
  *
- * Se pintan sobre toda la fila de la matriz. Sirven para marcar a mano los
- * eventos que ya estaban cargados antes de que existiera el color por autor,
- * o para cualquier clasificacion propia del Panel Directivo.
+ * Se pinta toda la fila y alimenta la grafica de ventas. Amarillo es Bayron,
+ * azul es Abraham. El rojo es una marca libre, para lo que haga falta
+ * senalar; no pertenece a ningun comercial y no entra en las barras.
  *
- * Solo el Panel Directivo permite asignarlos; el color se ve en todos los paneles.
+ * Los colores de la grafica no son los mismos del swatch: un amarillo vivo se
+ * ve bien como punto pero pierde contraste como barra. Los de abajo pasaron el
+ * validador de paletas en claro y en oscuro.
  */
 
 export interface ColorProyecto {
-  /** Lo que se guarda en la base. */
+  /** Lo que se guarda en projects.color. */
   valor: string;
   nombre: string;
+  /** Comercial al que pertenece, o null si es solo una marca. */
+  comercial: string | null;
+  /** Color de la barra en tema claro. */
+  graficaClaro: string;
+  /** Color de la barra en tema oscuro. */
+  graficaOscuro: string;
 }
 
 export const COLORES_PROYECTO: ColorProyecto[] = [
-  { valor: "#ef4444", nombre: "Rojo" },
-  { valor: "#f97316", nombre: "Naranja" },
-  { valor: "#eab308", nombre: "Amarillo" },
-  { valor: "#22c55e", nombre: "Verde" },
-  { valor: "#06b6d4", nombre: "Turquesa" },
-  { valor: "#3b82f6", nombre: "Azul" },
-  { valor: "#a855f7", nombre: "Morado" },
-  { valor: "#ec4899", nombre: "Rosa" },
-  { valor: "#78716c", nombre: "Gris" },
+  {
+    valor: "#eab308",
+    nombre: "Bayron",
+    comercial: "Bayron",
+    graficaClaro: "#a16207",
+    graficaOscuro: "#b8860b",
+  },
+  {
+    valor: "#3b82f6",
+    nombre: "Abraham",
+    comercial: "Abraham",
+    graficaClaro: "#2563eb",
+    graficaOscuro: "#3b82f6",
+  },
+  {
+    valor: "#ef4444",
+    nombre: "Marca roja",
+    comercial: null,
+    graficaClaro: "#dc2626",
+    graficaOscuro: "#ef4444",
+  },
 ];
 
-/** Busca el nombre legible de un color guardado. */
+/** Solo los colores que representan a un comercial: los que salen en la grafica. */
+export const COLORES_DE_COMERCIAL = COLORES_PROYECTO.filter((c) => c.comercial !== null);
+
+export function buscarColor(valor?: string | null): ColorProyecto | null {
+  if (!valor) return null;
+  const limpio = valor.trim().toLowerCase();
+  return COLORES_PROYECTO.find((c) => c.valor.toLowerCase() === limpio) ?? null;
+}
+
+/** Nombre legible de un color guardado. */
 export function nombreDeColor(valor?: string | null): string | null {
   if (!valor) return null;
-  return COLORES_PROYECTO.find((c) => c.valor.toLowerCase() === valor.toLowerCase())?.nombre ?? "Personalizado";
+  return buscarColor(valor)?.nombre ?? "Otro color";
 }
 
 /**
- * Convierte el color a un fondo suave, legible en tema claro y oscuro.
- * No se usa el color puro porque el texto encima quedaria ilegible.
+ * Fondo suave para la fila. No se usa el color puro porque el texto encima
+ * quedaria ilegible.
  */
 export function fondoDeColor(valor?: string | null, alpha = 0.16): string | undefined {
   if (!valor) return undefined;
@@ -47,7 +76,7 @@ export function fondoDeColor(valor?: string | null, alpha = 0.16): string | unde
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/** Estilo de fila para la matriz. Devuelve undefined si el proyecto no tiene color. */
+/** Estilo de fila para la matriz. undefined si el proyecto no tiene color. */
 export function estiloFilaPorColor(proyecto: unknown): React.CSSProperties | undefined {
   const color = (proyecto as { color?: string | null } | null | undefined)?.color;
   const fondo = fondoDeColor(color);

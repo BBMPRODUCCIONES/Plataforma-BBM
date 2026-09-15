@@ -19,7 +19,7 @@ import {
 import { format, parseISO, startOfMonth, subMonths, isAfter } from "date-fns";
 import { es } from "date-fns/locale";
 import { Project } from "@/types";
-import { COMERCIALES, buscarComercial } from "@/lib/comerciales";
+import { COLORES_DE_COMERCIAL, buscarColor } from "@/lib/coloresProyecto";
 
 interface GraficaVentasComercialProps {
   open: boolean;
@@ -80,12 +80,12 @@ export function GraficaVentasComercial({
         clave,
         etiqueta: format(mes, "MMM yy", { locale: es }),
       };
-      COMERCIALES.forEach((c) => { fila[c.valor] = 0; });
+      COLORES_DE_COMERCIAL.forEach((c) => { fila[c.valor] = 0; });
       cajones.set(clave, fila);
     }
 
     const acumulado: Record<string, number> = {};
-    COMERCIALES.forEach((c) => { acumulado[c.valor] = 0; });
+    COLORES_DE_COMERCIAL.forEach((c) => { acumulado[c.valor] = 0; });
     let montoSinAsignar = 0;
     let contadorSinAsignar = 0;
 
@@ -95,7 +95,10 @@ export function GraficaVentasComercial({
       if (!fecha || !isAfter(fecha, subMonths(desde, 1))) return;
 
       const monto = Number(p.ingresoTotal) || 0;
-      const comercial = buscarComercial(p.comercial);
+      // La atribucion sale del color de la fila. El rojo es solo una marca:
+      // no pertenece a ningun comercial y cuenta como sin asignar.
+      const color = buscarColor(p.color);
+      const comercial = color && color.comercial ? color : null;
 
       if (!comercial) {
         montoSinAsignar += monto;
@@ -118,7 +121,7 @@ export function GraficaVentasComercial({
     };
   }, [projects, meses]);
 
-  const hayDatos = COMERCIALES.some((c) => (totales[c.valor] || 0) > 0);
+  const hayDatos = COLORES_DE_COMERCIAL.some((c) => (totales[c.valor] || 0) > 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -132,12 +135,12 @@ export function GraficaVentasComercial({
 
         {/* Totales del periodo: el titular va antes que el detalle. */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {COMERCIALES.map((c) => (
+          {COLORES_DE_COMERCIAL.map((c) => (
             <div key={c.valor} className="rounded-lg border border-border p-3">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span
                   className="h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: oscuro ? c.colorOscuro : c.colorClaro }}
+                  style={{ backgroundColor: oscuro ? c.graficaOscuro : c.graficaClaro }}
                 />
                 {c.nombre}
               </div>
@@ -192,12 +195,12 @@ export function GraficaVentasComercial({
                     <span style={{ color: "hsl(var(--foreground))" }}>{valor}</span>
                   )}
                 />
-                {COMERCIALES.map((c) => (
+                {COLORES_DE_COMERCIAL.map((c) => (
                   <Bar
                     key={c.valor}
                     dataKey={c.valor}
                     name={c.nombre}
-                    fill={oscuro ? c.colorOscuro : c.colorClaro}
+                    fill={oscuro ? c.graficaOscuro : c.graficaClaro}
                     radius={[4, 4, 0, 0]}
                     maxBarSize={28}
                   />
@@ -209,8 +212,9 @@ export function GraficaVentasComercial({
           <div className="rounded-lg border border-dashed border-border p-8 text-center">
             <p className="text-sm font-medium">Todavía no hay ventas asignadas</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              En la columna Acciones de cada evento, usa el botón con la inicial
-              para decir de quién fue la venta. La gráfica se llena sola.
+              En la columna Acciones de cada evento, usa el botón de la paleta
+              para pintarlo de amarillo (Bayron) o azul (Abraham).
+              La gráfica se llena sola.
             </p>
           </div>
         )}
@@ -218,8 +222,8 @@ export function GraficaVentasComercial({
         {eventosSinAsignar > 0 && (
           <p className="text-xs text-muted-foreground">
             Hay {eventosSinAsignar} evento{eventosSinAsignar === 1 ? "" : "s"} sin
-            comercial asignado en este periodo. No entran en las barras, para que
-            la comparación no quede inflada.
+            color de comercial en este periodo, contando los marcados en rojo.
+            No entran en las barras, para que la comparación no quede inflada.
           </p>
         )}
       </DialogContent>

@@ -150,20 +150,14 @@ export function DetalleEventoDialog({
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <StatusBadge status={proyecto.estado} />
             {marca && (
-              /* El nombre va en tinta normal y el color lo lleva el punto. El
-                 amarillo de Bayron como color de letra no se lee sobre claro,
-                 y aqui hace falta que se lea, no que combine. */
               <span
                 style={{
+                  color: marca.color,
                   borderColor: marca.color,
                   backgroundColor: fondoDeColor(marca.color, 0.14),
                 }}
-                className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold text-foreground"
+                className="rounded-full border px-2 py-0.5 text-[10px] font-semibold"
               >
-                <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ backgroundColor: marca.color }}
-                />
                 {marca.nombre}
               </span>
             )}

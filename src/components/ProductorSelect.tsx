@@ -28,10 +28,23 @@ export function ProductorSelect({ value, onChange, disabled = false }: Productor
   const actual = (value || "").trim();
   const estaEnLaLista = usuarios.some((u) => u.nombre === actual);
 
+  // Fuera del Panel Directivo el productor se mira, no se toca. Se dice de
+  // donde sale, para que quien lo necesite cambiar sepa a quien pedirselo en
+  // vez de creer que la casilla esta danada.
   if (disabled) {
     return (
-      <span className="block truncate text-xs" title={actual || "Sin asignar"}>
-        {actual || "—"}
+      <span
+        className="flex min-w-0 items-center gap-1 text-xs"
+        title={
+          actual
+            ? `${actual} — lo asigna el Panel Directivo`
+            : "Sin asignar. Lo asigna el Panel Directivo."
+        }
+      >
+        <UserCog className="h-3 w-3 shrink-0 opacity-40" />
+        <span className={cn("truncate", !actual && "text-muted-foreground")}>
+          {actual || "Sin asignar"}
+        </span>
       </span>
     );
   }

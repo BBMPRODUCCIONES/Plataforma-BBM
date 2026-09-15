@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
+import { ProductorSelect } from "@/components/ProductorSelect";
 import { StatusSelect } from "@/components/StatusSelect";
 import { EventCalendar } from "@/components/EventCalendar";
 import { CalendarFilter } from "@/components/CalendarFilter";
@@ -425,6 +426,9 @@ const PanelGeneral = () => {
             )}
           </div>
         );
+      // El productor se asigna solo desde el Panel Directivo.
+      case "productor":
+        return (p: Project) => <ProductorSelect value={p.productor} onChange={() => {}} disabled />;
       default:
         return (p: Project) => generalReadOnly ? (
           <span className="text-sm truncate">{(p as any)[colConfig.key] || "Sin datos"}</span>

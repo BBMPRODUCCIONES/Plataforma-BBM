@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
+import { ProductorSelect } from "@/components/ProductorSelect";
 import { DragReorderHandle } from "@/components/DragReorderHandle";
 import { StatusSelect } from "@/components/StatusSelect";
 import { EventCalendar } from "@/components/EventCalendar";
@@ -945,16 +946,11 @@ const PanelOperaciones = () => {
               disabled={operativoReadOnly}
             />
           );
+        // El productor se asigna solo desde el Panel Directivo: aqui se ve,
+        // no se edita. Antes era texto libre y cada panel escribia el nombre a
+        // su manera.
         case "productor":
-          return (
-            <EditableCell
-              value={p.productor}
-              type="text"
-              onChange={(value) => updateProject(p.id, "productor", value)}
-              placeholder="Nombre productor"
-              disabled={operativoReadOnly}
-            />
-          );
+          return <ProductorSelect value={p.productor} onChange={() => {}} disabled />;
         case "ubicacion":
           return (
             <EditableCell

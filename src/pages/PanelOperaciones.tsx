@@ -24,6 +24,7 @@ import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDia
 import { NotasGeneralesEditor } from "@/components/NotasGeneralesEditor";
 import { InventarioResponsablesSelector, ResponsableAutoLog } from "@/components/InventarioResponsablesSelector";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
+import { anclarPrimero } from "@/lib/columnasPanel";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
@@ -666,7 +667,8 @@ const PanelOperaciones = () => {
   };
 
   // Use managed columns directly (already initialized)
-  const allColumnConfigs = managedColumns;
+  // Productor de primera, igual que en los otros paneles.
+  const allColumnConfigs = anclarPrimero(managedColumns, "productor");
 
   const getDateRange = () => {
     if (globalViewMode === "custom" && dateRange) {
@@ -2926,7 +2928,7 @@ const PanelOperaciones = () => {
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
                 onRowClick={(item) => setSelectedProject(item as Project)}
-                mobileKeys={["evento", "cliente", "fechaMontaje", "fechaEjecucion", "estado"]}
+                mobileKeys={["evento", "cliente", "productor", "fechaMontaje", "fechaEjecucion", "estado"]}
                 mobilePreferenceKey="panel-operaciones"
                 getRowAccent={acentoVisualDeEvento}
                 getRowStyle={estiloFilaVisual}

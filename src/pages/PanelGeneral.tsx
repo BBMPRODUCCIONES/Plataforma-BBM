@@ -18,6 +18,7 @@ import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDia
 import { EventLink } from "@/components/EventLink";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
+import { anclarPrimero } from "@/lib/columnasPanel";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
@@ -162,7 +163,12 @@ const PanelGeneral = () => {
   ], []);
 
   // Get all columns - direct calculation for immediate updates
-  const allColumnConfigs = managedColumns.length > 0 ? managedColumns : baseColumnDefs;
+  // Productor de primera: es lo que se mira para saber quien responde por el
+  // evento, y quedaba en la columna once, fuera de pantalla.
+  const allColumnConfigs = anclarPrimero(
+    managedColumns.length > 0 ? managedColumns : baseColumnDefs,
+    "productor"
+  );
 
   // Handle columns change - force new array reference
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
@@ -592,7 +598,7 @@ const PanelGeneral = () => {
                 columns={columns}
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
-                mobileKeys={["evento", "cliente", "fechaMontaje", "fechaEjecucion", "estado"]}
+                mobileKeys={["evento", "cliente", "productor", "fechaMontaje", "fechaEjecucion", "estado"]}
                 mobilePreferenceKey="panel-general"
                 getRowAccent={acentoVisualDeEvento}
                 getRowStyle={estiloFilaVisual}

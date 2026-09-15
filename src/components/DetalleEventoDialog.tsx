@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Project } from "@/types";
 import { colorVisualDeEvento, fondoDeColor } from "@/lib/coloresProyecto";
+import { ListaAdjuntos } from "@/components/ListaAdjuntos";
 
 interface DetalleEventoDialogProps {
   proyecto: Project | null;
@@ -226,6 +227,10 @@ export function DetalleEventoDialog({
           )}
 
           {proyecto.numFactura && <Dato etiqueta="# Factura" valor={proyecto.numFactura} />}
+
+          {/* Los archivos del evento, para abrirlos sin salir de la ficha. */}
+          <ListaAdjuntos adjuntos={proyecto.cotizaciones || []} etiqueta="Cotización" />
+          <ListaAdjuntos adjuntos={proyecto.ordenesCompra || []} etiqueta="Orden de compra" />
 
           {proyecto.notas && (
             <div>

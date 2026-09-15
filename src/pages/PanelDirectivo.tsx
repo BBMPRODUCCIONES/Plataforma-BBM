@@ -19,6 +19,7 @@ import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { EventLink } from "@/components/EventLink";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
+import { anclarPrimero } from "@/lib/columnasPanel";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
@@ -28,6 +29,7 @@ import { acentoVisualDeEvento, estiloFilaVisual } from "@/lib/coloresProyecto";
 import { SelectorColorProyecto } from "@/components/SelectorColorProyecto";
 import { GraficaVentasComercial } from "@/components/GraficaVentasComercial";
 import { CostosEventoDialog } from "@/components/CostosEventoDialog";
+import { DetalleEventoDialog } from "@/components/DetalleEventoDialog";
 import { ProductorSelect } from "@/components/ProductorSelect";
 import { CostoEvento } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -117,6 +119,7 @@ const PanelDirectivo = () => {
   const isAdmin = role?.toLowerCase() === "administrador";
   const [graficaVentasAbierta, setGraficaVentasAbierta] = useState(false);
   const [costosDeProyectoId, setCostosDeProyectoId] = useState<string | null>(null);
+  const [fichaDeProyectoId, setFichaDeProyectoId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -479,8 +482,11 @@ const PanelDirectivo = () => {
   // estructura guardada en panel_column_configs manda sobre ellos y traeria la
   // columna de vuelta.
   const COLUMNAS_RETIRADAS = ["ordenCompra"];
-  const allColumnConfigs = (managedColumns.length > 0 ? managedColumns : baseColumnDefs)
-    .filter((col) => !COLUMNAS_RETIRADAS.includes(col.key));
+  const allColumnConfigs = anclarPrimero(
+    (managedColumns.length > 0 ? managedColumns : baseColumnDefs)
+      .filter((col) => !COLUMNAS_RETIRADAS.includes(col.key)),
+    "productor"
+  );
 
   // Handle columns change from manager - force new array reference
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
@@ -974,6 +980,16 @@ const PanelDirectivo = () => {
           projects={projects}
         />
 
+        {/* La ficha del evento, la misma del calendario. Se abre al tocar la
+            fila; las celdas que se editan detienen el clic por su cuenta, asi
+            que escribir en una casilla no la abre. */}
+        <DetalleEventoDialog
+          proyecto={projects.find((p) => p.id === fichaDeProyectoId) ?? null}
+          open={Boolean(fichaDeProyectoId)}
+          onOpenChange={(abierto) => { if (!abierto) setFichaDeProyectoId(null); }}
+          mostrarDinero
+        />
+
         <CostosEventoDialog
           proyecto={projects.find((p) => p.id === costosDeProyectoId) ?? null}
           open={Boolean(costosDeProyectoId)}
@@ -1118,7 +1134,10 @@ const PanelDirectivo = () => {
                 key={`table-${allColumnConfigs.map(c => `${c.key}-${c.visible}-${c.order}`).join('_')}`}
                 data={filteredProjects}
                 columns={columns}
-                onRowClick={(p) => setHighlightedProjectId(p.id)}
+                onRowClick={(p) => {
+                  setHighlightedProjectId(p.id);
+                  setFichaDeProyectoId(p.id);
+                }}
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
                 mobileKeys={["evento", "cliente", "productor", "fechaMontaje", "fechaEjecucion", "estado", "ingresoTotal", "costos"]}

@@ -1,10 +1,11 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { parseISO, startOfMonth, subMonths, isAfter } from "date-fns";
 import { Project } from "@/types";
 import { COLORES_DE_COMERCIAL, buscarColor, colorVisualDeEvento } from "@/lib/coloresProyecto";
 import { ListaAdjuntos } from "@/components/ListaAdjuntos";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { format, parseISO as parseISOFecha } from "date-fns";
 import { es } from "date-fns/locale";
@@ -369,12 +370,7 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
 
       {/* Con un cliente desplegado la tabla necesita mas aire: si no, el
           detalle sale por una rendija de 260 px. */}
-      <div
-        className={cn(
-          "overflow-auto rounded-lg border border-border",
-          clienteAbierto ? "max-h-[420px]" : "max-h-[260px]"
-        )}
-      >
+      <div className="max-h-[260px] overflow-auto rounded-lg border border-border">
         <table className="w-full min-w-[420px] text-sm">
           <thead className="sticky top-0 bg-muted/80 backdrop-blur">
             <tr className="text-left">
@@ -387,11 +383,13 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
           <tbody>
             {filas.map((f) => {
               const abierto = clienteAbierto === f.k;
-              const susEventos = eventosPorCliente.get(f.k) ?? [];
               return (
-                <Fragment key={f.k}>
                   <tr
-                    className="cursor-pointer border-t border-border/60 hover:bg-accent/40"
+                    key={f.k}
+                    className={cn(
+                      "cursor-pointer border-t border-border/60 hover:bg-accent/40",
+                      abierto && "bg-accent/40"
+                    )}
                     onClick={() => setClienteAbierto(abierto ? null : f.k)}
                     title={abierto ? "Ocultar sus eventos" : "Ver sus eventos y sus cotizaciones"}
                   >
@@ -415,70 +413,6 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
                       {f.porcentaje.toFixed(1)}%
                     </td>
                   </tr>
-
-                  {abierto && (
-                    <tr className="border-t border-border/60 bg-muted/20">
-                      <td colSpan={4} className="px-3 py-2">
-                        <div className="flex flex-col gap-2">
-                          {susEventos.map((p) => {
-                            const marca = colorVisualDeEvento(p);
-                            return (
-                              <div
-                                key={p.id}
-                                className="rounded-md border border-border/70 bg-background/60 p-2.5"
-                              >
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <span className="min-w-0 flex-1 break-words text-sm font-medium">
-                                    {p.evento || "Sin nombre"}
-                                  </span>
-                                  <span className="whitespace-nowrap text-sm tabular-nums">
-                                    {pesos.format(Number(p.ingresoTotal) || 0)}
-                                  </span>
-                                </div>
-
-                                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                  <StatusBadge status={p.estado} />
-                                  <span>{diaCorto(p.fechaEjecucionInicio)}</span>
-                                  {p.ubicacion && (
-                                    <span className="flex min-w-0 items-center gap-1">
-                                      <MapPin className="h-3 w-3 shrink-0" />
-                                      <span className="truncate">{p.ubicacion}</span>
-                                    </span>
-                                  )}
-                                  {marca && <span>{marca.nombre}</span>}
-                                  {p.productor && <span>· {p.productor}</span>}
-                                </div>
-
-                                {p.notas && (
-                                  <p className="mt-1.5 whitespace-pre-wrap break-words text-xs text-foreground/70">
-                                    {p.notas}
-                                  </p>
-                                )}
-
-                                <div className="mt-2 space-y-2">
-                                  <ListaAdjuntos
-                                    adjuntos={p.cotizaciones || []}
-                                    etiqueta="Cotización"
-                                  />
-                                  <ListaAdjuntos
-                                    adjuntos={p.ordenesCompra || []}
-                                    etiqueta="Orden de compra"
-                                  />
-                                  {(p.cotizaciones || []).length === 0 &&
-                                    (p.ordenesCompra || []).length === 0 && (
-                                      <p className="text-[11px] text-muted-foreground">
-                                        Este evento no tiene cotización cargada.
-                                      </p>
-                                    )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
               );
             })}
             {sinCliente > 0 && (
@@ -494,6 +428,85 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
           </tbody>
         </table>
       </div>
+
+      {/* El detalle va debajo de la tabla, no dentro.
+          La tabla se desliza en horizontal para que quepan sus cuatro columnas,
+          y cualquier cosa metida en una de sus filas hereda ese ancho: los
+          valores y los botones de los archivos quedaban cortados a la derecha.
+          Aqui ocupa el ancho del dialogo y no se corta nada. */}
+      {clienteAbierto && (
+        <div className="rounded-lg border border-border p-3">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="min-w-0 break-words text-sm font-semibold">
+              {filas.find((f) => f.k === clienteAbierto)?.nombre ?? "Cliente"}
+            </h4>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 shrink-0 px-2 text-xs"
+              onClick={() => setClienteAbierto(null)}
+            >
+              Cerrar
+            </Button>
+          </div>
+
+          <div className="mt-2 flex max-h-[320px] flex-col gap-2 overflow-y-auto">
+            {(eventosPorCliente.get(clienteAbierto) ?? []).map((p) => {
+              const marca = colorVisualDeEvento(p);
+              return (
+                <div key={p.id} className="rounded-md border border-border/70 p-2.5">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <span className="min-w-0 flex-1 break-words text-sm font-medium">
+                      {p.evento || "Sin nombre"}
+                    </span>
+                    <span className="whitespace-nowrap text-sm tabular-nums">
+                      {pesos.format(Number(p.ingresoTotal) || 0)}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <StatusBadge status={p.estado} />
+                    <span>{diaCorto(p.fechaEjecucionInicio)}</span>
+                    {p.ubicacion && (
+                      <span className="flex min-w-0 items-center gap-1">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{p.ubicacion}</span>
+                      </span>
+                    )}
+                    {marca && (
+                      <span className="flex items-center gap-1">
+                        <span
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ backgroundColor: marca.color }}
+                        />
+                        {marca.nombre}
+                      </span>
+                    )}
+                    {p.productor && <span>· {p.productor}</span>}
+                  </div>
+
+                  {p.notas && (
+                    <p className="mt-1.5 whitespace-pre-wrap break-words text-xs text-foreground/70">
+                      {p.notas}
+                    </p>
+                  )}
+
+                  <div className="mt-2 space-y-2">
+                    <ListaAdjuntos adjuntos={p.cotizaciones || []} etiqueta="Cotización" />
+                    <ListaAdjuntos adjuntos={p.ordenesCompra || []} etiqueta="Orden de compra" />
+                    {(p.cotizaciones || []).length === 0 &&
+                      (p.ordenesCompra || []).length === 0 && (
+                        <p className="text-[11px] text-muted-foreground">
+                          Este evento no tiene cotización cargada.
+                        </p>
+                      )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       </>
       )}

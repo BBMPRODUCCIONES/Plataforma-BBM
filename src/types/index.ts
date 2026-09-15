@@ -71,6 +71,8 @@ export interface Project {
   createdByEmail?: string;
   /** Color manual de la fila, puesto desde el Panel Directivo. Hex o vacio. */
   color?: string | null;
+  /** Comercial al que se le atribuye la venta. Ver src/lib/comerciales.ts */
+  comercial?: string | null;
   createdAt: string;
   updatedAt: string;
 }

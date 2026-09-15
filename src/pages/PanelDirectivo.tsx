@@ -27,10 +27,12 @@ import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { accentPorAutor } from "@/lib/autorEvento";
 import { estiloFilaPorColor } from "@/lib/coloresProyecto";
 import { SelectorColorProyecto } from "@/components/SelectorColorProyecto";
+import { SelectorComercial } from "@/components/SelectorComercial";
+import { GraficaVentasComercial } from "@/components/GraficaVentasComercial";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus, ExternalLink, Settings, Loader2, Trash2, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, Eye, Loader2, Plus, RotateCcw, Search, Settings, Trash2, TrendingUp } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
@@ -72,6 +74,7 @@ const PanelDirectivo = () => {
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple, addProject, softDeleteProject, restoreProject } = useProjects();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const isAdmin = role?.toLowerCase() === "administrador";
+  const [graficaVentasAbierta, setGraficaVentasAbierta] = useState(false);
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -762,6 +765,12 @@ const PanelDirectivo = () => {
     render: (p: Project) => (
       <div className="flex gap-1 items-center">
         {isAdmin && (
+          <SelectorComercial
+            valor={p.comercial}
+            onCambio={(comercial) => updateProject(p.id, "comercial", comercial)}
+          />
+        )}
+        {isAdmin && (
           <SelectorColorProyecto
             valor={p.color}
             onCambio={(color) => updateProject(p.id, "color", color)}
@@ -888,16 +897,25 @@ const PanelDirectivo = () => {
   return (
     <Layout>
       <div className={isMobile ? "space-y-2 px-2 pt-1" : "space-y-6"}>
+        <GraficaVentasComercial
+          open={graficaVentasAbierta}
+          onOpenChange={setGraficaVentasAbierta}
+          projects={projects}
+        />
         <PanelHeader
           title="Panel Directivo"
           description="Gestión ejecutiva de proyectos y control de ingresos"
-          panelLinks={[
-            { label: "General", to: "/panel-general" },
-            { label: "Operaciones", to: "/panel-operaciones" },
-            { label: "Proveedores", to: "/proveedores" },
-          ]}
           actions={
             <div className={`flex ${isMobile ? 'flex-col gap-1.5' : 'gap-2'}`}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setGraficaVentasAbierta(true)}
+                className={isMobile ? 'h-8 text-xs px-2.5' : ''}
+              >
+                <TrendingUp className={isMobile ? 'h-3.5 w-3.5 mr-1' : 'h-4 w-4 mr-2'} />
+                Ventas por comercial
+              </Button>
               {isAdmin && (
                 <Button 
                   variant="outline" 

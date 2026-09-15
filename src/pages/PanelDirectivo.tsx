@@ -28,6 +28,7 @@ import { acentoVisualDeEvento, estiloFilaVisual } from "@/lib/coloresProyecto";
 import { SelectorColorProyecto } from "@/components/SelectorColorProyecto";
 import { GraficaVentasComercial } from "@/components/GraficaVentasComercial";
 import { CostosEventoDialog } from "@/components/CostosEventoDialog";
+import { ProductorSelect } from "@/components/ProductorSelect";
 import { CostoEvento } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -137,22 +138,23 @@ const PanelDirectivo = () => {
   
   // Column management state - persisted to localStorage
   const defaultColumns: ColumnConfig[] = [
-    { key: "centroCostos", header: "CC", type: "text" as CellType, width: "60px", visible: true, isCustom: false, order: 0 },
-    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 1 },
-    { key: "evento", header: "Evento", type: "text" as CellType, width: "140px", visible: true, isCustom: false, order: 2 },
-    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "115px", visible: true, isCustom: false, order: 3, options: ["No se hizo", "Se hizo", "No es necesario"] },
-    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "80px", visible: true, isCustom: false, order: 4 },
-    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "80px", visible: true, isCustom: false, order: 5 },
-    { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "85px", visible: true, isCustom: false, order: 6 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "115px", visible: true, isCustom: false, order: 7 },
-    { key: "ingresoBruto", header: "Ing. Bruto", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 8 },
-    { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
-    { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "75px", visible: true, isCustom: false, order: 10 },
-    { key: "ordenCompra", header: "OC", type: "file" as CellType, width: "55px", visible: true, isCustom: false, order: 11 },
-    { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 12 },
-    { key: "numFactura", header: "#Fact.", type: "text" as CellType, width: "65px", visible: true, isCustom: false, order: 13 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 14 },
-    { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "60px", visible: true, isCustom: false, order: 15 },
+    { key: "productor", header: "Productor", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
+    { key: "centroCostos", header: "CC", type: "text" as CellType, width: "60px", visible: true, isCustom: false, order: 1 },
+    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 2 },
+    { key: "evento", header: "Evento", type: "text" as CellType, width: "140px", visible: true, isCustom: false, order: 3 },
+    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "115px", visible: true, isCustom: false, order: 4, options: ["No se hizo", "Se hizo", "No es necesario"] },
+    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "80px", visible: true, isCustom: false, order: 5 },
+    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "80px", visible: true, isCustom: false, order: 6 },
+    { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "85px", visible: true, isCustom: false, order: 7 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "115px", visible: true, isCustom: false, order: 8 },
+    { key: "ingresoBruto", header: "Ing. Bruto", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
+    { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 10 },
+    { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "75px", visible: true, isCustom: false, order: 11 },
+    { key: "ordenCompra", header: "OC", type: "file" as CellType, width: "55px", visible: true, isCustom: false, order: 12 },
+    { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 13 },
+    { key: "numFactura", header: "#Fact.", type: "text" as CellType, width: "65px", visible: true, isCustom: false, order: 14 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 15 },
+    { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "60px", visible: true, isCustom: false, order: 16 },
   ];
   const { columns: managedColumns, setColumns: setManagedColumns, loading: columnsLoading, isAdmin: canModifyStructure } = useGlobalColumns("panel-directivo", defaultColumns);
   
@@ -361,6 +363,7 @@ const PanelDirectivo = () => {
             case "cotizaciones": return (proj.cotizaciones || []).length;
             case "ordenCompra": return (proj.ordenesCompra || []).length;
             case "costos": return (proj.costos || []).reduce((suma, c) => suma + (Number(c.valor) || 0), 0);
+            case "productor": return proj.productor || "";
             case "notas": return proj.notas || "";
             case "fechaMontaje": return proj.fechaMontajeInicio || "";
             case "fechaEjecucion": return proj.fechaEjecucionInicio || "";
@@ -431,21 +434,22 @@ const PanelDirectivo = () => {
 
   // Define base columns with their configurations
   const baseColumnDefs: ColumnConfig[] = useMemo(() => [
-    { key: "centroCostos", header: "CC", type: "text" as CellType, width: "70px", visible: true, isCustom: false, order: 0 },
-    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 1 },
-    { key: "evento", header: "Evento", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 2 },
-    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 3 },
-    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 4 },
-    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 5 },
-    { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "95px", visible: true, isCustom: false, order: 6 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 7 },
-    { key: "ingresoBruto", header: "Ing. Bruto", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 8 },
-    { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 9 },
-    { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "85px", visible: true, isCustom: false, order: 10 },
-    { key: "ordenCompra", header: "OC", type: "file" as CellType, width: "70px", visible: true, isCustom: false, order: 11 },
-    { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 12 },
-    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 13 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 14 },
+    { key: "productor", header: "Productor", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
+    { key: "centroCostos", header: "CC", type: "text" as CellType, width: "70px", visible: true, isCustom: false, order: 1 },
+    { key: "cliente", header: "Cliente", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 2 },
+    { key: "evento", header: "Evento", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 3 },
+    { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 4 },
+    { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 5 },
+    { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 6 },
+    { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "95px", visible: true, isCustom: false, order: 7 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 8 },
+    { key: "ingresoBruto", header: "Ing. Bruto", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 9 },
+    { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 10 },
+    { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "85px", visible: true, isCustom: false, order: 11 },
+    { key: "ordenCompra", header: "OC", type: "file" as CellType, width: "70px", visible: true, isCustom: false, order: 12 },
+    { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 13 },
+    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 14 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 15 },
   ], []);
 
   // Get all columns (base + managed) - direct calculation for immediate updates
@@ -524,6 +528,8 @@ const PanelDirectivo = () => {
           return (p: Project) => <span className="text-xs">{(p.ordenesCompra || []).length > 0 ? `${(p.ordenesCompra || []).length} archivo(s)` : "—"}</span>;
         case "costos":
           return (p: Project) => <BotonCostos proyecto={p} onAbrir={setCostosDeProyectoId} />;
+        case "productor":
+          return (p: Project) => <ProductorSelect value={p.productor} onChange={() => {}} disabled />;
         case "notas":
           return (p: Project) => (
             <div className="flex items-center gap-1 max-w-[150px]">
@@ -772,6 +778,13 @@ const PanelDirectivo = () => {
         );
       case "costos":
         return (p: Project) => <BotonCostos proyecto={p} onAbrir={setCostosDeProyectoId} />;
+      case "productor":
+        return (p: Project) => (
+          <ProductorSelect
+            value={p.productor}
+            onChange={(nombre) => updateProject(p.id, "productor", nombre)}
+          />
+        );
       case "notas":
         return (p: Project) => (
           <div className="flex items-center gap-1 max-w-[150px]">
@@ -1081,7 +1094,7 @@ const PanelDirectivo = () => {
                 onRowClick={(p) => setHighlightedProjectId(p.id)}
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
-                mobileKeys={["evento", "cliente", "fechaMontaje", "fechaEjecucion", "estado", "ingresoTotal", "costos"]}
+                mobileKeys={["evento", "cliente", "productor", "fechaMontaje", "fechaEjecucion", "estado", "ingresoTotal", "costos"]}
                 mobilePreferenceKey="panel-directivo"
                 getRowAccent={acentoVisualDeEvento}
                 getRowStyle={estiloFilaVisual}

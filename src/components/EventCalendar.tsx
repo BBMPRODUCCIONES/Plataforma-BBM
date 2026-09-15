@@ -20,12 +20,21 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Project } from "@/types";
 import { colorVisualDeEvento, COLORES_PROYECTO, fondoDeColor } from "@/lib/coloresProyecto";
+import { DetalleEventoDialog } from "@/components/DetalleEventoDialog";
 
 interface EventCalendarProps {
   projects: Project[];
   /** Mes que se muestra al abrir. Por defecto, el mes actual. */
   startDate?: Date;
+  /**
+   * Que hacer al pedir "ver en la tabla" desde la ficha del evento. Tocar el
+   * evento ya no salta directo a la tabla: primero abre la ficha, que es lo
+   * que la gente va a mirar (hora, lugar, responsable). El salto queda como
+   * un boton dentro de la ficha.
+   */
   onProjectClick?: (projectId: string) => void;
+  /** Muestra los montos en la ficha. Solo para los paneles que ya los ensenan. */
+  mostrarDinero?: boolean;
 }
 
 type Fase = "montaje" | "ejecucion" | "desmontaje";
@@ -77,7 +86,16 @@ function faseDelDia(proyecto: Project, dia: Date): Fase | null {
   return null;
 }
 
-export function EventCalendar({ projects, startDate, onProjectClick }: EventCalendarProps) {
+export function EventCalendar({
+  projects,
+  startDate,
+  onProjectClick,
+  mostrarDinero = false,
+}: EventCalendarProps) {
+  const [detalleId, setDetalleId] = useState<string | null>(null);
+  const proyectoDelDetalle = detalleId
+    ? projects.find((p) => p.id === detalleId) ?? null
+    : null;
   const isMobile = useIsMobile();
   const [mes, setMes] = useState<Date>(() => startOfMonth(startDate ?? new Date()));
   const [diaAbierto, setDiaAbierto] = useState<Date | null>(null);
@@ -254,7 +272,7 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
                           key={proyecto.id + fase}
                           onClick={(e) => {
                             e.stopPropagation();
-                            onProjectClick?.(proyecto.id);
+                            setDetalleId(proyecto.id);
                           }}
                           style={
                             marca
@@ -269,7 +287,7 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
                           className={cn(
                             "truncate rounded border px-1 py-0.5 text-[10px] leading-tight",
                             !marca && FASE_ESTILO[fase].chip,
-                            onProjectClick && "cursor-pointer hover:brightness-110"
+                            "cursor-pointer hover:brightness-110"
                           )}
                           title={
                             marca
@@ -310,7 +328,7 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
                   <li key={proyecto.id + fase}>
                     <button
                       type="button"
-                      onClick={() => onProjectClick?.(proyecto.id)}
+                      onClick={() => setDetalleId(proyecto.id)}
                       className="flex w-full items-center gap-2 rounded-md border border-border/60 px-2.5 py-2 text-left transition-colors hover:bg-accent/40"
                     >
                       <span
@@ -347,6 +365,18 @@ export function EventCalendar({ projects, startDate, onProjectClick }: EventCale
           )}
         </div>
       )}
+
+      <DetalleEventoDialog
+        proyecto={proyectoDelDetalle}
+        open={Boolean(proyectoDelDetalle)}
+        onOpenChange={(abierto) => { if (!abierto) setDetalleId(null); }}
+        mostrarDinero={mostrarDinero}
+        onVerEnTabla={
+          onProjectClick && detalleId
+            ? () => { const id = detalleId; setDetalleId(null); onProjectClick(id); }
+            : undefined
+        }
+      />
     </div>
   );
 }

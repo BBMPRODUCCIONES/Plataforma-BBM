@@ -1030,10 +1030,14 @@ const PanelDirectivo = () => {
           </TabsContent>
 
           <TabsContent value="gantt" className="mt-4">
+            {/* mostrarDinero: este panel ya ensena los ingresos en su tabla,
+                ocultarlos en la ficha seria incoherente. General y Operaciones
+                no los muestran, y ahi la ficha tampoco. */}
             <EventCalendar
                 projects={filteredProjects}
                 startDate={globalSelectedDate}
                 onProjectClick={handleGanttProjectClick}
+                mostrarDinero
               />
           </TabsContent>
 

@@ -99,6 +99,20 @@ export function EventCalendar({
   const isMobile = useIsMobile();
   const [mes, setMes] = useState<Date>(() => startOfMonth(startDate ?? new Date()));
   const [diaAbierto, setDiaAbierto] = useState<Date | null>(null);
+  /**
+   * Dias cuyo "+N mas" se pulso para ver la lista completa dentro de la casilla.
+   * Antes ese texto no hacia nada: decia que faltaban eventos y no habia forma
+   * de verlos sin abrir el detalle de abajo.
+   */
+  const [diasDesplegados, setDiasDesplegados] = useState<Set<string>>(new Set());
+
+  const alternarDesplegado = (clave: string) =>
+    setDiasDesplegados((prev) => {
+      const siguiente = new Set(prev);
+      if (siguiente.has(clave)) siguiente.delete(clave);
+      else siguiente.add(clave);
+      return siguiente;
+    });
 
   useEffect(() => {
     if (startDate) setMes(startOfMonth(startDate));
@@ -132,6 +146,7 @@ export function EventCalendar({
   const irA = (delta: number) => {
     setMes((actual) => addMonths(actual, delta));
     setDiaAbierto(null);
+    setDiasDesplegados(new Set());
   };
 
   const listaDelDia = diaAbierto ? eventosPorDia.get(format(diaAbierto, "yyyy-MM-dd")) ?? [] : [];
@@ -214,6 +229,7 @@ export function EventCalendar({
             const delDia = eventosPorDia.get(clave) ?? [];
             const esDeOtroMes = !isSameMonth(dia, mes);
             const seleccionado = diaAbierto && isSameDay(dia, diaAbierto);
+            const desplegado = diasDesplegados.has(clave);
 
             return (
               <button
@@ -222,6 +238,7 @@ export function EventCalendar({
                 onClick={() => setDiaAbierto(seleccionado ? null : dia)}
                 className={cn(
                   "flex min-h-[64px] flex-col items-stretch gap-1 border-b border-r border-border/60 p-1.5 text-left transition-colors sm:min-h-[104px]",
+                  desplegado && "bg-accent/20",
                   esDeOtroMes && "bg-muted/30",
                   isWeekend(dia) && !esDeOtroMes && "bg-muted/20",
                   seleccionado && "ring-2 ring-inset ring-primary",
@@ -265,7 +282,7 @@ export function EventCalendar({
                   )
                 ) : (
                   <span className="flex flex-col gap-0.5">
-                    {delDia.slice(0, maxChips).map(({ proyecto, fase }) => {
+                    {(desplegado ? delDia : delDia.slice(0, maxChips)).map(({ proyecto, fase }) => {
                       const marca = colorVisualDeEvento(proyecto);
                       return (
                         <span
@@ -300,8 +317,24 @@ export function EventCalendar({
                       );
                     })}
                     {delDia.length > maxChips && (
-                      <span className="pl-1 text-[10px] text-muted-foreground">
-                        +{delDia.length - maxChips} más
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          alternarDesplegado(clave);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            alternarDesplegado(clave);
+                          }
+                        }}
+                        className="cursor-pointer rounded px-1 text-left text-[10px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                        title={desplegado ? "Ver menos" : "Ver todos los eventos de este día"}
+                      >
+                        {desplegado ? "ver menos" : `+${delDia.length - maxChips} más`}
                       </span>
                     )}
                   </span>

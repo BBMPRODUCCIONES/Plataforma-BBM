@@ -425,32 +425,10 @@ const PanelDirectivo = () => {
     await addProject(newProject);
   };
 
-  /**
-   * Del calendario a la fila del evento en la tabla.
-   *
-   * Cambiar de pestana no bastaba: con doscientos eventos la fila resaltada
-   * quedaba a varias pantallas de distancia y tocaba buscarla a mano, que es
-   * justo lo que el boton dice ahorrar.
-   */
   const handleGanttProjectClick = (projectId: string) => {
     setHighlightedProjectId(projectId);
     const tabTrigger = document.querySelector('[value="tabla"]') as HTMLElement;
     if (tabTrigger) tabTrigger.click();
-
-    // La tabla se dibuja despues del cambio de pestana, asi que la fila aun no
-    // existe en este momento. Se reintenta unas cuantas veces y se abandona:
-    // mejor quedarse arriba que dejar un temporizador vivo si el evento esta
-    // filtrado y su fila no va a aparecer nunca.
-    let intentos = 0;
-    const buscar = () => {
-      const fila = document.querySelector(`[data-project-id="${projectId}"]`);
-      if (fila) {
-        fila.scrollIntoView({ behavior: "smooth", block: "center" });
-        return;
-      }
-      if (++intentos < 10) setTimeout(buscar, 80);
-    };
-    setTimeout(buscar, 80);
   };
 
   // Define base columns with their configurations

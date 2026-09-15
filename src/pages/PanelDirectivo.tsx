@@ -27,10 +27,12 @@ import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { acentoVisualDeEvento, estiloFilaVisual } from "@/lib/coloresProyecto";
 import { SelectorColorProyecto } from "@/components/SelectorColorProyecto";
 import { GraficaVentasComercial } from "@/components/GraficaVentasComercial";
+import { CostosEventoDialog } from "@/components/CostosEventoDialog";
+import { CostoEvento } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, Eye, Loader2, Plus, RotateCcw, Search, Settings, Trash2, TrendingUp } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, Eye, Loader2, Plus, RotateCcw, Search, Settings, Trash2, TrendingUp, Receipt } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
@@ -65,6 +67,46 @@ type EmptyPlacement = "last" | "first";
 const KNOWN_ESTADOS_DIR = ["Por Ejecutar", "En Progreso", "Facturado", "Completado", "Cancelado"];
 const KNOWN_AVANZADA = ["No se hizo", "Se hizo", "No es necesario"];
 
+/**
+ * Celda de Costos: el total si hay algo cargado, o la invitacion a cargarlo.
+ * Se saca a su propio componente porque se dibuja una vez por fila.
+ */
+const BotonCostos = ({
+  proyecto,
+  onAbrir,
+}: {
+  proyecto: Project;
+  onAbrir: (id: string) => void;
+}) => {
+  const lineas = proyecto.costos || [];
+  const total = lineas.reduce((suma, c) => suma + (Number(c.valor) || 0), 0);
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 w-full justify-start px-1.5 text-xs"
+      onClick={(e) => {
+        e.stopPropagation();
+        onAbrir(proyecto.id);
+      }}
+      title={
+        lineas.length > 0
+          ? `${lineas.length} costo${lineas.length === 1 ? "" : "s"} cargado${lineas.length === 1 ? "" : "s"}`
+          : "Cargar los costos del evento"
+      }
+    >
+      <Receipt className="mr-1 h-3.5 w-3.5 shrink-0 opacity-70" />
+      {total > 0 ? (
+        <span className="truncate font-mono tabular-nums">
+          $ {total.toLocaleString("es-CO")}
+        </span>
+      ) : (
+        <span className="truncate text-muted-foreground">Cargar costos</span>
+      )}
+    </Button>
+  );
+};
+
 const PanelDirectivo = () => {
   const navigate = useNavigate();
   const { canEditStructure, role, canEditDirectivo } = useUserRole();
@@ -73,6 +115,7 @@ const PanelDirectivo = () => {
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const isAdmin = role?.toLowerCase() === "administrador";
   const [graficaVentasAbierta, setGraficaVentasAbierta] = useState(false);
+  const [costosDeProyectoId, setCostosDeProyectoId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -106,9 +149,10 @@ const PanelDirectivo = () => {
     { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
     { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "75px", visible: true, isCustom: false, order: 10 },
     { key: "ordenCompra", header: "OC", type: "file" as CellType, width: "55px", visible: true, isCustom: false, order: 11 },
-    { key: "numFactura", header: "#Fact.", type: "text" as CellType, width: "65px", visible: true, isCustom: false, order: 12 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 13 },
-    { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "60px", visible: true, isCustom: false, order: 14 },
+    { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 12 },
+    { key: "numFactura", header: "#Fact.", type: "text" as CellType, width: "65px", visible: true, isCustom: false, order: 13 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 14 },
+    { key: "panelGeneral", header: "Panel", type: "text" as CellType, width: "60px", visible: true, isCustom: false, order: 15 },
   ];
   const { columns: managedColumns, setColumns: setManagedColumns, loading: columnsLoading, isAdmin: canModifyStructure } = useGlobalColumns("panel-directivo", defaultColumns);
   
@@ -316,6 +360,7 @@ const PanelDirectivo = () => {
             case "ingresoTotal": return proj.ingresoTotal || 0;
             case "cotizaciones": return (proj.cotizaciones || []).length;
             case "ordenCompra": return (proj.ordenesCompra || []).length;
+            case "costos": return (proj.costos || []).reduce((suma, c) => suma + (Number(c.valor) || 0), 0);
             case "notas": return proj.notas || "";
             case "fechaMontaje": return proj.fechaMontajeInicio || "";
             case "fechaEjecucion": return proj.fechaEjecucionInicio || "";
@@ -398,8 +443,9 @@ const PanelDirectivo = () => {
     { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 9 },
     { key: "cotizaciones", header: "Cotización", type: "file" as CellType, width: "85px", visible: true, isCustom: false, order: 10 },
     { key: "ordenCompra", header: "OC", type: "file" as CellType, width: "70px", visible: true, isCustom: false, order: 11 },
-    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 12 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 13 },
+    { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 12 },
+    { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 13 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 14 },
   ], []);
 
   // Get all columns (base + managed) - direct calculation for immediate updates
@@ -476,6 +522,8 @@ const PanelDirectivo = () => {
           return (p: Project) => <span className="text-xs">{(p.cotizaciones || []).length > 0 ? `${(p.cotizaciones || []).length} archivo(s)` : "—"}</span>;
         case "ordenCompra":
           return (p: Project) => <span className="text-xs">{(p.ordenesCompra || []).length > 0 ? `${(p.ordenesCompra || []).length} archivo(s)` : "—"}</span>;
+        case "costos":
+          return (p: Project) => <BotonCostos proyecto={p} onAbrir={setCostosDeProyectoId} />;
         case "notas":
           return (p: Project) => (
             <div className="flex items-center gap-1 max-w-[150px]">
@@ -722,6 +770,8 @@ const PanelDirectivo = () => {
             onChange={(value) => updateProject(p.id, "estado", value)}
           />
         );
+      case "costos":
+        return (p: Project) => <BotonCostos proyecto={p} onAbrir={setCostosDeProyectoId} />;
       case "notas":
         return (p: Project) => (
           <div className="flex items-center gap-1 max-w-[150px]">
@@ -883,6 +933,16 @@ const PanelDirectivo = () => {
           onOpenChange={setGraficaVentasAbierta}
           projects={projects}
         />
+
+        <CostosEventoDialog
+          proyecto={projects.find((p) => p.id === costosDeProyectoId) ?? null}
+          open={Boolean(costosDeProyectoId)}
+          onOpenChange={(abierto) => { if (!abierto) setCostosDeProyectoId(null); }}
+          soloLectura={!canEditDir}
+          onGuardar={async (costos: CostoEvento[]) => {
+            if (costosDeProyectoId) await updateProject(costosDeProyectoId, "costos", costos);
+          }}
+        />
         <PanelHeader
           title="Panel Directivo"
           description="Gestión ejecutiva de proyectos y control de ingresos"
@@ -1021,7 +1081,7 @@ const PanelDirectivo = () => {
                 onRowClick={(p) => setHighlightedProjectId(p.id)}
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
-                mobileKeys={["evento", "cliente", "fechaMontaje", "fechaEjecucion", "estado", "ingresoTotal"]}
+                mobileKeys={["evento", "cliente", "fechaMontaje", "fechaEjecucion", "estado", "ingresoTotal", "costos"]}
                 mobilePreferenceKey="panel-directivo"
                 getRowAccent={acentoVisualDeEvento}
                 getRowStyle={estiloFilaVisual}

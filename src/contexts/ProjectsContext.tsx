@@ -89,6 +89,7 @@ function dbRowToProject(row: any): Project {
     feedback: row.feedback || "",
     feedbackAdjuntos: row.feedback_adjuntos || [],
     cajaMenor: row.caja_menor || [],
+    costos: row.costos || [],
     legalizacion: row.legalizacion || [],
     // Inventory responsables fields (legacy)
     inventarioResponsableEntradasSalidasTipo: row.inventario_responsable_entradas_salidas_tipo || undefined,
@@ -151,6 +152,7 @@ function projectToDbRow(project: Partial<Project>): Record<string, any> {
   if (project.aCargoDe !== undefined) row.a_cargo_de = project.aCargoDe;
   if (project.notas !== undefined) row.notas = project.notas;
   if (project.notasImagenes !== undefined) row.notas_imagenes = project.notasImagenes;
+  if (project.costos !== undefined) row.costos = project.costos;
   if (project.color !== undefined) row.color = project.color;
   if (project.personal !== undefined) row.personal = project.personal;
   if (project.inventario !== undefined) row.inventario = project.inventario;
@@ -213,6 +215,7 @@ function fieldToColumn(field: string): string {
     feedback: "feedback",
     feedbackAdjuntos: "feedback_adjuntos",
     cajaMenor: "caja_menor",
+    costos: "costos",
     // Inventory responsables fields (legacy)
     inventarioResponsableEntradasSalidasTipo: "inventario_responsable_entradas_salidas_tipo",
     inventarioResponsableEntradasSalidasId: "inventario_responsable_entradas_salidas_id",

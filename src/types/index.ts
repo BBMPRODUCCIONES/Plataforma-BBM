@@ -71,6 +71,8 @@ export interface Project {
   createdByEmail?: string;
   /** Color manual de la fila, puesto desde el Panel Directivo. Hex o vacio. */
   color?: string | null;
+  /** Costos reales del evento. Ver CostoEvento. */
+  costos?: CostoEvento[];
   createdAt: string;
   updatedAt: string;
 }
@@ -112,6 +114,35 @@ export interface PersonalItem {
   rutaTransporte?: string; // Campo para la ruta cuando es Transporte
   adjuntos?: Attachment[]; // Archivos adjuntos (solo para Proveedor y Transporte)
   feedback?: string; // Feedback del personal
+}
+
+/** Categorias de costo del evento. El orden es el que se ve en el selector. */
+export type TipoCosto =
+  | 'personal'
+  | 'proveedor'
+  | 'transporte'
+  | 'alimentacion'
+  | 'produccion'
+  | 'alquiler'
+  | 'otro';
+
+/**
+ * Una linea de costo real del evento: a quien se le pago y cuanto.
+ * El valor va en pesos, sin decimales.
+ */
+export interface CostoEvento {
+  id: string;
+  tipo: TipoCosto;
+  /** Que se pago: "Operario de montaje", "Alquiler de pantalla", ... */
+  concepto: string;
+  /** A quien se le paga: nombre del proveedor o de la persona. */
+  beneficiario: string;
+  /** Id del proveedor o del empleado, cuando salio del autocompletar. */
+  beneficiarioId?: string;
+  valor: number;
+  nota?: string;
+  creadoEn?: string;
+  creadoPorEmail?: string;
 }
 
 export interface InventarioItem {

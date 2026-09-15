@@ -119,6 +119,7 @@ const Usuarios = () => {
   const { toast } = useToast();
   
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [enviandoAccesoA, setEnviandoAccesoA] = useState<string | null>(null);
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -627,14 +628,25 @@ const Usuarios = () => {
 
       if (roleError) throw roleError;
 
-      // Update profile name if changed
+      // Update profile name if changed.
+      // Se pide .select() a proposito: si RLS no deja tocar la fila, Postgres
+      // no devuelve error, devuelve cero filas. Sin esto la pantalla decia
+      // "Usuario actualizado" y el nombre se quedaba igual.
       if (editName !== editingUser.full_name) {
-        const { error: profileError } = await supabase
+        const { data: filasCambiadas, error: profileError } = await supabase
           .from("profiles")
           .update({ full_name: editName || null })
-          .eq("id", editingUser.id);
+          .eq("id", editingUser.id)
+          .select("id");
 
         if (profileError) throw profileError;
+        if (!filasCambiadas || filasCambiadas.length === 0) {
+          throw new Error(
+            "Los permisos del rol y los paneles si se guardaron, pero el nombre no: " +
+              "la base de datos no dejo modificar ese perfil. Corre " +
+              "SQL-admin-puede-renombrar.sql y vuelve a intentarlo."
+          );
+        }
       }
 
       toast({
@@ -653,6 +665,40 @@ const Usuarios = () => {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  /**
+   * Manda a ese correo el enlace para entrar a la cuenta.
+   *
+   * Es el mismo correo de "olvide mi contraseña" que ya existe en la pantalla
+   * de inicio: la persona recibe un enlace, elige contraseña y entra. Sirve
+   * para quien nunca entro y para quien la perdio, sin que nadie tenga que
+   * saber ni inventar la contraseña de otro.
+   */
+  const handleEnviarAcceso = async (usuario: UserWithRole) => {
+    setEnviandoAccesoA(usuario.id);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(usuario.email, {
+        redirectTo: `${window.location.origin}/auth?type=recovery`,
+      });
+      if (error) throw error;
+      toast({
+        title: "Correo enviado",
+        description: `${usuario.email} recibira un enlace para entrar y elegir su contraseña. El enlace caduca en una hora.`,
+      });
+    } catch (error: any) {
+      // El limite de envios de Supabase es lo que falla mas seguido aqui.
+      const esLimite = /rate|limit|seconds|too many/i.test(error?.message || "");
+      toast({
+        title: "No se pudo enviar",
+        description: esLimite
+          ? "El servidor de correo no acepta mas envios por ahora. Espera unos minutos y vuelve a intentarlo."
+          : error?.message || "No se pudo enviar el correo de acceso",
+        variant: "destructive",
+      });
+    } finally {
+      setEnviandoAccesoA(null);
     }
   };
 
@@ -836,7 +882,7 @@ const Usuarios = () => {
     {
       key: "actions",
       header: "Acciones",
-      width: "120px",
+      width: "160px",
       render: (item: UserWithRole) => {
         const isSelf = !!currentUser?.id && item.id === currentUser.id;
         return (
@@ -848,6 +894,19 @@ const Usuarios = () => {
               title="Editar usuario"
             >
               <Settings className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEnviarAcceso(item)}
+              disabled={enviandoAccesoA === item.id}
+              title={`Enviar a ${item.email} un correo para entrar a la cuenta`}
+            >
+              {enviandoAccesoA === item.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4" />
+              )}
             </Button>
             <Button
               variant="ghost"

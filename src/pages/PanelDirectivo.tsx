@@ -761,7 +761,7 @@ const PanelDirectivo = () => {
   const panelColumn = {
     key: "acciones",
     header: "Acciones",
-    width: "250px",
+    width: "180px",
     render: (p: Project) => (
       <div className="flex gap-1 items-center">
         {isAdmin && (
@@ -781,18 +781,6 @@ const PanelDirectivo = () => {
             ELIMINADO
           </Badge>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/panel-general?proyecto=${p.id}`);
-          }}
-        >
-          General
-          <ExternalLink className="h-3 w-3 ml-1" />
-        </Button>
         <Button
           variant="ghost"
           size="sm"

@@ -13,7 +13,6 @@ import {
   Plus,
   FileBarChart
 } from "lucide-react";
-import { NotificationBell } from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 
 // Route config type
@@ -92,10 +91,9 @@ export function MobileHeader() {
         </span>
       </div>
 
-      {/* Right side: Notification bell */}
-      <div className="flex items-center shrink-0">
-        <NotificationBell />
-      </div>
+      {/* La campana de notificaciones se quito por pedido: el contador vivia
+          en 50 y ya nadie lo miraba. El aviso sigue llegando al celular por
+          notificacion del sistema; lo que desaparece es este boton. */}
     </header>
   );
 }

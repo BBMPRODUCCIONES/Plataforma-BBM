@@ -4,7 +4,6 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { MobileHeader } from "@/components/MobileHeader";
-import { NotificationBell } from "@/components/NotificationBell";
 import { NotificationPrompt } from "@/components/NotificationPrompt";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -51,7 +50,6 @@ const Layout = ({ children }: LayoutProps) => {
                 <span className="font-mono text-xs text-muted-foreground truncate">PRODUCCIÓN DE EVENTOS</span>
               </div>
             </div>
-            <NotificationBell />
           </header>
           {/* Content area with controlled internal scroll */}
           <div className="content-scroll-area flex-1 overflow-y-auto overflow-x-hidden min-w-0">

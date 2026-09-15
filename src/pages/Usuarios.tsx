@@ -93,6 +93,20 @@ const roleLabels: Record<AppRole, string> = {
 
 const ALL_PANELS = ["directivo", "general", "operaciones", "proveedores"];
 
+/**
+ * Paneles reservados a administradores. El control real esta en
+ * useUserRole.canAccessPanel: aunque allowed_panels traiga "directivo", a un
+ * operativo se le niega igual. Esta lista existe para que la pantalla muestre
+ * lo mismo que el sistema aplica, y no una promesa que no se cumple.
+ */
+const PANELES_SOLO_ADMIN = ["directivo"];
+
+/** Lo que el usuario realmente puede abrir, no lo que quedo guardado. */
+function panelesEfectivos(rol: string, guardados: string[]): string[] {
+  if (rol?.toLowerCase() === "administrador") return ALL_PANELS;
+  return guardados.filter((p) => !PANELES_SOLO_ADMIN.includes(p.toLowerCase()));
+}
+
 const panelLabels: Record<string, string> = {
   directivo: "Panel Directivo",
   general: "Panel General",
@@ -530,7 +544,7 @@ const Usuarios = () => {
   const handleEditUser = (user: UserWithRole) => {
     setEditingUser(user);
     setEditRole(user.role);
-    setEditPanels(user.allowed_panels);
+    setEditPanels(panelesEfectivos(user.role, user.allowed_panels));
     setEditName(user.full_name || "");
     // All permissions use stored values for all roles
     setEditPuedeVerFeedback(user.puede_ver_feedback);
@@ -562,9 +576,10 @@ const Usuarios = () => {
     setIsSaving(true);
     try {
       // Determine panels based on role
-      const finalPanels = editRole === "administrador" 
-        ? ALL_PANELS 
-        : editPanels;
+      // Si el rol no es administrador se quita "directivo" aunque venga
+      // guardado: era lo que hacia que la fila mostrara un panel que el
+      // sistema despues negaba.
+      const finalPanels = panelesEfectivos(editRole, editPanels);
 
       // All permissions use their stored/edited values directly for all roles
       const finalPuedeVerFeedback = editPuedeVerFeedback;
@@ -790,7 +805,7 @@ const Usuarios = () => {
       width: "minmax(280px, 1fr)",
       render: (item: UserWithRole) => (
         <div className="flex flex-wrap gap-1">
-          {item.allowed_panels.map((panel) => (
+          {panelesEfectivos(item.role, item.allowed_panels).map((panel) => (
             <Badge key={panel} variant="secondary" className="text-xs">
               {panelLabels[panel] || panel}
             </Badge>

@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { useClientes } from "@/contexts/ClientesContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { Check, Search, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { Check, Search, Loader2, Plus } from "lucide-react";
 
 interface ClienteAutocompleteProps {
   value: string;
@@ -16,7 +18,17 @@ export function ClienteAutocomplete({ value, onChange, className }: ClienteAutoc
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  const { clientes, loading } = useClientes();
+  const { clientes, loading, addCliente } = useClientes();
+  const { role } = useAuth();
+  const [creando, setCreando] = useState(false);
+
+  // Solo los administradores pueden crear clientes; asi esta la regla en la base.
+  const puedeCrearClientes = role === "administrador";
+  const escrito = search.trim();
+  const yaExiste = clientes.some(
+    (c) => c.nombre.trim().toLowerCase() === escrito.toLowerCase()
+  );
+  const puedeCrearEste = puedeCrearClientes && escrito.length > 0 && !yaExiste;
 
   // Filter clients based on search
   const filteredClientes = clientes.filter((cliente) =>
@@ -49,6 +61,18 @@ export function ClienteAutocomplete({ value, onChange, className }: ClienteAutoc
     setSearch(clienteName);
     onChange(clienteName);
     setIsOpen(false);
+  };
+
+  /** Crea el cliente con el nombre escrito y lo deja seleccionado, sin salir de la matriz. */
+  const crearYSeleccionar = async () => {
+    if (!escrito || creando) return;
+    setCreando(true);
+    const creado = await addCliente({ nombre: escrito, nit: "" });
+    setCreando(false);
+    if (creado) {
+      toast.success(`Cliente "${creado.nombre}" creado`);
+      handleSelect(creado.nombre);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,10 +112,11 @@ export function ClienteAutocomplete({ value, onChange, className }: ClienteAutoc
           <div className="max-h-[200px] overflow-y-auto">
             {filteredClientes.length === 0 ? (
               <div className="px-3 py-2 text-sm text-muted-foreground">
-                {clientes.length === 0 
-                  ? "No hay clientes registrados. Créelos en Gestión de Clientes."
-                  : "No se encontraron clientes"
-                }
+                {puedeCrearEste
+                  ? "Sin coincidencias. Puedes crearlo abajo."
+                  : clientes.length === 0
+                    ? "No hay clientes registrados."
+                    : "No se encontraron clientes"}
               </div>
             ) : (
               filteredClientes.map((cliente) => (
@@ -114,6 +139,22 @@ export function ClienteAutocomplete({ value, onChange, className }: ClienteAutoc
               ))
             )}
           </div>
+          {puedeCrearEste && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={crearYSeleccionar}
+              disabled={creando}
+              className="flex w-full items-center gap-1.5 border-t px-3 py-2 text-left text-sm font-medium text-primary hover:bg-accent disabled:opacity-60"
+            >
+              {creando ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Plus className="h-3.5 w-3.5" />
+              )}
+              <span className="truncate">Crear «{escrito}»</span>
+            </button>
+          )}
           {filteredClientes.length > 0 && (
             <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">
               {filteredClientes.length} cliente(s) encontrado(s)

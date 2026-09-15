@@ -29,6 +29,8 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Project, ProjectStatus } from "@/types";
 import { useClientes } from "@/contexts/ClientesContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { NuevoClienteInline } from "@/components/NuevoClienteInline";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
@@ -111,12 +113,19 @@ const DateRangePickerField = ({
   );
 };
 
+/** Valor reservado del selector para "crear cliente nuevo". */
+const NUEVO_CLIENTE = "__nuevo_cliente__";
+
 export function NewProjectDialog({
   open,
   onOpenChange,
   onProjectCreate,
 }: NewProjectDialogProps) {
   const { clientes } = useClientes();
+  const { role } = useAuth();
+  // Solo los administradores pueden crear clientes (asi esta la regla en la base).
+  const puedeCrearClientes = role === "administrador";
+  const [creandoCliente, setCreandoCliente] = useState(false);
   const [formData, setFormData] = useState<Partial<Project>>({
     estado: "por_planear",
     horaMontajeInicio: "09:00",
@@ -219,6 +228,7 @@ export function NewProjectDialog({
     setEjecucionRange(undefined);
     setDesmontajeRange(undefined);
     setErrors({});
+    setCreandoCliente(false);
     
     onOpenChange(false);
 
@@ -285,30 +295,55 @@ export function NewProjectDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="cliente">Cliente *</Label>
-              <Select
-                value={formData.cliente || ""}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, cliente: value });
-                  if (errors.cliente) setErrors({ ...errors, cliente: undefined });
-                }}
-              >
-                <SelectTrigger className={cn(errors.cliente && "border-destructive")}>
-                  <SelectValue placeholder="Seleccionar cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes.length === 0 ? (
-                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                      No hay clientes. Créalos primero en Gestión de Clientes.
-                    </div>
-                  ) : (
-                    clientes.map((cliente) => (
-                      <SelectItem key={cliente.id} value={cliente.nombre}>
-                        {cliente.nombre}
+              {creandoCliente ? (
+                <NuevoClienteInline
+                  onCreado={(nombre) => {
+                    setFormData({ ...formData, cliente: nombre });
+                    setErrors({ ...errors, cliente: undefined });
+                    setCreandoCliente(false);
+                  }}
+                  onCancelar={() => setCreandoCliente(false)}
+                />
+              ) : (
+                <Select
+                  value={formData.cliente || ""}
+                  onValueChange={(value) => {
+                    if (value === NUEVO_CLIENTE) {
+                      setCreandoCliente(true);
+                      return;
+                    }
+                    setFormData({ ...formData, cliente: value });
+                    if (errors.cliente) setErrors({ ...errors, cliente: undefined });
+                  }}
+                >
+                  <SelectTrigger className={cn(errors.cliente && "border-destructive")}>
+                    <SelectValue placeholder="Seleccionar cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {puedeCrearClientes && (
+                      <SelectItem value={NUEVO_CLIENTE} className="font-medium">
+                        <span className="flex items-center gap-1.5">
+                          <Plus className="h-3.5 w-3.5" />
+                          Crear cliente nuevo
+                        </span>
                       </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+                    )}
+                    {clientes.length === 0 ? (
+                      <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                        {puedeCrearClientes
+                          ? "Todavía no hay clientes. Créalo aquí mismo."
+                          : "No hay clientes. Pídele a un administrador que lo cree."}
+                      </div>
+                    ) : (
+                      clientes.map((cliente) => (
+                        <SelectItem key={cliente.id} value={cliente.nombre}>
+                          {cliente.nombre}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
               {errors.cliente && <p className="text-sm text-destructive">{errors.cliente}</p>}
             </div>
 

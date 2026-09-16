@@ -22,6 +22,8 @@ interface GraficaClientesProps {
   projects: Project[];
   /** Mismo periodo que la pestaña de comerciales, para que no se contradigan. */
   meses?: number;
+  /** Un mes concreto "yyyy-MM"; si viene, manda sobre `meses`. */
+  mes?: string | null;
 }
 
 /**
@@ -108,7 +110,10 @@ function diaCorto(valor?: string | null): string {
   }
 }
 
-export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) {
+export function GraficaClientes({ projects, meses = 12, mes = null }: GraficaClientesProps) {
+  const etiquetaPeriodo = mes
+    ? format(parseISO(`${mes}-01T00:00:00`), "MMMM yyyy", { locale: es })
+    : `los últimos ${meses} meses`;
   const [oscuro, setOscuro] = useState(false);
   const [comercial, setComercial] = useState<string>(TODOS);
   /** Cliente cuyo detalle esta abierto en la tabla. */
@@ -127,10 +132,14 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
     return projects.filter((p) => {
       if (p.isDeleted) return false;
       const fecha = aFecha(p.fechaEjecucionInicio);
-      if (!fecha || !isAfter(fecha, subMonths(desde, 1))) return false;
+      if (!fecha) return false;
+      // Con un mes elegido solo entra ese mes; si no, el periodo completo.
+      if (mes) {
+        if (format(startOfMonth(fecha), "yyyy-MM") !== mes) return false;
+      } else if (!isAfter(fecha, subMonths(desde, 1))) return false;
       return (Number(p.ingresoTotal) || 0) > 0;
     });
-  }, [projects, meses]);
+  }, [projects, meses, mes]);
 
   /**
    * Los comerciales, con lo que lleva cada uno en el periodo.
@@ -286,7 +295,7 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
         <div className="text-xs text-muted-foreground">{nombreElegido}</div>
         <div className="mt-0.5 text-2xl font-semibold tabular-nums">{pesos.format(total)}</div>
         <div className="text-[11px] text-muted-foreground">
-          {filas.length} cliente{filas.length === 1 ? "" : "s"} en los últimos {meses} meses
+          {filas.length} cliente{filas.length === 1 ? "" : "s"} en <span className="capitalize">{etiquetaPeriodo}</span>
         </div>
       </div>
 
@@ -298,8 +307,8 @@ export function GraficaClientes({ projects, meses = 12 }: GraficaClientesProps) 
               : `${nombreElegido} no tiene ventas en el periodo`}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Se cuentan los eventos con ingreso, por su mes de ejecución, en los
-            últimos {meses} meses.
+            Se cuentan los eventos con ingreso, por su mes de ejecución, en{" "}
+            <span className="capitalize">{etiquetaPeriodo}</span>.
           </p>
         </div>
       )}

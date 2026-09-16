@@ -18,8 +18,10 @@ import { GraficaClientes } from "@/components/GraficaClientes";
 
 interface GraficaVentasComercialProps {
   projects: Project[];
-  /** Cuantos meses hacia atras mostrar. */
+  /** Cuantos meses hacia atras mostrar. Se ignora si viene `mes`. */
   meses?: number;
+  /** Un mes concreto en formato "yyyy-MM". Si viene, manda sobre `meses`. */
+  mes?: string | null;
 }
 
 /** "2026-09-16" o una fecha con hora -> Date local, sin corrimientos de zona. */
@@ -48,6 +50,7 @@ function millones(v: number): string {
 export function GraficaVentasComercial({
   projects,
   meses = 12,
+  mes = null,
 }: GraficaVentasComercialProps) {
   // El tema decide la paleta: el amarillo que funciona sobre blanco se apaga sobre negro.
   const [oscuro, setOscuro] = useState(false);
@@ -59,33 +62,47 @@ export function GraficaVentasComercial({
     return () => obs.disconnect();
   }, []);
 
-  const { datos, totales, sinAsignar, eventosSinAsignar } = useMemo(() => {
-    const desde = startOfMonth(subMonths(new Date(), meses - 1));
-
+  const { datos, totales, sinAsignar, eventosSinAsignar, eventosDelMes } = useMemo(() => {
     // Un cajon por mes, aunque el mes no tenga ventas: los huecos se ven.
+    // Con `mes` hay un solo cajon y solo cuenta lo de ese mes.
     const cajones = new Map<string, Record<string, number | string>>();
-    for (let i = 0; i < meses; i++) {
-      const mes = startOfMonth(subMonths(new Date(), meses - 1 - i));
-      const clave = format(mes, "yyyy-MM");
+    const nuevoCajon = (inicio: Date) => {
+      const clave = format(inicio, "yyyy-MM");
       const fila: Record<string, number | string> = {
         clave,
-        etiqueta: format(mes, "MMM yy", { locale: es }),
-        mesLargo: format(mes, "MMMM yyyy", { locale: es }),
+        etiqueta: format(inicio, "MMM yy", { locale: es }),
+        mesLargo: format(inicio, "MMMM yyyy", { locale: es }),
         total: 0,
       };
       COLORES_DE_COMERCIAL.forEach((c) => { fila[c.valor] = 0; });
       cajones.set(clave, fila);
+    };
+
+    if (mes) {
+      nuevoCajon(parseISO(`${mes}-01T00:00:00`));
+    } else {
+      for (let i = 0; i < meses; i++) nuevoCajon(startOfMonth(subMonths(new Date(), meses - 1 - i)));
     }
+    const desde = mes
+      ? parseISO(`${mes}-01T00:00:00`)
+      : startOfMonth(subMonths(new Date(), meses - 1));
 
     const acumulado: Record<string, number> = {};
     COLORES_DE_COMERCIAL.forEach((c) => { acumulado[c.valor] = 0; });
     let montoSinAsignar = 0;
     let contadorSinAsignar = 0;
 
+    let contadorDelMes = 0;
+
     projects.forEach((p) => {
       if (p.isDeleted) return;
       const fecha = aFecha(p.fechaEjecucionInicio);
-      if (!fecha || !isAfter(fecha, subMonths(desde, 1))) return;
+      if (!fecha) return;
+      const claveMes = format(startOfMonth(fecha), "yyyy-MM");
+      // Fuera del periodo (o del mes elegido) el evento no cuenta para nada,
+      // ni siquiera para "sin asignar": si no, el total no cuadra con la grafica.
+      if (!cajones.has(claveMes)) return;
+      contadorDelMes += 1;
 
       const monto = Number(p.ingresoTotal) || 0;
       // La atribucion sale del color de la fila: el que se pone a mano, y si no
@@ -102,8 +119,7 @@ export function GraficaVentasComercial({
         return;
       }
 
-      const clave = format(startOfMonth(fecha), "yyyy-MM");
-      const fila = cajones.get(clave);
+      const fila = cajones.get(claveMes);
       if (!fila) return;
       fila[comercial.valor] = (Number(fila[comercial.valor]) || 0) + monto;
       fila.total = (Number(fila.total) || 0) + monto;
@@ -115,10 +131,21 @@ export function GraficaVentasComercial({
       totales: acumulado,
       sinAsignar: montoSinAsignar,
       eventosSinAsignar: contadorSinAsignar,
+      eventosDelMes: contadorDelMes,
     };
-  }, [projects, meses]);
+  }, [projects, meses, mes]);
 
   const hayDatos = COLORES_DE_COMERCIAL.some((c) => (totales[c.valor] || 0) > 0);
+  // Un mes suelto no es una serie de tiempo: se compara comercial contra
+  // comercial. El maximo da el ancho de las barras.
+  const barrasMes = COLORES_DE_COMERCIAL.map((c) => ({
+    valor: c.valor,
+    nombre: c.nombre,
+    monto: totales[c.valor] || 0,
+    color: oscuro ? c.graficaOscuro : c.graficaClaro,
+  })).sort((a, b) => b.monto - a.monto);
+  const topMes = Math.max(1, ...barrasMes.map((b) => b.monto));
+  const totalMes = barrasMes.reduce((a, b) => a + b.monto, 0);
 
   return (
     <div className="w-full min-w-0">
@@ -129,7 +156,7 @@ export function GraficaVentasComercial({
           </TabsList>
 
           <TabsContent value="cliente" className="mt-3 w-full min-w-0">
-            <GraficaClientes projects={projects} meses={meses} />
+            <GraficaClientes projects={projects} meses={meses} mes={mes} />
           </TabsContent>
 
           <TabsContent value="comercial" className="mt-3 w-full min-w-0 space-y-3">
@@ -161,7 +188,49 @@ export function GraficaVentasComercial({
           </div>
         </div>
 
-        {hayDatos ? (
+        {mes ? (
+          hayDatos ? (
+            <div className="space-y-2 rounded-lg border border-border p-4">
+              {barrasMes.map((b) => (
+                <div key={b.valor} className="space-y-1">
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: b.color }} />
+                      {b.nombre}
+                    </span>
+                    <span className="tabular-nums font-medium">
+                      {pesos.format(b.monto)}
+                      {totalMes > 0 && (
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          {Math.round((b.monto / totalMes) * 100)}%
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="h-2.5 w-full overflow-hidden rounded bg-muted">
+                    <div
+                      className="h-full rounded"
+                      style={{ width: `${(b.monto / topMes) * 100}%`, backgroundColor: b.color }}
+                    />
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-between border-t border-border/60 pt-2 text-sm">
+                <span className="text-muted-foreground">Total del mes</span>
+                <span className="font-semibold tabular-nums">{pesos.format(totalMes)}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-border p-8 text-center">
+              <p className="text-sm font-medium">Sin ventas asignadas en este mes</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {eventosDelMes > 0
+                  ? `Hay ${eventosDelMes} evento${eventosDelMes === 1 ? "" : "s"} en el mes, pero ninguno tiene color de comercial.`
+                  : "No hay eventos con fecha de ejecución en este mes."}
+              </p>
+            </div>
+          )
+        ) : hayDatos ? (
           <div className="h-[240px] w-full sm:h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={datos} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
@@ -231,7 +300,7 @@ export function GraficaVentasComercial({
 
         {/* Mes a mes en numeros. La grafica muestra la forma; la tabla, el dato
             exacto, que es lo que se copia a un informe. */}
-        {hayDatos && (
+        {hayDatos && !mes && (
           <div className="w-full min-w-0 max-h-[220px] overflow-auto rounded-lg border border-border">
             <table className="w-full min-w-[420px] text-sm">
               <thead className="sticky top-0 bg-muted/80 backdrop-blur">
@@ -278,7 +347,7 @@ export function GraficaVentasComercial({
         {eventosSinAsignar > 0 && (
           <p className="text-xs text-muted-foreground">
             Hay {eventosSinAsignar} evento{eventosSinAsignar === 1 ? "" : "s"} sin
-            color de comercial en este periodo, contando los marcados en rojo.
+            color de comercial en {mes ? "este mes" : "este periodo"}, contando los marcados en rojo.
             No entran en las barras, para que la comparación no quede inflada.
           </p>
         )}

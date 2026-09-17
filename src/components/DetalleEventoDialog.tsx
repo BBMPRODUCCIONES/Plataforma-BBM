@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Project } from "@/types";
 import { colorVisualDeEvento, fondoDeColor } from "@/lib/coloresProyecto";
 import { ListaAdjuntos } from "@/components/ListaAdjuntos";
+import { ComentariosEvento } from "@/components/ComentariosEvento";
 
 interface DetalleEventoDialogProps {
   proyecto: Project | null;
@@ -246,6 +247,13 @@ export function DetalleEventoDialog({
               </p>
             </div>
           )}
+
+          {/* Los comentarios van de ultimos, debajo de los datos del evento:
+              primero se lee de que evento se trata y luego lo que el equipo
+              dijo de el. Los escribe cualquiera, sin importar el rol. */}
+          <div className="border-t border-border pt-3">
+            <ComentariosEvento proyectoId={proyecto.id} activo={open} />
+          </div>
 
           <Button
             variant="outline"

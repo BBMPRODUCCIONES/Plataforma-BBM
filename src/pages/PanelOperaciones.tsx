@@ -84,6 +84,7 @@ import { useGastosMenores } from "@/hooks/useGastosMenores";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PhotoExportDialog, PhotoExportItem } from "@/components/PhotoExportDialog";
 import { CameraCapture } from "@/components/CameraCapture";
+import { FiltroProductor, pasaFiltroDeProductor } from "@/components/FiltroProductor";
 
 // (Legacy responsable helpers removed - now using auto-login system)
 
@@ -408,6 +409,7 @@ const PanelOperaciones = () => {
   };
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const [searchTerm, setSearchTerm] = useState("");
+  const [filtroProductor, setFiltroProductor] = useState("todos");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"matriz" | "gantt">("matriz");
@@ -739,6 +741,7 @@ const PanelOperaciones = () => {
         p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
+      const matchesProductor = pasaFiltroDeProductor(p, filtroProductor);
       const range = getDateRange();
       const projectStart = parseISO(p.fechaMontajeInicio);
       const projectEnd = parseISO(p.fechaEjecucionFin);
@@ -746,7 +749,7 @@ const PanelOperaciones = () => {
         isWithinInterval(projectStart, range) ||
         isWithinInterval(projectEnd, range) ||
         (projectStart <= range.start && projectEnd >= range.end);
-      return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
+      return matchesDeleted && matchesSearch && matchesStatus && matchesProductor && matchesDate;
     });
 
     if (montajeSort) {
@@ -762,7 +765,7 @@ const PanelOperaciones = () => {
     }
 
     return result;
-  }, [focusedEventId, projects, showDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
+  }, [focusedEventId, projects, showDeleted, searchTerm, statusFilter, filtroProductor, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
 
   const handleGanttProjectClick = (projectId: string) => {
     // Find the project
@@ -2947,6 +2950,12 @@ const PanelOperaciones = () => {
                 Montaje
               </Button>
             </div>
+
+            <FiltroProductor
+              proyectos={projects}
+              value={filtroProductor}
+              onChange={(v) => { exitFocusMode(); setFiltroProductor(v); }}
+            />
 
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

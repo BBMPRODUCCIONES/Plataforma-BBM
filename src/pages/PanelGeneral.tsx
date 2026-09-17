@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { FiltroProductor, pasaFiltroDeProductor } from "@/components/FiltroProductor";
 
 
 const PanelGeneral = () => {
@@ -45,6 +46,7 @@ const PanelGeneral = () => {
   const isAdmin = role?.toLowerCase() === "administrador";
   const generalReadOnly = !canEditGeneral();
   const [searchTerm, setSearchTerm] = useState("");
+  const [filtroProductor, setFiltroProductor] = useState("todos");
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
@@ -110,6 +112,7 @@ const PanelGeneral = () => {
         p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
+      const matchesProductor = pasaFiltroDeProductor(p, filtroProductor);
       const range = getDateRange();
       const projectStart = parseISO(p.fechaMontajeInicio);
       const projectEnd = parseISO(p.fechaEjecucionFin);
@@ -117,7 +120,7 @@ const PanelGeneral = () => {
         isWithinInterval(projectStart, range) ||
         isWithinInterval(projectEnd, range) ||
         (projectStart <= range.start && projectEnd >= range.end);
-      return matchesDeleted && matchesSearch && matchesStatus && matchesDate;
+      return matchesDeleted && matchesSearch && matchesStatus && matchesProductor && matchesDate;
     });
 
     if (montajeSort) {
@@ -133,7 +136,7 @@ const PanelGeneral = () => {
     }
 
     return result;
-  }, [projects, showDeleted, searchTerm, statusFilter, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
+  }, [projects, showDeleted, searchTerm, statusFilter, filtroProductor, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
 
 
   const getRowClassName = (project: Project) => {
@@ -578,6 +581,12 @@ const PanelGeneral = () => {
                 Montaje
               </Button>
             </div>
+
+            <FiltroProductor
+              proyectos={projects}
+              value={filtroProductor}
+              onChange={setFiltroProductor}
+            />
 
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

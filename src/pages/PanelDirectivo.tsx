@@ -53,6 +53,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { FiltroProductor, pasaFiltroDeProductor } from "@/components/FiltroProductor";
 
 interface SmartSuggestion {
   type: string;
@@ -169,6 +170,8 @@ const PanelDirectivo = () => {
   
   // Calendar filter state - using global context
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
+  // "todos", un nombre, o SIN_PRODUCTOR. Ver FiltroProductor.
+  const [filtroProductor, setFiltroProductor] = useState("todos");
   
   // Computed dateRange from global context
   const dateRange = globalDateRange?.from && globalDateRange?.to 
@@ -320,7 +323,8 @@ const PanelDirectivo = () => {
     let result = projects.filter((p) => {
       const matchesDeleted = showDeleted || !p.isDeleted;
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
-      
+      const matchesProductor = pasaFiltroDeProductor(p, filtroProductor);
+
       const range = getDateRange();
       const projectStart = parseISO(p.fechaMontajeInicio);
       const projectEnd = parseISO(p.fechaEjecucionFin);
@@ -329,7 +333,7 @@ const PanelDirectivo = () => {
         isWithinInterval(projectEnd, range) ||
         (projectStart <= range.start && projectEnd >= range.end);
 
-      if (!matchesDeleted || !matchesStatus || !matchesDate) return false;
+      if (!matchesDeleted || !matchesStatus || !matchesProductor || !matchesDate) return false;
 
       // Smart search: check each token
       if (searchTokens.length === 0) return true;
@@ -399,7 +403,7 @@ const PanelDirectivo = () => {
     }
 
     return result;
-  }, [projects, showDeleted, statusFilter, searchTokens, sortColumn, sortDirection, emptyPlacement, globalSelectedDate, globalViewMode, globalDateRange]);
+  }, [projects, showDeleted, statusFilter, filtroProductor, searchTokens, sortColumn, sortDirection, emptyPlacement, globalSelectedDate, globalViewMode, globalDateRange]);
 
   const handleColumnSort = (columnKey: string) => {
     if (sortColumn === columnKey) {
@@ -1090,6 +1094,12 @@ const PanelDirectivo = () => {
                 {sortColumn === "fechaMontaje" && sortDirection === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : sortColumn === "fechaMontaje" && sortDirection === "desc" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUpDown className="h-3.5 w-3.5" />}
                 Montaje
               </Button>
+              <FiltroProductor
+                proyectos={projects}
+                value={filtroProductor}
+                onChange={setFiltroProductor}
+                compacto={isMobile}
+              />
               <div className={isMobile ? 'relative w-full' : 'relative w-80'}>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                 <Input

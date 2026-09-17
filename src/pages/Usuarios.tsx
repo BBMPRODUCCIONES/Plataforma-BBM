@@ -129,6 +129,10 @@ const Usuarios = () => {
   const [newRole, setNewRole] = useState<AppRole>("operativo");
   const [newPanels, setNewPanels] = useState<string[]>(["general", "operaciones"]);
   const [generatedLink, setGeneratedLink] = useState("");
+  // null = todavia no se sabe; el panel del link lo usa para decir si el
+  // correo salio o si toca mandarlo a mano.
+  const [correoEnviado, setCorreoEnviado] = useState<boolean | null>(null);
+  const [correoMotivo, setCorreoMotivo] = useState<string>("");
 
   // New invitation granular permissions
   const [newPuedeVerFeedback, setNewPuedeVerFeedback] = useState(false);
@@ -147,6 +151,18 @@ const Usuarios = () => {
   const [newPuedeAccederAprobaciones, setNewPuedeAccederAprobaciones] = useState(false);
   const [newEsResponsableCajaMenor, setNewEsResponsableCajaMenor] = useState(false);
   const [newEsAuditorCajaMenor, setNewEsAuditorCajaMenor] = useState(false);
+  // Las casillas de paginas de administracion solo se muestran cuando el rol es
+  // administrador, pero su estado arranca en true y se enviaba siempre. Asi, un
+  // productor o un operativo quedaba grabado con permiso a Gestion de Usuarios,
+  // Clientes, Empleados, Constructor y Agentes IA sin que nadie lo marcara.
+  // Hoy las rutas los frenan por ser adminOnly, pero el dia que a esa persona le
+  // cambien el rol a administrador hereda todo de una, en silencio.
+  //
+  // Se guarda lo que se ve: si el rol no es administrador, estos permisos van en
+  // false. Para administrador no cambia nada.
+  const soloSiEsAdmin = (rol: string, valor: boolean) =>
+    rol === "administrador" ? valor : false;
+
   const [newPuedeAccederUsuarios, setNewPuedeAccederUsuarios] = useState(true);
   const [newPuedeAccederClientes, setNewPuedeAccederClientes] = useState(true);
   const [newPuedeAccederEmpleados, setNewPuedeAccederEmpleados] = useState(true);
@@ -328,11 +344,11 @@ const Usuarios = () => {
             puede_acceder_aprobaciones: newPuedeAccederAprobaciones,
             es_responsable_caja_menor: newEsResponsableCajaMenor,
             es_auditor_caja_menor: newEsAuditorCajaMenor,
-            puede_acceder_usuarios: newPuedeAccederUsuarios,
-            puede_acceder_clientes: newPuedeAccederClientes,
-            puede_acceder_empleados: newPuedeAccederEmpleados,
-            puede_acceder_constructor: newPuedeAccederConstructor,
-            puede_acceder_agentes: newPuedeAccederAgentes,
+            puede_acceder_usuarios: soloSiEsAdmin(newRole, newPuedeAccederUsuarios),
+            puede_acceder_clientes: soloSiEsAdmin(newRole, newPuedeAccederClientes),
+            puede_acceder_empleados: soloSiEsAdmin(newRole, newPuedeAccederEmpleados),
+            puede_acceder_constructor: soloSiEsAdmin(newRole, newPuedeAccederConstructor),
+            puede_acceder_agentes: soloSiEsAdmin(newRole, newPuedeAccederAgentes),
           }
         },
       });
@@ -367,24 +383,24 @@ const Usuarios = () => {
 
       const invitationLink = `${window.location.origin}/crear-cuenta?token=${data.invitation.token}`;
       setGeneratedLink(invitationLink);
+      setCorreoEnviado(Boolean(data.correoEnviado));
+      setCorreoMotivo(data.correoMotivo || "");
 
-      // Show different message based on employee status
-      if (data.employeeLinked) {
-        toast({
-          title: "Invitación creada (empleado existente vinculado)",
-          description: `Se usará el registro de empleado existente para ${newEmail}`,
-        });
-      } else if (data.employeeCreated) {
-        toast({
-          title: "Invitación y empleado creados",
-          description: `Se creó invitación y empleado automáticamente para ${newEmail}`,
-        });
-      } else {
-        toast({
-          title: "Invitación creada",
-          description: `Se ha creado una invitación para ${newEmail}`,
-        });
-      }
+      // Lo primero que necesita saber quien invita es si el correo salio o si
+      // le toca mandar el link. Lo del empleado vinculado va de segundo.
+      const detalleEmpleado = data.employeeLinked
+        ? " Se vinculó al empleado que ya existía."
+        : data.employeeCreated
+          ? " También se creó su ficha de empleado."
+          : "";
+
+      toast({
+        title: data.correoEnviado ? "Invitación enviada" : "Invitación creada, pero sin correo",
+        description: data.correoEnviado
+          ? `Le llegó el link a ${newEmail}.${detalleEmpleado}`
+          : `El correo no salió: ${data.correoMotivo || "motivo desconocido"} Copia el link y mándaselo tú.${detalleEmpleado}`,
+        variant: data.correoEnviado ? undefined : "destructive",
+      });
 
       fetchData();
     } catch (error: any) {
@@ -431,10 +447,13 @@ const Usuarios = () => {
 
       const invitationLink = `${window.location.origin}/crear-cuenta?token=${data.invitation.token}`;
       setGeneratedLink(invitationLink);
+      setCorreoEnviado(Boolean(data.correoEnviado));
+      setCorreoMotivo(data.correoMotivo || "");
 
       toast({
-        title: data.employeeReactivated ? "Usuario y empleado reactivados" : "Usuario reactivado",
-        description: data.message || `Se ha generado un nuevo link de invitación para ${reactivationData.email}`,
+        title: data.correoEnviado ? "Usuario reactivado y correo enviado" : "Usuario reactivado, pero sin correo",
+        description: data.message || `Se generó un nuevo link para ${reactivationData.email}`,
+        variant: data.correoEnviado ? undefined : "destructive",
       });
 
       setShowReactivateModal(false);
@@ -519,6 +538,8 @@ const Usuarios = () => {
     setNewRole("operativo");
     setNewPanels(["general", "operaciones"]);
     setGeneratedLink("");
+    setCorreoEnviado(null);
+    setCorreoMotivo("");
     setNewPuedeVerFeedback(false);
     setNewPuedeEditarFeedback(false);
     setNewPuedeAprobarCajaMenor(false);
@@ -618,11 +639,11 @@ const Usuarios = () => {
            puede_acceder_aprobaciones: editPuedeAccederAprobaciones,
            es_responsable_caja_menor: editEsResponsableCajaMenor,
            es_auditor_caja_menor: editEsAuditorCajaMenor,
-           puede_acceder_usuarios: editPuedeAccederUsuarios,
-           puede_acceder_clientes: editPuedeAccederClientes,
-           puede_acceder_empleados: editPuedeAccederEmpleados,
-           puede_acceder_constructor: editPuedeAccederConstructor,
-           puede_acceder_agentes: editPuedeAccederAgentes,
+           puede_acceder_usuarios: soloSiEsAdmin(editRole, editPuedeAccederUsuarios),
+           puede_acceder_clientes: soloSiEsAdmin(editRole, editPuedeAccederClientes),
+           puede_acceder_empleados: soloSiEsAdmin(editRole, editPuedeAccederEmpleados),
+           puede_acceder_constructor: soloSiEsAdmin(editRole, editPuedeAccederConstructor),
+           puede_acceder_agentes: soloSiEsAdmin(editRole, editPuedeAccederAgentes),
          } as any)
         .eq("user_id", editingUser.id);
 
@@ -1220,7 +1241,17 @@ const Usuarios = () => {
               ) : (
                 <div className="space-y-4 py-4">
                   <div className="p-4 bg-muted rounded-lg space-y-2">
-                    <p className="text-sm font-medium">Link de invitación:</p>
+                    {correoEnviado === true ? (
+                      <p className="text-sm font-medium">
+                        El correo con el link ya salió. Este es el mismo link, por si toca repetirlo:
+                      </p>
+                    ) : correoEnviado === false ? (
+                      <p className="text-sm font-medium text-destructive">
+                        El correo no salió{correoMotivo ? ` (${correoMotivo})` : ""}. Copia el link y mándaselo tú:
+                      </p>
+                    ) : (
+                      <p className="text-sm font-medium">Link de invitación:</p>
+                    )}
                     <div className="flex items-center gap-2">
                       <Input value={generatedLink} readOnly className="text-xs" />
                       <Button size="icon" variant="outline" onClick={handleCopyLink}>
@@ -1228,7 +1259,7 @@ const Usuarios = () => {
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Este link expira en 72 horas. Compártelo con el usuario invitado.
+                      Este link expira en 72 horas.
                     </p>
                   </div>
                 </div>

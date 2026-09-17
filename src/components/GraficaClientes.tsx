@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { montosDelEvento } from "@/lib/montosEvento";
 
 interface GraficaClientesProps {
   projects: Project[];
@@ -137,7 +138,8 @@ export function GraficaClientes({ projects, meses = 12, mes = null }: GraficaCli
       if (mes) {
         if (format(startOfMonth(fecha), "yyyy-MM") !== mes) return false;
       } else if (!isAfter(fecha, subMonths(desde, 1))) return false;
-      return (Number(p.ingresoTotal) || 0) > 0;
+      // Misma vara que en la pestana de comerciales: la venta es sin IVA.
+      return montosDelEvento(p).base > 0;
     });
   }, [projects, meses, mes]);
 
@@ -157,7 +159,7 @@ export function GraficaClientes({ projects, meses = 12, mes = null }: GraficaCli
     let sinNadie = { valor: 0, eventos: 0 };
 
     delPeriodo.forEach((p) => {
-      const monto = Number(p.ingresoTotal) || 0;
+      const monto = montosDelEvento(p).base;
       const quien = comercialDe(p);
       if (!quien) {
         sinNadie = { valor: sinNadie.valor + monto, eventos: sinNadie.eventos + 1 };
@@ -196,7 +198,7 @@ export function GraficaClientes({ projects, meses = 12, mes = null }: GraficaCli
     });
     // Del mas caro al mas barato: el que explica la cifra va primero.
     mapa.forEach((lista) =>
-      lista.sort((a, b) => (Number(b.ingresoTotal) || 0) - (Number(a.ingresoTotal) || 0))
+      lista.sort((a, b) => montosDelEvento(b).base - montosDelEvento(a).base)
     );
     return mapa;
   }, [elegidos]);
@@ -206,7 +208,7 @@ export function GraficaClientes({ projects, meses = 12, mes = null }: GraficaCli
     let anonimo = 0;
 
     elegidos.forEach((p) => {
-      const monto = Number(p.ingresoTotal) || 0;
+      const monto = montosDelEvento(p).base;
       const nombre = (p.cliente || "").trim();
       if (!nombre) {
         anonimo += monto;
@@ -472,7 +474,7 @@ export function GraficaClientes({ projects, meses = 12, mes = null }: GraficaCli
                       {p.evento || "Sin nombre"}
                     </span>
                     <span className="whitespace-nowrap text-sm tabular-nums">
-                      {pesos.format(Number(p.ingresoTotal) || 0)}
+                      {pesos.format(montosDelEvento(p).base)}
                     </span>
                   </div>
 

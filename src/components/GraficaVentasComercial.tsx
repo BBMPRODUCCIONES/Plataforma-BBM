@@ -13,6 +13,7 @@ import { format, parseISO, startOfMonth, subMonths, isAfter } from "date-fns";
 import { es } from "date-fns/locale";
 import { Project } from "@/types";
 import { COLORES_DE_COMERCIAL, buscarColor, colorVisualDeEvento } from "@/lib/coloresProyecto";
+import { montosDelEvento } from "@/lib/montosEvento";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GraficaClientes } from "@/components/GraficaClientes";
 
@@ -62,7 +63,7 @@ export function GraficaVentasComercial({
     return () => obs.disconnect();
   }, []);
 
-  const { datos, totales, sinAsignar, eventosSinAsignar, eventosDelMes } = useMemo(() => {
+  const { datos, totales, ivaPorComercial, ivaDelPeriodo, sinDiscriminar, sinAsignar, eventosSinAsignar, eventosDelMes } = useMemo(() => {
     // Un cajon por mes, aunque el mes no tenga ventas: los huecos se ven.
     // Con `mes` hay un solo cajon y solo cuenta lo de ese mes.
     const cajones = new Map<string, Record<string, number | string>>();
@@ -88,9 +89,14 @@ export function GraficaVentasComercial({
       : startOfMonth(subMonths(new Date(), meses - 1));
 
     const acumulado: Record<string, number> = {};
-    COLORES_DE_COMERCIAL.forEach((c) => { acumulado[c.valor] = 0; });
+    const acumuladoIva: Record<string, number> = {};
+    COLORES_DE_COMERCIAL.forEach((c) => { acumulado[c.valor] = 0; acumuladoIva[c.valor] = 0; });
     let montoSinAsignar = 0;
     let contadorSinAsignar = 0;
+    let ivaDelPeriodo = 0;
+    // Eventos sin "ingreso bruto": no es que no tengan IVA, es que no se sabe
+    // cuanto. Se cuentan para poder decirlo en pantalla.
+    let sinDiscriminar = 0;
 
     let contadorDelMes = 0;
 
@@ -104,7 +110,12 @@ export function GraficaVentasComercial({
       if (!cajones.has(claveMes)) return;
       contadorDelMes += 1;
 
-      const monto = Number(p.ingresoTotal) || 0;
+      // La venta se mide sin IVA: el IVA se recauda y se gira, no es plata de
+      // BBM. Sumandolo, un cliente exento y uno gravado con la misma venta real
+      // se veian distintos.
+      const { base: monto, iva, sinDiscriminar: sinIva } = montosDelEvento(p);
+      if (sinIva) sinDiscriminar += 1;
+      ivaDelPeriodo += iva;
       // La atribucion sale del color de la fila: el que se pone a mano, y si no
       // hay, el del correo que subio el evento. Asi un evento nuevo cuenta solo,
       // sin tener que acordarse de pintarlo. El rojo es solo una marca: no
@@ -124,11 +135,15 @@ export function GraficaVentasComercial({
       fila[comercial.valor] = (Number(fila[comercial.valor]) || 0) + monto;
       fila.total = (Number(fila.total) || 0) + monto;
       acumulado[comercial.valor] += monto;
+      acumuladoIva[comercial.valor] += iva;
     });
 
     return {
       datos: Array.from(cajones.values()),
       totales: acumulado,
+      ivaPorComercial: acumuladoIva,
+      ivaDelPeriodo,
+      sinDiscriminar,
       sinAsignar: montoSinAsignar,
       eventosSinAsignar: contadorSinAsignar,
       eventosDelMes: contadorDelMes,
@@ -136,6 +151,10 @@ export function GraficaVentasComercial({
   }, [projects, meses, mes]);
 
   const hayDatos = COLORES_DE_COMERCIAL.some((c) => (totales[c.valor] || 0) > 0);
+  // La venta del periodo incluye lo que esta sin asignar: es plata que entro,
+  // aunque todavia no se sepa de quien es.
+  const ventaDelPeriodo =
+    COLORES_DE_COMERCIAL.reduce((a, c) => a + (totales[c.valor] || 0), 0) + sinAsignar;
   // Un mes suelto no es una serie de tiempo: se compara comercial contra
   // comercial. El maximo da el ancho de las barras.
   const barrasMes = COLORES_DE_COMERCIAL.map((c) => ({
@@ -187,6 +206,34 @@ export function GraficaVentasComercial({
             </div>
           </div>
         </div>
+
+        {/* Lo que se vendio, lo que se recaudo y lo que entra a la cuenta. Sin
+            esta franja, "ventas" y "plata que llega" se confunden. */}
+        {hayDatos && (
+          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 rounded-lg border border-border px-3 py-2 text-xs">
+            <span>
+              <span className="text-muted-foreground">Venta sin IVA </span>
+              <span className="font-semibold tabular-nums">{pesos.format(ventaDelPeriodo)}</span>
+            </span>
+            <span>
+              <span className="text-muted-foreground">IVA </span>
+              <span className="font-semibold tabular-nums">{pesos.format(ivaDelPeriodo)}</span>
+            </span>
+            <span>
+              <span className="text-muted-foreground">Facturado </span>
+              <span className="font-semibold tabular-nums">{pesos.format(ventaDelPeriodo + ivaDelPeriodo)}</span>
+            </span>
+          </div>
+        )}
+
+        {sinDiscriminar > 0 && (
+          <p className="text-[11px] text-muted-foreground">
+            {sinDiscriminar} evento{sinDiscriminar === 1 ? "" : "s"} de este
+            periodo no {sinDiscriminar === 1 ? "tiene" : "tienen"} ingreso bruto
+            cargado, así que su IVA no se puede separar y su valor entero cuenta
+            como venta. El IVA de arriba es el de los demás.
+          </p>
+        )}
 
         {mes ? (
           hayDatos ? (
@@ -317,7 +364,7 @@ export function GraficaVentasComercial({
                       </span>
                     </th>
                   ))}
-                  <th className="px-3 py-2 text-right font-medium">Total</th>
+                  <th className="px-3 py-2 text-right font-medium">Total sin IVA</th>
                 </tr>
               </thead>
               <tbody>

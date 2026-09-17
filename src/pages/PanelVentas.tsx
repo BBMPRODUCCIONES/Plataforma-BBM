@@ -62,8 +62,8 @@ const PanelVentas = () => {
           title="Ventas por comercial"
           description={
             mes
-              ? `Ingreso de los eventos con ejecución en ${nombreMes}.`
-              : `Ingreso total de los eventos, por mes de ejecución, en los últimos ${meses} meses.`
+              ? `Venta sin IVA de los eventos con ejecución en ${nombreMes}.`
+              : `Venta sin IVA de los eventos, por mes de ejecución, en los últimos ${meses} meses.`
           }
           actions={
             <div className="flex flex-wrap items-center gap-1.5">

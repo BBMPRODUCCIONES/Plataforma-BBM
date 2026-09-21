@@ -71,10 +71,18 @@ header.top{
 }
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
 .brand .mark{
-  width:34px;height:34px;flex:none;border-radius:6px;
-  background:var(--ink);color:var(--bg);
-  display:grid;place-items:center;
-  font-family:var(--disp);font-weight:800;font-size:12px;letter-spacing:.02em;
+  /* El logo es apaisado: se fija el alto y el ancho sale solo, para no
+     deformarlo. El fondo negro es parte del logo, no del recuadro. */
+  height:34px;width:auto;flex:none;border-radius:6px;display:block;
+}
+.top-actions-col{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:0}
+.aviso-consumo{
+  margin:0;max-width:380px;text-align:right;
+  font-size:11px;line-height:1.35;color:var(--ink-3);
+}
+@media (max-width:760px){
+  .top-actions-col{align-items:stretch}
+  .aviso-consumo{text-align:left;max-width:none}
 }
 .brand h1{
   font-family:var(--disp); font-weight:800; font-size:19px; letter-spacing:-.01em;
@@ -252,16 +260,23 @@ footer{margin-top:22px;font-size:11.5px;color:var(--ink-3);text-align:center;pad
 <div class="wrap">
 <header class="top">
   <div class="brand">
-    <div class="mark">BBM</div>
+    <img class="mark" src="data:image/png;base64,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" alt="BBM Producciones" width="160" height="102">
     <div>
       <h1>Plano LED</h1>
       <p>Dibuja la figura, define pitch y módulo, obtén la resolución.</p>
     </div>
   </div>
-  <div class="top-actions no-print">
+  <div class="top-actions-col no-print">
+  <div class="top-actions">
     <button class="btn sm" id="btnCopy">Copiar ficha</button>
+    <button class="btn sm" id="btnConsumo">Descargar consumo</button>
     <button class="btn sm" id="btnPng">Descargar PNG</button>
     <button class="btn sm" id="btnPrint">Imprimir</button>
+  </div>
+  <p class="aviso-consumo">
+    Los datos son aproximados y pueden variar según la ficha técnica de cada
+    equipo. Para el dimensionamiento eléctrico definitivo, consulta a un técnico.
+  </p>
   </div>
 </header>
 
@@ -402,8 +417,27 @@ footer{margin-top:22px;font-size:11.5px;color:var(--ink-3);text-align:center;pad
 (function(){
 "use strict";
 
-/* ---------------- catálogo ---------------- */
+/* ---------------- catálogo ----------------
+   Los dos primeros salen de una ficha tecnica real, y las dos hojas de esa
+   ficha cuadran entre si, que es lo que les da confianza:
+
+     Modulo  250x250 mm · 84x84 px · 0,586 kg · 40 W · 8 A @ 5 V
+             -> 8 A x 5 V = 40 W, y 40 W / 0,0625 m2 = 640 W/m2
+     Gabinete 500x500 (4 modulos) = 160 W · 7,5 kg · 168x168 px
+              500x1000 (8 modulos) = 320 W · 12,5 kg · 168x336 px
+              la hoja del gabinete declara 650 W/m2 -> coincide con el modulo
+
+   Esos 40 W del modulo son el maximo (8 A es la corriente maxima). El
+   promedio se estima con el mismo factor que usa el resto de la herramienta.
+
+   Los demas renglones son valores genericos de referencia: sirven para
+   tantear, no para cotizar la planta. Estan alrededor de 2.000 W/m2, tres
+   veces por encima de esta ficha real, asi que dimensionar una planta con
+   ellos la deja muy sobrada. Lo que manda siempre es la ficha del equipo que
+   se va a montar.                                                          */
 var PRESETS=[
+ {n:"P2.97 · 500×500 (ficha real)",  p:2.976, w:500, h:500,  kg:7.5,  W:160, Wp:56},
+ {n:"P2.97 · 500×1000 (ficha real)", p:2.976, w:500, h:1000, kg:12.5, W:320, Wp:112},
  {n:"Indoor P1.9 · 500×500",  p:1.923, w:500,  h:500,  kg:7.2, W:480,  Wp:160},
  {n:"Indoor P2.6 · 500×500",  p:2.604, w:500,  h:500,  kg:7.5, W:500,  Wp:170},
  {n:"Indoor P2.6 · 500×1000", p:2.604, w:500,  h:1000, kg:15,  W:1000, Wp:340},
@@ -1294,6 +1328,56 @@ $("vMont").onclick=function(){setView("montaje")};
 $("vDis").onclick=function(){setView("diseno")};
 
 $("btnPng").onclick=function(){ guardaPNG(cv,"plano-led-bbm.png") };
+
+/* Informe de consumo, aparte de la ficha completa.
+   Quien pide esto casi siempre es el que va a contratar la planta o a hablar
+   con el electricista del recinto: necesita los vatios y los amperios, no la
+   resolucion ni el procesador. Se baja como archivo de texto para poder
+   reenviarlo tal cual. */
+function informeConsumo(){
+  var m=metrics(), k=m.k;
+  var L=[];
+  L.push("CONSUMO ELECTRICO — PLANO LED · BBM Producciones");
+  L.push("Generado: "+new Date().toLocaleString("es-CO"));
+  L.push("");
+  L.push("MONTAJE");
+  L.push("  Paneles: "+m.n+"  ·  Area activa: "+fm(m.area,2)+" m2");
+  L.push("  Medida: "+mt(m.Wmm)+" x "+mt(m.Hmm));
+  L.push("  Modulo: pitch "+k.p+" mm · "+k.w+"x"+k.h+" mm");
+  L.push("  Ficha del modulo: "+fm(k.W)+" W maximo · "+fm(k.Wp)+" W promedio");
+  L.push("");
+  L.push("CONSUMO");
+  L.push("  Promedio de ficha: "+fm(m.wProm)+" W  ("+(m.wProm/1000).toFixed(2)+" kW)");
+  L.push("  De diseno:         "+fm(m.wDis)+" W  ("+(m.wDis/1000).toFixed(2)+" kW)"+
+         (m.wMax?"  ·  "+Math.round(m.wDis/m.wMax*100)+" % del pico":""));
+  L.push("  Maximo de ficha:   "+fm(m.wMax)+" W  ("+(m.wMax/1000).toFixed(2)+" kW)  [pico]");
+  L.push("  Por m2 (diseno):   "+(m.area?fm(m.wDis/m.area)+" W/m2":"—"));
+  L.push("");
+  L.push("ELECTRICO");
+  L.push("  Tension: "+k.volt+" V");
+  L.push("  Corriente de diseno: "+fm(m.ampDis,1)+" A");
+  L.push("  Corriente de pico:   "+fm(m.amp,1)+" A");
+  L.push("  Circuitos de "+k.breaker+" A: "+m.lineas+"  (al 80 % del breaker, con 25 % de margen)");
+  L.push("  Planta sugerida: "+fm(m.planta)+" kVA  (solo pantalla, fp 0,9 + 15 % de margen)");
+  L.push("");
+  L.push("ADVERTENCIA");
+  L.push("  Los datos son aproximados y pueden variar segun la ficha tecnica de");
+  L.push("  cada equipo. Para el dimensionamiento electrico definitivo, consulta");
+  L.push("  a un tecnico. Este calculo cubre solo la pantalla: no incluye sonido,");
+  L.push("  iluminacion, video ni servicios.");
+  return L.join("\n");
+}
+
+$("btnConsumo").onclick=function(){
+  var m=metrics();
+  if(!m.n){ toast("Dibuja la pantalla primero"); return; }
+  var b=new Blob([informeConsumo()],{type:"text/plain;charset=utf-8"});
+  var u=URL.createObjectURL(b), a=document.createElement("a");
+  a.href=u; a.download="consumo-plano-led-bbm.txt";
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){URL.revokeObjectURL(u);a.remove()},1500);
+  toast("Consumo descargado");
+};
 
 /* tamaño del lienzo */
 function usado(){

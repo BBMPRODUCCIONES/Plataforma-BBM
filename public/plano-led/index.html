@@ -93,6 +93,11 @@ header.top{
    responder "esto va en milimetros o en metros": escribiendo 4 se lee
    "= 0,004 m" y el error salta a la vista sin tener que leer ninguna ayuda. */
 .eq{display:block;margin-top:3px;font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.aviso-panel{
+  margin:10px 0 0;padding:8px 10px;border-radius:6px;
+  background:var(--on-soft);border:1px solid var(--on);
+  font-size:12px;line-height:1.4;color:var(--ink)
+}
 .f-aplicar{display:flex;flex-direction:column;justify-content:flex-end}
 .f-aplicar .btn{white-space:nowrap}
 @media (max-width:900px){
@@ -316,6 +321,7 @@ footer{margin-top:22px;font-size:11.5px;color:var(--ink-3);text-align:center;pad
         <button class="btn sm" id="btnAplicar" type="button" title="Vuelve a calcular con estos valores">Aplicar</button>
       </div>
     </div>
+    <p class="aviso-panel" id="avisoPanel" hidden></p>
   </div>
 </div>
 
@@ -323,6 +329,18 @@ footer{margin-top:22px;font-size:11.5px;color:var(--ink-3);text-align:center;pad
 
   <!-- ============ COLUMNA CONTROLES ============ -->
   <aside class="no-print">
+
+    <div class="card">
+      <div class="card-h"><h2>Pantalla que quieres</h2></div>
+      <div class="card-b">
+        <div class="row2">
+          <label class="f"><span>Ancho en metros</span><input type="number" id="mAncho" min="0.1" step="0.1" value="6" inputmode="decimal"></label>
+          <label class="f"><span>Alto en metros</span><input type="number" id="mAlto" min="0.1" step="0.1" value="2.5" inputmode="decimal"></label>
+        </div>
+        <button class="btn" id="btnDibujar" style="width:100%;margin-top:8px">Dibujar esta pantalla</button>
+        <div class="note" id="notaDibujo" style="margin-top:6px">Escribe la medida en metros y pulsa el botón: la herramienta calcula cuántos paneles hacen falta y los pinta.</div>
+      </div>
+    </div>
 
     <div class="card">
       <div class="card-h"><h2>Lienzo</h2></div>
@@ -611,6 +629,24 @@ function layout(){
    Las lineas van en metros reales, no cada cierto numero de casillas: con
    paneles de 960 mm el metro no cae en el borde de un panel, y correrlo hasta
    la casilla mas cercana seria dibujar un metro que no existe. */
+/* Aviso pegado a las casillas del panel.
+   Escribir ahi la medida de la PANTALLA es el error que mas se repite: son
+   las casillas mas visibles de la pagina y parecen pedir "de que tamano la
+   quieres". El aviso sale junto al campo, no en un mensaje que se va, y dice
+   a donde ir. */
+function avisaPanelAbsurdo(){
+  var w=num("pw",0), h=num("ph",0);
+  var malo=(w>0&&w<50)||(h>0&&h<50);
+  var caja=$("avisoPanel");
+  if(!caja) return;
+  caja.hidden=!malo;
+  if(malo){
+    caja.innerHTML="Un panel de "+(w<h?fm(w):fm(h))+" mm no existe. Estas casillas son el "+
+      "tamaño <b>del panel</b>, en milímetros (50 cm = 500). Si lo que quieres es una "+
+      "pantalla de 6 × 2,50 m, escríbelo en <b>Pantalla que quieres</b>, en la columna de la izquierda.";
+  }
+}
+
 function reticulaMetro(ctx,L,k,cMetro){
   var pasoX=1000/k.w*L.cell, pasoY=1000/k.h*L.cellH;
   var ancho=L.cell*S.cols, alto=L.cellH*S.rows;
@@ -1110,6 +1146,7 @@ function render(){
      la equivalencia debajo evita la pregunta y delata el numero mal puesto. */
   $("eqW").textContent = k.w ? "= "+(k.w/1000).toFixed(3).replace(".",",")+" m" : "";
   $("eqH").textContent = k.h ? "= "+(k.h/1000).toFixed(3).replace(".",",")+" m" : "";
+  avisaPanelAbsurdo();
 
   var estado = m.resW<=1920 && m.resH<=1080
       ? '<span class="pill ok">Cabe en Full HD</span>'
@@ -1512,6 +1549,58 @@ $("btnFill").onclick=function(){
   render();
 };
 $("btnClear").onclick=function(){ pushUndo(); S.on={}; render(); };
+
+/* "Quiero una pantalla de 6 x 2,50 m".
+   Es como piensa el que cotiza, y hasta ahora la herramienta solo aceptaba
+   columnas y filas de paneles. Traducir de cabeza obliga a saber el tamano del
+   panel y a dividir, y el error tipico era escribir los metros en las casillas
+   del panel, que son milimetros.
+
+   Aqui se escribe la medida y la herramienta calcula cuantos paneles caben.
+   Casi nunca da exacto: con paneles de 0,50 m una pantalla de 2,60 no existe,
+   queda en 2,50 o en 3,00. Se redondea al panel completo mas cercano y se dice
+   en que quedo, con los metros y los paneles. Callarlo seria entregar una
+   medida que en el montaje no se puede armar. */
+$("btnDibujar").onclick=function(){
+  var k=cfg();
+  var anchoM=parseFloat(String($("mAncho").value).replace(",","."))||0;
+  var altoM=parseFloat(String($("mAlto").value).replace(",","."))||0;
+  var nota=$("notaDibujo");
+
+  if(anchoM<=0||altoM<=0){
+    nota.innerHTML="Escribe el ancho y el alto en metros.";
+    toast("Faltan las medidas");
+    return;
+  }
+  if(!k.w||!k.h){
+    nota.innerHTML="Primero define el tamaño del panel arriba.";
+    return;
+  }
+
+  var cols=Math.max(1,Math.round(anchoM*1000/k.w));
+  var filas=Math.max(1,Math.round(altoM*1000/k.h));
+  if(cols>120||filas>60){
+    nota.innerHTML="Esa medida pide "+cols+" × "+filas+" paneles y el lienzo llega hasta 120 × 60. Usa un panel más grande.";
+    toast("No cabe en el lienzo");
+    return;
+  }
+
+  pushUndo();
+  S.cols=cols; S.rows=filas;
+  $("cols").value=cols; $("rows").value=filas;
+  S.on={};
+  for(var c=0;c<cols;c++)for(var r=0;r<filas;r++)S.on[key(c,r)]=1;
+  render();
+
+  var realW=cols*k.w/1000, realH=filas*k.h/1000;
+  var exacto=Math.abs(realW-anchoM)<0.005&&Math.abs(realH-altoM)<0.005;
+  var medida=mt(cols*k.w)+" × "+mt(filas*k.h);
+  nota.innerHTML = exacto
+    ? "Listo: <b>"+medida+"</b> · "+cols+" × "+filas+" = "+(cols*filas)+" paneles."
+    : "Con paneles de "+mt(k.w)+" × "+mt(k.h)+" la medida exacta no se puede armar. "+
+      "Lo más cercano es <b>"+medida+"</b> · "+cols+" × "+filas+" = "+(cols*filas)+" paneles.";
+  toast(exacto?"Pantalla dibujada":"Ajustado al panel entero: "+medida);
+};
 
 /* herramientas */
 var tools={tPaint:"paint",tErase:"erase",tRect:"rect",tCopy:"copy",tMove:"move"};

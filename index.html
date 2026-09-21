@@ -19,14 +19,17 @@
     <meta name="msapplication-tap-highlight" content="no" />
     <meta name="format-detection" content="telephone=no" />
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" id="favicon-link" />
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png" />
+    <!-- Favicon. La version en la direccion obliga al navegador a soltar el
+         icono viejo: los guarda en su propia bodega y no los suelta ni con
+         recarga forzada. -->
+    <link rel="icon" href="/favicon.ico?v=bbm2" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=bbm2" id="favicon-link" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png?v=bbm2" />
     
     <!-- PWA Icons - Dynamic based on environment -->
-    <link rel="apple-touch-icon" href="/pwa-192x192.png" id="apple-touch-icon" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" id="apple-touch-icon-192" />
-    <link rel="apple-touch-icon" sizes="512x512" href="/pwa-512x512.png" id="apple-touch-icon-512" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png?v=bbm2" id="apple-touch-icon" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png?v=bbm2" id="apple-touch-icon-192" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/pwa-512x512.png?v=bbm2" id="apple-touch-icon-512" />
 
     <!-- Open Graph -->
     <meta property="og:title" content="BBM Producciones - Gestión de Eventos" />

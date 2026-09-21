@@ -13,6 +13,7 @@ import {
   FileBarChart,
   Briefcase,
   TrendingUp,
+  LayoutGrid,
 } from "lucide-react";
 import bbmLogo from "@/assets/bbm-logo.png";
 import { useNavigate } from "react-router-dom";
@@ -38,6 +39,8 @@ const mainNavItems = [
   { title: "Panel Directivo", url: "/panel-directivo", icon: Briefcase, panel: "directivo" },
   { title: "Panel General", url: "/panel-general", icon: Grid3X3, panel: "general" },
   { title: "Panel Operaciones", url: "/panel-operaciones", icon: Wrench, panel: "operaciones" },
+  // Sin "panel": es una herramienta, la ve cualquiera que entre.
+  { title: "Plano LED", url: "/plano-led-herramienta", icon: LayoutGrid },
   
   // Reportes salio del menu; en su lugar va Ventas por comercial, que antes
   // era una ventana dentro del Panel Directivo. La ruta /panel-reportes sigue
@@ -113,7 +116,9 @@ export function AppSidebar() {
                     // Check admin-only items first
                     if (item.adminOnly && !canEditStructure()) return null;
                     
-                    const hasAccess = canAccessPanel(item.panel);
+                    // Un item sin "panel" es una herramienta abierta a todos
+                    // (Plano LED): no hay permiso que consultar.
+                    const hasAccess = item.panel ? canAccessPanel(item.panel) : true;
                     // Don't render items user doesn't have access to
                     if (!hasAccess) return null;
                     

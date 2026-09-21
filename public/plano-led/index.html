@@ -1,0 +1,1400 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Plano LED BBM — dibuja la figura de la pantalla LED y calcula medidas, resolución, consumo y control.">
+<style>
+  html{color-scheme:light dark}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+<title>Plano LED BBM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F1F2F4; --surface:#FFFFFF; --surface-2:#F7F8FA; --surface-3:#EAECF0;
+  --ink:#101418; --ink-2:#5B6572; --ink-3:#8A94A2;
+  --line:#DCE0E6; --line-2:#C2C9D2;
+  --on:#E8541F; --on-ink:#FFFFFF; --on-soft:rgba(232,84,31,.10);
+  --cota:#2F7F99;
+  --ok:#1C7F55; --warn:#B07407; --crit:#C0392B;
+  --grid-off:#E6E9ED; --grid-line:#CFD5DD;
+  --shadow:0 1px 2px rgba(16,20,24,.06),0 8px 24px -16px rgba(16,20,24,.25);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  --disp:"Montserrat",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C0E11; --surface:#14181D; --surface-2:#1A1F26; --surface-3:#222933;
+    --ink:#EDF0F3; --ink-2:#98A2AF; --ink-3:#6C7683;
+    --line:#242B33; --line-2:#39414B;
+    --on:#FF6A2B; --on-ink:#16110D; --on-soft:rgba(255,106,43,.14);
+    --cota:#5FB4D0;
+    --ok:#3EC08A; --warn:#E0A32B; --crit:#F0675C;
+    --grid-off:#1C2129; --grid-line:#2C333D;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -18px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C0E11; --surface:#14181D; --surface-2:#1A1F26; --surface-3:#222933;
+  --ink:#EDF0F3; --ink-2:#98A2AF; --ink-3:#6C7683;
+  --line:#242B33; --line-2:#39414B;
+  --on:#FF6A2B; --on-ink:#16110D; --on-soft:rgba(255,106,43,.14);
+  --cota:#5FB4D0;
+  --ok:#3EC08A; --warn:#E0A32B; --crit:#F0675C;
+  --grid-off:#1C2129; --grid-line:#2C333D;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -18px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:var(--sans); font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  padding:0 16px 48px;
+}
+.wrap{max-width:1360px;margin:0 auto}
+
+/* ---------- header ---------- */
+header.top{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; flex-wrap:wrap;
+  padding-block:22px 18px;
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand .mark{
+  width:34px;height:34px;flex:none;border-radius:6px;
+  background:var(--ink);color:var(--bg);
+  display:grid;place-items:center;
+  font-family:var(--disp);font-weight:800;font-size:12px;letter-spacing:.02em;
+}
+.brand h1{
+  font-family:var(--disp); font-weight:800; font-size:19px; letter-spacing:-.01em;
+  margin:0; line-height:1.15;
+}
+.brand p{margin:1px 0 0;font-size:12px;color:var(--ink-2)}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- controls ---------- */
+button,select,input{font-family:inherit;font-size:13px;color:inherit}
+.btn{
+  appearance:none;border:1px solid var(--line-2);background:var(--surface);
+  color:var(--ink);border-radius:7px;padding:7px 12px;cursor:pointer;
+  font-weight:500;display:inline-flex;align-items:center;gap:7px;
+  transition:background .12s,border-color .12s;
+}
+.btn:hover{background:var(--surface-2);border-color:var(--ink-3)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.btn.primary:hover{opacity:.88;background:var(--ink)}
+.btn.sm{padding:5px 9px;font-size:12px}
+.btn:focus-visible,select:focus-visible,input:focus-visible,.tool:focus-visible{
+  outline:2px solid var(--on);outline-offset:2px
+}
+
+.mod{margin-top:16px}
+.mod-row{display:grid;grid-template-columns:minmax(180px,1.6fr) repeat(6,minmax(84px,1fr));gap:10px}
+.mod-row label.f{margin-bottom:0}
+@media (max-width:900px){.mod-row{grid-template-columns:1fr 1fr}}
+.card-h{flex-wrap:wrap}
+.app{display:grid;grid-template-columns:288px minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+@media (max-width:980px){.app{grid-template-columns:1fr}.app main{order:-1}}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.card + .card{margin-top:14px}
+.card-h{
+  padding:12px 14px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.card-h h2{
+  margin:0;font-family:var(--disp);font-weight:700;font-size:12px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);
+}
+.card-b{padding:14px}
+
+label.f{display:block;margin-bottom:11px}
+label.f > span{
+  display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-2);margin-bottom:4px;font-weight:600;
+}
+input[type=number],select{
+  width:100%;padding:8px 9px;border:1px solid var(--line-2);border-radius:7px;
+  background:var(--surface-2);font-family:var(--mono);font-size:13px;
+}
+select{font-family:var(--sans)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.hint{font-size:11.5px;color:var(--ink-3);margin:-6px 0 12px;font-family:var(--mono)}
+.hint b{color:var(--ink-2);font-weight:600}
+
+.tools{display:flex;flex-wrap:wrap;gap:6px}
+.tool{
+  border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink-2);
+  border-radius:7px;padding:7px 10px;cursor:pointer;font-size:12.5px;font-weight:500;
+}
+.tool[aria-pressed="true"]{background:var(--on);border-color:var(--on);color:var(--on-ink);font-weight:600}
+
+/* ---------- plano ---------- */
+.plan-h{
+  padding:11px 14px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+}
+.legend{display:flex;gap:14px;font-size:11.5px;color:var(--ink-2);flex-wrap:wrap;align-items:center}
+.legend i{width:11px;height:11px;border-radius:2px;display:inline-block;vertical-align:-1px;margin-right:5px}
+.plan-tools{
+  display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  padding:10px 12px;border-bottom:1px solid var(--line);background:var(--surface);
+}
+.lbl{
+  font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);
+  font-weight:600;margin-right:2px;
+}
+.inline-f{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);margin-left:6px}
+.inline-f input{width:56px;padding:5px 7px}
+.canvas-box{padding:10px;background:var(--surface-2)}
+.plan-foot{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  padding:10px 12px;border-top:1px solid var(--line);
+  background:var(--surface);border-radius:0 0 12px 12px;
+}
+.foot-info{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-left:auto}
+canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair;border-radius:6px}
+
+/* ---------- ficha ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));background:var(--surface);border-radius:12px;overflow:hidden}
+.tile{background:var(--surface);padding:13px 14px;box-shadow:inset 1px 1px 0 var(--line)}
+.tile .k{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.tile .v{
+  font-family:var(--mono);font-variant-numeric:tabular-nums;
+  font-size:21px;font-weight:600;margin-top:3px;letter-spacing:-.02em;line-height:1.15;
+  overflow-wrap:anywhere;
+}
+.tile .v small{font-size:12px;font-weight:400;color:var(--ink-2);letter-spacing:0}
+.tile .s{font-size:11.5px;color:var(--ink-3);margin-top:2px;font-family:var(--mono)}
+.tile.hero .v{font-size:20px;color:var(--on)}
+
+.specs{width:100%;border-collapse:collapse;font-size:13px}
+.specs th{
+  text-align:left;font-family:var(--disp);font-size:10.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-2);padding:12px 14px 6px;font-weight:700;
+}
+.specs td{padding:6px 14px;border-top:1px solid var(--line)}
+.specs tr:first-child td{border-top:none}
+.specs td:first-child{color:var(--ink-2);width:58%}
+.specs td:last-child{
+  font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;font-weight:600
+}
+.grp td{padding-top:14px}
+.pill{
+  display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;
+  font-family:var(--sans);letter-spacing:.01em;
+}
+.pill.ok{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.pill.crit{background:color-mix(in srgb,var(--crit) 15%,transparent);color:var(--crit)}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bk{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);
+    font-weight:700;margin:16px 0 4px;font-family:var(--disp)}
+.bk:first-child{margin-top:0}
+.bv{font-family:var(--mono);font-size:19px;font-weight:600;margin:0;color:var(--on)}
+.bs{font-size:12.5px;color:var(--ink-2);margin:0;line-height:1.55}
+.bs b{color:var(--ink);font-family:var(--mono);font-weight:600}
+table.mini{width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)}
+table.mini th{text-align:left;font-family:var(--sans);font-size:10.5px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-3);padding:4px 8px 4px 0;font-weight:600}
+table.mini td{padding:3px 8px 3px 0;border-top:1px solid var(--line);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+table.mini td:first-child{color:var(--on);font-weight:600}
+@media (max-width:760px){.two{grid-template-columns:1fr}.row3{grid-template-columns:1fr 1fr}}
+
+.saved{display:flex;flex-direction:column;gap:6px}
+.saved-item{
+  display:flex;align-items:center;gap:8px;justify-content:space-between;
+  border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:var(--surface-2);
+}
+.saved-item span{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.saved-item .x{border:none;background:none;color:var(--ink-3);cursor:pointer;font-size:15px;line-height:1;padding:2px 4px}
+.saved-item .x:hover{color:var(--crit)}
+.empty{font-size:12px;color:var(--ink-3);font-style:italic}
+
+.note{
+  font-size:11.5px;color:var(--ink-2);background:var(--surface-2);
+  border-left:2px solid var(--on);padding:8px 10px;border-radius:0 6px 6px 0;margin-top:12px;
+}
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(22px + env(safe-area-inset-bottom,0px));
+  background:var(--ink);color:var(--surface);padding:9px 16px;border-radius:99px;
+  font-size:13px;font-weight:500;box-shadow:var(--shadow);z-index:50;
+}
+footer{margin-top:22px;font-size:11.5px;color:var(--ink-3);text-align:center;padding-bottom:8px}
+
+@media print{
+  body{background:#fff;padding:0}
+  .no-print{display:none!important}
+  .card{box-shadow:none;break-inside:avoid}
+  .app{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="brand">
+    <div class="mark">BBM</div>
+    <div>
+      <h1>Plano LED</h1>
+      <p>Dibuja la figura, define pitch y módulo, obtén la resolución.</p>
+    </div>
+  </div>
+  <div class="top-actions no-print">
+    <button class="btn sm" id="btnCopy">Copiar ficha</button>
+    <button class="btn sm" id="btnPng">Descargar PNG</button>
+    <button class="btn sm" id="btnPrint">Imprimir</button>
+  </div>
+</header>
+
+<div class="card mod no-print">
+  <div class="card-h">
+    <h2>1 · Módulo LED</h2>
+    <span class="hint" id="pxHint" style="margin:0"></span>
+  </div>
+  <div class="card-b">
+    <div class="mod-row">
+      <label class="f"><span>Modelo</span><select id="preset"></select></label>
+      <label class="f"><span>Pitch mm</span><input type="number" id="pitch" step="0.001" min="0.5" value="3.906"></label>
+      <label class="f"><span>Ancho mm</span><input type="number" id="pw" step="1" min="50" value="500"></label>
+      <label class="f"><span>Alto mm</span><input type="number" id="ph" step="1" min="50" value="500"></label>
+      <label class="f"><span>Peso kg/panel</span><input type="number" id="kg" step="0.1" min="0" value="7.8"></label>
+      <label class="f"><span>W máx/panel</span><input type="number" id="wmax" step="10" min="0" value="520"></label>
+      <label class="f"><span>W prom/panel</span><input type="number" id="wprom" step="5" min="0" value="175"></label>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- ============ COLUMNA CONTROLES ============ -->
+  <aside class="no-print">
+
+    <div class="card">
+      <div class="card-h"><h2>Lienzo</h2></div>
+      <div class="card-b">
+        <div class="row2">
+          <label class="f"><span>Columnas</span><input type="number" id="cols" min="1" max="120" step="1" value="24"></label>
+          <label class="f"><span>Filas</span><input type="number" id="rows" min="1" max="60" step="1" value="8"></label>
+        </div>
+        <div class="note" style="margin-top:2px">Tamaño de la cuadrícula de trabajo. Las herramientas de dibujo están sobre el plano: con <b>Copiar</b> tomas una pantalla ya pintada y la pegas donde hagas clic; con <b>Mover</b> la arrastras completa. Atajos: <b>Ctrl+C</b> copia la pantalla bajo el cursor, <b>Ctrl+V</b> la pega ahí mismo y <b>Ctrl+Z</b> deshace.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Diseños</h2><button class="btn sm" id="btnSave">Guardar</button></div>
+      <div class="card-b">
+        <div class="saved" id="savedList"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ COLUMNA PLANO + FICHA ============ -->
+  <main>
+    <div class="card">
+      <div class="plan-h">
+        <h2 style="margin:0;font-family:var(--disp);font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2)" id="planTitle">2 · Plano de montaje</h2>
+        <div class="legend" id="planLegend"></div>
+      </div>
+      <div class="plan-tools no-print">
+        <div class="tools" role="group" aria-label="Herramientas de dibujo">
+          <span class="lbl">Herramienta</span>
+          <button class="tool" id="tPaint" aria-pressed="true">Pintar</button>
+          <button class="tool" id="tErase" aria-pressed="false">Borrar</button>
+          <button class="tool" id="tRect" aria-pressed="false">Rectángulo</button>
+          <button class="tool" id="tCopy" aria-pressed="false">Copiar</button>
+          <button class="tool" id="tMove" aria-pressed="false">Mover</button>
+          <span class="foot-info" id="clipInfo" style="margin-left:4px"></span>
+        </div>
+        <div class="tools">
+          <span class="lbl">Vista</span>
+          <button class="tool" id="vMont" aria-pressed="true">Montaje</button>
+          <button class="tool" id="vDis" aria-pressed="false">Diseño</button>
+          <button class="btn sm" id="btnUndo" style="margin-left:8px" title="Ctrl+Z">↶ Deshacer</button>
+          <button class="btn sm" id="btnRedo" title="Ctrl+Shift+Z">↷</button>
+          <button class="btn sm" id="btnFill">Llenar todo</button>
+          <button class="btn sm" id="btnClear">Limpiar</button>
+        </div>
+      </div>
+      <div class="canvas-box"><canvas id="cv" aria-label="Plano de la pantalla LED"></canvas></div>
+      <div class="plan-foot no-print">
+        <span class="lbl">Lienzo</span>
+        <button class="btn sm" id="btnBig">+ Más grande</button>
+        <button class="btn sm" id="btnSmall">− Más pequeño</button>
+        <button class="btn sm" id="btnFit">Ajustar al dibujo</button>
+        <span class="foot-info" id="gridInfo"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="tiles" id="tiles"></div>
+    </div>
+
+    <div class="two" style="margin-top:14px">
+      <div class="card" style="margin:0">
+        <div class="card-h"><h2>Medidas y resolución</h2></div>
+        <table class="specs"><tbody id="tMed"></tbody></table>
+      </div>
+      <div class="card" style="margin:0">
+        <div class="card-h">
+          <h2>Energía y control</h2>
+          <div class="tools no-print">
+            <span class="lbl">Tensión</span>
+            <button class="tool" id="v110" aria-pressed="false">110 V</button>
+            <button class="tool" id="v220" aria-pressed="true">220 V</button>
+            <label class="inline-f">Breaker
+              <input type="number" id="breaker" min="10" max="63" step="1" value="20"> A
+            </label>
+            <label class="inline-f">Escenario
+              <select id="fc" style="width:auto;padding:5px 7px">
+                <option value="0.6">Video · brillo de evento</option>
+                <option value="1" selected>Promedio de ficha</option>
+                <option value="1.5">Blancos · brillo alto</option>
+                <option value="max">Pico máximo de ficha</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <table class="specs"><tbody id="tEne"></tbody></table>
+        <p class="bs" style="padding:10px 14px 14px;margin:0;font-size:11.5px">
+          La planta se dimensiona sobre el <b>consumo promedio</b> de la ficha, no sobre el pico:
+          una pantalla nunca va toda en blanco al 100 % de brillo. El pico solo se usa como referencia.
+          Cubre solo la pantalla — sonido, iluminación, video y servicios van aparte.
+        </p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="card-h">
+        <h2>3 · Brief para el diseñador</h2>
+        <div class="tools no-print">
+          <button class="btn sm" id="btnBrief">Copiar brief</button>
+          <button class="btn sm" id="btnTpl">Descargar plantilla PNG</button>
+        </div>
+      </div>
+      <div class="card-b" id="briefBox"></div>
+    </div>
+  </main>
+</div>
+
+<footer>BBM Producciones · Big Brand Moments — los valores de peso y consumo son los del módulo cargado arriba; ajústalos con la ficha real del fabricante.</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- catálogo ---------------- */
+var PRESETS=[
+ {n:"Indoor P1.9 · 500×500",  p:1.923, w:500,  h:500,  kg:7.2, W:480,  Wp:160},
+ {n:"Indoor P2.6 · 500×500",  p:2.604, w:500,  h:500,  kg:7.5, W:500,  Wp:170},
+ {n:"Indoor P2.6 · 500×1000", p:2.604, w:500,  h:1000, kg:15,  W:1000, Wp:340},
+ {n:"Indoor P2.97 · 500×500", p:2.976, w:500,  h:500,  kg:7.5, W:500,  Wp:170},
+ {n:"Indoor P2.97 · 1000×500",p:2.976, w:1000, h:500,  kg:15,  W:1000, Wp:340},
+ {n:"Indoor P3.9 · 500×500",  p:3.906, w:500,  h:500,  kg:7.8, W:520,  Wp:175},
+ {n:"Indoor P3.9 · 500×1000", p:3.906, w:500,  h:1000, kg:15,  W:1040, Wp:350},
+ {n:"Outdoor P3.91 · 500×500",p:3.906, w:500,  h:500,  kg:9.5, W:700,  Wp:235},
+ {n:"Outdoor P4.81 · 500×500",p:4.807, w:500,  h:500,  kg:9.5, W:700,  Wp:235},
+ {n:"Outdoor P5 · 960×960",   p:5,     w:960,  h:960,  kg:28,  W:1250, Wp:420},
+ {n:"Outdoor P6.67 · 960×960",p:6.667, w:960,  h:960,  kg:28,  W:1250, Wp:420},
+ {n:"Outdoor P10 · 960×960",  p:10,    w:960,  h:960,  kg:26,  W:1100, Wp:370},
+ {n:"Módulo P4 · 320×160",    p:4,     w:320,  h:160,  kg:1.0, W:60,   Wp:20}
+];
+
+var PX_POR_PUERTO=650000;      /* píxeles por puerto gigabit (Novastar) */
+var FACTOR_PROM=0.35;          /* consumo promedio ≈ 35 % del máximo   */
+var PLANTAS=[10,15,20,25,30,40,45,60,75,80,100,125,150,200,250,300];
+function plantaComercial(kva){
+  for(var i=0;i<PLANTAS.length;i++)if(PLANTAS[i]>=kva)return PLANTAS[i];
+  return Math.ceil(kva/50)*50;
+}
+
+/* ---------------- estado ---------------- */
+var S={cols:24,rows:8,on:{},tool:"paint",volt:220,clip:null,hover:null};
+var VIEW="montaje";
+var $=function(id){return document.getElementById(id)};
+var cv=$("cv"), ctx=cv.getContext("2d");
+
+function key(c,r){return c+","+r}
+function isOn(c,r){return !!S.on[key(c,r)]}
+
+/* figura de ejemplo: pantalla principal 12×5 + dos tótems laterales */
+function ejemplo(){
+  S.on={};
+  for(var c=6;c<=17;c++)for(var r=2;r<=6;r++)S.on[key(c,r)]=1;
+  for(var r2=0;r2<8;r2++){S.on[key(2,r2)]=1;S.on[key(3,r2)]=1;S.on[key(20,r2)]=1;S.on[key(21,r2)]=1;}
+}
+ejemplo();
+
+/* ---------------- lectura de campos ---------------- */
+function num(id,def){var v=parseFloat($(id).value);return isFinite(v)&&v>0?v:def}
+function cfg(){
+  var p=num("pitch",3.906), w=num("pw",500), h=num("ph",500);
+  var pxW=Math.max(1,Math.round(w/p)), pxH=Math.max(1,Math.round(h/p));
+  return {p:p,w:w,h:h,pxW:pxW,pxH:pxH,kg:num("kg",7.8),W:num("wmax",520),
+          Wp:num("wprom",Math.round(num("wmax",520)/3)),
+          volt:S.volt,breaker:num("breaker",20),fc:$("fc").value};
+}
+
+/* ---------------- grupos: cada pantalla independiente ---------------- */
+function grupos(){
+  var seen={},out=[],c,r;
+  for(r=0;r<S.rows;r++)for(c=0;c<S.cols;c++){
+    var k0=key(c,r);
+    if(!isOn(c,r)||seen[k0])continue;
+    var st=[[c,r]],g={minC:c,maxC:c,minR:r,maxR:r,n:0};
+    seen[k0]=1;
+    while(st.length){
+      var p0=st.pop(), x=p0[0], y=p0[1];
+      g.n++;
+      if(x<g.minC)g.minC=x; if(x>g.maxC)g.maxC=x;
+      if(y<g.minR)g.minR=y; if(y>g.maxR)g.maxR=y;
+      var nb=[[x+1,y],[x-1,y],[x,y+1],[x,y-1]];
+      for(var i=0;i<4;i++){
+        var nx=nb[i][0],ny=nb[i][1],kk=key(nx,ny);
+        if(nx<0||ny<0||nx>=S.cols||ny>=S.rows)continue;
+        if(isOn(nx,ny)&&!seen[kk]){seen[kk]=1;st.push([nx,ny])}
+      }
+    }
+    g.bc=g.maxC-g.minC+1; g.br=g.maxR-g.minR+1;
+    out.push(g);
+  }
+  out.forEach(function(g,i){g.id="P"+(i+1)});
+  return out;
+}
+
+/* ---------------- métricas ---------------- */
+function metrics(){
+  var k=cfg(), n=0, minC=1e9,maxC=-1,minR=1e9,maxR=-1;
+  for(var c=0;c<S.cols;c++)for(var r=0;r<S.rows;r++){
+    if(isOn(c,r)){n++;if(c<minC)minC=c;if(c>maxC)maxC=c;if(r<minR)minR=r;if(r>maxR)maxR=r;}
+  }
+  var bc=n?maxC-minC+1:0, br=n?maxR-minR+1:0;
+  var G=grupos();
+  var Wmm=bc*k.w, Hmm=br*k.h;
+  var resW=bc*k.pxW, resH=br*k.pxH;
+  var pxAct=n*k.pxW*k.pxH;
+  var area=n*(k.w*k.h)/1e6;
+  var wMax=n*k.W, wProm=n*k.Wp;
+  var wDis = (k.fc==="max") ? wMax : wProm*parseFloat(k.fc);
+  var amp=k.volt?wMax/k.volt:0;
+  var ampDis=k.volt?wDis/k.volt:0;
+  var util=k.breaker*0.8;
+  var lineas=ampDis?Math.ceil(ampDis*1.25/util):0;
+  var kva=wDis/0.9/1000;            /* kW -> kVA con factor de potencia 0,9 */
+  var planta=plantaComercial(kva*1.15);  /* 15 % de margen */
+  var puertos=pxAct?Math.ceil(pxAct/PX_POR_PUERTO):0;
+  var proc = pxAct===0 ? "—"
+    : pxAct<=1300000 ? "Novastar VX400 · MCTRL300"
+    : pxAct<=2300000 ? "Novastar VX600"
+    : pxAct<=3900000 ? "Novastar VX1000"
+    : "VX1000 Pro / MX40 Pro o cascada";
+  return {k:k,n:n,bc:bc,br:br,Wmm:Wmm,Hmm:Hmm,resW:resW,resH:resH,pxAct:pxAct,
+          area:area,wMax:wMax,wProm:wProm,wDis:wDis,kva:kva,planta:planta,amp:amp,ampDis:ampDis,lineas:lineas,puertos:puertos,
+          proc:proc,minC:minC,minR:minR,kgTot:n*k.kg,G:G,
+          dens:Math.round(1e6/(k.p*k.p))};
+}
+
+/* ---------------- formato ---------------- */
+function fm(v,d){ if(!isFinite(v))return "—";
+  return v.toLocaleString("es-CO",{minimumFractionDigits:d||0,maximumFractionDigits:d||0}); }
+function mt(mm){ return (mm/1000).toLocaleString("es-CO",{minimumFractionDigits:2,maximumFractionDigits:2})+" m"; }
+function aspecto(w,h){
+  if(!w||!h)return "—";
+  var a=w,b=h,t; while(b){t=b;b=a%b;a=t}
+  var rw=w/a, rh=h/a;
+  if(rw>40||rh>40) return (w/h).toFixed(2)+" : 1";
+  return rw+" : "+rh;
+}
+
+/* ---------------- canvas ---------------- */
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+var PAD={l:56,r:18,t:42,b:58};
+
+function layout(){
+  var box=cv.parentElement.clientWidth-20;
+  var k=cfg();
+  var ratio=k.h/k.w;
+  var avail=box-PAD.l-PAD.r;
+  var cell=Math.max(5,Math.floor(avail/S.cols));
+  var cellH=Math.max(4,Math.round(cell*ratio));
+  var maxH=Math.min(560,Math.round(window.innerHeight*0.62));
+  if(cellH*S.rows+PAD.t+PAD.b>maxH){
+    cellH=Math.max(4,Math.floor((maxH-PAD.t-PAD.b)/S.rows));
+    cell=Math.max(5,Math.round(cellH/ratio));
+  }
+  return {cell:cell,cellH:cellH,
+          w:PAD.l+PAD.r+cell*S.cols, h:PAD.t+PAD.b+cellH*S.rows};
+}
+
+function draw(){
+  var L=layout(), dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.round(L.w*dpr); cv.height=Math.round(L.h*dpr);
+  cv.style.height=L.h+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  var cOn=css("--on"), cOff=css("--grid-off"), cLine=css("--grid-line"),
+      cCota=css("--cota"), cInk=css("--ink-2"), cSurf=css("--surface");
+
+  ctx.fillStyle=cSurf; ctx.fillRect(0,0,L.w,L.h);
+
+  var m=metrics();
+  if(VIEW==="diseno"){ drawDiseno(L,m); return; }
+
+  /* módulos */
+  for(var c=0;c<S.cols;c++)for(var r=0;r<S.rows;r++){
+    var x=PAD.l+c*L.cell, y=PAD.t+r*L.cellH;
+    if(isOn(c,r)){
+      ctx.fillStyle=cOn; ctx.fillRect(x,y,L.cell,L.cellH);
+      /* textura de píxeles */
+      ctx.fillStyle="rgba(0,0,0,.16)";
+      var step=Math.max(4,Math.round(L.cell/6));
+      for(var px=x+step/2;px<x+L.cell-1;px+=step)
+        for(var py=y+step/2;py<y+L.cellH-1;py+=step) ctx.fillRect(px,py,1,1);
+      ctx.strokeStyle="rgba(0,0,0,.28)"; ctx.lineWidth=1;
+      ctx.strokeRect(x+.5,y+.5,L.cell-1,L.cellH-1);
+    }else{
+      ctx.fillStyle=cOff; ctx.fillRect(x,y,L.cell,L.cellH);
+      ctx.strokeStyle=cLine; ctx.lineWidth=1;
+      ctx.strokeRect(x+.5,y+.5,L.cell-1,L.cellH-1);
+    }
+  }
+
+  if(!m.n){
+    ctx.fillStyle=cInk; ctx.font="500 13px "+css("--sans").replace(/"/g,"");
+    ctx.textAlign="center";
+    ctx.fillText("Pinta módulos para armar la figura",PAD.l+L.cell*S.cols/2,PAD.t+L.cellH*S.rows/2);
+    return;
+  }
+
+  /* medida de cada pantalla, sobre ella */
+  var cInk1=css("--ink");
+  m.G.forEach(function(g){
+    var gx=PAD.l+g.minC*L.cell, gy=PAD.t+g.minR*L.cellH;
+    var gw=g.bc*L.cell, gh=g.br*L.cellH;
+    var l1=(m.G.length>1?g.id+"  ":"")+mt(g.bc*m.k.w)+" × "+mt(g.br*m.k.h);
+    var l2=fm(g.bc*m.k.pxW)+" × "+fm(g.br*m.k.pxH)+" px";
+    var fs=11, mono=css("--mono").replace(/"/g,"");
+    ctx.font="600 "+fs+"px "+mono;
+    var wNeed=Math.max(ctx.measureText(l1).width,ctx.measureText(l2).width)+12;
+    var hNeed=fs*2+14;
+    if(wNeed>gw-4){
+      fs=9; ctx.font="600 "+fs+"px "+mono;
+      wNeed=Math.max(ctx.measureText(l1).width,ctx.measureText(l2).width)+10;
+      hNeed=fs*2+12;
+    }
+    var bx2=gx+gw/2-wNeed/2, by2=gy+gh/2-hNeed/2;
+    if(wNeed>gw-2||hNeed>gh-2) by2=Math.max(3,gy-hNeed-5);
+    bx2=Math.max(2,Math.min(bx2,L.w-wNeed-2));
+    ctx.globalAlpha=.94; ctx.fillStyle=cSurf;
+    if(ctx.roundRect){ctx.beginPath();ctx.roundRect(bx2,by2,wNeed,hNeed,5);ctx.fill();}
+    else ctx.fillRect(bx2,by2,wNeed,hNeed);
+    ctx.globalAlpha=1;
+    ctx.strokeStyle=cLine; ctx.lineWidth=1;
+    if(ctx.roundRect)ctx.stroke(); else ctx.strokeRect(bx2+.5,by2+.5,wNeed-1,hNeed-1);
+    ctx.textAlign="center"; ctx.fillStyle=cInk1;
+    ctx.font="600 "+fs+"px "+mono;
+    ctx.fillText(l1,bx2+wNeed/2,by2+fs+4);
+    ctx.fillStyle=cInk;
+    ctx.font="400 "+fs+"px "+mono;
+    ctx.fillText(l2,bx2+wNeed/2,by2+fs*2+5);
+  });
+  ctx.textAlign="left";
+
+  /* cotas del rectángulo envolvente */
+  var bx=PAD.l+m.minC*L.cell, by=PAD.t+m.minR*L.cellH;
+  var bw=m.bc*L.cell, bh=m.br*L.cellH;
+  ctx.strokeStyle=cCota; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+  ctx.strokeRect(bx+.5,by+.5,bw-1,bh-1);
+  ctx.setLineDash([]);
+
+  ctx.font="600 11px "+css("--mono").replace(/"/g,"");
+  ctx.fillStyle=cCota; ctx.strokeStyle=cCota;
+
+  /* cota horizontal (abajo) */
+  var yL=PAD.t+L.cellH*S.rows+22;
+  ctx.beginPath();
+  ctx.moveTo(bx,yL); ctx.lineTo(bx+bw,yL);
+  ctx.moveTo(bx,yL-5); ctx.lineTo(bx,yL+5);
+  ctx.moveTo(bx+bw,yL-5); ctx.lineTo(bx+bw,yL+5);
+  ctx.stroke();
+  ctx.textAlign="center";
+  ctx.fillStyle=cSurf; var t1=mt(m.Wmm)+"  ·  "+fm(m.resW)+" px";
+  var tw=ctx.measureText(t1).width+10;
+  ctx.fillRect(bx+bw/2-tw/2,yL-8,tw,16);
+  ctx.fillStyle=cCota; ctx.fillText(t1,bx+bw/2,yL+4);
+
+  /* cota vertical (izquierda) */
+  var xL=PAD.l-24;
+  ctx.beginPath();
+  ctx.moveTo(xL,by); ctx.lineTo(xL,by+bh);
+  ctx.moveTo(xL-5,by); ctx.lineTo(xL+5,by);
+  ctx.moveTo(xL-5,by+bh); ctx.lineTo(xL+5,by+bh);
+  ctx.stroke();
+  ctx.save(); ctx.translate(xL-7,by+bh/2); ctx.rotate(-Math.PI/2);
+  var t2=mt(m.Hmm)+"  ·  "+fm(m.resH)+" px";
+  ctx.textAlign="center";
+  ctx.fillStyle=cSurf; var tw2=ctx.measureText(t2).width+10;
+  ctx.fillRect(-tw2/2,-8,tw2,16);
+  ctx.fillStyle=cCota; ctx.fillText(t2,0,4);
+  ctx.restore();
+
+  /* conteo de paneles */
+  ctx.fillStyle=cInk; ctx.textAlign="left";
+  ctx.font="600 11px "+css("--mono").replace(/"/g,"");
+  ctx.fillText(m.n+" paneles · "+m.bc+"×"+m.br+" módulos",PAD.l,PAD.t+L.cellH*S.rows+40);
+}
+
+/* ---------------- descomposición en rectángulos ---------------- */
+function spansOf(r,test,c0,c1){
+  var out=[],c=c0;
+  while(c<=c1){
+    if(test(c,r)){var a=c; while(c+1<=c1&&test(c+1,r))c++; out.push([a,c]); c++;}
+    else c++;
+  }
+  return out;
+}
+function sameSpans(a,b){
+  if(!a||!b||a.length!==b.length)return false;
+  for(var i=0;i<a.length;i++)if(a[i][0]!==b[i][0]||a[i][1]!==b[i][1])return false;
+  return true;
+}
+function rectsBy(test,c0,c1,r0,r1){
+  var res=[],r=r0;
+  while(r<=r1){
+    var sp=spansOf(r,test,c0,c1);
+    if(!sp.length){r++;continue}
+    var r2=r;
+    while(r2+1<=r1&&sameSpans(sp,spansOf(r2+1,test,c0,c1)))r2++;
+    for(var i=0;i<sp.length;i++)res.push({c1:sp[i][0],c2:sp[i][1],r1:r,r2:r2});
+    r=r2+1;
+  }
+  return res;
+}
+function zonas(m){
+  if(!m.n)return {viv:[],dead:[]};
+  var c0=m.minC,c1=m.minC+m.bc-1,r0=m.minR,r1=m.minR+m.br-1;
+  return {
+    viv: rectsBy(function(c,r){return isOn(c,r)},c0,c1,r0,r1),
+    dead:rectsBy(function(c,r){return !isOn(c,r)},c0,c1,r0,r1)
+  };
+}
+/* coordenadas en píxeles del arte, origen en la esquina superior izquierda */
+function zpx(z,m){
+  var k=m.k;
+  return {x:(z.c1-m.minC)*k.pxW, y:(z.r1-m.minR)*k.pxH,
+          w:(z.c2-z.c1+1)*k.pxW,  h:(z.r2-z.r1+1)*k.pxH,
+          wmm:(z.c2-z.c1+1)*k.w,  hmm:(z.r2-z.r1+1)*k.h,
+          xmm:(z.c1-m.minC)*k.w,  ymm:(z.r1-m.minR)*k.h};
+}
+
+/* ---------------- vista de diseño ---------------- */
+function hatch(x,y,w,h,color){
+  ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip();
+  ctx.strokeStyle=color; ctx.globalAlpha=.45; ctx.lineWidth=1;
+  for(var i=-h;i<w;i+=8){ctx.beginPath();ctx.moveTo(x+i,y+h);ctx.lineTo(x+i+h,y);ctx.stroke();}
+  ctx.restore();
+}
+function chip(x,y,w,h,cSurf,cLine){
+  ctx.globalAlpha=.94; ctx.fillStyle=cSurf;
+  if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,y,w,h,5);ctx.fill();}
+  else ctx.fillRect(x,y,w,h);
+  ctx.globalAlpha=1; ctx.strokeStyle=cLine; ctx.lineWidth=1;
+  if(ctx.roundRect)ctx.stroke(); else ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+}
+function drawDiseno(L,m){
+  var cSurf=css("--surface"), cLine=css("--grid-line"), cInk=css("--ink"),
+      cInk2=css("--ink-2"), cOn=css("--on"), cCrit=css("--crit"),
+      mono=css("--mono").replace(/"/g,"");
+  ctx.fillStyle=cSurf; ctx.fillRect(0,0,L.w,L.h);
+  if(!m.n){
+    ctx.fillStyle=cInk2; ctx.textAlign="center"; ctx.font="500 13px "+mono;
+    ctx.fillText("Pinta la pantalla para ver el lienzo de arte",L.w/2,L.h/2);
+    ctx.textAlign="left"; return;
+  }
+  var k=m.k, c1=m.minC+m.bc-1, r1=m.minR+m.br-1;
+  var bx=PAD.l+m.minC*L.cell, by=PAD.t+m.minR*L.cellH, bw=m.bc*L.cell, bh=m.br*L.cellH;
+
+  for(var c=0;c<S.cols;c++)for(var r=0;r<S.rows;r++){
+    var x=PAD.l+c*L.cell, y=PAD.t+r*L.cellH;
+    var dentro=(c>=m.minC&&c<=c1&&r>=m.minR&&r<=r1);
+    if(!dentro)continue;
+    if(isOn(c,r)){
+      ctx.globalAlpha=.16; ctx.fillStyle=cOn; ctx.fillRect(x,y,L.cell,L.cellH); ctx.globalAlpha=1;
+    }else{
+      hatch(x,y,L.cell,L.cellH,cCrit);
+    }
+    ctx.strokeStyle=cLine; ctx.lineWidth=1; ctx.strokeRect(x+.5,y+.5,L.cell-1,L.cellH-1);
+  }
+
+  /* borde del lienzo */
+  ctx.strokeStyle=cInk; ctx.lineWidth=2; ctx.strokeRect(bx-1,by-1,bw+2,bh+2);
+
+  /* reglas en píxeles, origen 0,0 arriba a la izquierda */
+  ctx.font="400 9px "+mono; ctx.fillStyle=cInk2; ctx.strokeStyle=cInk2; ctx.lineWidth=1;
+  var stepX=Math.max(1,Math.ceil(46/L.cell)), stepY=Math.max(1,Math.ceil(16/L.cellH));
+  ctx.textAlign="center";
+  for(var i=0;i<=m.bc;i+=stepX){
+    var xx=bx+i*L.cell;
+    ctx.beginPath();ctx.moveTo(xx,by-4);ctx.lineTo(xx,by-9);ctx.stroke();
+    ctx.fillText(fm(i*k.pxW),xx,by-12);
+  }
+  ctx.textAlign="right";
+  for(var j=0;j<=m.br;j+=stepY){
+    var yy=by+j*L.cellH;
+    ctx.beginPath();ctx.moveTo(bx-4,yy);ctx.lineTo(bx-9,yy);ctx.stroke();
+    ctx.fillText(fm(j*k.pxH),bx-12,yy+3);
+  }
+  ctx.textAlign="left";
+  ctx.fillStyle=cInk; ctx.font="600 10px "+mono;
+  ctx.fillText("0,0",bx,by-24);
+  ctx.fillText("LIENZO "+fm(m.resW)+" × "+fm(m.resH)+" px   ·   "+mt(m.Wmm)+" × "+mt(m.Hmm),
+               bx, by+bh+24);
+  ctx.fillStyle=cCrit;
+  ctx.fillText("Rayado = sin pantalla, ahí no se ve nada", bx, by+bh+40);
+
+  var Z=zonas(m);
+
+  /* zonas visibles */
+  Z.viv.forEach(function(z,idx){
+    var rx=PAD.l+z.c1*L.cell, ry=PAD.t+z.r1*L.cellH,
+        rw=(z.c2-z.c1+1)*L.cell, rh=(z.r2-z.r1+1)*L.cellH;
+    ctx.strokeStyle=cOn; ctx.lineWidth=2; ctx.setLineDash([5,3]);
+    ctx.strokeRect(rx+1,ry+1,rw-2,rh-2); ctx.setLineDash([]);
+    var q=zpx(z,m);
+    var l1="R"+(idx+1)+"  "+fm(q.w)+" × "+fm(q.h)+" px";
+    var l2="x "+fm(q.x)+"   y "+fm(q.y);
+    var fs=10; ctx.font="600 "+fs+"px "+mono;
+    var wN=Math.max(ctx.measureText(l1).width,ctx.measureText(l2).width)+10, hN=fs*2+12;
+    if(wN>rw-4||hN>rh-4)return;
+    var px2=rx+rw/2-wN/2, py2=ry+rh/2-hN/2;
+    chip(px2,py2,wN,hN,cSurf,cLine);
+    ctx.textAlign="center"; ctx.fillStyle=cOn; ctx.font="600 "+fs+"px "+mono;
+    ctx.fillText(l1,px2+wN/2,py2+fs+3);
+    ctx.fillStyle=cInk2; ctx.font="400 "+fs+"px "+mono;
+    ctx.fillText(l2,px2+wN/2,py2+fs*2+4);
+    ctx.textAlign="left";
+  });
+
+  /* huecos */
+  Z.dead.forEach(function(z){
+    var rx=PAD.l+z.c1*L.cell, ry=PAD.t+z.r1*L.cellH,
+        rw=(z.c2-z.c1+1)*L.cell, rh=(z.r2-z.r1+1)*L.cellH;
+    var q=zpx(z,m), l1="SIN PANTALLA", l2=fm(q.w)+" × "+fm(q.h)+" px";
+    var fs=10; ctx.font="600 "+fs+"px "+mono;
+    var wN=Math.max(ctx.measureText(l1).width,ctx.measureText(l2).width)+10, hN=fs*2+12;
+    if(wN>rw-4||hN>rh-4)return;
+    var px2=rx+rw/2-wN/2, py2=ry+rh/2-hN/2;
+    chip(px2,py2,wN,hN,cSurf,cLine);
+    ctx.textAlign="center"; ctx.fillStyle=cCrit; ctx.font="600 "+fs+"px "+mono;
+    ctx.fillText(l1,px2+wN/2,py2+fs+3);
+    ctx.fillStyle=cInk2; ctx.font="400 "+fs+"px "+mono;
+    ctx.fillText(l2,px2+wN/2,py2+fs*2+4);
+    ctx.textAlign="left";
+  });
+}
+
+/* ---------------- interacción ---------------- */
+var drag=null;
+function cellAt(e){
+  var R=cv.getBoundingClientRect(), L=layout();
+  var sx=L.w/R.width;
+  var x=(e.clientX-R.left)*sx-PAD.l, y=(e.clientY-R.top)*sx-PAD.t;
+  var c=Math.floor(x/L.cell), r=Math.floor(y/L.cellH);
+  if(c<0||r<0||c>=S.cols||r>=S.rows)return null;
+  return {c:c,r:r};
+}
+function paint(c,r,val){ if(val)S.on[key(c,r)]=1; else delete S.on[key(c,r)]; }
+
+function groupCells(c,r){
+  var seen={},st=[[c,r]],out=[];
+  seen[key(c,r)]=1;
+  while(st.length){
+    var p0=st.pop(); out.push(p0);
+    var nb=[[p0[0]+1,p0[1]],[p0[0]-1,p0[1]],[p0[0],p0[1]+1],[p0[0],p0[1]-1]];
+    for(var i=0;i<4;i++){
+      var nx=nb[i][0],ny=nb[i][1],kk=key(nx,ny);
+      if(nx<0||ny<0||nx>=S.cols||ny>=S.rows)continue;
+      if(isOn(nx,ny)&&!seen[kk]){seen[kk]=1;st.push([nx,ny])}
+    }
+  }
+  return out;
+}
+function clipInfo(){
+  var el=$("clipInfo");
+  el.textContent = S.clip ? "Copiado: "+S.clip.length+" paneles" : "";
+}
+function stampPreview(){
+  draw();
+  var L=layout();
+  ctx.fillStyle=css("--on"); ctx.strokeStyle=css("--on"); ctx.lineWidth=2;
+  drag.rel.forEach(function(d){
+    var c=drag.at.c+d[0], r=drag.at.r+d[1];
+    if(c<0||r<0||c>=S.cols||r>=S.rows)return;
+    var x=PAD.l+c*L.cell, y=PAD.t+r*L.cellH;
+    ctx.globalAlpha=.5; ctx.fillRect(x,y,L.cell,L.cellH);
+    ctx.globalAlpha=1; ctx.strokeRect(x+1,y+1,L.cell-2,L.cellH-2);
+  });
+}
+function stampAt(rel,at){
+  rel.forEach(function(d){
+    var c=at.c+d[0], r=at.r+d[1];
+    if(c<0||r<0||c>=S.cols||r>=S.rows)return;
+    S.on[key(c,r)]=1;
+  });
+}
+function stampCommit(){ stampAt(drag.rel,drag.at); }
+
+cv.addEventListener("pointerdown",function(e){
+  var p=cellAt(e); if(!p)return;
+  S.hover=p;
+  cv.setPointerCapture(e.pointerId);
+
+  if(S.tool==="copy"||S.tool==="move"){
+    if(isOn(p.c,p.r)){
+      var cells=groupCells(p.c,p.r);
+      var rel=cells.map(function(x){return [x[0]-p.c,x[1]-p.r]});
+      S.clip=rel; clipInfo();
+      if(S.tool==="move"){pushUndo();cells.forEach(function(x){delete S.on[key(x[0],x[1])]});}
+      drag={mode:"stamp",rel:rel,at:p,origin:p,pick:true,mover:S.tool==="move"};
+    }else if(S.clip){
+      pushUndo();
+      drag={mode:"stamp",rel:S.clip,at:p,origin:p,pick:false,mover:false};
+    }else{
+      toast("Primero haz clic sobre una pantalla pintada"); return;
+    }
+    stampPreview(); return;
+  }
+
+  pushUndo();
+  if(S.tool==="rect"){ drag={mode:"rect",a:p,b:p}; previewRect(); return; }
+  var val=S.tool==="paint";
+  drag={mode:"free",val:val};
+  paint(p.c,p.r,val); render();
+});
+cv.addEventListener("pointermove",function(e){
+  var h=cellAt(e); if(h)S.hover=h;
+  if(!drag)return;
+  var p=h; if(!p)return;
+  if(drag.mode==="free"){ paint(p.c,p.r,drag.val); render(); }
+  else if(drag.mode==="stamp"){ drag.at=p; stampPreview(); }
+  else { drag.b=p; previewRect(); }
+});
+function endDrag(){
+  if(drag&&drag.mode==="stamp"){
+    var movido = drag.at.c!==drag.origin.c || drag.at.r!==drag.origin.r;
+    if(drag.pick&&!movido){
+      if(drag.mover){ drag.rel.forEach(function(d){S.on[key(drag.origin.c+d[0],drag.origin.r+d[1])]=1}); }
+      else toast("Pantalla copiada · haz clic donde quieras pegarla");
+    } else stampCommit();
+    drag=null; render(); return;
+  }
+  if(drag&&drag.mode==="rect"){
+    var a=drag.a,b=drag.b;
+    for(var c=Math.min(a.c,b.c);c<=Math.max(a.c,b.c);c++)
+      for(var r=Math.min(a.r,b.r);r<=Math.max(a.r,b.r);r++) paint(c,r,true);
+  }
+  drag=null; render();
+}
+cv.addEventListener("pointerup",endDrag);
+cv.addEventListener("pointercancel",endDrag);
+cv.addEventListener("lostpointercapture",function(){if(drag)endDrag()});
+
+function previewRect(){
+  draw();
+  var L=layout(), a=drag.a, b=drag.b;
+  var x=PAD.l+Math.min(a.c,b.c)*L.cell, y=PAD.t+Math.min(a.r,b.r)*L.cellH;
+  var w=(Math.abs(a.c-b.c)+1)*L.cell, h=(Math.abs(a.r-b.r)+1)*L.cellH;
+  ctx.fillStyle=css("--on"); ctx.globalAlpha=.45; ctx.fillRect(x,y,w,h); ctx.globalAlpha=1;
+  ctx.strokeStyle=css("--on"); ctx.lineWidth=2; ctx.strokeRect(x+1,y+1,w-2,h-2);
+}
+
+/* teclado accesible */
+cv.setAttribute("tabindex","0");
+
+/* ---------------- historial y atajos ---------------- */
+var UNDO=[],REDO=[];
+function snap(){return {on:JSON.stringify(S.on),cols:S.cols,rows:S.rows}}
+function pushUndo(){ UNDO.push(snap()); if(UNDO.length>60)UNDO.shift(); REDO=[]; }
+function applySnap(sp){
+  S.on=JSON.parse(sp.on); S.cols=sp.cols; S.rows=sp.rows;
+  $("cols").value=S.cols; $("rows").value=S.rows; render();
+}
+function undo(){ if(!UNDO.length){toast("Nada que deshacer");return} REDO.push(snap()); applySnap(UNDO.pop()); }
+function redo(){ if(!REDO.length){toast("Nada que rehacer");return} UNDO.push(snap()); applySnap(REDO.pop()); }
+
+function pintados(){
+  var out=[];
+  for(var c=0;c<S.cols;c++)for(var r=0;r<S.rows;r++)if(isOn(c,r))out.push([c,r]);
+  return out;
+}
+function copiar(){
+  var h=S.hover;
+  if(h&&isOn(h.c,h.r)){
+    var cells=groupCells(h.c,h.r);
+    S.clip=cells.map(function(x){return [x[0]-h.c,x[1]-h.r]});
+    clipInfo(); toast("Pantalla copiada · "+cells.length+" paneles");
+    return;
+  }
+  var all=pintados();
+  if(!all.length){toast("No hay nada pintado");return}
+  var mc=1e9,mr=1e9;
+  all.forEach(function(x){if(x[0]<mc)mc=x[0];if(x[1]<mr)mr=x[1]});
+  S.clip=all.map(function(x){return [x[0]-mc,x[1]-mr]});
+  clipInfo(); toast("Diseño completo copiado · "+all.length+" paneles");
+}
+function pegar(){
+  if(!S.clip){toast("No hay nada copiado — usa Ctrl+C sobre una pantalla");return}
+  pushUndo();
+  var at=S.hover||{c:0,r:0};
+  stampAt(S.clip,at);
+  render(); toast("Pegado");
+}
+function enCampo(t){return t&&/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)}
+document.addEventListener("keydown",function(e){
+  if(enCampo(e.target))return;
+  if(!(e.ctrlKey||e.metaKey))return;
+  var k=(e.key||"").toLowerCase();
+  if(k==="z"){e.preventDefault(); if(e.shiftKey)redo(); else undo();}
+  else if(k==="y"){e.preventDefault(); redo();}
+  else if(k==="c"){e.preventDefault(); copiar();}
+  else if(k==="v"){e.preventDefault(); pegar();}
+});
+
+/* ---------------- ficha ---------------- */
+function render(){
+  draw();
+  var m=metrics(), k=m.k;
+
+  $("pxHint").innerHTML = "1 panel = <b>"+k.pxW+" × "+k.pxH+" px</b> · "+
+     Math.round(1000/k.p)+" px/m · "+fm(m.dens)+" px/m²";
+
+  var estado = m.resW<=1920 && m.resH<=1080
+      ? '<span class="pill ok">Cabe en Full HD</span>'
+      : (m.resW<=3840 && m.resH<=2160
+         ? '<span class="pill warn">Requiere fuente 4K</span>'
+         : '<span class="pill crit">Mapeo por zonas</span>');
+
+  $("tiles").innerHTML=
+   tile("Resolución del lienzo", fm(m.resW)+" × "+fm(m.resH), "píxeles del rectángulo envolvente", true)+
+   tile("Medida total", mt(m.Wmm)+" × "+mt(m.Hmm), "ancho × alto")+
+   tile("Píxeles activos", (m.pxAct/1e6).toFixed(2)+" <small>Mpx</small>", fm(m.pxAct)+" px encendidos")+
+   tile("Paneles", fm(m.n), m.bc+" × "+m.br+" en el envolvente")+
+   tile("Área activa", fm(m.area,2)+" <small>m²</small>", fm(m.kgTot,1)+" kg de peso")+
+   tile("Consumo de diseño", fm(m.wDis)+" <small>W</small>", fm(m.ampDis,1)+" A @ "+k.volt+" V · planta "+fm(m.planta)+" kVA");
+
+  $("tMed").innerHTML=
+   row("Módulos encendidos", fm(m.n))+
+   row("Pantallas independientes", fm(m.G.length))+
+   m.G.map(function(g){return row("&nbsp;&nbsp;"+g.id+" · "+g.n+" paneles", mt(g.bc*k.w)+" × "+mt(g.br*k.h)+" · "+fm(g.bc*k.pxW)+"×"+fm(g.br*k.pxH)+" px")}).join("")+
+   row("Rejilla envolvente", m.bc+" × "+m.br+" módulos")+
+   row("Ancho total", fm(m.Wmm)+" mm / "+mt(m.Wmm))+
+   row("Alto total", fm(m.Hmm)+" mm / "+mt(m.Hmm))+
+   row("Área activa", fm(m.area,2)+" m²")+
+   row("Relación de aspecto", aspecto(m.resW,m.resH))+
+   row("Resolución del lienzo", fm(m.resW)+" × "+fm(m.resH)+" px")+
+   row("Píxeles activos", fm(m.pxAct)+" px")+
+   row("Entrada de video", estado)+
+   row("Peso total", fm(m.kgTot,1)+" kg")+
+   row("Peso por m²", m.area?fm(m.kgTot/m.area,1)+" kg/m²":"—");
+
+  $("tEne").innerHTML=
+   row("Consumo máximo de ficha <small style=\"color:var(--ink-3)\">(pico)</small>", fm(m.wMax)+" W")+
+   row("Consumo promedio de ficha", fm(m.wProm)+" W")+
+   row("Consumo de diseño", fm(m.wDis)+" W <small style=\"color:var(--ink-3)\">("+Math.round(m.wDis/m.wMax*100)+" % del pico)</small>")+
+   row("Consumo de diseño por m²", m.area?fm(m.wDis/m.area)+" W/m²":"—")+
+   row("Corriente de diseño a "+k.volt+" V", fm(m.ampDis,1)+" A")+
+   row("Líneas de "+k.breaker+" A <small style=\"color:var(--ink-3)\">(carga continua)</small>", m.lineas?fm(m.lineas)+" circuito"+(m.lineas>1?"s":""):"—")+
+   row("Potencia aparente <small style=\"color:var(--ink-3)\">(fp 0,9)</small>", m.kva?fm(m.kva,1)+" kVA":"—")+
+   row("Planta sugerida <small style=\"color:var(--ink-3)\">(+15 % margen)</small>", m.n?fm(m.planta)+" kVA":"—")+
+   row("Corriente en el pico de ficha", fm(m.amp,1)+" A")+
+   row("Puertos Ethernet", m.puertos?fm(m.puertos)+" puerto"+(m.puertos>1?"s":""):"—")+
+   row("Tarjetas receptoras", m.n?fm(m.n)+" (1 por panel)":"—")+
+   row("Procesador sugerido", m.proc)+
+   row("Cable de datos", m.puertos?fm(m.puertos)+" × Cat6":"—");
+
+  $("gridInfo").textContent = S.cols+" × "+S.rows+" módulos de trabajo · "+
+    mt(S.cols*k.w)+" × "+mt(S.rows*k.h)+" de área disponible";
+
+  renderBrief(m);
+}
+function tile(k,v,s,hero){
+  return '<div class="tile'+(hero?" hero":"")+'"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>';
+}
+function row(a,b){return "<tr><td>"+a+"</td><td>"+b+"</td></tr>"}
+
+/* ---------------- brief para el diseñador ---------------- */
+function briefData(m){
+  var k=m.k, Z=zonas(m);
+  return {
+    Z:Z, k:k,
+    pxM:Math.round(1000/k.p),
+    safe:Math.min(k.pxW,k.pxH),
+    tmin:20,
+    tcm:(20*k.p/10)
+  };
+}
+function renderBrief(m){
+  var box=$("briefBox");
+  if(!m.n){ box.innerHTML='<p class="bs">Pinta la pantalla y aquí sale el lienzo exacto que debe entregar el diseñador.</p>'; return; }
+  var b=briefData(m), k=m.k, Z=b.Z;
+  var filas=Z.viv.map(function(z,i){
+    var q=zpx(z,m);
+    return "<tr><td>R"+(i+1)+"</td><td>"+fm(q.x)+", "+fm(q.y)+"</td><td>"+fm(q.w)+" × "+fm(q.h)+" px</td><td>"+
+           mt(q.wmm)+" × "+mt(q.hmm)+"</td></tr>";
+  }).join("");
+  var muertas=Z.dead.length? Z.dead.map(function(z){
+    var q=zpx(z,m);
+    return "<tr><td>—</td><td>"+fm(q.x)+", "+fm(q.y)+"</td><td>"+fm(q.w)+" × "+fm(q.h)+" px</td><td>"+
+           mt(q.wmm)+" × "+mt(q.hmm)+"</td></tr>";
+  }).join("") : '<tr><td colspan="4" style="color:var(--ink-3)">Ninguna: la pantalla es un rectángulo lleno.</td></tr>';
+
+  box.innerHTML=
+  '<div class="two">'+
+    '<div>'+
+      '<p class="bk">Lienzo de arte</p>'+
+      '<p class="bv">'+fm(m.resW)+' × '+fm(m.resH)+' px</p>'+
+      '<p class="bs">'+mt(m.Wmm)+' × '+mt(m.Hmm)+' en sitio · 1 px de arte = 1 píxel LED · 1 m = '+b.pxM+' px</p>'+
+      '<p class="bk">Cómo se lo explicas</p>'+
+      '<p class="bs">El arte se monta en un lienzo de <b>'+fm(m.resW)+' × '+fm(m.resH)+' px</b>. '+
+        'El fondo debe cubrirlo completo, pero <b>solo se ve la zona naranja</b>: '+
+        'lo que caiga en las zonas rayadas desaparece, ahí no hay pantalla. '+
+        'Logos, textos y caras van dentro de los rectángulos R de la tabla, nunca a caballo entre dos.</p>'+
+      '<p class="bk">Margen de seguridad</p>'+
+      '<p class="bs">Dejar <b>'+fm(b.safe)+' px</b> (un módulo) libres desde el borde y desde cada hueco. '+
+        'Ese margen lleva fondo, no contenido.</p>'+
+      '<p class="bk">Legibilidad</p>'+
+      '<p class="bs">Texto mínimo <b>'+b.tmin+' px</b> de alto (≈ '+fm(b.tcm,1)+' cm reales con pitch '+k.p+' mm). '+
+        'Evitar líneas de 1 px, tipografías finas y degradados muy suaves.</p>'+
+      '<p class="bk">Entrega</p>'+
+      '<p class="bs">Imagen: PNG o JPG a <b>'+fm(m.resW)+' × '+fm(m.resH)+' px</b>, RGB, sin márgenes extra.<br>'+
+        'Video: MP4 H.264 a esa misma medida, 30 fps, sin barras negras.<br>'+
+        'Si necesita maquetar más grande, usar un múltiplo exacto (×2 = '+fm(m.resW*2)+' × '+fm(m.resH*2)+' px).</p>'+
+    '</div>'+
+    '<div>'+
+      '<p class="bk">Zonas visibles — origen 0,0 arriba a la izquierda</p>'+
+      '<table class="mini"><tr><th>Zona</th><th>x, y</th><th>Tamaño</th><th>En sitio</th></tr>'+filas+'</table>'+
+      '<p class="bk">Zonas sin pantalla</p>'+
+      '<table class="mini"><tr><th></th><th>x, y</th><th>Tamaño</th><th>En sitio</th></tr>'+muertas+'</table>'+
+      '<p class="bk">Para Photoshop / Illustrator</p>'+
+      '<p class="bs">Documento nuevo de '+fm(m.resW)+' × '+fm(m.resH)+' px a 72 ppp, RGB. '+
+        'Descarga la plantilla PNG de arriba y pégala como capa superior bloqueada: '+
+        'lo magenta es lo que no se ve. Se elimina esa capa antes de exportar.</p>'+
+    '</div>'+
+  '</div>';
+}
+function briefTexto(){
+  var m=metrics(); if(!m.n)return "Sin pantalla dibujada.";
+  var b=briefData(m), k=m.k;
+  var L=[];
+  L.push("BRIEF DE ARTE — BBM Producciones");
+  L.push("");
+  L.push("Lienzo: "+m.resW+" x "+m.resH+" px  ("+mt(m.Wmm)+" x "+mt(m.Hmm)+" en sitio)");
+  L.push("Escala: 1 px de arte = 1 pixel LED · 1 m = "+b.pxM+" px · pitch "+k.p+" mm");
+  L.push("");
+  L.push("IMPORTANTE: la pantalla no es un rectángulo lleno. El arte se hace sobre el lienzo");
+  L.push("completo, pero solo se ve lo que cae dentro de estas zonas:");
+  b.Z.viv.forEach(function(z,i){
+    var q=zpx(z,m);
+    L.push("  R"+(i+1)+": x "+q.x+", y "+q.y+"  ·  "+q.w+" x "+q.h+" px  ("+mt(q.wmm)+" x "+mt(q.hmm)+")");
+  });
+  if(b.Z.dead.length){
+    L.push("");
+    L.push("Zonas SIN pantalla (todo lo que caiga ahí se pierde):");
+    b.Z.dead.forEach(function(z){
+      var q=zpx(z,m);
+      L.push("  x "+q.x+", y "+q.y+"  ·  "+q.w+" x "+q.h+" px  ("+mt(q.wmm)+" x "+mt(q.hmm)+")");
+    });
+  }
+  L.push("");
+  L.push("Margen de seguridad: "+b.safe+" px desde bordes y huecos (solo fondo, sin contenido).");
+  L.push("Texto mínimo: "+b.tmin+" px de alto (~"+fm(b.tcm,1)+" cm reales).");
+  L.push("Entrega: PNG/JPG a "+m.resW+"x"+m.resH+" px RGB, o MP4 H.264 a esa medida, 30 fps.");
+  L.push("Multiplo permitido: x2 = "+(m.resW*2)+"x"+(m.resH*2)+" px.");
+  return L.join("\n");
+}
+
+/* plantilla PNG a resolución real */
+function plantilla(){
+  var m=metrics();
+  if(!m.n){toast("Primero pinta la pantalla");return null}
+  if(m.resW*m.resH>40e6||m.resW>16000||m.resH>16000){toast("Lienzo demasiado grande para la plantilla");return null}
+  var k=m.k, cn=document.createElement("canvas");
+  cn.width=m.resW; cn.height=m.resH;
+  var g=cn.getContext("2d");
+  g.fillStyle="#FFFFFF"; g.fillRect(0,0,m.resW,m.resH);
+  var Z=zonas(m);
+  /* huecos en magenta */
+  g.fillStyle="#FF00A8";
+  Z.dead.forEach(function(z){var q=zpx(z,m); g.fillRect(q.x,q.y,q.w,q.h)});
+  /* retícula de módulos */
+  g.strokeStyle="rgba(0,0,0,.18)"; g.lineWidth=1;
+  for(var i=0;i<=m.bc;i++){g.beginPath();g.moveTo(i*k.pxW+.5,0);g.lineTo(i*k.pxW+.5,m.resH);g.stroke();}
+  for(var j=0;j<=m.br;j++){g.beginPath();g.moveTo(0,j*k.pxH+.5);g.lineTo(m.resW,j*k.pxH+.5);g.stroke();}
+  g.strokeStyle="#111"; g.lineWidth=3; g.strokeRect(1.5,1.5,m.resW-3,m.resH-3);
+  /* rótulos */
+  var fs=Math.max(12,Math.round(Math.min(m.resW,m.resH)/22));
+  g.font="700 "+fs+"px sans-serif"; g.textAlign="center"; g.textBaseline="middle";
+  Z.dead.forEach(function(z){
+    var q=zpx(z,m);
+    if(q.w<fs*7||q.h<fs*2)return;
+    g.fillStyle="#FFFFFF";
+    g.fillText("SIN PANTALLA",q.x+q.w/2,q.y+q.h/2-fs*0.7);
+    g.font="400 "+Math.round(fs*.7)+"px sans-serif";
+    g.fillText(q.w+" × "+q.h+" px",q.x+q.w/2,q.y+q.h/2+fs*0.7);
+    g.font="700 "+fs+"px sans-serif";
+  });
+  g.textAlign="left"; g.textBaseline="alphabetic";
+  g.fillStyle="#111"; g.font="700 "+Math.round(fs*.8)+"px sans-serif";
+  g.fillText("LIENZO "+m.resW+" × "+m.resH+" px  ·  "+mt(m.Wmm)+" × "+mt(m.Hmm)+"  ·  BBM",
+             Math.round(fs*.5), Math.round(fs*1.3));
+  return cn;
+}
+
+/* ---------------- ficha en texto ---------------- */
+function ficha(){
+  var m=metrics(),k=m.k;
+  return [
+  "PLANO LED — BBM Producciones",
+  "Módulo: pitch "+k.p+" mm · "+k.w+"×"+k.h+" mm · "+k.pxW+"×"+k.pxH+" px",
+  "Paneles: "+m.n+"  (rejilla envolvente "+m.bc+"×"+m.br+")",
+  "Pantallas: "+m.G.length,
+  m.G.map(function(g){return "  "+g.id+": "+mt(g.bc*k.w)+" x "+mt(g.br*k.h)+"  ("+g.bc*k.pxW+"x"+g.br*k.pxH+" px, "+g.n+" paneles)"}).join("\n"),
+  "Medida: "+mt(m.Wmm)+" x "+mt(m.Hmm)+"  ("+fm(m.Wmm)+" x "+fm(m.Hmm)+" mm)",
+  "Área activa: "+fm(m.area,2)+" m²",
+  "Resolución del lienzo: "+m.resW+" x "+m.resH+" px",
+  "Píxeles activos: "+fm(m.pxAct)+" px ("+(m.pxAct/1e6).toFixed(2)+" Mpx)",
+  "Aspecto: "+aspecto(m.resW,m.resH),
+  "Peso: "+fm(m.kgTot,1)+" kg",
+  "Consumo: "+fm(m.wProm)+" W promedio de ficha · "+fm(m.wDis)+" W de diseño · "+fm(m.ampDis,1)+" A @ "+k.volt+" V (pico "+fm(m.wMax)+" W)",
+  "Planta sugerida: "+fm(m.planta)+" kVA (solo pantalla, fp 0,9 + 15 % margen)",
+  "Circuitos de "+k.breaker+" A: "+m.lineas,
+  "Puertos Ethernet: "+m.puertos+" · Receptoras: "+m.n,
+  "Procesador sugerido: "+m.proc
+  ].join("\n");
+}
+
+/* ---------------- toast ---------------- */
+var tRef=null;
+function toast(msg){
+  if(tRef)tRef.remove();
+  tRef=document.createElement("div"); tRef.className="toast"; tRef.textContent=msg;
+  document.body.appendChild(tRef);
+  setTimeout(function(){if(tRef){tRef.remove();tRef=null}},2200);
+}
+
+/* ---------------- guardado local ---------------- */
+var LS="bbm-plano-led";
+function saved(){ try{ return JSON.parse(localStorage.getItem(LS)||"[]") }catch(e){ return [] } }
+function setSaved(a){ try{ localStorage.setItem(LS,JSON.stringify(a)) }catch(e){} }
+function drawSaved(){
+  var a=saved(), box=$("savedList");
+  if(!a.length){ box.innerHTML='<p class="empty">Aún no hay diseños guardados.</p>'; return; }
+  box.innerHTML="";
+  a.forEach(function(d,i){
+    var el=document.createElement("div"); el.className="saved-item";
+    var s=document.createElement("span"); s.textContent=d.nombre;
+    var load=document.createElement("button"); load.className="btn sm"; load.textContent="Abrir";
+    load.onclick=function(){
+      pushUndo();
+      S.cols=d.cols;S.rows=d.rows;S.on=d.on;
+      $("cols").value=d.cols; $("rows").value=d.rows;
+      $("pitch").value=d.p; $("pw").value=d.w; $("ph").value=d.h;
+      $("kg").value=d.kg; $("wmax").value=d.W; if(d.Wp)$("wprom").value=d.Wp;
+      render(); toast("Diseño cargado");
+    };
+    var x=document.createElement("button"); x.className="x"; x.textContent="×"; x.title="Eliminar";
+    x.onclick=function(){ var b=saved(); b.splice(i,1); setSaved(b); drawSaved(); };
+    var g=document.createElement("div"); g.style.display="flex"; g.style.gap="4px";
+    g.appendChild(load); g.appendChild(x);
+    el.appendChild(s); el.appendChild(g); box.appendChild(el);
+  });
+}
+$("btnSave").onclick=function(){
+  var n=prompt("Nombre del diseño (cliente o evento):","Pantalla "+metrics().bc+"×"+metrics().br);
+  if(!n)return;
+  var k=cfg(), a=saved();
+  a.unshift({nombre:n,cols:S.cols,rows:S.rows,on:S.on,p:k.p,w:k.w,h:k.h,kg:k.kg,W:k.W,Wp:k.Wp});
+  setSaved(a.slice(0,20)); drawSaved(); toast("Guardado en este navegador");
+};
+
+/* ---------------- acciones ---------------- */
+$("btnCopy").onclick=function(){
+  var t=ficha();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){toast("Ficha copiada")},function(){fallback(t)});
+  } else fallback(t);
+};
+function fallback(t){
+  var ta=document.createElement("textarea"); ta.value=t;
+  ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta);
+  ta.select(); try{document.execCommand("copy");toast("Ficha copiada")}catch(e){toast("No se pudo copiar")}
+  ta.remove();
+}
+$("btnPrint").onclick=function(){window.print()};
+
+$("btnBrief").onclick=function(){
+  var t=briefTexto();
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(t).then(function(){toast("Brief copiado")},function(){fallback(t)});
+  else fallback(t);
+};
+function guardaPNG(canvasEl,nombre){
+  canvasEl.toBlob(function(b){
+    if(!b){toast("No se pudo generar el PNG");return}
+    var u=URL.createObjectURL(b), a=document.createElement("a");
+    a.href=u; a.download=nombre; document.body.appendChild(a); a.click();
+    setTimeout(function(){URL.revokeObjectURL(u);a.remove()},1500);
+    toast("PNG descargado");
+  },"image/png");
+}
+$("btnTpl").onclick=function(){
+  var cn=plantilla(); if(!cn)return;
+  guardaPNG(cn,"plantilla-arte-"+cn.width+"x"+cn.height+".png");
+};
+
+$("btnUndo").onclick=undo;
+$("btnRedo").onclick=redo;
+
+/* vista montaje / diseño */
+function setView(v){
+  VIEW=v;
+  var dis=(v==="diseno");
+  $("planTitle").textContent = dis ? "2 · Lienzo de arte" : "2 · Plano de montaje";
+  $("planLegend").innerHTML = dis
+    ? '<span><i style="background:var(--on);opacity:.35"></i>Se ve</span>'+
+      '<span><i style="background:repeating-linear-gradient(45deg,var(--crit) 0 2px,transparent 2px 5px)"></i>Sin pantalla</span>'+
+      '<span><i style="background:var(--ink-2)"></i>Coordenadas en px</span>'
+    : '<span><i style="background:var(--on)"></i>Panel activo</span>'+
+      '<span><i style="background:var(--grid-off);border:1px solid var(--grid-line)"></i>Libre</span>'+
+      '<span><i style="background:var(--cota)"></i>Cotas</span>';
+  $("vMont").setAttribute("aria-pressed",String(v==="montaje"));
+  $("vDis").setAttribute("aria-pressed",String(v==="diseno"));
+  render();
+}
+$("vMont").onclick=function(){setView("montaje")};
+$("vDis").onclick=function(){setView("diseno")};
+
+$("btnPng").onclick=function(){ guardaPNG(cv,"plano-led-bbm.png") };
+
+/* tamaño del lienzo */
+function usado(){
+  var maxC=0,maxR=0;
+  for(var c=0;c<S.cols;c++)for(var r=0;r<S.rows;r++)
+    if(isOn(c,r)){if(c+1>maxC)maxC=c+1;if(r+1>maxR)maxR=r+1;}
+  return {c:maxC,r:maxR};
+}
+function setGrid(c,r){
+  pushUndo();
+  S.cols=Math.max(1,Math.min(120,c));
+  S.rows=Math.max(1,Math.min(60,r));
+  Object.keys(S.on).forEach(function(k2){
+    var a=k2.split(","); if(+a[0]>=S.cols||+a[1]>=S.rows)delete S.on[k2];
+  });
+  $("cols").value=S.cols; $("rows").value=S.rows;
+  render();
+}
+$("btnBig").onclick=function(){
+  if(S.cols>=120&&S.rows>=60){toast("Ya estás en el lienzo máximo");return}
+  setGrid(S.cols+8,S.rows+4);
+};
+$("btnSmall").onclick=function(){
+  var u=usado();
+  setGrid(Math.max(4,Math.max(u.c,S.cols-8)),Math.max(2,Math.max(u.r,S.rows-4)));
+};
+$("btnFit").onclick=function(){
+  var u=usado();
+  if(!u.c){toast("No hay nada dibujado");return}
+  setGrid(u.c,u.r);
+};
+
+$("btnFill").onclick=function(){
+  pushUndo();
+  for(var c=0;c<S.cols;c++)for(var r=0;r<S.rows;r++)S.on[key(c,r)]=1;
+  render();
+};
+$("btnClear").onclick=function(){ pushUndo(); S.on={}; render(); };
+
+/* herramientas */
+var tools={tPaint:"paint",tErase:"erase",tRect:"rect",tCopy:"copy",tMove:"move"};
+Object.keys(tools).forEach(function(id){
+  $(id).onclick=function(){
+    S.tool=tools[id];
+    Object.keys(tools).forEach(function(o){$(o).setAttribute("aria-pressed",String(o===id))});
+    if(S.tool==="copy"&&!S.clip)toast("Haz clic sobre una pantalla pintada para copiarla");
+    if(S.tool==="move")toast("Arrastra una pantalla pintada para moverla");
+    clipInfo();
+  };
+});
+
+/* tensión 110 / 220 */
+function setVolt(v){
+  S.volt=v;
+  $("v110").setAttribute("aria-pressed",String(v===110));
+  $("v220").setAttribute("aria-pressed",String(v===220));
+  render();
+}
+$("v110").onclick=function(){setVolt(110)};
+$("v220").onclick=function(){setVolt(220)};
+
+/* presets */
+var sel=$("preset");
+PRESETS.forEach(function(p,i){
+  var o=document.createElement("option"); o.value=String(i); o.textContent=p.n; sel.appendChild(o);
+});
+var oc=document.createElement("option"); oc.value="x"; oc.textContent="Personalizado"; sel.appendChild(oc);
+sel.value="5";
+sel.onchange=function(){
+  if(sel.value==="x")return;
+  var p=PRESETS[+sel.value];
+  $("pitch").value=p.p; $("pw").value=p.w; $("ph").value=p.h; $("kg").value=p.kg; $("wmax").value=p.W; $("wprom").value=p.Wp;
+  render();
+};
+
+/* inputs */
+["pitch","pw","ph","kg","wmax","wprom","breaker","fc"].forEach(function(id){
+  $(id).addEventListener("input",function(){
+    if(["pitch","pw","ph","kg","wmax","wprom"].indexOf(id)>=0)sel.value="x";
+    render();
+  });
+});
+["cols","rows"].forEach(function(id){
+  $(id).addEventListener("input",function(){
+    var v=Math.max(1,Math.min(id==="cols"?120:60,Math.round(parseFloat($(id).value)||1)));
+    if(id==="cols")S.cols=v; else S.rows=v;
+    Object.keys(S.on).forEach(function(k2){
+      var a=k2.split(","); if(+a[0]>=S.cols||+a[1]>=S.rows)delete S.on[k2];
+    });
+    render();
+  });
+});
+
+/* tema y tamaño */
+var mq=window.matchMedia("(prefers-color-scheme:dark)");
+if(mq.addEventListener)mq.addEventListener("change",render);
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+var rt; window.addEventListener("resize",function(){clearTimeout(rt);rt=setTimeout(render,120)});
+
+drawSaved();
+setView("montaje");
+setTimeout(render,400); /* re-dibuja cuando las fuentes ya cargaron */
+})();
+</script>
+
+</body>
+</html>

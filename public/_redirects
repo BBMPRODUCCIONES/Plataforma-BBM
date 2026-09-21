@@ -1,2 +1,7 @@
+# El Plano LED es un archivo real, no una ruta de React: se sirve tal cual y
+# sin pedir cuenta, para poder pasarle el enlace a alguien de afuera.
+/plano-led      /plano-led/index.html   200
+/plano-led/     /plano-led/index.html   200
+
 # SPA: cualquier ruta que no sea un archivo real la resuelve React Router
 /*    /index.html   200

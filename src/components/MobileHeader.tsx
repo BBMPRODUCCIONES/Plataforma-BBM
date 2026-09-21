@@ -13,7 +13,6 @@ import {
   Plus,
   FileBarChart,
   TrendingUp,
-  LayoutGrid,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -40,7 +39,6 @@ const routeConfig: Record<string, RouteConfigItem> = {
   "/calendar": { title: "Calendario", icon: Calendar },
   "/panel-reportes": { title: "Reportes", icon: FileBarChart },
   "/panel-ventas": { title: "Ventas", icon: TrendingUp },
-  "/plano-led-herramienta": { title: "Plano LED", icon: LayoutGrid },
   "/usuarios": { title: "Usuarios", icon: UserPlus, primaryAction: { icon: Plus, label: "Invitar" } },
   "/clientes": { title: "Clientes", icon: Building2, primaryAction: { icon: Plus, label: "Nuevo" } },
   "/empleados": { title: "Empleados", icon: Users, primaryAction: { icon: Plus, label: "Nuevo" } },

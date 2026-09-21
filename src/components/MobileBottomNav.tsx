@@ -27,7 +27,9 @@ const moreNavItems = [
   // Reportes salio del menu (ver AppSidebar.tsx); en su lugar va Ventas.
   // { title: "Reportes", url: "/panel-reportes", icon: FileBarChart, panel: "reportes", adminOnly: true },
   { title: "Ventas por comercial", url: "/panel-ventas", icon: TrendingUp, panel: "directivo" },
-  { title: "Plano LED", url: "/plano-led-herramienta", icon: LayoutGrid },
+  // Archivo suelto, no pantalla del PLANNER: se abre en pestana propia para
+  // que use toda la ventana.
+  { title: "Plano LED", url: "/plano-led/", icon: LayoutGrid, externo: true },
   { title: "Usuarios", url: "/usuarios", icon: Users, panel: "usuarios", adminOnly: true },
   { title: "Clientes", url: "/clientes", icon: Users, panel: "clientes", adminOnly: true },
   { title: "Empleados", url: "/empleados", icon: Users, panel: "empleados", adminOnly: true },
@@ -43,7 +45,14 @@ export function MobileBottomNav() {
 
   const currentPath = location.pathname;
 
-  const handleNavigation = (url: string) => {
+  const handleNavigation = (url: string, externo?: boolean) => {
+    // Un externo no es una ruta de React Router: navigate() lo mandaria al
+    // 404 de la aplicacion en vez de abrir el archivo.
+    if (externo) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      setMoreOpen(false);
+      return;
+    }
     navigate(url);
     setMoreOpen(false);
   };
@@ -77,7 +86,7 @@ export function MobileBottomNav() {
           return (
             <button
               key={item.url}
-              onClick={() => handleNavigation(item.url)}
+              onClick={() => handleNavigation(item.url, (item as { externo?: boolean }).externo)}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 px-2 rounded-md transition-all duration-200 touch-manipulation",
                 isActive 
@@ -141,7 +150,7 @@ export function MobileBottomNav() {
                 return (
                   <button
                     key={item.url}
-                    onClick={() => handleNavigation(item.url)}
+                    onClick={() => handleNavigation(item.url, (item as { externo?: boolean }).externo)}
                     className={cn(
                       "flex flex-col items-center justify-center gap-2 p-4 rounded-xl transition-all duration-200 touch-manipulation min-h-[80px]",
                       isActive 

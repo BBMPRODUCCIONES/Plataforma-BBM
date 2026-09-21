@@ -14,6 +14,7 @@ import {
   Briefcase,
   TrendingUp,
   LayoutGrid,
+  ExternalLink,
 } from "lucide-react";
 import bbmLogo from "@/assets/bbm-logo.png";
 import { useNavigate } from "react-router-dom";
@@ -40,7 +41,10 @@ const mainNavItems = [
   { title: "Panel General", url: "/panel-general", icon: Grid3X3, panel: "general" },
   { title: "Panel Operaciones", url: "/panel-operaciones", icon: Wrench, panel: "operaciones" },
   // Sin "panel": es una herramienta, la ve cualquiera que entre.
-  { title: "Plano LED", url: "/plano-led-herramienta", icon: LayoutGrid },
+  // "externo": es un archivo suelto, no una pantalla del PLANNER. Se abre en
+  // pestana propia para que use toda la ventana; metido aqui adentro quedaba
+  // apretado contra el menu y el encabezado.
+  { title: "Plano LED", url: "/plano-led/", icon: LayoutGrid, externo: true },
   
   // Reportes salio del menu; en su lugar va Ventas por comercial, que antes
   // era una ventana dentro del Panel Directivo. La ruta /panel-reportes sigue
@@ -122,6 +126,27 @@ export function AppSidebar() {
                     // Don't render items user doesn't have access to
                     if (!hasAccess) return null;
                     
+                    // Los externos no son rutas de React: se abren aparte.
+                    if (item.externo) {
+                      return (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild>
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-sidebar-accent"
+                              title={`${item.title} — se abre en una pestaña nueva`}
+                            >
+                              <item.icon className="w-4 h-4" />
+                              <span className="text-sm">{item.title}</span>
+                              <ExternalLink className="w-3 h-3 ml-auto opacity-40" />
+                            </a>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    }
+
                     return (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton asChild>

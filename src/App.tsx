@@ -31,7 +31,6 @@ import InstalarApp from "./pages/InstalarApp";
 
 import PanelReportes from "./pages/PanelReportes";
 import PanelVentas from "./pages/PanelVentas";
-import PlanoLed from "./pages/PlanoLed";
 
 const queryClient = new QueryClient();
 
@@ -82,14 +81,6 @@ const App = () => (
                       <HistorialCotizaciones />
                     </ProtectedRoute>
                   } />
-                  {/* Plano LED - lo ve cualquiera que entre; sin requiredPanel,
-                      porque no es un panel de gestion sino una herramienta. */}
-                  <Route path="/plano-led-herramienta" element={
-                    <ProtectedRoute>
-                      <PlanoLed />
-                    </ProtectedRoute>
-                  } />
-
                   {/* Ventas por comercial - ocupa el lugar que tenia Reportes en el menu */}
                   <Route path="/panel-ventas" element={
                     <ProtectedRoute requiredPanel="directivo">

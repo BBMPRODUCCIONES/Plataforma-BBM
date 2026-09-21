@@ -191,7 +191,7 @@ select{font-family:var(--sans)}
   background:var(--surface);border-radius:0 0 12px 12px;
 }
 .foot-info{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-left:auto}
-canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair;border-radius:6px}
+canvas{display:block;max-width:100%;touch-action:none;cursor:crosshair;border-radius:6px}
 
 /* ---------- ficha ---------- */
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));background:var(--surface);border-radius:12px;overflow:hidden}
@@ -364,6 +364,7 @@ footer{margin-top:22px;font-size:11.5px;color:var(--ink-3);text-align:center;pad
           <span class="lbl">Vista</span>
           <button class="tool" id="vMont" aria-pressed="true">Montaje</button>
           <button class="tool" id="vDis" aria-pressed="false">Diseño</button>
+          <button class="tool" id="vM2" aria-pressed="true" title="Marca la cuadrícula de metro cuadrado sobre el plano">m²</button>
           <button class="btn sm" id="btnUndo" style="margin-left:8px" title="Ctrl+Z">↶ Deshacer</button>
           <button class="btn sm" id="btnRedo" title="Ctrl+Shift+Z">↷</button>
           <button class="btn sm" id="btnFill">Llenar todo</button>
@@ -485,7 +486,7 @@ function plantaComercial(kva){
 }
 
 /* ---------------- estado ---------------- */
-var S={cols:24,rows:8,on:{},tool:"paint",volt:220,clip:null,hover:null};
+var S={cols:24,rows:8,on:{},tool:"paint",volt:220,clip:null,hover:null,m2:true};
 var VIEW="montaje";
 var $=function(id){return document.getElementById(id)};
 var cv=$("cv"), ctx=cv.getContext("2d");
@@ -602,9 +603,49 @@ function layout(){
           w:PAD.l+PAD.r+cell*S.cols, h:PAD.t+PAD.b+cellH*S.rows};
 }
 
+/* Reticula de metro cuadrado.
+   En un evento se habla en metros cuadrados, pero lo que se arma son paneles
+   de 0,50 x 0,50 o de 1,00 x 0,50. Marcar el metro encima de la rejilla deja
+   leer las dos cosas en el mismo dibujo, sin multiplicar de cabeza.
+
+   Las lineas van en metros reales, no cada cierto numero de casillas: con
+   paneles de 960 mm el metro no cae en el borde de un panel, y correrlo hasta
+   la casilla mas cercana seria dibujar un metro que no existe. */
+function reticulaMetro(ctx,L,k,cMetro){
+  var pasoX=1000/k.w*L.cell, pasoY=1000/k.h*L.cellH;
+  var ancho=L.cell*S.cols, alto=L.cellH*S.rows;
+
+  /* Bajo 14 px el metro deja de leerse y la malla tapa el plano. */
+  if(pasoX<14||pasoY<14) return;
+
+  /* Con paneles de 0,50 y de 1,00 m el metro cae siempre sobre una union de
+     paneles. Una linea gris fina encima de otra linea gris no se ve, asi que
+     la reticula va en el color de las cotas y mas gruesa: tiene que leerse
+     POR ENCIMA de la union, no confundirse con ella. */
+  ctx.save();
+  ctx.strokeStyle=cMetro; ctx.globalAlpha=.9; ctx.lineWidth=2;
+  ctx.setLineDash([7,5]);
+  ctx.beginPath();
+  for(var x=pasoX;x<ancho-0.5;x+=pasoX){
+    var px=PAD.l+Math.round(x)+.5;
+    ctx.moveTo(px,PAD.t); ctx.lineTo(px,PAD.t+alto);
+  }
+  for(var y=pasoY;y<alto-0.5;y+=pasoY){
+    var py=PAD.t+Math.round(y)+.5;
+    ctx.moveTo(PAD.l,py); ctx.lineTo(PAD.l+ancho,py);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
 function draw(){
   var L=layout(), dpr=Math.min(2,window.devicePixelRatio||1);
   cv.width=Math.round(L.w*dpr); cv.height=Math.round(L.h*dpr);
+  /* Los dos lados se fijan. Antes solo se fijaba el alto y la regla
+     canvas{width:100%} estiraba el ancho hasta el borde: el dibujo salia con
+     la proporcion correcta y el navegador lo deformaba despues, de modo que
+     un panel de 1,00 x 0,50 m se veia casi cuadrado. */
+  cv.style.width=L.w+"px";
   cv.style.height=L.h+"px";
   ctx.setTransform(dpr,0,0,dpr,0,0);
 
@@ -634,6 +675,8 @@ function draw(){
       ctx.strokeRect(x+.5,y+.5,L.cell-1,L.cellH-1);
     }
   }
+
+  if(S.m2) reticulaMetro(ctx,L,m.k,cCota);
 
   if(!m.n){
     ctx.fillStyle=cInk; ctx.font="500 13px "+css("--sans").replace(/"/g,"");
@@ -717,7 +760,26 @@ function draw(){
   /* conteo de paneles */
   ctx.fillStyle=cInk; ctx.textAlign="left";
   ctx.font="600 11px "+css("--mono").replace(/"/g,"");
-  ctx.fillText(m.n+" paneles · "+m.bc+"×"+m.br+" módulos",PAD.l,PAD.t+L.cellH*S.rows+40);
+  var yPie=PAD.t+L.cellH*S.rows+40;
+  var textoConteo=m.n+" paneles · "+m.bc+"×"+m.br+" módulos";
+  ctx.fillText(textoConteo,PAD.l,yPie);
+
+  /* Clave: una casilla dibujada a escala, con su medida.
+     Con la rejilla sola no se distingue un panel de 1,00 x 0,50 de uno
+     cuadrado: hay que contar celdas contra las cotas. Un recuadro del mismo
+     tamano que una casilla, con su medida al lado, lo dice de una. */
+  var xClave=PAD.l+ctx.measureText(textoConteo).width+22;
+  var altoClave=Math.min(L.cellH,16);
+  var anchoClave=Math.max(6,Math.round(altoClave*(L.cell/L.cellH)));
+  if(anchoClave>64){ anchoClave=64; altoClave=Math.max(4,Math.round(anchoClave*(L.cellH/L.cell))); }
+  var yClave=yPie-altoClave+3;
+  ctx.fillStyle=cOn; ctx.globalAlpha=.85;
+  ctx.fillRect(xClave,yClave,anchoClave,altoClave);
+  ctx.globalAlpha=1;
+  ctx.strokeStyle=cLine; ctx.lineWidth=1;
+  ctx.strokeRect(xClave+.5,yClave+.5,anchoClave-1,altoClave-1);
+  ctx.fillStyle=cInk;
+  ctx.fillText("1 panel = "+mt(m.k.w)+" × "+mt(m.k.h),xClave+anchoClave+8,yPie);
 }
 
 /* ---------------- descomposición en rectángulos ---------------- */
@@ -1347,13 +1409,19 @@ function setView(v){
       '<span><i style="background:var(--ink-2)"></i>Coordenadas en px</span>'
     : '<span><i style="background:var(--on)"></i>Panel activo</span>'+
       '<span><i style="background:var(--grid-off);border:1px solid var(--grid-line)"></i>Libre</span>'+
-      '<span><i style="background:var(--cota)"></i>Cotas</span>';
+      '<span><i style="background:var(--cota)"></i>Cotas</span>'+
+      (S.m2?'<span><i style="background:repeating-linear-gradient(90deg,var(--cota) 0 4px,transparent 4px 7px)"></i>Retícula de 1 m²</span>':'');
   $("vMont").setAttribute("aria-pressed",String(v==="montaje"));
   $("vDis").setAttribute("aria-pressed",String(v==="diseno"));
   render();
 }
 $("vMont").onclick=function(){setView("montaje")};
 $("vDis").onclick=function(){setView("diseno")};
+$("vM2").onclick=function(){
+  S.m2=!S.m2;
+  $("vM2").setAttribute("aria-pressed",String(S.m2));
+  render();
+};
 
 $("btnPng").onclick=function(){ guardaPNG(cv,"plano-led-bbm.png") };
 

@@ -292,7 +292,7 @@ footer{margin-top:22px;font-size:11.5px;color:var(--ink-3);text-align:center;pad
   <div class="top-actions">
     <button class="btn sm" id="btnCopy">Copiar ficha</button>
     <button class="btn sm" id="btnConsumo">Descargar consumo</button>
-    <button class="btn sm" id="btnPng">Descargar PNG</button>
+    <button class="btn sm" id="btnPng" title="Baja la imagen del plano y, al lado, el informe de consumo">Descargar PNG + consumo</button>
     <button class="btn sm" id="btnPrint">Imprimir</button>
   </div>
   <p class="aviso-consumo">
@@ -1460,7 +1460,25 @@ $("vM2").onclick=function(){
   render();
 };
 
-$("btnPng").onclick=function(){ guardaPNG(cv,"plano-led-bbm.png") };
+/* El plano y el consumo bajan juntos.
+   Son las dos mitades de lo mismo: la imagen dice como se arma y el texto dice
+   cuanta corriente pide. Separados, al reenviarlos casi siempre viaja solo el
+   plano y al electricista le toca volver a preguntar.
+
+   Van en dos archivos y no en una sola imagen porque el texto se copia y se
+   pega en un correo o en una cotizacion; dentro del PNG habria que
+   transcribirlo a mano. El segundo va con un respiro de medio segundo: dos
+   descargas disparadas en el mismo instante, algunos navegadores se comen la
+   segunda. */
+$("btnPng").onclick=function(){
+  var m=metrics();
+  guardaPNG(cv,"plano-led-bbm.png");
+  if(!m.n) return;                      /* sin pantalla dibujada no hay consumo que contar */
+  setTimeout(function(){
+    bajaConsumo();
+    toast("Plano y consumo descargados");
+  },500);
+};
 
 /* Informe de consumo, aparte de la ficha completa.
    Quien pide esto casi siempre es el que va a contratar la planta o a hablar
@@ -1501,14 +1519,18 @@ function informeConsumo(){
   return L.join("\n");
 }
 
-$("btnConsumo").onclick=function(){
-  var m=metrics();
-  if(!m.n){ toast("Dibuja la pantalla primero"); return; }
+function bajaConsumo(){
   var b=new Blob([informeConsumo()],{type:"text/plain;charset=utf-8"});
   var u=URL.createObjectURL(b), a=document.createElement("a");
   a.href=u; a.download="consumo-plano-led-bbm.txt";
   document.body.appendChild(a); a.click();
   setTimeout(function(){URL.revokeObjectURL(u);a.remove()},1500);
+}
+
+$("btnConsumo").onclick=function(){
+  var m=metrics();
+  if(!m.n){ toast("Dibuja la pantalla primero"); return; }
+  bajaConsumo();
   toast("Consumo descargado");
 };
 

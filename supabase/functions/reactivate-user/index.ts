@@ -1,6 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { correoDeInvitacion } from "../_shared/correo.ts";
+
+/** Los paneles se guardan por clave; en el correo se leen en palabras. */
+const NOMBRE_DE_PANEL: Record<string, string> = {
+  directivo: "Panel Directivo",
+  general: "Panel General",
+  operaciones: "Panel Operaciones",
+  proveedores: "Proveedores",
+  calendar: "Calendario",
+  reportes: "Reportes",
+};
+const enPalabras = (claves: string[]) =>
+  claves.map((c) => NOMBRE_DE_PANEL[c] ?? c);
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -315,8 +329,18 @@ serve(async (req) => {
     }
 
     // Generate invitation link
-    const origin = req.headers.get('origin') || 'https://lovable.dev';
+    const origin = req.headers.get('origin')
+      || Deno.env.get('APP_URL')
+      || 'https://planner.bbmjuegos.com';
     const invitationLink = `${origin}/crear-cuenta?token=${invitation.token}`;
+
+    const correo = await correoDeInvitacion({
+      para: email,
+      link: invitationLink,
+      expira: invitation.expires_at,
+      paneles: enPalabras(finalAllowedPanels),
+      reactivacion: true,
+    });
 
     // ============================================
     // STEP 4: Log the reactivation action
@@ -367,12 +391,14 @@ serve(async (req) => {
           created_at: invitation.created_at
         },
         link: invitationLink,
+        correoEnviado: correo.enviado,
+        correoMotivo: correo.motivo,
         employeeReactivated,
         reactivatedEmployeeId,
         linkedEmployeeId,
-        message: employeeReactivated
-          ? `Usuario y empleado reactivados. Se ha generado un nuevo link de invitación.`
-          : `Usuario reactivado. Se ha generado un nuevo link de invitación.`
+        message: correo.enviado
+          ? `Usuario reactivado. Se le envió el link por correo a ${email}.`
+          : `Usuario reactivado, pero el correo no salió (${correo.motivo ?? 'motivo desconocido'}). Copia el link y mándaselo tú.`
       }),
       { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

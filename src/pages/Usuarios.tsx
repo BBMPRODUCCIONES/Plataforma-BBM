@@ -151,18 +151,6 @@ const Usuarios = () => {
   const [newPuedeAccederAprobaciones, setNewPuedeAccederAprobaciones] = useState(false);
   const [newEsResponsableCajaMenor, setNewEsResponsableCajaMenor] = useState(false);
   const [newEsAuditorCajaMenor, setNewEsAuditorCajaMenor] = useState(false);
-  // Las casillas de paginas de administracion solo se muestran cuando el rol es
-  // administrador, pero su estado arranca en true y se enviaba siempre. Asi, un
-  // productor o un operativo quedaba grabado con permiso a Gestion de Usuarios,
-  // Clientes, Empleados, Constructor y Agentes IA sin que nadie lo marcara.
-  // Hoy las rutas los frenan por ser adminOnly, pero el dia que a esa persona le
-  // cambien el rol a administrador hereda todo de una, en silencio.
-  //
-  // Se guarda lo que se ve: si el rol no es administrador, estos permisos van en
-  // false. Para administrador no cambia nada.
-  const soloSiEsAdmin = (rol: string, valor: boolean) =>
-    rol === "administrador" ? valor : false;
-
   const [newPuedeAccederUsuarios, setNewPuedeAccederUsuarios] = useState(true);
   const [newPuedeAccederClientes, setNewPuedeAccederClientes] = useState(true);
   const [newPuedeAccederEmpleados, setNewPuedeAccederEmpleados] = useState(true);
@@ -344,11 +332,11 @@ const Usuarios = () => {
             puede_acceder_aprobaciones: newPuedeAccederAprobaciones,
             es_responsable_caja_menor: newEsResponsableCajaMenor,
             es_auditor_caja_menor: newEsAuditorCajaMenor,
-            puede_acceder_usuarios: soloSiEsAdmin(newRole, newPuedeAccederUsuarios),
-            puede_acceder_clientes: soloSiEsAdmin(newRole, newPuedeAccederClientes),
-            puede_acceder_empleados: soloSiEsAdmin(newRole, newPuedeAccederEmpleados),
-            puede_acceder_constructor: soloSiEsAdmin(newRole, newPuedeAccederConstructor),
-            puede_acceder_agentes: soloSiEsAdmin(newRole, newPuedeAccederAgentes),
+            puede_acceder_usuarios: newPuedeAccederUsuarios,
+            puede_acceder_clientes: newPuedeAccederClientes,
+            puede_acceder_empleados: newPuedeAccederEmpleados,
+            puede_acceder_constructor: newPuedeAccederConstructor,
+            puede_acceder_agentes: newPuedeAccederAgentes,
           }
         },
       });
@@ -639,11 +627,11 @@ const Usuarios = () => {
            puede_acceder_aprobaciones: editPuedeAccederAprobaciones,
            es_responsable_caja_menor: editEsResponsableCajaMenor,
            es_auditor_caja_menor: editEsAuditorCajaMenor,
-           puede_acceder_usuarios: soloSiEsAdmin(editRole, editPuedeAccederUsuarios),
-           puede_acceder_clientes: soloSiEsAdmin(editRole, editPuedeAccederClientes),
-           puede_acceder_empleados: soloSiEsAdmin(editRole, editPuedeAccederEmpleados),
-           puede_acceder_constructor: soloSiEsAdmin(editRole, editPuedeAccederConstructor),
-           puede_acceder_agentes: soloSiEsAdmin(editRole, editPuedeAccederAgentes),
+           puede_acceder_usuarios: editPuedeAccederUsuarios,
+           puede_acceder_clientes: editPuedeAccederClientes,
+           puede_acceder_empleados: editPuedeAccederEmpleados,
+           puede_acceder_constructor: editPuedeAccederConstructor,
+           puede_acceder_agentes: editPuedeAccederAgentes,
          } as any)
         .eq("user_id", editingUser.id);
 

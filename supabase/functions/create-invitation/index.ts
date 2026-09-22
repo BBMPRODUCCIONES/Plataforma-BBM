@@ -1,6 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { correoDeInvitacion } from "../_shared/correo.ts";
+
+/** Los paneles se guardan por clave; en el correo se leen en palabras. */
+const NOMBRE_DE_PANEL: Record<string, string> = {
+  directivo: "Panel Directivo",
+  general: "Panel General",
+  operaciones: "Panel Operaciones",
+  proveedores: "Proveedores",
+  calendar: "Calendario",
+  reportes: "Reportes",
+};
+const enPalabras = (claves: string[]) =>
+  claves.map((c) => NOMBRE_DE_PANEL[c] ?? c);
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -343,8 +357,22 @@ serve(async (req) => {
     }
 
     // Generate invitation link
-    const origin = req.headers.get('origin') || 'https://lovable.dev';
+    // El origin es de donde vino la peticion; si no viene, se usa el dominio
+    // real de la plataforma. 'lovable.dev' como respaldo mandaba a la gente a
+    // una pagina que no es la suya.
+    const origin = req.headers.get('origin')
+      || Deno.env.get('APP_URL')
+      || 'https://planner.bbmjuegos.com';
     const invitationLink = `${origin}/crear-cuenta?token=${invitation.token}`;
+
+    // El correo va despues de que la invitacion ya quedo guardada: si el envio
+    // falla, la invitacion existe igual y el admin puede copiar el link.
+    const correo = await correoDeInvitacion({
+      para: email,
+      link: invitationLink,
+      expira: invitation.expires_at,
+      paneles: enPalabras(finalAllowedPanels),
+    });
 
     // Log the link (simulating email send)
     console.log('==========================================');
@@ -377,14 +405,14 @@ serve(async (req) => {
           created_at: invitation.created_at
         },
         link: invitationLink,
+        correoEnviado: correo.enviado,
+        correoMotivo: correo.motivo,
         employeeLinked,
         employeeCreated,
         linkedEmployeeId,
-        message: employeeLinked 
-          ? `Invitación creada. Se vinculará al empleado existente (${existingEmployee?.nombre || email}).`
-          : employeeCreated
-            ? `Invitación creada y empleado creado automáticamente.`
-            : 'Invitación creada. El link ha sido registrado en los logs (simulación de envío de email).'
+        message: correo.enviado
+          ? `Invitación enviada por correo a ${email}.`
+          : `Invitación creada, pero el correo no salió (${correo.motivo ?? 'motivo desconocido'}). Copia el link y mándaselo tú.`
       }),
       { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

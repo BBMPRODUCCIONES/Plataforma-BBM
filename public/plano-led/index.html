@@ -470,11 +470,23 @@ footer{margin-top:22px;font-size:11.5px;color:var(--ink-3);text-align:center;pad
    Esos 40 W del modulo son el maximo (8 A es la corriente maxima). El
    promedio se estima con el mismo factor que usa el resto de la herramienta.
 
-   Los demas renglones son valores genericos de referencia: sirven para
-   tantear, no para cotizar la planta. Estan alrededor de 2.000 W/m2, tres
-   veces por encima de esta ficha real, asi que dimensionar una planta con
-   ellos la deja muy sobrada. Lo que manda siempre es la ficha del equipo que
-   se va a montar.
+   Los demas renglones venian alrededor de 2.000 W/m2, tres veces por encima
+   de esta ficha real y de cualquier panel que se consiga hoy. Quedaron
+   recalibrados sobre dos referencias que se pueden comprobar:
+
+     - la ficha de arriba: 640 W/m2 de pico y 224 W/m2 promedio (35 %)
+     - un gabinete P3.91 exterior de 500x1000 publicado por el fabricante:
+       360 W de pico y 144 W promedio, o sea 720 W/m2 y 288 W/m2 (40 %)
+
+   Con eso los pitch finos quedaron en 680-720 W/m2 de pico y los gruesos,
+   que son mas brillantes, entre 800 y 900. El promedio se saco con el mismo
+   porcentaje de cada referencia.
+
+   Ojo con lo que significa el cambio: los numeros BAJARON, asi que la planta
+   que sugiere la herramienta ahora es mas chica. Antes quedaba absurdamente
+   sobrada y eso escondia cualquier error; ahora el margen es el que de verdad
+   se calcula (factor de potencia 0,9 y 15 % encima). Para cotizar sigue
+   mandando la ficha del equipo que se va a montar, no este renglon.
 
    Se quitaron las etiquetas "Indoor" y "Outdoor": lo que cambia el calculo es
    el pitch y el tamano del gabinete, no donde se monte, y tener el mismo pitch
@@ -483,16 +495,16 @@ footer{margin-top:22px;font-size:11.5px;color:var(--ink-3);text-align:center;pad
 var PRESETS=[
  {n:"P2.97 · 500×500 (ficha real)",  p:2.976, w:500, h:500,  kg:7.5,  W:160, Wp:56},
  {n:"P2.97 · 500×1000 (ficha real)", p:2.976, w:500, h:1000, kg:12.5, W:320, Wp:112},
- {n:"P1.9 · 500×500",   p:1.923, w:500, h:500,  kg:7.2, W:480,  Wp:160},
- {n:"P2.6 · 500×500",   p:2.604, w:500, h:500,  kg:7.5, W:500,  Wp:170},
- {n:"P2.6 · 500×1000",  p:2.604, w:500, h:1000, kg:15,  W:1000, Wp:340},
- {n:"P3.9 · 500×500",   p:3.906, w:500, h:500,  kg:7.8, W:520,  Wp:175},
- {n:"P3.9 · 500×1000",  p:3.906, w:500, h:1000, kg:15,  W:1040, Wp:350},
- {n:"P4.81 · 500×500",  p:4.807, w:500, h:500,  kg:9.5, W:700,  Wp:235},
- {n:"P5 · 960×960",     p:5,     w:960, h:960,  kg:28,  W:1250, Wp:420},
- {n:"P6.67 · 960×960",  p:6.667, w:960, h:960,  kg:28,  W:1250, Wp:420},
- {n:"P10 · 960×960",    p:10,    w:960, h:960,  kg:26,  W:1100, Wp:370},
- {n:"Módulo P4 · 320×160", p:4,  w:320, h:160,  kg:1.0, W:60,   Wp:20}
+ {n:"P1.9 · 500×500",   p:1.923, w:500, h:500,  kg:7.2, W:175, Wp:61},
+ {n:"P2.6 · 500×500",   p:2.604, w:500, h:500,  kg:7.5, W:170, Wp:60},
+ {n:"P2.6 · 500×1000",  p:2.604, w:500, h:1000, kg:15,  W:340, Wp:119},
+ {n:"P3.9 · 500×500",   p:3.906, w:500, h:500,  kg:7.8, W:180, Wp:72},
+ {n:"P3.9 · 500×1000",  p:3.906, w:500, h:1000, kg:15,  W:360, Wp:144},
+ {n:"P4.81 · 500×500",  p:4.807, w:500, h:500,  kg:9.5, W:200, Wp:80},
+ {n:"P5 · 960×960",     p:5,     w:960, h:960,  kg:28,  W:740, Wp:295},
+ {n:"P6.67 · 960×960",  p:6.667, w:960, h:960,  kg:28,  W:785, Wp:315},
+ {n:"P10 · 960×960",    p:10,    w:960, h:960,  kg:26,  W:830, Wp:330},
+ {n:"Módulo P4 · 320×160", p:4,  w:320, h:160,  kg:1.0, W:37,  Wp:15}
 ];
 
 var PX_POR_PUERTO=650000;      /* píxeles por puerto gigabit (Novastar) */

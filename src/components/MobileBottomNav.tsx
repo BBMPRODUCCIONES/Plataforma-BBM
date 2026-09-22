@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, Grid3X3, Wrench, Users, MoreHorizontal, X, Calendar, Settings, LogOut, FileBarChart, TrendingUp, LayoutGrid } from "lucide-react";
+import { Briefcase, Grid3X3, Wrench, Users, MoreHorizontal, X, Calendar, Settings, LogOut, FileBarChart, TrendingUp, LayoutGrid, Construction } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,6 +30,7 @@ const moreNavItems = [
   // Archivo suelto, no pantalla del PLANNER: se abre en pestana propia para
   // que use toda la ventana.
   { title: "Plano LED", url: "/plano-led/", icon: LayoutGrid, externo: true },
+  { title: "Configurador de Truss", url: "/configurador-truss/", icon: Construction, externo: true },
   { title: "Usuarios", url: "/usuarios", icon: Users, panel: "usuarios", adminOnly: true },
   { title: "Clientes", url: "/clientes", icon: Users, panel: "clientes", adminOnly: true },
   { title: "Empleados", url: "/empleados", icon: Users, panel: "empleados", adminOnly: true },

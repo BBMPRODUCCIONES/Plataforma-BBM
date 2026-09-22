@@ -14,6 +14,7 @@ import {
   Briefcase,
   TrendingUp,
   LayoutGrid,
+  Construction,
   ExternalLink,
 } from "lucide-react";
 import bbmLogo from "@/assets/bbm-logo.png";
@@ -45,6 +46,7 @@ const mainNavItems = [
   // pestana propia para que use toda la ventana; metido aqui adentro quedaba
   // apretado contra el menu y el encabezado.
   { title: "Plano LED", url: "/plano-led/", icon: LayoutGrid, externo: true },
+  { title: "Configurador de Truss", url: "/configurador-truss/", icon: Construction, externo: true },
   
   // Reportes salio del menu; en su lugar va Ventas por comercial, que antes
   // era una ventana dentro del Panel Directivo. La ruta /panel-reportes sigue

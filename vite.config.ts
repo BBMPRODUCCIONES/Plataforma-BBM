@@ -47,6 +47,13 @@ export default defineConfig(({ mode }) => ({
       },
     workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Las herramientas sueltas (Plano LED, Configurador de Truss) no entran
+        // en la precarga. El precache se baja entero la primera vez que alguien
+        // abre el PLANNER, y el configurador pesa 3,5 MB: quien nunca lo use
+        // estaria gastando esos megas igual, y en un montaje con mala señal eso
+        // se siente. Igual quedan disponibles sin conexion, pero por la regla de
+        // runtimeCaching de mas abajo: se guardan la primera vez que se abren.
+        globIgnores: ["plano-led/**", "configurador-truss/**"],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         skipWaiting: true,
         clientsClaim: true,
@@ -65,6 +72,19 @@ export default defineConfig(({ mode }) => ({
         navigateFallback: null,
         navigateFallbackDenylist: [/^\/api/, /^\/auth/, /supabase/],
         runtimeCaching: [
+          {
+            // Las herramientas sueltas se guardan cuando alguien las abre, no
+            // antes. StaleWhileRevalidate: abre al instante con la copia que
+            // haya y baja la nueva por detras, asi que una version vieja dura
+            // una sola apertura.
+            urlPattern: /\/(plano-led|configurador-truss)\//,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "herramientas-bbm",
+              expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          },
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: "NetworkFirst",

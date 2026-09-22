@@ -3,5 +3,9 @@
 /plano-led      /plano-led/index.html   200
 /plano-led/     /plano-led/index.html   200
 
+# El Configurador de Truss va igual: archivo propio, enlace compartible.
+/configurador-truss     /configurador-truss/index.html  200
+/configurador-truss/    /configurador-truss/index.html  200
+
 # SPA: cualquier ruta que no sea un archivo real la resuelve React Router
 /*    /index.html   200

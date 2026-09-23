@@ -244,7 +244,34 @@ table.mini th{text-align:left;font-family:var(--sans);font-size:10.5px;letter-sp
 table.mini td{padding:3px 8px 3px 0;border-top:1px solid var(--line);
   font-variant-numeric:tabular-nums;white-space:nowrap}
 table.mini td:first-child{color:var(--on);font-weight:600}
-@media (max-width:760px){.two{grid-template-columns:1fr}.row3{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){.two{grid-template-columns:1fr}.row3{grid-template-columns:1fr 1fr}
+  /* Orden en celular.
+     En computador la ficha del modulo va arriba a la izquierda porque hay
+     sitio de sobra. En un telefono ese formulario son 400 px antes de ver
+     nada util, y "Pantalla que quieres" -donde se escribe la medida en
+     metros, que es lo unico comodo de usar con el dedo- quedaba al final de
+     una pagina de casi cuatro mil pixeles.
+
+     Aqui se aplana la rejilla con display:contents y se reordenan las
+     tarjetas una por una: primero el plano, enseguida la medida en metros,
+     despues los numeros, y la configuracion del modulo al final. */
+  .wrap{display:flex;flex-direction:column}
+  .wrap > header.top{order:0}
+  .wrap > .app{order:1}
+  .wrap > .card.mod{order:2}
+  .wrap > footer{order:3}
+
+  .app{display:flex;flex-direction:column;gap:14px}
+  .app > aside, .app > main{display:contents}
+
+  main  > div:nth-of-type(1){order:1}   /* 2 · Plano de montaje */
+  aside > div:nth-of-type(1){order:2}   /* Pantalla que quieres */
+  main  > div:nth-of-type(2){order:3}   /* Resolucion del lienzo */
+  main  > div:nth-of-type(3){order:4}   /* Medidas y energia */
+  aside > div:nth-of-type(2){order:5}   /* Lienzo */
+  aside > div:nth-of-type(3){order:6}   /* Disenos */
+  main  > div:nth-of-type(4){order:7}   /* Brief */
+}
 
 .saved{display:flex;flex-direction:column;gap:6px}
 .saved-item{
@@ -1763,6 +1790,18 @@ sel.onchange=function(){
    otra, que es peor que no traer nada. */
 sel.value="0";
 sel.onchange();
+
+/* Arranque en celular.
+   La rejilla de 24 x 8 en una pantalla de telefono deja casillas de unos
+   13 px: no se puede pintar con el dedo, que necesita el doble largo. Se
+   arranca con una rejilla mas chica, que da casillas de unos 26 px, y los
+   botones "Mas grande" y "Ajustar al dibujo" siguen ahi para crecer. En
+   computador no cambia nada. */
+if(window.innerWidth<760){
+  S.cols=12; S.rows=6;
+  $("cols").value=S.cols; $("rows").value=S.rows;
+  render();
+}
 
 /* inputs */
 /* Boton Aplicar.

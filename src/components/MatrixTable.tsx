@@ -337,7 +337,10 @@ export function MatrixTable<T extends { id: string }>({
             className
           )}
           style={{
-            overscrollBehavior: 'contain',
+            // Solo el eje horizontal. Con los dos, el deslizamiento vertical
+            // no podia pasar a la pagina y esta se quedaba quieta cuando el
+            // dedo caia encima de la tabla.
+            overscrollBehaviorX: 'contain',
             touchAction: 'pan-x pan-y'
           }}
         >

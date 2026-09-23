@@ -1081,13 +1081,30 @@
   /* Mobile scroll container - enables momentum scrolling with inertia */
   .mobile-scroll-container {
     overflow-x: auto;
-    overflow-y: visible;
+
+    /* Iba en "visible". El navegador no permite visible en un eje cuando el
+       otro es auto: lo convierte en auto. Asi que este contenedor era tambien
+       un scroll vertical, y se quedaba con el deslizamiento de arriba a abajo
+       en vez de dejarlo pasar a la pagina. Con "hidden" deja de serlo, y como
+       su alto es automatico no recorta nada. */
+    overflow-y: hidden;
+
     -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-    scroll-snap-type: x proximity;
+
+    /* Sin scroll-behavior: smooth. Animaba cada desplazamiento, y mientras el
+       dedo arrastraba la animacion iba por su lado: de ahi que la tabla se
+       sintiera trabada y se devolviera al soltar.
+
+       Sin scroll-snap-type tampoco: no hay un solo scroll-snap-align en todo
+       el proyecto, asi que no habia puntos donde encajar. Solo agregaba
+       tirones. */
+
     width: 100%;
     position: relative;
-    overscroll-behavior-x: contain; /* Prevent page scroll when scrolling table */
+
+    /* Solo el eje horizontal. Frenar el vertical es lo que dejaba la pagina
+       clavada cuando el dedo caia sobre la tabla. */
+    overscroll-behavior-x: contain;
   }
 
   .mobile-scroll-inner {
@@ -2290,9 +2307,11 @@
       background: hsl(var(--accent) / 0.3);
     }
 
-    /* Smooth scroll behavior */
-    .content-scroll-area,
-    .mobile-scroll-container {
+    /* Esta regla volvia a poner justo lo que se quito arriba, y como va
+       despues, ganaba. El area de contenido si se agradece que sea suave y
+       que no arrastre la pagina detras. La tabla no: ahi el dedo manda, y
+       frenar su eje vertical la dejaba clavada. */
+    .content-scroll-area {
       scroll-behavior: smooth;
       overscroll-behavior: contain;
     }

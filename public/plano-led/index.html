@@ -29,6 +29,19 @@
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
   --disp:"Montserrat",system-ui,sans-serif;
+  /* Color por pantalla.
+     Cuando en un mismo plano hay varias pantallas separadas, pintarlas todas
+     del mismo naranja obliga a contarlas con el dedo. Cada una lleva su color
+     y su rotulo con el nombre y la medida encima: el color ayuda a separarlas
+     de un vistazo, pero quien dice cual es cual es el rotulo, no el color.
+
+     Paleta validada con el comprobador de contraste y daltonismo. Los cuatro
+     primeros se distinguen entre si en cualquier combinacion; del quinto en
+     adelante se distinguen de su vecino, y el nombre encima hace el resto.
+     Una novena pantalla no inventa un color nuevo: se va a gris. */
+  --g1:#2a78d6; --g2:#eb6834; --g3:#1baf7a; --g4:#4a3aa7;
+  --g5:#eda100; --g6:#e87ba4; --g7:#008300; --g8:#e34948;
+  --g9:#6C7683;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
@@ -40,6 +53,9 @@
     --ok:#3EC08A; --warn:#E0A32B; --crit:#F0675C;
     --grid-off:#1C2129; --grid-line:#2C333D;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -18px rgba(0,0,0,.8);
+    --g1:#3987e5; --g2:#d95926; --g3:#199e70; --g4:#b07cd6;
+    --g5:#c98500; --g6:#d55181; --g7:#008300; --g8:#e66767;
+    --g9:#8A94A2;
   }
 }
 :root[data-theme="dark"]{
@@ -51,6 +67,10 @@
   --ok:#3EC08A; --warn:#E0A32B; --crit:#F0675C;
   --grid-off:#1C2129; --grid-line:#2C333D;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -18px rgba(0,0,0,.8);
+
+  --g1:#3987e5; --g2:#d95926; --g3:#199e70; --g4:#b07cd6;
+  --g5:#c98500; --g6:#d55181; --g7:#008300; --g8:#e66767;
+  --g9:#8A94A2;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -568,16 +588,35 @@ function cfg(){
 }
 
 /* ---------------- grupos: cada pantalla independiente ---------------- */
+/* A que pantalla pertenece cada casilla. Lo llena grupos() y lo lee draw(). */
+var GRUPO_DE={};
+
+/* El color de la pantalla numero i. Del noveno en adelante no se inventa un
+   color: se va a gris y manda el rotulo. */
+function colorGrupo(i){ return css(i<8 ? "--g"+(i+1) : "--g9"); }
+
+/* Negro o blanco encima de ese color, el que se lea mejor. El amarillo con
+   letra blanca no se lee, y ese es justo el caso que se escapa si uno lo
+   decide a ojo. */
+function tintaSobre(hex){
+  var h=(hex||"").trim().replace("#","");
+  if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  if(h.length<6)return "#FFFFFF";
+  var f=function(v){ v=parseInt(v,16)/255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4); };
+  var lum=.2126*f(h.slice(0,2))+.7152*f(h.slice(2,4))+.0722*f(h.slice(4,6));
+  return lum>.42 ? "#101418" : "#FFFFFF";
+}
+
 function grupos(){
-  var seen={},out=[],c,r;
+  var seen={},out=[],c,r,mapa={};
   for(r=0;r<S.rows;r++)for(c=0;c<S.cols;c++){
     var k0=key(c,r);
     if(!isOn(c,r)||seen[k0])continue;
-    var st=[[c,r]],g={minC:c,maxC:c,minR:r,maxR:r,n:0};
+    var st=[[c,r]],g={minC:c,maxC:c,minR:r,maxR:r,n:0,celdas:[]};
     seen[k0]=1;
     while(st.length){
       var p0=st.pop(), x=p0[0], y=p0[1];
-      g.n++;
+      g.n++; g.celdas.push(key(x,y));
       if(x<g.minC)g.minC=x; if(x>g.maxC)g.maxC=x;
       if(y<g.minR)g.minR=y; if(y>g.maxR)g.maxR=y;
       var nb=[[x+1,y],[x-1,y],[x,y+1],[x,y-1]];
@@ -590,7 +629,13 @@ function grupos(){
     g.bc=g.maxC-g.minC+1; g.br=g.maxR-g.minR+1;
     out.push(g);
   }
-  out.forEach(function(g,i){g.id="P"+(i+1)});
+  out.forEach(function(g,i){
+    g.idx=i;
+    g.id="P"+(i+1);
+    g.nombre="Pantalla "+(i+1);
+    g.celdas.forEach(function(kk){ mapa[kk]=i; });
+  });
+  GRUPO_DE=mapa;
   return out;
 }
 
@@ -730,11 +775,15 @@ function draw(){
   var m=metrics();
   if(VIEW==="diseno"){ drawDiseno(L,m); return; }
 
-  /* módulos */
+  /* modulos
+     Cada casilla toma el color de la pantalla a la que pertenece. GRUPO_DE
+     lo dejo listo metrics() un momento antes, al llamar a grupos(). */
   for(var c=0;c<S.cols;c++)for(var r=0;r<S.rows;r++){
     var x=PAD.l+c*L.cell, y=PAD.t+r*L.cellH;
     if(isOn(c,r)){
-      ctx.fillStyle=cOn; ctx.fillRect(x,y,L.cell,L.cellH);
+      var gi=GRUPO_DE[key(c,r)];
+      ctx.fillStyle = gi===undefined ? cOn : colorGrupo(gi);
+      ctx.fillRect(x,y,L.cell,L.cellH);
       /* textura de píxeles */
       ctx.fillStyle="rgba(0,0,0,.16)";
       var step=Math.max(4,Math.round(L.cell/6));
@@ -770,8 +819,10 @@ function draw(){
   m.G.forEach(function(g){
     var gx=PAD.l+g.minC*L.cell, gy=PAD.t+g.minR*L.cellH;
     var gw=g.bc*L.cell, gh=g.br*L.cellH;
-    var l1=(m.G.length>1?g.id+"  ":"")+mt(g.bc*m.k.w)+" × "+mt(g.br*m.k.h);
-    var l2=fm(g.bc*m.k.pxW)+" × "+fm(g.br*m.k.pxH)+" px";
+    var cG=colorGrupo(g.idx), cT=tintaSobre(cG);
+    var l1=(m.G.length>1? g.nombre : mt(g.bc*m.k.w)+" × "+mt(g.br*m.k.h));
+    var l0=(m.G.length>1? mt(g.bc*m.k.w)+" × "+mt(g.br*m.k.h) : null);
+    var l2=l0 ? l0 : fm(g.bc*m.k.pxW)+" × "+fm(g.br*m.k.pxH)+" px";
     var fs=11, mono=css("--mono").replace(/"/g,"");
     ctx.font="600 "+fs+"px "+mono;
     var wNeed=Math.max(ctx.measureText(l1).width,ctx.measureText(l2).width)+12;
@@ -784,18 +835,26 @@ function draw(){
     var bx2=gx+gw/2-wNeed/2, by2=gy+gh/2-hNeed/2;
     if(wNeed>gw-2||hNeed>gh-2) by2=Math.max(3,gy-hNeed-5);
     bx2=Math.max(2,Math.min(bx2,L.w-wNeed-2));
-    ctx.globalAlpha=.94; ctx.fillStyle=cSurf;
+    /* El rotulo va del color de su pantalla cuando hay varias: asi el color
+       del dibujo y el nombre quedan amarrados sin tener que mirar una leyenda
+       aparte. Con una sola pantalla se deja el rotulo neutro de siempre. */
+    var varias=m.G.length>1;
+    ctx.globalAlpha=varias?1:.94;
+    ctx.fillStyle=varias?cG:cSurf;
     if(ctx.roundRect){ctx.beginPath();ctx.roundRect(bx2,by2,wNeed,hNeed,5);ctx.fill();}
     else ctx.fillRect(bx2,by2,wNeed,hNeed);
     ctx.globalAlpha=1;
-    ctx.strokeStyle=cLine; ctx.lineWidth=1;
+    ctx.strokeStyle=varias?"rgba(0,0,0,.28)":cLine; ctx.lineWidth=1;
     if(ctx.roundRect)ctx.stroke(); else ctx.strokeRect(bx2+.5,by2+.5,wNeed-1,hNeed-1);
-    ctx.textAlign="center"; ctx.fillStyle=cInk1;
-    ctx.font="600 "+fs+"px "+mono;
+    ctx.textAlign="center";
+    ctx.fillStyle=varias?cT:cInk1;
+    ctx.font="700 "+fs+"px "+mono;
     ctx.fillText(l1,bx2+wNeed/2,by2+fs+4);
-    ctx.fillStyle=cInk;
+    ctx.fillStyle=varias?cT:cInk;
+    ctx.globalAlpha=varias?.85:1;
     ctx.font="400 "+fs+"px "+mono;
     ctx.fillText(l2,bx2+wNeed/2,by2+fs*2+5);
+    ctx.globalAlpha=1;
   });
   ctx.textAlign="left";
 
@@ -853,7 +912,11 @@ function draw(){
   var anchoClave=Math.max(6,Math.round(altoClave*(L.cell/L.cellH)));
   if(anchoClave>64){ anchoClave=64; altoClave=Math.max(4,Math.round(anchoClave*(L.cellH/L.cell))); }
   var yClave=yPie-altoClave+3;
-  ctx.fillStyle=cOn; ctx.globalAlpha=.85;
+  /* El cuadrito de la clave iba en naranja, que ahora es el color de una
+     pantalla concreta. Con varias en el plano eso confunde: se pinta gris,
+     porque aqui solo dice cuanto mide un panel. */
+  ctx.fillStyle = m.G.length>1 ? css("--ink-3") : cOn;
+  ctx.globalAlpha=.85;
   ctx.fillRect(xClave,yClave,anchoClave,altoClave);
   ctx.globalAlpha=1;
   ctx.strokeStyle=cLine; ctx.lineWidth=1;
@@ -1193,6 +1256,7 @@ document.addEventListener("keydown",function(e){
 /* ---------------- ficha ---------------- */
 function render(){
   draw();
+  $("planLegend").innerHTML = leyenda();
   var m=metrics(), k=m.k;
 
   $("pxHint").innerHTML = "1 panel = <b>"+k.pxW+" × "+k.pxH+" px</b> · "+
@@ -1221,7 +1285,14 @@ function render(){
   $("tMed").innerHTML=
    row("Módulos encendidos", fm(m.n))+
    row("Pantallas independientes", fm(m.G.length))+
-   m.G.map(function(g){return row("&nbsp;&nbsp;"+g.id+" · "+g.n+" paneles", mt(g.bc*k.w)+" × "+mt(g.br*k.h)+" · "+fm(g.bc*k.pxW)+"×"+fm(g.br*k.pxH)+" px")}).join("")+
+   m.G.map(function(g){
+      /* El cuadrito del color amarra la fila con lo que se ve en el plano.
+         Sin el hay que adivinar cual renglon es cual pantalla. */
+      var chip='<i style="display:inline-block;width:10px;height:10px;border-radius:2px;'+
+               'margin-right:7px;vertical-align:-1px;background:'+colorGrupo(g.idx)+'"></i>';
+      return row("&nbsp;&nbsp;"+chip+g.nombre+" · "+g.n+" paneles",
+                 mt(g.bc*k.w)+" × "+mt(g.br*k.h)+" · "+fm(g.bc*k.pxW)+"×"+fm(g.br*k.pxH)+" px");
+    }).join("")+
    row("Rejilla envolvente", m.bc+" × "+m.br+" módulos")+
    row("Ancho total", fm(m.Wmm)+" mm / "+mt(m.Wmm))+
    row("Alto total", fm(m.Hmm)+" mm / "+mt(m.Hmm))+
@@ -1394,7 +1465,7 @@ function ficha(){
   "Módulo: pitch "+k.p+" mm · "+k.w+"×"+k.h+" mm · "+k.pxW+"×"+k.pxH+" px",
   "Paneles: "+m.n+"  (rejilla envolvente "+m.bc+"×"+m.br+")",
   "Pantallas: "+m.G.length,
-  m.G.map(function(g){return "  "+g.id+": "+mt(g.bc*k.w)+" x "+mt(g.br*k.h)+"  ("+g.bc*k.pxW+"x"+g.br*k.pxH+" px, "+g.n+" paneles)"}).join("\n"),
+  m.G.map(function(g){return "  "+g.nombre+": "+mt(g.bc*k.w)+" x "+mt(g.br*k.h)+"  ("+g.bc*k.pxW+"x"+g.br*k.pxH+" px, "+g.n+" paneles)"}).join("\n"),
   "Medida: "+mt(m.Wmm)+" x "+mt(m.Hmm)+"  ("+fm(m.Wmm)+" x "+fm(m.Hmm)+" mm)",
   "Área activa: "+fm(m.area,2)+" m²",
   "Resolución del lienzo: "+m.resW+" x "+m.resH+" px",
@@ -1492,18 +1563,28 @@ $("btnUndo").onclick=undo;
 $("btnRedo").onclick=redo;
 
 /* vista montaje / diseño */
+/* La leyenda se arma aparte porque cambia por dos motivos: al cambiar de
+   vista y al cambiar el numero de pantallas. Si solo la armara setView, al
+   pintar una segunda pantalla seguiria diciendo "Panel activo". */
+function leyenda(){
+  if(VIEW==="diseno")
+    return '<span><i style="background:var(--on);opacity:.35"></i>Se ve</span>'+
+           '<span><i style="background:repeating-linear-gradient(45deg,var(--crit) 0 2px,transparent 2px 5px)"></i>Sin pantalla</span>'+
+           '<span><i style="background:var(--ink-2)"></i>Coordenadas en px</span>';
+  return (grupos().length>1
+      /* Con varias pantallas el naranja ya no quiere decir "panel activo":
+         es el color de una de ellas. La leyenda lo dice asi. */
+      ? '<span><i style="background:linear-gradient(90deg,var(--g1) 0 33%,var(--g2) 33% 66%,var(--g3) 66%)"></i>Una pantalla, un color</span>'
+      : '<span><i style="background:var(--on)"></i>Panel activo</span>')+
+    '<span><i style="background:var(--grid-off);border:1px solid var(--grid-line)"></i>Libre</span>'+
+    '<span><i style="background:var(--cota)"></i>Cotas</span>'+
+    (S.m2?'<span><i style="background:repeating-linear-gradient(90deg,var(--cota) 0 4px,transparent 4px 7px)"></i>Retícula de 1 m²</span>':'');
+}
 function setView(v){
   VIEW=v;
   var dis=(v==="diseno");
   $("planTitle").textContent = dis ? "2 · Lienzo de arte" : "2 · Plano de montaje";
-  $("planLegend").innerHTML = dis
-    ? '<span><i style="background:var(--on);opacity:.35"></i>Se ve</span>'+
-      '<span><i style="background:repeating-linear-gradient(45deg,var(--crit) 0 2px,transparent 2px 5px)"></i>Sin pantalla</span>'+
-      '<span><i style="background:var(--ink-2)"></i>Coordenadas en px</span>'
-    : '<span><i style="background:var(--on)"></i>Panel activo</span>'+
-      '<span><i style="background:var(--grid-off);border:1px solid var(--grid-line)"></i>Libre</span>'+
-      '<span><i style="background:var(--cota)"></i>Cotas</span>'+
-      (S.m2?'<span><i style="background:repeating-linear-gradient(90deg,var(--cota) 0 4px,transparent 4px 7px)"></i>Retícula de 1 m²</span>':'');
+  $("planLegend").innerHTML = leyenda();
   $("vMont").setAttribute("aria-pressed",String(v==="montaje"));
   $("vDis").setAttribute("aria-pressed",String(v==="diseno"));
   render();

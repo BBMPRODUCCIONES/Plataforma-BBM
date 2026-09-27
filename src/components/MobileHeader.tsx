@@ -13,6 +13,7 @@ import {
   Plus,
   FileBarChart,
   TrendingUp,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -34,6 +35,7 @@ const routeConfig: Record<string, RouteConfigItem> = {
   "/panel-directivo": { title: "Directivo", icon: Briefcase },
   "/panel-general": { title: "General", icon: Grid3X3 },
   "/panel-operaciones": { title: "Operaciones", icon: Wrench },
+  "/panel-bodega": { title: "Bodega", icon: Package },
   "/proveedores": { title: "Proveedores", icon: Users, primaryAction: { icon: Plus, label: "Nuevo" } },
   "/historial-cotizaciones": { title: "Historial", icon: Users, showBack: true },
   "/calendar": { title: "Calendario", icon: Calendar },

@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, Grid3X3, Wrench, Users, MoreHorizontal, X, Calendar, Settings, LogOut, FileBarChart, TrendingUp, LayoutGrid, Construction } from "lucide-react";
+import { Briefcase, Grid3X3, Wrench, Users, MoreHorizontal, X, Calendar, Settings, LogOut, FileBarChart, TrendingUp, LayoutGrid, Construction, Boxes } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,6 +27,7 @@ const moreNavItems = [
   // Reportes salio del menu (ver AppSidebar.tsx); en su lugar va Ventas.
   // { title: "Reportes", url: "/panel-reportes", icon: FileBarChart, panel: "reportes", adminOnly: true },
   { title: "Ventas por comercial", url: "/panel-ventas", icon: TrendingUp, panel: "directivo" },
+  { title: "Bodega", url: "/panel-bodega", icon: Boxes, panel: "bodega" },
   // Archivo suelto, no pantalla del PLANNER: se abre en pestana propia para
   // que use toda la ventana.
   { title: "Plano LED", url: "/plano-led/", icon: LayoutGrid, externo: true },

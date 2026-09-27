@@ -15,6 +15,7 @@ import {
   TrendingUp,
   LayoutGrid,
   Construction,
+  Boxes,
   ExternalLink,
 } from "lucide-react";
 import bbmLogo from "@/assets/bbm-logo.png";
@@ -53,6 +54,7 @@ const mainNavItems = [
   // viva y devolver su boton es descomentar la linea de abajo.
   // { title: "Panel de Reportes", url: "/panel-reportes", icon: FileBarChart, panel: "reportes", adminOnly: true },
   { title: "Ventas por comercial", url: "/panel-ventas", icon: TrendingUp, panel: "directivo" },
+  { title: "Bodega", url: "/panel-bodega", icon: Boxes, panel: "bodega" },
   { title: "Proveedores", url: "/proveedores", icon: Users, panel: "proveedores" },
 ];
 

@@ -18,6 +18,7 @@ import CrearCuenta from "./pages/CrearCuenta";
 import PanelDirectivo from "./pages/PanelDirectivo";
 import PanelGeneral from "./pages/PanelGeneral";
 import PanelOperaciones from "./pages/PanelOperaciones";
+import PanelBodega from "./pages/PanelBodega";
 import Proveedores from "./pages/Proveedores";
 import HistorialCotizaciones from "./pages/HistorialCotizaciones";
 import Constructor from "./pages/Constructor";
@@ -69,6 +70,11 @@ const App = () => (
                   <Route path="/panel-operaciones" element={
                     <ProtectedRoute requiredPanel="operaciones">
                       <PanelOperaciones />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/panel-bodega" element={
+                    <ProtectedRoute requiredPanel="bodega">
+                      <PanelBodega />
                     </ProtectedRoute>
                   } />
                   <Route path="/proveedores" element={

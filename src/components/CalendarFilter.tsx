@@ -54,7 +54,9 @@ const STATUS_OPTIONS: { value: ProjectStatus | "todos"; label: string }[] = [
   { value: "por_ejecutar", label: "Por Ejecutar" },
   { value: "en_progreso", label: "En Progreso" },
   { value: "terminado", label: "Terminado" },
+  { value: "pendiente_facturar", label: "Por Facturar" },
   { value: "facturado", label: "Facturado" },
+  { value: "no_se_factura", label: "No se Factura" },
 ];
 
 const VIEW_MODE_LABELS: Record<CalendarViewMode, string> = {

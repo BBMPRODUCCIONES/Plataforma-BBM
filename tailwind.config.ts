@@ -73,6 +73,8 @@ export default {
           pending: "hsl(var(--status-pending))",
           completed: "hsl(var(--status-completed))",
           cancelled: "hsl(var(--status-cancelled))",
+          neutral: "hsl(var(--status-neutral))",
+          billing: "hsl(var(--status-billing))",
         },
         table: {
           header: "hsl(var(--table-header))",

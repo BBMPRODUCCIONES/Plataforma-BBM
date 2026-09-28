@@ -617,6 +617,12 @@
     --status-pending: 38 92% 50%;
     --status-completed: 199 89% 48%;
     --status-cancelled: 0 84% 60%;
+    /* Neutro: estados que no son ni logro ni problema (ej. "no se factura"). */
+    --status-neutral: 220 9% 46%;
+    /* Violeta para "por facturar": si usara el ambar de "por planear" habria
+       tres insignias identicas en la misma tabla queriendo decir cosas
+       distintas. */
+    --status-billing: 258 70% 55%;
 
     --table-header: 220 14% 96%;
     --table-row-hover: 220 14% 98%;
@@ -670,6 +676,8 @@
     --status-pending: 38 92% 50%;
     --status-completed: 199 89% 48%;
     --status-cancelled: 0 72% 55%;
+    --status-neutral: 220 9% 65%;
+    --status-billing: 258 85% 72%;
 
     --table-header: 220 14% 12%;
     --table-row-hover: 220 14% 14%;
@@ -906,6 +914,14 @@
     @apply bg-status-cancelled/20 text-status-cancelled;
   }
 
+  .status-neutral {
+    @apply bg-status-neutral/20 text-status-neutral;
+  }
+
+  .status-billing {
+    @apply bg-status-billing/20 text-status-billing;
+  }
+
   /* Mobile enhanced status visibility */
   @media (max-width: 768px) {
     .status-active {
@@ -922,6 +938,14 @@
     
     .status-cancelled {
       @apply bg-status-cancelled/25 ring-1 ring-status-cancelled/30;
+    }
+
+    .status-neutral {
+      @apply bg-status-neutral/25 ring-1 ring-status-neutral/30;
+    }
+
+    .status-billing {
+      @apply bg-status-billing/25 ring-1 ring-status-billing/30;
     }
   }
 

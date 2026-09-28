@@ -8,7 +8,7 @@ import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
 import { ProductorSelect } from "@/components/ProductorSelect";
 import { DragReorderHandle } from "@/components/DragReorderHandle";
-import { StatusSelect } from "@/components/StatusSelect";
+import { StatusSelect, getStatusLabel } from "@/components/StatusSelect";
 import { EventCalendar } from "@/components/EventCalendar";
 import { CalendarFilter } from "@/components/CalendarFilter";
 import { AttachmentButton, AttachmentManager } from "@/components/AttachmentManager";
@@ -425,7 +425,7 @@ const PanelOperaciones = () => {
     { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 5 },
     { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 6 },
     { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "95px", visible: true, isCustom: false, order: 7 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 8 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "150px", visible: true, isCustom: false, order: 8 },
     { key: "jefeOperaciones", header: "Jefe Ops", type: "text" as CellType, width: "95px", visible: true, isCustom: false, order: 9 },
     { key: "aCargoDe", header: "A Cargo", type: "text" as CellType, width: "85px", visible: true, isCustom: false, order: 10 },
     { key: "productor", header: "Productor", type: "text" as CellType, width: "90px", visible: true, isCustom: false, order: 11 },
@@ -3186,7 +3186,7 @@ const PanelOperaciones = () => {
                     {selectedProject?.evento}
                     {selectedProject && (
                       operativoReadOnly ? (
-                        <Badge variant="outline" className="text-xs">{selectedProject.estado.replace(/_/g, ' ')}</Badge>
+                        <Badge variant="outline" className="text-xs">{getStatusLabel(selectedProject.estado)}</Badge>
                       ) : (
                         <StatusSelect
                           value={selectedProject.estado}

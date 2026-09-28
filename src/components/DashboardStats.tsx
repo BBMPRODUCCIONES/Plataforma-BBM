@@ -7,12 +7,20 @@ interface DashboardStatsProps {
   projects: Project[];
 }
 
+// Siete estados en una sola torta es mucho color. Estos se eligieron corriendo
+// el validador de paletas, no a ojo: el peor par ahora se distingue con
+// deuteranopia (el daltonismo mas comun, 1 de cada 12 hombres), donde antes
+// "Terminado" y "Por Ejecutar" salian identicos, y "Facturado" y "En Progreso"
+// costaban incluso con vision normal. La leyenda de al lado sigue diciendo el
+// nombre y el numero de cada estado: el color acompana, no es el unico dato.
 const COLORS = {
   por_planear: "hsl(48, 96%, 53%)",
   por_ejecutar: "hsl(217, 91%, 60%)",
   en_progreso: "hsl(142, 71%, 45%)",
-  terminado: "hsl(271, 91%, 65%)",
-  facturado: "hsl(160, 84%, 39%)",
+  terminado: "hsl(258, 70%, 50%)",
+  pendiente_facturar: "hsl(25, 95%, 53%)",
+  facturado: "hsl(162, 94%, 24%)",
+  no_se_factura: "hsl(213, 20%, 65%)",
 };
 
 export function DashboardStats({ projects }: DashboardStatsProps) {
@@ -26,7 +34,9 @@ export function DashboardStats({ projects }: DashboardStatsProps) {
     { name: "Por Ejecutar", value: projects.filter((p) => p.estado === "por_ejecutar").length, color: COLORS.por_ejecutar },
     { name: "En Progreso", value: projects.filter((p) => p.estado === "en_progreso").length, color: COLORS.en_progreso },
     { name: "Terminado", value: projects.filter((p) => p.estado === "terminado").length, color: COLORS.terminado },
+    { name: "Por Facturar", value: projects.filter((p) => p.estado === "pendiente_facturar").length, color: COLORS.pendiente_facturar },
     { name: "Facturado", value: projects.filter((p) => p.estado === "facturado").length, color: COLORS.facturado },
+    { name: "No se Factura", value: projects.filter((p) => p.estado === "no_se_factura").length, color: COLORS.no_se_factura },
   ].filter((d) => d.value > 0);
 
   // Data for monthly bar chart (mock data based on projects)

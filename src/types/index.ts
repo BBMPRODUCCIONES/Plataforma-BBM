@@ -90,7 +90,20 @@ export interface NotasImage {
 }
 
 // Updated status according to requirements
-export type ProjectStatus = 'por_planear' | 'por_ejecutar' | 'en_progreso' | 'terminado' | 'facturado';
+export type ProjectStatus =
+  | 'por_planear'
+  | 'por_ejecutar'
+  | 'en_progreso'
+  | 'terminado'
+  // Los tres estados de facturacion. Van despues de 'terminado' porque solo
+  // tienen sentido cuando el evento ya se ejecuto:
+  //   pendiente_facturar  el evento se hizo y todavia hay que pasar la factura
+  //   facturado           la factura ya salio
+  //   no_se_factura       este evento no genera factura (interno, cortesia,
+  //                       demo, o lo cubre otro contrato)
+  | 'pendiente_facturar'
+  | 'facturado'
+  | 'no_se_factura';
 
 export interface Attachment {
   id: string;

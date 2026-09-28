@@ -521,7 +521,9 @@ export function NewProjectDialog({
                   <SelectItem value="por_ejecutar">Por Ejecutar</SelectItem>
                   <SelectItem value="en_progreso">En Progreso</SelectItem>
                   <SelectItem value="terminado">Terminado</SelectItem>
+                  <SelectItem value="pendiente_facturar">Por Facturar</SelectItem>
                   <SelectItem value="facturado">Facturado</SelectItem>
+                  <SelectItem value="no_se_factura">No se Factura</SelectItem>
                 </SelectContent>
               </Select>
             </div>

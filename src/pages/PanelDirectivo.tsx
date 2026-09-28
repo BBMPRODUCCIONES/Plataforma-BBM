@@ -157,7 +157,7 @@ const PanelDirectivo = () => {
     { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "80px", visible: true, isCustom: false, order: 5 },
     { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "80px", visible: true, isCustom: false, order: 6 },
     { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "85px", visible: true, isCustom: false, order: 7 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "115px", visible: true, isCustom: false, order: 8 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "150px", visible: true, isCustom: false, order: 8 },
     { key: "ingresoBruto", header: "Ing. Bruto", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
     { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 10 },
     { key: "cotizaciones", header: "OC o Cotización", type: "file" as CellType, width: "115px", visible: true, isCustom: false, order: 11 },
@@ -477,7 +477,7 @@ const PanelDirectivo = () => {
     { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 5 },
     { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 6 },
     { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "95px", visible: true, isCustom: false, order: 7 },
-    { key: "estado", header: "Estado", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 8 },
+    { key: "estado", header: "Estado", type: "select" as CellType, width: "150px", visible: true, isCustom: false, order: 8 },
     { key: "ingresoBruto", header: "Ing. Bruto", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 9 },
     { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 10 },
     { key: "cotizaciones", header: "OC o Cotización", type: "file" as CellType, width: "125px", visible: true, isCustom: false, order: 11 },
@@ -564,7 +564,7 @@ const PanelDirectivo = () => {
           ) : <span className="text-xs text-muted-foreground">—</span>;
         case "estado":
           return (p: Project) => {
-            const statusLabels: Record<string, string> = { por_planear: "Por Planear", por_ejecutar: "Por Ejecutar", en_progreso: "En Progreso", terminado: "Terminado", facturado: "Facturado" };
+            const statusLabels: Record<string, string> = { por_planear: "Por Planear", por_ejecutar: "Por Ejecutar", en_progreso: "En Progreso", terminado: "Terminado", pendiente_facturar: "Por Facturar", facturado: "Facturado", no_se_factura: "No se Factura" };
             return <Badge variant="outline" className="text-xs">{statusLabels[p.estado] || p.estado}</Badge>;
           };
         case "ingresoBruto":

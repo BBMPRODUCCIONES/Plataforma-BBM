@@ -68,12 +68,36 @@ export function useBodega() {
     setCargando(true);
     setError(null);
 
+    // PostgREST devuelve como maximo 1.000 filas por consulta y no avisa de
+    // nada: simplemente manda menos. Con 1.151 activos eso dejaba 151 equipos
+    // invisibles en el panel, y como los totales se calculan sobre lo que
+    // llego, el inventario aparecia 258 millones por debajo de lo que vale.
+    // Se pide por paginas hasta que una venga incompleta.
+    //
+    // El orden lleva "id" al final a proposito: categoria y elemento se
+    // repiten, y sin un desempate unico dos paginas consecutivas pueden
+    // traer la misma fila o saltarse una.
+    const traerActivos = async () => {
+      const PAGINA = 1000;
+      const todo: Activo[] = [];
+      for (let desde = 0; desde < 50000; desde += PAGINA) {
+        const { data, error } = await supabase
+          .from("activos_disponibilidad" as never)
+          .select("*")
+          .order("categoria")
+          .order("elemento")
+          .order("id")
+          .range(desde, desde + PAGINA - 1);
+        if (error) return { data: null, error };
+        const pagina = (data as unknown as Activo[]) || [];
+        todo.push(...pagina);
+        if (pagina.length < PAGINA) break;
+      }
+      return { data: todo, error: null };
+    };
+
     const [a, m] = await Promise.all([
-      supabase
-        .from("activos_disponibilidad" as never)
-        .select("*")
-        .order("categoria")
-        .order("elemento"),
+      traerActivos(),
       // El historico completo no se trae: en un año son miles de filas y el
       // panel solo necesita lo reciente. La hoja de vida de un equipo pide
       // sus movimientos aparte.
@@ -88,7 +112,7 @@ export function useBodega() {
       console.error("[bodega] activos:", a.error);
       setError(a.error.message);
     } else {
-      setActivos((a.data as unknown as Activo[]) || []);
+      setActivos(a.data || []);
     }
     if (m.error) console.error("[bodega] movimientos:", m.error);
     else setMovimientos((m.data as unknown as Movimiento[]) || []);

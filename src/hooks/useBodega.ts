@@ -19,9 +19,14 @@ export interface Activo {
   categoria: string;
   cantidad_total: number;
   en_mantenimiento: number;
-  precio_unitario: number;
-  valor_mercado: number;
-  depreciacion: number;
+  /**
+   * Las tres cifras de dinero llegan en NULL para quien no tiene permiso de
+   * verlas: la vista las enmascara en el servidor, no la pantalla. Por eso
+   * son nullable y no hay que tratarlas como cero.
+   */
+  precio_unitario: number | null;
+  valor_mercado: number | null;
+  depreciacion: number | null;
   ubicacion: string | null;
   notas: string | null;
   revisar: boolean;
@@ -63,6 +68,9 @@ export function useBodega() {
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Se le pregunta a la base en vez de deducirlo de los NULL: un equipo puede
+  // valer cero de verdad, y confundir las dos cosas esconderia cifras validas.
+  const [puedeVerValores, setPuedeVerValores] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -96,7 +104,8 @@ export function useBodega() {
       return { data: todo, error: null };
     };
 
-    const [a, m] = await Promise.all([
+    const [permiso, a, m] = await Promise.all([
+      supabase.rpc("puede_ver_valores_bodega" as never),
       traerActivos(),
       // El historico completo no se trae: en un año son miles de filas y el
       // panel solo necesita lo reciente. La hoja de vida de un equipo pide
@@ -107,6 +116,8 @@ export function useBodega() {
         .order("fecha", { ascending: false })
         .limit(400),
     ]);
+
+    setPuedeVerValores(permiso.data === true);
 
     if (a.error) {
       console.error("[bodega] activos:", a.error);
@@ -196,9 +207,17 @@ export function useBodega() {
         categoria: (datos.categoria || "SIN CATEGORÍA").trim(),
         cantidad_total: Number(datos.cantidad_total) || 0,
         en_mantenimiento: Number(datos.en_mantenimiento) || 0,
-        precio_unitario: Number(datos.precio_unitario) || 0,
-        valor_mercado: Number(datos.valor_mercado) || 0,
-        depreciacion: Number(datos.depreciacion) || 0,
+        // Las cifras solo viajan si quien guarda las puede ver. Si no, ni se
+        // mandan: mandarlas como cero borraria el valor del equipo. La base
+        // tiene el mismo cuidado con un trigger, por si la peticion no viene
+        // de esta pantalla.
+        ...(puedeVerValores
+          ? {
+              precio_unitario: Number(datos.precio_unitario) || 0,
+              valor_mercado: Number(datos.valor_mercado) || 0,
+              depreciacion: Number(datos.depreciacion) || 0,
+            }
+          : {}),
         ubicacion: datos.ubicacion || null,
         notas: datos.notas || null,
         revisar: Boolean(datos.revisar),
@@ -227,7 +246,7 @@ export function useBodega() {
       await cargar();
       return true;
     },
-    [cargar, user]
+    [cargar, user, puedeVerValores]
   );
 
   /** Los movimientos de un equipo: su hoja de vida. */
@@ -260,9 +279,11 @@ export function useBodega() {
       disponibles: suma((a) => a.disponible),
       enMantenimiento: suma((a) => a.en_mantenimiento),
       porRevisar: vivos.filter((a) => a.revisar).length,
-      valorCompra: suma((a) => Number(a.precio_unitario) * a.cantidad_total),
-      valorMercado: suma((a) => Number(a.valor_mercado)),
-      depreciacion: suma((a) => Number(a.depreciacion)),
+      // Sin permiso estas tres llegan en NULL. Se suman como cero, pero el
+      // panel no las muestra: un total en cero se leeria como "no vale nada".
+      valorCompra: suma((a) => Number(a.precio_unitario ?? 0) * a.cantidad_total),
+      valorMercado: suma((a) => Number(a.valor_mercado ?? 0)),
+      depreciacion: suma((a) => Number(a.depreciacion ?? 0)),
     };
   }, [activos]);
 
@@ -271,6 +292,7 @@ export function useBodega() {
     movimientos,
     categorias,
     resumen,
+    puedeVerValores,
     cargando,
     error,
     recargar: cargar,

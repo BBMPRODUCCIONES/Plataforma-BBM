@@ -16,6 +16,8 @@ interface Props {
   abierto: boolean;
   onCerrar: () => void;
   onGuardar: (datos: Partial<Activo>, id?: string) => Promise<boolean>;
+  /** Si es false no se muestran las tres cifras de dinero ni se envian. */
+  puedeVerValores: boolean;
 }
 
 const VACIO: Partial<Activo> = {
@@ -25,7 +27,7 @@ const VACIO: Partial<Activo> = {
 };
 
 /** Dar de alta un equipo o corregir uno que ya esta. */
-export function ActivoDialog({ activo, categorias, abierto, onCerrar, onGuardar }: Props) {
+export function ActivoDialog({ activo, categorias, abierto, onCerrar, onGuardar, puedeVerValores }: Props) {
   const [f, setF] = useState<Partial<Activo>>(VACIO);
   const [guardando, setGuardando] = useState(false);
 
@@ -100,6 +102,10 @@ export function ActivoDialog({ activo, categorias, abierto, onCerrar, onGuardar 
             </div>
           </div>
 
+          {/* Las cifras solo se ven y se editan con permiso. Para los demas
+              ni siquiera se dibujan los campos: un campo vacio invita a
+              escribir un cero encima del valor real. */}
+          {puedeVerValores && (
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label htmlFor="pu">Precio unitario</Label>
@@ -117,6 +123,7 @@ export function ActivoDialog({ activo, categorias, abierto, onCerrar, onGuardar 
                      onChange={(e) => set("depreciacion", Number(e.target.value))} />
             </div>
           </div>
+          )}
 
           <div>
             <Label htmlFor="ubi">Ubicación en bodega</Label>

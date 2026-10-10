@@ -40,6 +40,7 @@ export default function PanelBodega() {
   const {
     activos, movimientos, categorias, resumen, cargando, error,
     recargar, registrarMovimiento, guardarActivo,
+    puedeVerValores,
   } = useBodega();
   const { projects } = useProjects();
 
@@ -93,9 +94,9 @@ export default function PanelBodega() {
     for (const a of activos) {
       if (!a.activo) continue;
       const g = m.get(a.categoria) || { compra: 0, mercado: 0, dep: 0, n: 0 };
-      g.compra += Number(a.precio_unitario) * a.cantidad_total;
-      g.mercado += Number(a.valor_mercado);
-      g.dep += Number(a.depreciacion);
+      g.compra += Number(a.precio_unitario ?? 0) * a.cantidad_total;
+      g.mercado += Number(a.valor_mercado ?? 0);
+      g.dep += Number(a.depreciacion ?? 0);
       g.n += a.cantidad_total;
       m.set(a.categoria, g);
     }
@@ -144,7 +145,9 @@ export default function PanelBodega() {
         <Dato etiqueta="Disponibles" valor={numero(resumen.disponibles)} tono="text-emerald-600 dark:text-emerald-400" />
         <Dato etiqueta="En evento" valor={numero(resumen.enEvento)} tono="text-amber-600 dark:text-amber-500" />
         <Dato etiqueta="En taller" valor={numero(resumen.enMantenimiento)} />
-        <Dato etiqueta="Valor de compra" valor={pesos(resumen.valorCompra)} pie={`mercado ${pesos(resumen.valorMercado)}`} />
+        {puedeVerValores && (
+          <Dato etiqueta="Valor de compra" valor={pesos(resumen.valorCompra)} pie={`mercado ${pesos(resumen.valorMercado)}`} />
+        )}
         <Dato etiqueta="Por revisar" valor={numero(resumen.porRevisar)} tono={resumen.porRevisar ? "text-amber-600 dark:text-amber-500" : undefined} pie="renglones marcados" />
       </div>
 
@@ -153,7 +156,9 @@ export default function PanelBodega() {
           <TabsTrigger value="inventario"><Package className="mr-1.5 h-4 w-4" />Inventario</TabsTrigger>
           <TabsTrigger value="eventos"><Boxes className="mr-1.5 h-4 w-4" />En eventos</TabsTrigger>
           <TabsTrigger value="movimientos"><History className="mr-1.5 h-4 w-4" />Movimientos</TabsTrigger>
-          <TabsTrigger value="valor"><Wrench className="mr-1.5 h-4 w-4" />Valor</TabsTrigger>
+          {puedeVerValores && (
+            <TabsTrigger value="valor"><Wrench className="mr-1.5 h-4 w-4" />Valor</TabsTrigger>
+          )}
         </TabsList>
 
         {/* ---------------- inventario ---------------- */}
@@ -204,7 +209,7 @@ export default function PanelBodega() {
                     <th className="p-2 text-right">Libre</th>
                     <th className="p-2 text-right">Afuera</th>
                     <th className="p-2">Estado</th>
-                    <th className="p-2 text-right">Valor</th>
+                    {puedeVerValores && <th className="p-2 text-right">Valor</th>}
                     <th className="p-2"></th>
                   </tr>
                 </thead>
@@ -227,9 +232,11 @@ export default function PanelBodega() {
                       <td className="p-2 text-right font-semibold tabular-nums">{a.disponible}</td>
                       <td className="p-2 text-right tabular-nums text-muted-foreground">{a.en_evento || "—"}</td>
                       <td className="p-2">{badgeEstado(a)}</td>
-                      <td className="p-2 text-right text-xs tabular-nums text-muted-foreground">
-                        {pesos(Number(a.precio_unitario) * a.cantidad_total)}
-                      </td>
+                      {puedeVerValores && (
+                        <td className="p-2 text-right text-xs tabular-nums text-muted-foreground">
+                          {pesos(Number(a.precio_unitario ?? 0) * a.cantidad_total)}
+                        </td>
+                      )}
                       <td className="p-2">
                         <div className="flex justify-end gap-1">
                           <Button size="sm" variant="outline" className="h-7 px-2"
@@ -344,6 +351,7 @@ export default function PanelBodega() {
         </TabsContent>
 
         {/* ---------------- valor ---------------- */}
+        {puedeVerValores && (
         <TabsContent value="valor">
           <div className="mobile-scroll-container rounded-lg border border-border">
             <table className="w-full min-w-[640px] text-sm">
@@ -394,6 +402,7 @@ export default function PanelBodega() {
             formal.
           </p>
         </TabsContent>
+        )}
       </Tabs>
 
       <MovimientoDialog
@@ -405,6 +414,7 @@ export default function PanelBodega() {
         onGuardar={registrarMovimiento}
       />
       <ActivoDialog
+        puedeVerValores={puedeVerValores}
         activo={editando}
         categorias={categorias}
         abierto={!!editando || creando}

@@ -10,10 +10,73 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
+      activos: {
+        Row: {
+          activo: boolean
+          cantidad_total: number
+          categoria: string
+          codigo: string
+          created_at: string
+          created_by: string | null
+          depreciacion: number
+          elemento: string
+          en_mantenimiento: number
+          id: string
+          notas: string | null
+          origen: string | null
+          precio_unitario: number
+          revisar: boolean
+          revisar_motivo: string | null
+          ubicacion: string | null
+          updated_at: string
+          valor_mercado: number
+        }
+        Insert: {
+          activo?: boolean
+          cantidad_total?: number
+          categoria?: string
+          codigo: string
+          created_at?: string
+          created_by?: string | null
+          depreciacion?: number
+          elemento: string
+          en_mantenimiento?: number
+          id?: string
+          notas?: string | null
+          origen?: string | null
+          precio_unitario?: number
+          revisar?: boolean
+          revisar_motivo?: string | null
+          ubicacion?: string | null
+          updated_at?: string
+          valor_mercado?: number
+        }
+        Update: {
+          activo?: boolean
+          cantidad_total?: number
+          categoria?: string
+          codigo?: string
+          created_at?: string
+          created_by?: string | null
+          depreciacion?: number
+          elemento?: string
+          en_mantenimiento?: number
+          id?: string
+          notas?: string | null
+          origen?: string | null
+          precio_unitario?: number
+          revisar?: boolean
+          revisar_motivo?: string | null
+          ubicacion?: string | null
+          updated_at?: string
+          valor_mercado?: number
+        }
+        Relationships: []
+      }
       aprobacion_undo_log: {
         Row: {
           changed_at: string
@@ -516,6 +579,70 @@ export type Database = {
         }
         Relationships: []
       }
+      movimientos_bodega: {
+        Row: {
+          activo_id: string
+          cantidad: number
+          created_at: string
+          evento_nombre: string | null
+          fecha: string
+          id: string
+          notas: string | null
+          project_id: string | null
+          responsable_id: string | null
+          responsable_nombre: string
+          tipo: string
+        }
+        Insert: {
+          activo_id: string
+          cantidad: number
+          created_at?: string
+          evento_nombre?: string | null
+          fecha?: string
+          id?: string
+          notas?: string | null
+          project_id?: string | null
+          responsable_id?: string | null
+          responsable_nombre: string
+          tipo: string
+        }
+        Update: {
+          activo_id?: string
+          cantidad?: number
+          created_at?: string
+          evento_nombre?: string | null
+          fecha?: string
+          id?: string
+          notas?: string | null
+          project_id?: string | null
+          responsable_id?: string | null
+          responsable_nombre?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_bodega_activo_id_fkey"
+            columns: ["activo_id"]
+            isOneToOne: false
+            referencedRelation: "activos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_bodega_activo_id_fkey"
+            columns: ["activo_id"]
+            isOneToOne: false
+            referencedRelation: "activos_disponibilidad"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_bodega_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -597,17 +724,59 @@ export type Database = {
         }
         Relationships: []
       }
+      project_comments: {
+        Row: {
+          autor_id: string | null
+          autor_nombre: string
+          created_at: string
+          id: string
+          project_id: string
+          texto: string
+        }
+        Insert: {
+          autor_id?: string | null
+          autor_nombre: string
+          created_at?: string
+          id?: string
+          project_id: string
+          texto: string
+        }
+        Update: {
+          autor_id?: string | null
+          autor_nombre?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           a_cargo_de: string
           administrativo_responsable: string
           avanzada: string
+          bodega_archivos: Json
+          bodega_observaciones: string | null
           caja_menor: Json
           centro_costos: string
           cliente: string
+          color: string | null
+          costos: Json
+          costos_adjuntos: Json
           cotizaciones: Json
           cotizaciones_proveedor: Json
           created_at: string
+          created_by: string | null
+          created_by_email: string | null
           deleted_at: string | null
           deleted_by: string | null
           deleted_by_email: string | null
@@ -664,12 +833,19 @@ export type Database = {
           a_cargo_de?: string
           administrativo_responsable?: string
           avanzada?: string
+          bodega_archivos?: Json
+          bodega_observaciones?: string | null
           caja_menor?: Json
           centro_costos?: string
           cliente?: string
+          color?: string | null
+          costos?: Json
+          costos_adjuntos?: Json
           cotizaciones?: Json
           cotizaciones_proveedor?: Json
           created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
           deleted_by_email?: string | null
@@ -726,12 +902,19 @@ export type Database = {
           a_cargo_de?: string
           administrativo_responsable?: string
           avanzada?: string
+          bodega_archivos?: Json
+          bodega_observaciones?: string | null
           caja_menor?: Json
           centro_costos?: string
           cliente?: string
+          color?: string | null
+          costos?: Json
+          costos_adjuntos?: Json
           cotizaciones?: Json
           cotizaciones_proveedor?: Json
           created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
           deleted_by_email?: string | null
@@ -1061,7 +1244,31 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      activos_disponibilidad: {
+        Row: {
+          activo: boolean | null
+          cantidad_total: number | null
+          categoria: string | null
+          codigo: string | null
+          created_at: string | null
+          created_by: string | null
+          depreciacion: number | null
+          disponible: number | null
+          elemento: string | null
+          en_evento: number | null
+          en_mantenimiento: number | null
+          id: string | null
+          notas: string | null
+          origen: string | null
+          precio_unitario: number | null
+          revisar: boolean | null
+          revisar_motivo: string | null
+          ubicacion: string | null
+          updated_at: string | null
+          valor_mercado: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       assign_solicitud_anticipo_num: {
@@ -1103,6 +1310,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      puede_bodega: { Args: never; Returns: boolean }
       validate_invitation_by_token: {
         Args: { _token: string }
         Returns: {
@@ -1129,12 +1337,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1158,11 +1366,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1183,11 +1391,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1208,11 +1416,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1225,11 +1433,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

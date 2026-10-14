@@ -16,18 +16,19 @@ import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { EventLink } from "@/components/EventLink";
+import { CostosEventoDialog } from "@/components/CostosEventoDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { anclarPrimero } from "@/lib/columnasPanel";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
-import { Project, ProjectStatus, CalendarViewMode } from "@/types";
+import { Project, ProjectStatus, CalendarViewMode, CostoEvento } from "@/types";
 import { acentoVisualDeEvento, estiloFilaVisual } from "@/lib/coloresProyecto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, ExternalLink, Settings, Loader2, Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, ExternalLink, Settings, Loader2, Eye, ArrowUpDown, ArrowUp, ArrowDown, Receipt, Paperclip } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
@@ -37,14 +38,71 @@ import { useAuth } from "@/contexts/AuthContext";
 import { FiltroProductor, pasaFiltroDeProductor } from "@/components/FiltroProductor";
 
 
+/**
+ * Celda de Costos: el total si hay algo cargado, o la invitacion a cargarlo.
+ * Es el mismo boton del Panel Directivo. Se repite aqui a proposito en vez de
+ * importarlo: el Directivo es una pagina de mil lineas y sacarle piezas ahora
+ * es un cambio grande para una tanda que solo agrega una columna.
+ */
+const BotonCostos = ({
+  proyecto,
+  onAbrir,
+}: {
+  proyecto: Project;
+  onAbrir: (id: string) => void;
+}) => {
+  const lineas = proyecto.costos || [];
+  const total = lineas.reduce((suma, c) => suma + (Number(c.valor) || 0), 0);
+  const soportes = (proyecto.costosAdjuntos || []).length;
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 w-full justify-start px-1.5 text-xs"
+      onClick={(e) => {
+        e.stopPropagation();
+        onAbrir(proyecto.id);
+      }}
+      title={
+        [
+          lineas.length > 0
+            ? `${lineas.length} costo${lineas.length === 1 ? "" : "s"} cargado${lineas.length === 1 ? "" : "s"}`
+            : "Cargar los costos del evento",
+          soportes > 0 ? `${soportes} soporte${soportes === 1 ? "" : "s"}` : "",
+        ]
+          .filter(Boolean)
+          .join(" \u00b7 ")
+      }
+    >
+      <Receipt className="mr-1 h-3.5 w-3.5 shrink-0 opacity-70" />
+      {total > 0 ? (
+        <span className="truncate font-mono tabular-nums">
+          $ {total.toLocaleString("es-CO")}
+        </span>
+      ) : (
+        <span className="truncate text-muted-foreground">Cargar costos</span>
+      )}
+      {soportes > 0 && (
+        <Paperclip className="ml-1 h-3 w-3 shrink-0 opacity-60" />
+      )}
+    </Button>
+  );
+};
+
 const PanelGeneral = () => {
   const navigate = useNavigate();
-  const { canEditStructure, role, canEditGeneral } = useUserRole();
+  const { canEditStructure, role, canEditGeneral, canEditDirectivo } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const isAdmin = role?.toLowerCase() === "administrador";
   const generalReadOnly = !canEditGeneral();
+  // Los costos son plata. En este panel los ven administrador y operativo; el
+  // rol visual no. La columna se filtra al dibujar y no en la configuracion de
+  // columnas, porque esa configuracion es la misma para todos los usuarios.
+  const puedeVerCostos = role?.toLowerCase() === "administrador" || role?.toLowerCase() === "operativo";
+  const costosSoloLectura = !canEditDirectivo();
+  const [costosDeProyectoId, setCostosDeProyectoId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroProductor, setFiltroProductor] = useState("todos");
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
@@ -68,7 +126,8 @@ const PanelGeneral = () => {
     { key: "productor", header: "Productor", type: "text" as CellType, width: "90px", visible: true, isCustom: false, order: 11 },
     { key: "ubicacion", header: "Ubicación", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 12 },
     { key: "notas", header: "Notas", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 13 },
-    { key: "panelDirectivo", header: "Panel", type: "text" as CellType, width: "65px", visible: true, isCustom: false, order: 14 },
+    { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 14 },
+    { key: "panelDirectivo", header: "Panel", type: "text" as CellType, width: "65px", visible: true, isCustom: false, order: 15 },
   ];
   const { columns: managedColumns, setColumns: setManagedColumns, loading: columnsLoading, isAdmin: canModifyStructure } = useGlobalColumns("panel-general", defaultColumns);
   
@@ -163,6 +222,7 @@ const PanelGeneral = () => {
     { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "95px", visible: true, isCustom: false, order: 6 },
     { key: "estado", header: "Estado", type: "select" as CellType, width: "150px", visible: true, isCustom: false, order: 7 },
     { key: "ordenCompra", header: "OC + OCR", type: "file" as CellType, width: "90px", visible: true, isCustom: false, order: 8 },
+    { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
   ], []);
 
   // Get all columns - direct calculation for immediate updates
@@ -189,6 +249,8 @@ const PanelGeneral = () => {
 
   const getColumnRender = (colConfig: ColumnConfig) => {
     switch (colConfig.key) {
+      case "costos":
+        return (p: Project) => <BotonCostos proyecto={p} onAbrir={setCostosDeProyectoId} />;
       case "centroCostos":
         return (p: Project) => generalReadOnly ? (
           <span className="text-sm font-mono">{p.centroCostos || "-"}</span>
@@ -495,6 +557,9 @@ const PanelGeneral = () => {
   const columns = (() => {
     const visibleColumns = allColumnConfigs
       .filter(col => col.visible)
+      // Aunque la columna este marcada como visible en la configuracion global,
+      // al rol visual no se le dibuja.
+      .filter(col => col.key !== "costos" || puedeVerCostos)
       .sort((a, b) => a.order - b.order)
       .map(col => ({
         key: col.key,
@@ -607,7 +672,7 @@ const PanelGeneral = () => {
                 columns={columns}
                 highlightedId={highlightedProjectId}
                 getRowClassName={getRowClassName}
-                mobileKeys={["evento", "cliente", "productor", "fechaMontaje", "fechaEjecucion", "estado"]}
+                mobileKeys={["evento", "cliente", "productor", "fechaMontaje", "fechaEjecucion", "estado", "costos"]}
                 mobilePreferenceKey="panel-general"
                 getRowAccent={acentoVisualDeEvento}
                 getRowStyle={estiloFilaVisual}
@@ -632,6 +697,22 @@ const PanelGeneral = () => {
           panelName="Panel General"
           readOnly={!canModifyStructure}
         />
+
+        {/* Panel de costos del evento. Solo se monta para quien puede verlo. */}
+        {puedeVerCostos && (
+          <CostosEventoDialog
+            proyecto={projects.find((p) => p.id === costosDeProyectoId) ?? null}
+            open={Boolean(costosDeProyectoId)}
+            onOpenChange={(abierto) => { if (!abierto) setCostosDeProyectoId(null); }}
+            soloLectura={costosSoloLectura}
+            onGuardar={async (costos: CostoEvento[]) => {
+              if (costosDeProyectoId) await updateProject(costosDeProyectoId, "costos", costos);
+            }}
+            onGuardarAdjuntos={async (archivos) => {
+              if (costosDeProyectoId) await updateProject(costosDeProyectoId, "costosAdjuntos", archivos);
+            }}
+          />
+        )}
 
         {/* Dialog para ver nota completa */}
         <Dialog open={!!notaExpandida} onOpenChange={(open) => !open && setNotaExpandida(null)}>

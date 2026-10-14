@@ -7,48 +7,130 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Plus, Search, Loader2, ArrowUpRight, ArrowDownLeft, AlertTriangle,
-  Package, Wrench, History, Boxes, RefreshCw,
+  Plus, Search, Loader2, ArrowUpRight, ArrowDownLeft, AlertTriangle, ScanLine, ClipboardList,
+  Package, Wrench, History, Boxes, RefreshCw, HelpCircle,
 } from "lucide-react";
 import { useBodega, Activo } from "@/hooks/useBodega";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { MovimientoDialog } from "@/components/bodega/MovimientoDialog";
 import { ActivoDialog } from "@/components/bodega/ActivoDialog";
+import { EscanerBodega } from "@/components/bodega/EscanerBodega";
+import { NovedadDialog } from "@/components/bodega/NovedadDialog";
+import { PanelNovedades } from "@/components/bodega/PanelNovedades";
 import { cn } from "@/lib/utils";
 
 const pesos = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v || 0);
 const numero = (v: number) => new Intl.NumberFormat("es-CO").format(v || 0);
 
-/** Un numero grande con su etiqueta. */
-function Dato({ etiqueta, valor, pie, tono }: { etiqueta: string; valor: string; pie?: string; tono?: string }) {
+/** Que significa cada casilla del resumen, en palabras de bodega. */
+type Ayuda = { que: string; como: string; ojo?: string };
+
+/**
+ * Un numero grande con su etiqueta. Si trae `ayuda`, la casilla completa se
+ * vuelve un boton: en bodega la gente no pasa el mouse por encima para ver un
+ * tooltip, toca la pantalla. Por eso es click y no hover.
+ */
+function Dato({
+  etiqueta, valor, pie, tono, ayuda, onAyuda,
+}: {
+  etiqueta: string; valor: string; pie?: string; tono?: string;
+  ayuda?: Ayuda; onAyuda?: () => void;
+}) {
+  const cuerpo = (
+    <CardContent className="relative p-3">
+      <p className="pr-4 text-[11px] uppercase tracking-wide text-muted-foreground">{etiqueta}</p>
+      <p className={cn("mt-0.5 text-xl font-bold tabular-nums", tono)}>{valor}</p>
+      {pie && <p className="text-[11px] text-muted-foreground">{pie}</p>}
+      {ayuda && (
+        <HelpCircle className="absolute right-2 top-2 h-3.5 w-3.5 text-muted-foreground/50" aria-hidden />
+      )}
+    </CardContent>
+  );
+
+  if (!ayuda) return <Card>{cuerpo}</Card>;
+
   return (
-    <Card>
-      <CardContent className="p-3">
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{etiqueta}</p>
-        <p className={cn("mt-0.5 text-xl font-bold tabular-nums", tono)}>{valor}</p>
-        {pie && <p className="text-[11px] text-muted-foreground">{pie}</p>}
-      </CardContent>
+    <Card
+      role="button"
+      tabIndex={0}
+      aria-label={`${etiqueta}: ${valor}. Toca para ver que significa.`}
+      onClick={onAyuda}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onAyuda?.(); }
+      }}
+      className="cursor-pointer text-left transition-colors hover:border-primary/40 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {cuerpo}
     </Card>
   );
 }
+
+/**
+ * Lo que explica cada casilla. Vive fuera del componente para que no se
+ * vuelva a construir en cada render, y para que quede en un solo sitio el dia
+ * que cambie como se calcula alguno de estos numeros.
+ */
+const AYUDAS: Record<string, Ayuda> = {
+  renglones: {
+    que: "Cuantas lineas distintas tiene el inventario. Un renglon es un tipo de equipo, no una unidad suelta.",
+    como: "Debajo del numero grande van las unidades, que es la suma de las cantidades de todos los renglones. Ejemplo: \u201c10 pares LED\u201d es 1 renglon y 10 unidades.",
+    ojo: "Solo cuenta lo que esta activo. Un renglon dado de baja deja de sumar.",
+  },
+  disponibles: {
+    que: "Unidades libres hoy, listas para salir a un evento.",
+    como: "Es el total de unidades menos lo que esta en evento y menos lo que esta en taller.",
+  },
+  enEvento: {
+    que: "Unidades que ya salieron de bodega y estan en un evento.",
+    como: "Suben cuando se registra una salida y vuelven a disponibles cuando se registra la entrada.",
+    ojo: "Si un equipo volvio pero nadie registro la entrada, va a seguir contando aqui.",
+  },
+  enTaller: {
+    que: "Unidades en mantenimiento o reparacion.",
+    como: "No cuentan como disponibles, asi que el sistema no deja reservarlas para un evento mientras esten aqui.",
+  },
+  valor: {
+    que: "Lo que costo el inventario.",
+    como: "Es el precio unitario por la cantidad de cada renglon, sumado todo. Debajo va el valor de mercado.",
+    ojo: "Esta casilla solo la ven bayron.bocanegra@bbmproducciones.com.co y bbmadministracion86@gmail.com.",
+  },
+  novedades: {
+    que: "Danos, observaciones, mantenimientos y bajas que estan sin resolver.",
+    como: "El numero son novedades, no unidades. Se abren desde el boton de alerta de cada renglon y se cierran con una nota de como se resolvio.",
+    ojo: "Una novedad es solo una anotacion: no cambia las cantidades del inventario. Si una baja es definitiva hay que ajustar la cantidad a mano.",
+  },
+  revisar: {
+    que: "Renglones que quedaron marcados al importar el Excel porque traian algo dudoso.",
+    como: "Lo tipico es un codigo repetido o una cantidad en cero. El motivo aparece arriba cuando abres el renglon.",
+    ojo: "Al abrir el renglon, corregirlo y guardarlo, la marca se quita sola.",
+  },
+};
 
 export default function PanelBodega() {
   const {
     activos, movimientos, categorias, resumen, cargando, error,
     recargar, registrarMovimiento, guardarActivo,
+    novedades, abiertasPorActivo, guardarNovedad, resolverNovedad, firmarFotos,
     puedeVerValores,
   } = useBodega();
   const { projects } = useProjects();
+
+  const [ayuda, setAyuda] = useState<{ etiqueta: string; ayuda: Ayuda } | null>(null);
 
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState("todas");
   const [estado, setEstado] = useState("todos");
 
   const [movDe, setMovDe] = useState<{ activo: Activo; tipo: "salida" | "entrada" } | null>(null);
+  const [escaneando, setEscaneando] = useState(false);
+  const [novedadDe, setNovedadDe] = useState<Activo | null>(null);
   const [editando, setEditando] = useState<Activo | null>(null);
   const [creando, setCreando] = useState(false);
 
@@ -122,6 +204,9 @@ export default function PanelBodega() {
             <Button variant="outline" size="sm" onClick={() => void recargar()} disabled={cargando}>
               <RefreshCw className={cn("h-4 w-4", cargando && "animate-spin")} />
             </Button>
+            <Button size="sm" variant="secondary" onClick={() => setEscaneando(true)}>
+              <ScanLine className="mr-1.5 h-4 w-4" />Escanear
+            </Button>
             <Button size="sm" onClick={() => setCreando(true)}>
               <Plus className="mr-1.5 h-4 w-4" />Nuevo equipo
             </Button>
@@ -141,20 +226,63 @@ export default function PanelBodega() {
       )}
 
       <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6">
-        <Dato etiqueta="Renglones" valor={numero(resumen.renglones)} pie={`${numero(resumen.unidades)} unidades`} />
-        <Dato etiqueta="Disponibles" valor={numero(resumen.disponibles)} tono="text-emerald-600 dark:text-emerald-400" />
-        <Dato etiqueta="En evento" valor={numero(resumen.enEvento)} tono="text-amber-600 dark:text-amber-500" />
-        <Dato etiqueta="En taller" valor={numero(resumen.enMantenimiento)} />
+        <Dato etiqueta="Renglones" valor={numero(resumen.renglones)} pie={`${numero(resumen.unidades)} unidades`}
+              ayuda={AYUDAS.renglones}
+              onAyuda={() => setAyuda({ etiqueta: "Renglones", ayuda: AYUDAS.renglones })} />
+        <Dato etiqueta="Disponibles" valor={numero(resumen.disponibles)} tono="text-emerald-600 dark:text-emerald-400"
+              ayuda={AYUDAS.disponibles}
+              onAyuda={() => setAyuda({ etiqueta: "Disponibles", ayuda: AYUDAS.disponibles })} />
+        <Dato etiqueta="En evento" valor={numero(resumen.enEvento)} tono="text-amber-600 dark:text-amber-500"
+              ayuda={AYUDAS.enEvento}
+              onAyuda={() => setAyuda({ etiqueta: "En evento", ayuda: AYUDAS.enEvento })} />
+        <Dato etiqueta="En taller" valor={numero(resumen.enMantenimiento)}
+              ayuda={AYUDAS.enTaller}
+              onAyuda={() => setAyuda({ etiqueta: "En taller", ayuda: AYUDAS.enTaller })} />
         {puedeVerValores && (
-          <Dato etiqueta="Valor de compra" valor={pesos(resumen.valorCompra)} pie={`mercado ${pesos(resumen.valorMercado)}`} />
+          <Dato etiqueta="Valor de compra" valor={pesos(resumen.valorCompra)} pie={`mercado ${pesos(resumen.valorMercado)}`}
+                ayuda={AYUDAS.valor}
+                onAyuda={() => setAyuda({ etiqueta: "Valor de compra", ayuda: AYUDAS.valor })} />
         )}
-        <Dato etiqueta="Por revisar" valor={numero(resumen.porRevisar)} tono={resumen.porRevisar ? "text-amber-600 dark:text-amber-500" : undefined} pie="renglones marcados" />
+        <Dato etiqueta="Novedades" valor={numero(resumen.novedadesAbiertas)}
+              tono={resumen.novedadesAbiertas ? "text-amber-600 dark:text-amber-500" : undefined}
+              pie="abiertas"
+              ayuda={AYUDAS.novedades}
+              onAyuda={() => setAyuda({ etiqueta: "Novedades", ayuda: AYUDAS.novedades })} />
+        <Dato etiqueta="Por revisar" valor={numero(resumen.porRevisar)}
+              tono={resumen.porRevisar ? "text-amber-600 dark:text-amber-500" : undefined} pie="renglones marcados"
+              ayuda={AYUDAS.revisar}
+              onAyuda={() => setAyuda({ etiqueta: "Por revisar", ayuda: AYUDAS.revisar })} />
       </div>
+
+      <Dialog open={!!ayuda} onOpenChange={(abierto) => { if (!abierto) setAyuda(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{ayuda?.etiqueta}</DialogTitle>
+            <DialogDescription>{ayuda?.ayuda.que}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">{ayuda?.ayuda.como}</p>
+            {ayuda?.ayuda.ojo && (
+              <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-[13px] leading-snug">
+                <span className="font-semibold">Ojo: </span>{ayuda.ayuda.ojo}
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Tabs defaultValue="inventario">
         <TabsList className="mb-3">
           <TabsTrigger value="inventario"><Package className="mr-1.5 h-4 w-4" />Inventario</TabsTrigger>
           <TabsTrigger value="eventos"><Boxes className="mr-1.5 h-4 w-4" />En eventos</TabsTrigger>
+          <TabsTrigger value="novedades">
+            <ClipboardList className="mr-1.5 h-4 w-4" />Novedades
+            {resumen.novedadesAbiertas > 0 && (
+              <span className="ml-1.5 rounded-full bg-amber-500/20 px-1.5 text-[10px] text-amber-700 dark:text-amber-500">
+                {resumen.novedadesAbiertas}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="movimientos"><History className="mr-1.5 h-4 w-4" />Movimientos</TabsTrigger>
           {puedeVerValores && (
             <TabsTrigger value="valor"><Wrench className="mr-1.5 h-4 w-4" />Valor</TabsTrigger>
@@ -249,6 +377,12 @@ export default function PanelBodega() {
                                   onClick={() => setMovDe({ activo: a, tipo: "entrada" })}>
                             <ArrowDownLeft className="h-3.5 w-3.5" />
                           </Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2"
+                                  title="Reportar novedad"
+                                  onClick={() => setNovedadDe(a)}>
+                            <AlertTriangle className={cn("h-3.5 w-3.5",
+                              (abiertasPorActivo.get(a.id) || 0) > 0 && "text-amber-600 dark:text-amber-500")} />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -302,6 +436,15 @@ export default function PanelBodega() {
         </TabsContent>
 
         {/* ---------------- movimientos ---------------- */}
+        <TabsContent value="novedades">
+          <PanelNovedades
+            novedades={novedades}
+            activos={activos}
+            firmarFotos={firmarFotos}
+            onResolver={resolverNovedad}
+          />
+        </TabsContent>
+
         <TabsContent value="movimientos">
           <div className="mobile-scroll-container rounded-lg border border-border">
             <table className="w-full min-w-[700px] text-sm">
@@ -413,6 +556,23 @@ export default function PanelBodega() {
         onCerrar={() => setMovDe(null)}
         onGuardar={registrarMovimiento}
       />
+      <NovedadDialog
+        activo={novedadDe}
+        proyectos={projects}
+        abierto={!!novedadDe}
+        onCerrar={() => setNovedadDe(null)}
+        onGuardar={guardarNovedad}
+      />
+
+      <EscanerBodega
+        activos={activos}
+        proyectos={projects}
+        abierto={escaneando}
+        onCerrar={() => setEscaneando(false)}
+        onGuardar={registrarMovimiento}
+        onTerminar={recargar}
+      />
+
       <ActivoDialog
         puedeVerValores={puedeVerValores}
         activo={editando}

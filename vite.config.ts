@@ -53,7 +53,16 @@ export default defineConfig(({ mode }) => ({
         // estaria gastando esos megas igual, y en un montaje con mala señal eso
         // se siente. Igual quedan disponibles sin conexion, pero por la regla de
         // runtimeCaching de mas abajo: se guardan la primera vez que se abren.
-        globIgnores: ["plano-led/**", "configurador-truss/**"],
+        globIgnores: [
+          "plano-led/**",
+          "configurador-truss/**",
+          // El lector de codigo de barras de respaldo pesa 447 KB y solo hace
+          // falta en navegadores sin BarcodeDetector propio (Safari). Chrome
+          // en Android no lo baja nunca. Precargarlo le costaria media mega de
+          // datos a cada celular del equipo para algo que casi nadie usa: se
+          // baja en el momento en que alguien abre la camara.
+          "assets/zxing-*.js",
+        ],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         skipWaiting: true,
         clientsClaim: true,
@@ -107,6 +116,17 @@ export default defineConfig(({ mode }) => ({
       }
     })
   ].filter(Boolean),
+  build: {
+    rollupOptions: {
+      output: {
+        // Nombre fijo para el lector de respaldo, para poder excluirlo del
+        // precache de la PWA por patron.
+        manualChunks(id) {
+          if (id.includes("@zxing")) return "zxing";
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

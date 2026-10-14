@@ -61,14 +61,34 @@ export interface Movimiento {
  */
 export type TipoNovedad = "dano" | "observacion" | "mantenimiento" | "baja";
 
+/**
+ * Observaciones de la bodega que no cuelgan de ningun equipo: lo que hay que
+ * comprar, lo que hay que mandar a arreglar, ideas de organizacion.
+ *
+ * Viven en la misma tabla que las novedades porque comparten todo lo que
+ * importa (quien las ve, las fotos, la fecha del hecho, el cerrarlas con nota
+ * en vez de borrarlas). Lo que las distingue es que activo_id va en null, y
+ * la base lo exige: un "dano" sin equipo o una "compra" con equipo se
+ * rechazan.
+ */
+export type TipoGeneral = "compra" | "general" | "reparar" | "mejora";
+
+export const TIPOS_GENERALES: TipoGeneral[] = ["compra", "general", "reparar", "mejora"];
+
+export const esGeneral = (t: string): t is TipoGeneral =>
+  (TIPOS_GENERALES as string[]).includes(t);
+
 export interface Novedad {
   id: string;
-  activo_id: string;
-  tipo: TipoNovedad;
+  /** null en las observaciones generales. */
+  activo_id: string | null;
+  tipo: TipoNovedad | TipoGeneral;
   descripcion: string;
   /** La fecha del hecho, no la de la digitacion. */
   fecha: string;
   unidades: number | null;
+  /** Valor unitario estimado. Llega en null a quien no ve cifras de bodega. */
+  valor_estimado: number | null;
   project_id: string | null;
   evento_nombre: string | null;
   /** Rutas dentro del bucket. Para mostrarlas hay que firmarlas. */
@@ -82,11 +102,13 @@ export interface Novedad {
 }
 
 export interface NuevaNovedad {
-  activo_id: string;
-  tipo: TipoNovedad;
+  /** null en las observaciones generales. */
+  activo_id: string | null;
+  tipo: TipoNovedad | TipoGeneral;
   descripcion: string;
   fecha: string;
   unidades?: number | null;
+  valor_estimado?: number | null;
   project_id?: string | null;
   evento_nombre?: string | null;
 }
@@ -158,7 +180,7 @@ export function useBodega() {
       // Las abiertas siempre, y de las cerradas solo lo reciente: el tablero
       // vive de lo que falta por resolver, no del archivo completo.
       supabase
-        .from("novedades_bodega" as never)
+        .from("novedades_bodega_vista" as never)
         .select("*")
         .order("resuelta")
         .order("fecha", { ascending: false })
@@ -345,7 +367,9 @@ export function useBodega() {
 
       for (const f of fotos) {
         const ext = (f.name.split(".").pop() || "jpg").toLowerCase().slice(0, 5);
-        const ruta = `${datos.activo_id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        // Las generales no tienen equipo, asi que van a su propia carpeta.
+        const carpeta = datos.activo_id ?? "generales";
+        const ruta = `${carpeta}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         const { error } = await supabase.storage.from("bodega-novedades").upload(ruta, f, {
           contentType: f.type || "image/jpeg",
           upsert: false,
@@ -366,6 +390,7 @@ export function useBodega() {
         descripcion: datos.descripcion.trim(),
         fecha: datos.fecha,
         unidades: datos.unidades ?? null,
+        valor_estimado: datos.valor_estimado ?? null,
         project_id: datos.project_id ?? null,
         evento_nombre: datos.evento_nombre ?? null,
         fotos: rutas,
@@ -379,7 +404,7 @@ export function useBodega() {
         if (rutas.length) await supabase.storage.from("bodega-novedades").remove(rutas);
         return false;
       }
-      toast.success("Novedad registrada");
+      toast.success(datos.activo_id ? "Novedad registrada" : "Observación registrada");
       await cargar();
       return true;
     },
@@ -399,7 +424,10 @@ export function useBodega() {
           resuelta_por_nombre: quien,
         } as never)
         .eq("id", id)
-        .select();
+        // Solo el id, nunca "*": un select completo sobre la tabla devolveria
+        // valor_estimado sin enmascarar a quien no debe verlo. La lectura va
+        // por la vista; de aqui solo hace falta saber si volvio una fila.
+        .select("id");
 
       // Una actualizacion bloqueada por RLS no da error: devuelve cero filas.
       if (error || !data || data.length === 0) {
@@ -426,12 +454,27 @@ export function useBodega() {
     return data.map((d) => d.signedUrl).filter(Boolean);
   }, []);
 
+  /**
+   * Las dos listas salen de la misma consulta y se separan aqui: las que
+   * cuelgan de un equipo y las de la bodega en general.
+   */
+  const novedadesDeEquipo = useMemo(
+    () => novedades.filter((n) => n.activo_id !== null),
+    [novedades]
+  );
+  const observacionesGenerales = useMemo(
+    () => novedades.filter((n) => n.activo_id === null),
+    [novedades]
+  );
+
   /** Cuantas novedades abiertas tiene cada activo, para la insignia. */
   const abiertasPorActivo = useMemo(() => {
     const m = new Map<string, number>();
-    novedades.filter((n) => !n.resuelta).forEach((n) => m.set(n.activo_id, (m.get(n.activo_id) || 0) + 1));
+    novedadesDeEquipo
+      .filter((n) => !n.resuelta)
+      .forEach((n) => m.set(n.activo_id as string, (m.get(n.activo_id as string) || 0) + 1));
     return m;
-  }, [novedades]);
+  }, [novedadesDeEquipo]);
 
   const resumen = useMemo(() => {
     const vivos = activos.filter((a) => a.activo);
@@ -443,19 +486,27 @@ export function useBodega() {
       disponibles: suma((a) => a.disponible),
       enMantenimiento: suma((a) => a.en_mantenimiento),
       porRevisar: vivos.filter((a) => a.revisar).length,
-      novedadesAbiertas: novedades.filter((n) => !n.resuelta).length,
+      novedadesAbiertas: novedadesDeEquipo.filter((n) => !n.resuelta).length,
+      observacionesAbiertas: observacionesGenerales.filter((n) => !n.resuelta).length,
+      // Lo que costaria la lista de compras pendiente. Para quien no ve
+      // cifras llega en null y se suma como cero; el panel no lo muestra.
+      porComprarEstimado: observacionesGenerales
+        .filter((n) => !n.resuelta && n.tipo === "compra")
+        .reduce((t, n) => t + Number(n.valor_estimado ?? 0) * (n.unidades ?? 1), 0),
       // Sin permiso estas tres llegan en NULL. Se suman como cero, pero el
       // panel no las muestra: un total en cero se leeria como "no vale nada".
       valorCompra: suma((a) => Number(a.precio_unitario ?? 0) * a.cantidad_total),
       valorMercado: suma((a) => Number(a.valor_mercado ?? 0)),
       depreciacion: suma((a) => Number(a.depreciacion ?? 0)),
     };
-  }, [activos, novedades]);
+  }, [activos, novedadesDeEquipo, observacionesGenerales]);
 
   return {
     activos,
     movimientos,
     novedades,
+    novedadesDeEquipo,
+    observacionesGenerales,
     abiertasPorActivo,
     categorias,
     resumen,

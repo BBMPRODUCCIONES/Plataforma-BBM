@@ -7,8 +7,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Check, Image as ImagenIcon, Loader2, Search } from "lucide-react";
-import { Activo, Novedad, TipoNovedad } from "@/hooks/useBodega";
-import { TIPOS } from "./NovedadDialog";
+import { Activo, Novedad } from "@/hooks/useBodega";
+import { COLOR, ETIQUETA, TIPOS_EQUIPO, fechaLegible } from "./tiposNovedad";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -16,25 +16,6 @@ interface Props {
   activos: Activo[];
   firmarFotos: (rutas: string[]) => Promise<string[]>;
   onResolver: (id: string, nota: string) => Promise<boolean>;
-}
-
-const COLOR: Record<TipoNovedad, string> = {
-  // El daño y la baja pesan distinto: la baja es plata que ya no esta.
-  dano: "border-amber-500/40 text-amber-700 dark:text-amber-500",
-  observacion: "border-sky-500/40 text-sky-700 dark:text-sky-400",
-  mantenimiento: "border-violet-500/40 text-violet-700 dark:text-violet-400",
-  baja: "border-destructive/40 text-destructive",
-};
-
-const ETIQUETA: Record<TipoNovedad, string> = {
-  dano: "Daño", observacion: "Observación", mantenimiento: "Mantenimiento", baja: "Pérdida o baja",
-};
-
-/** dd mmm aaaa sin depender de la zona del navegador: la fecha ya viene suelta. */
-function fechaLegible(iso: string) {
-  const [a, m, d] = iso.split("-").map(Number);
-  const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-  return `${d} ${meses[(m || 1) - 1]} ${a}`;
 }
 
 function Fotos({ rutas, firmar }: { rutas: string[]; firmar: (r: string[]) => Promise<string[]> }) {
@@ -83,7 +64,7 @@ export function PanelNovedades({ novedades, activos, firmarFotos, onResolver }: 
       if (estado === "cerradas" && !n.resuelta) return false;
       if (tipo !== "todos" && n.tipo !== tipo) return false;
       if (!t) return true;
-      const a = porId.get(n.activo_id);
+      const a = porId.get(n.activo_id as string);
       return (
         n.descripcion.toLowerCase().includes(t) ||
         (a?.elemento || "").toLowerCase().includes(t) ||
@@ -105,7 +86,7 @@ export function PanelNovedades({ novedades, activos, firmarFotos, onResolver }: 
           <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos los tipos</SelectItem>
-            {TIPOS.map((t) => <SelectItem key={t.valor} value={t.valor}>{t.etiqueta}</SelectItem>)}
+            {TIPOS_EQUIPO.map((t) => <SelectItem key={t.valor} value={t.valor}>{t.etiqueta}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={estado} onValueChange={setEstado}>
@@ -127,7 +108,7 @@ export function PanelNovedades({ novedades, activos, firmarFotos, onResolver }: 
       ) : (
         <div className="space-y-2">
           {lista.map((n) => {
-            const a = porId.get(n.activo_id);
+            const a = porId.get(n.activo_id as string);
             return (
               <Card key={n.id} className={cn(n.resuelta && "opacity-70")}>
                 <CardContent className="space-y-2 p-3">

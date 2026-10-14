@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Camera, X, AlertTriangle } from "lucide-react";
 import { Activo, NuevaNovedad, TipoNovedad } from "@/hooks/useBodega";
+import { TIPOS_EQUIPO, hoyBogota } from "./tiposNovedad";
 import { Project } from "@/types";
 
 interface Props {
@@ -19,21 +20,6 @@ interface Props {
   abierto: boolean;
   onCerrar: () => void;
   onGuardar: (datos: NuevaNovedad, fotos: File[]) => Promise<boolean>;
-}
-
-export const TIPOS: { valor: TipoNovedad; etiqueta: string; pista: string }[] = [
-  { valor: "dano", etiqueta: "Daño", pista: "Se rompió, se golpeó o llegó averiado." },
-  { valor: "observacion", etiqueta: "Observación", pista: "Algo que anotar sin que sea daño: desgaste, una pieza floja." },
-  { valor: "mantenimiento", etiqueta: "Mantenimiento", pista: "Entró a revisión o reparación. Describe qué se le hizo." },
-  { valor: "baja", etiqueta: "Pérdida o baja", pista: "No volvió del evento, se perdió o se descartó." },
-];
-
-/** Hoy en Bogotá, que es donde pasan las cosas, no donde esté el navegador. */
-function hoyBogota() {
-  const f = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit",
-  });
-  return f.format(new Date());
 }
 
 export function NovedadDialog({ activo, proyectos, abierto, onCerrar, onGuardar }: Props) {
@@ -62,7 +48,7 @@ export function NovedadDialog({ activo, proyectos, abierto, onCerrar, onGuardar 
 
   if (!activo) return null;
 
-  const pista = TIPOS.find((t) => t.valor === tipo)?.pista;
+  const pista = TIPOS_EQUIPO.find((t) => t.valor === tipo)?.pista;
   const evento = eventos.find((e) => e.id === proyectoId);
   const enElFuturo = fecha > hoyBogota();
 
@@ -103,7 +89,7 @@ export function NovedadDialog({ activo, proyectos, abierto, onCerrar, onGuardar 
             <Select value={tipo} onValueChange={(v) => setTipo(v as TipoNovedad)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {TIPOS.map((t) => <SelectItem key={t.valor} value={t.valor}>{t.etiqueta}</SelectItem>)}
+                {TIPOS_EQUIPO.map((t) => <SelectItem key={t.valor} value={t.valor}>{t.etiqueta}</SelectItem>)}
               </SelectContent>
             </Select>
             {pista && <p className="mt-1 text-[11px] text-muted-foreground">{pista}</p>}

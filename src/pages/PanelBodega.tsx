@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import {
   Plus, Search, Loader2, ArrowUpRight, ArrowDownLeft, AlertTriangle, ScanLine, ClipboardList,
-  Package, Wrench, History, Boxes, RefreshCw, HelpCircle,
+  Package, Wrench, History, Boxes, RefreshCw, HelpCircle, ListTodo,
 } from "lucide-react";
 import { useBodega, Activo } from "@/hooks/useBodega";
 import { useProjects } from "@/contexts/ProjectsContext";
@@ -23,6 +23,8 @@ import { ActivoDialog } from "@/components/bodega/ActivoDialog";
 import { EscanerBodega } from "@/components/bodega/EscanerBodega";
 import { NovedadDialog } from "@/components/bodega/NovedadDialog";
 import { PanelNovedades } from "@/components/bodega/PanelNovedades";
+import { ObservacionDialog } from "@/components/bodega/ObservacionDialog";
+import { PanelObservaciones } from "@/components/bodega/PanelObservaciones";
 import { cn } from "@/lib/utils";
 
 const pesos = (v: number) =>
@@ -106,6 +108,11 @@ const AYUDAS: Record<string, Ayuda> = {
     como: "El numero son novedades, no unidades. Se abren desde el boton de alerta de cada renglon y se cierran con una nota de como se resolvio.",
     ojo: "Una novedad es solo una anotacion: no cambia las cantidades del inventario. Si una baja es definitiva hay que ajustar la cantidad a mano.",
   },
+  observaciones: {
+    que: "Pendientes de la bodega que no son de un equipo puntual: lo que hay que comprar, lo que hay que mandar a arreglar, ideas de organizacion.",
+    como: "El numero son observaciones abiertas, no unidades. Se agregan desde la pestana Observaciones con el boton Nueva.",
+    ojo: "Marcar algo como comprado no lo mete al inventario. Cuando el equipo llegue a bodega hay que crearlo en Inventario con su codigo.",
+  },
   revisar: {
     que: "Renglones que quedaron marcados al importar el Excel porque traian algo dudoso.",
     como: "Lo tipico es un codigo repetido o una cantidad en cero. El motivo aparece arriba cuando abres el renglon.",
@@ -117,12 +124,14 @@ export default function PanelBodega() {
   const {
     activos, movimientos, categorias, resumen, cargando, error,
     recargar, registrarMovimiento, guardarActivo,
-    novedades, abiertasPorActivo, guardarNovedad, resolverNovedad, firmarFotos,
+    novedadesDeEquipo, observacionesGenerales,
+    abiertasPorActivo, guardarNovedad, resolverNovedad, firmarFotos,
     puedeVerValores,
   } = useBodega();
   const { projects } = useProjects();
 
   const [ayuda, setAyuda] = useState<{ etiqueta: string; ayuda: Ayuda } | null>(null);
+  const [observacionAbierta, setObservacionAbierta] = useState(false);
 
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState("todas");
@@ -248,6 +257,13 @@ export default function PanelBodega() {
               pie="abiertas"
               ayuda={AYUDAS.novedades}
               onAyuda={() => setAyuda({ etiqueta: "Novedades", ayuda: AYUDAS.novedades })} />
+        <Dato etiqueta="Observaciones" valor={numero(resumen.observacionesAbiertas)}
+              tono={resumen.observacionesAbiertas ? "text-emerald-600 dark:text-emerald-400" : undefined}
+              pie={puedeVerValores && resumen.porComprarEstimado > 0
+                ? `${pesos(resumen.porComprarEstimado)} por comprar`
+                : "abiertas"}
+              ayuda={AYUDAS.observaciones}
+              onAyuda={() => setAyuda({ etiqueta: "Observaciones", ayuda: AYUDAS.observaciones })} />
         <Dato etiqueta="Por revisar" valor={numero(resumen.porRevisar)}
               tono={resumen.porRevisar ? "text-amber-600 dark:text-amber-500" : undefined} pie="renglones marcados"
               ayuda={AYUDAS.revisar}
@@ -280,6 +296,14 @@ export default function PanelBodega() {
             {resumen.novedadesAbiertas > 0 && (
               <span className="ml-1.5 rounded-full bg-amber-500/20 px-1.5 text-[10px] text-amber-700 dark:text-amber-500">
                 {resumen.novedadesAbiertas}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="observaciones">
+            <ListTodo className="mr-1.5 h-4 w-4" />Observaciones
+            {resumen.observacionesAbiertas > 0 && (
+              <span className="ml-1.5 rounded-full bg-emerald-500/20 px-1.5 text-[10px] text-emerald-700 dark:text-emerald-400">
+                {resumen.observacionesAbiertas}
               </span>
             )}
           </TabsTrigger>
@@ -438,10 +462,20 @@ export default function PanelBodega() {
         {/* ---------------- movimientos ---------------- */}
         <TabsContent value="novedades">
           <PanelNovedades
-            novedades={novedades}
+            novedades={novedadesDeEquipo}
             activos={activos}
             firmarFotos={firmarFotos}
             onResolver={resolverNovedad}
+          />
+        </TabsContent>
+
+        <TabsContent value="observaciones">
+          <PanelObservaciones
+            observaciones={observacionesGenerales}
+            puedeVerValores={puedeVerValores}
+            firmarFotos={firmarFotos}
+            onResolver={resolverNovedad}
+            onNueva={() => setObservacionAbierta(true)}
           />
         </TabsContent>
 
@@ -561,6 +595,13 @@ export default function PanelBodega() {
         proyectos={projects}
         abierto={!!novedadDe}
         onCerrar={() => setNovedadDe(null)}
+        onGuardar={guardarNovedad}
+      />
+
+      <ObservacionDialog
+        abierto={observacionAbierta}
+        puedeVerValores={puedeVerValores}
+        onCerrar={() => setObservacionAbierta(false)}
         onGuardar={guardarNovedad}
       />
 

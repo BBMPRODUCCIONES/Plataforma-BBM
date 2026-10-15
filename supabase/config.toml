@@ -59,3 +59,10 @@ verify_jwt = false
 
 [functions.google-calendar-auto-sync]
 verify_jwt = false
+
+# La funcion comprueba ella misma el token y que quien llama sea
+# administrador, igual que delete-user. Se deja verify_jwt = false para que el
+# control quede en un solo sitio: dentro de la funcion, donde ademas se puede
+# responder con un mensaje entendible en vez de un 401 pelado de la pasarela.
+[functions.set-temp-password]
+verify_jwt = false

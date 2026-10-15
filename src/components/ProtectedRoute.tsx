@@ -5,6 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { AlertCircle, Loader2, RefreshCw, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
+import { CambiarPasswordDialog } from "@/components/CambiarPasswordDialog";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -32,6 +33,14 @@ export function ProtectedRoute({ children, requiredPanel, adminOnly = false, adm
   // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/" replace />;
+  }
+
+  // Entro con una contraseña temporal que le puso un administrador. Hasta que
+  // elija una suya no ve ninguna pantalla: la comprobacion va aqui, en el
+  // guardian por el que pasan todas las rutas, y no en cada pagina, para que
+  // no quede ninguna por fuera cuando se agregue una nueva.
+  if (user.user_metadata?.debe_cambiar_password === true) {
+    return <CambiarPasswordDialog obligado />;
   }
 
   // Handle timeout error - allow retry

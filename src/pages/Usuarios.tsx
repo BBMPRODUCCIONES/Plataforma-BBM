@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Mail, Clock, CheckCircle, AlertCircle, Loader2, Copy, Settings, Save, Trash2, History, RefreshCw } from "lucide-react";
+import { UserPlus, Mail, Clock, CheckCircle, AlertCircle, Loader2, Copy, Settings, Save, Trash2, History, RefreshCw, KeyRound, ShieldAlert } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -722,6 +722,37 @@ const Usuarios = () => {
    * para quien nunca entro y para quien la perdio, sin que nadie tenga que
    * saber ni inventar la contraseña de otro.
    */
+  /**
+   * Contraseña temporal. Se guarda en memoria y solo mientras la ventana este
+   * abierta: no va a localStorage ni a la base. Si se cierra sin copiarla, la
+   * unica salida es generar otra.
+   */
+  const [claveTemporal, setClaveTemporal] = useState<{ email: string; clave: string } | null>(null);
+  const [generandoClaveA, setGenerandoClaveA] = useState<string | null>(null);
+  const [confirmarClaveDe, setConfirmarClaveDe] = useState<UserWithRole | null>(null);
+
+  const generarClaveTemporal = async (usuario: UserWithRole) => {
+    setConfirmarClaveDe(null);
+    setGenerandoClaveA(usuario.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("set-temp-password", {
+        body: { user_id: usuario.id },
+      });
+      if (data?.error) throw new Error(data.error);
+      if (error) throw new Error(await motivoDeLaFuncion(error, "No se pudo generar la contraseña"));
+      if (!data?.password) throw new Error("El servidor no devolvió la contraseña.");
+      setClaveTemporal({ email: data.email || usuario.email, clave: data.password });
+    } catch (e: any) {
+      toast({
+        title: "No se pudo generar la contraseña",
+        description: e.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGenerandoClaveA(null);
+    }
+  };
+
   const handleEnviarAcceso = async (usuario: UserWithRole) => {
     setEnviandoAccesoA(usuario.id);
     try {
@@ -928,7 +959,7 @@ const Usuarios = () => {
     {
       key: "actions",
       header: "Acciones",
-      width: "160px",
+      width: "200px",
       render: (item: UserWithRole) => {
         const isSelf = !!currentUser?.id && item.id === currentUser.id;
         return (
@@ -953,6 +984,19 @@ const Usuarios = () => {
               ) : (
                 <Mail className="h-4 w-4" />
               )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmarClaveDe(item)}
+              disabled={isSelf || generandoClaveA === item.id}
+              title={isSelf
+                ? "Para cambiar tu propia contraseña usa la opción de tu perfil"
+                : `Generar una contraseña temporal para ${item.email}`}
+            >
+              {generandoClaveA === item.id
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <KeyRound className="h-4 w-4" />}
             </Button>
             <Button
               variant="ghost"
@@ -2093,6 +2137,87 @@ const Usuarios = () => {
           </div>
         )}
       </div>
+
+      {/* Confirmacion antes de generar: esto saca a la persona de su sesion y
+          la obliga a elegir clave nueva. No es algo para un clic distraido. */}
+      <AlertDialog open={!!confirmarClaveDe} onOpenChange={(v) => { if (!v) setConfirmarClaveDe(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-amber-600" />
+              ¿Generar contraseña temporal?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2 text-left">
+              <span className="block">
+                Para <strong className="text-foreground">{confirmarClaveDe?.email}</strong>.
+              </span>
+              <span className="block">
+                Su contraseña actual deja de servir de inmediato. Le vas a tener que pasar
+                la temporal, y al entrar el planner le va a exigir que elija una suya antes
+                de poder hacer cualquier cosa.
+              </span>
+              <span className="block">
+                La temporal se muestra <strong className="text-foreground">una sola vez</strong>.
+                No queda guardada en ninguna parte.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmarClaveDe && generarClaveTemporal(confirmarClaveDe)}>
+              Generar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* La contraseña generada. Se muestra una vez y se borra al cerrar. */}
+      <Dialog open={!!claveTemporal} onOpenChange={(v) => { if (!v) setClaveTemporal(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4" />Contraseña temporal
+            </DialogTitle>
+            <DialogDescription className="text-left">
+              Para <strong className="text-foreground">{claveTemporal?.email}</strong>. Cópiala
+              ahora: al cerrar esta ventana no se puede volver a ver.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center gap-2">
+            <code className="flex-1 select-all rounded border bg-muted px-3 py-2 font-mono text-base tracking-wider">
+              {claveTemporal?.clave}
+            </code>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (!claveTemporal) return;
+                navigator.clipboard.writeText(claveTemporal.clave).then(
+                  () => toast({ title: "Copiada" }),
+                  () => toast({
+                    title: "No se pudo copiar",
+                    description: "Selecciónala y cópiala a mano.",
+                    variant: "destructive",
+                  })
+                );
+              }}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-[13px] leading-snug">
+            <span className="font-semibold">Ojo: </span>
+            mándasela por un medio donde después se pueda borrar, y dile que la cambie
+            apenas entre. Mientras no lo haga, vos sabés con qué clave entra esa persona.
+          </p>
+
+          <DialogFooter>
+            <Button onClick={() => setClaveTemporal(null)}>Listo, ya la copié</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

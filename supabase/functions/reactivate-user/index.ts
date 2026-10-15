@@ -23,7 +23,7 @@ const corsHeaders = {
 
 // Valid roles enum
 const validRoles = ['administrador', 'operativo', 'visual'] as const;
-const validPanels = ['directivo', 'general', 'operaciones', 'proveedores'] as const;
+const validPanels = ['directivo', 'general', 'operaciones', 'proveedores', 'bodega'] as const;
 
 // Schema validation for reactivate user
 const reactivateUserSchema = z.object({
@@ -206,7 +206,7 @@ serve(async (req) => {
     }
 
     // Determine allowed panels based on role
-    const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores'];
+    const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores', 'bodega'];
     let finalAllowedPanels: string[];
     
     if (role === 'administrador') {

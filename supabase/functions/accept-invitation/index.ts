@@ -117,7 +117,7 @@ serve(async (req) => {
     }
 
     // Determine allowed panels - use invitation's panels or defaults based on role
-    const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores'];
+    const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores', 'bodega'];
     let allowedPanels: string[];
     
     if (invitation.role === 'administrador') {

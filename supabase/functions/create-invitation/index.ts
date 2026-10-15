@@ -23,7 +23,11 @@ const corsHeaders = {
 
 // Valid roles enum
 const validRoles = ['administrador', 'operativo', 'visual'] as const;
-const validPanels = ['directivo', 'general', 'operaciones', 'proveedores'] as const;
+// Tiene que incluir TODOS los paneles que la pantalla de Usuarios ofrece.
+// Cuando se agrego Bodega y esta lista no se actualizo, toda invitacion que
+// marcara ese panel -- y todas las de administrador, que llevan todos --
+// moria en un 400 que en pantalla se veia como "non-2xx status code".
+const validPanels = ['directivo', 'general', 'operaciones', 'proveedores', 'bodega'] as const;
 
 // Schema validation for create invitation
 const createInvitationSchema = z.object({
@@ -47,6 +51,15 @@ const createInvitationSchema = z.object({
     puede_editar_inventario: z.boolean().optional(),
     puede_asignar_responsables: z.boolean().optional(),
     puede_restaurar_solicitudes: z.boolean().optional(),
+    // Estos cinco los manda la pantalla de Usuarios desde hace rato. Al no
+    // estar declarados, zod los quitaba sin avisar y el permiso se perdia:
+    // el admin marcaba "Puede marcar solicitudes como Desembolsado" y el
+    // invitado entraba sin el.
+    puede_ajustar_base_caja_menor: z.boolean().optional(),
+    puede_desembolsar: z.boolean().optional(),
+    puede_acceder_aprobaciones: z.boolean().optional(),
+    es_responsable_caja_menor: z.boolean().optional(),
+    es_auditor_caja_menor: z.boolean().optional(),
     puede_acceder_usuarios: z.boolean().optional(),
     puede_acceder_clientes: z.boolean().optional(),
     puede_acceder_empleados: z.boolean().optional(),
@@ -133,7 +146,7 @@ serve(async (req) => {
     const { email, role, allowed_panels, permissions } = validationResult.data;
 
     // Determine allowed panels based on role
-    const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores'];
+    const ALL_PANELS = ['directivo', 'general', 'operaciones', 'proveedores', 'bodega'];
     let finalAllowedPanels: string[];
     
     if (role === 'administrador') {

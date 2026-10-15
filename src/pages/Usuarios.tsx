@@ -91,6 +91,32 @@ const roleLabels: Record<AppRole, string> = {
   visual: "Visual",
 };
 
+/**
+ * Saca el motivo real de un fallo de edge function.
+ *
+ * supabase-js, cuando la funcion responde 4xx o 5xx, deja en error.message el
+ * texto generico "Edge Function returned a non-2xx status code" y guarda la
+ * respuesta de verdad en error.context. Sin esto, un error de validacion con
+ * nombre y apellido llega al usuario como una frase en ingles que no dice
+ * nada, y el que la lee no tiene como saber que estuvo mal.
+ */
+async function motivoDeLaFuncion(error: unknown, porDefecto: string): Promise<string> {
+  const ctx = (error as { context?: unknown })?.context;
+  if (ctx instanceof Response) {
+    try {
+      const cuerpo = await ctx.clone().json();
+      if (cuerpo?.error) return String(cuerpo.error);
+    } catch {
+      try {
+        const texto = await ctx.clone().text();
+        if (texto) return texto.slice(0, 300);
+      } catch { /* la respuesta ya se consumio */ }
+    }
+  }
+  const msg = (error as { message?: string })?.message;
+  return msg && !msg.includes("non-2xx") ? msg : porDefecto;
+}
+
 const ALL_PANELS = ["directivo", "general", "operaciones", "proveedores", "bodega"];
 
 /**
@@ -360,9 +386,7 @@ const Usuarios = () => {
       }
       
       if (error) {
-        // Try to extract error message from the response
-        const errorMsg = error.message || "No se pudo crear la invitación";
-        throw new Error(errorMsg);
+        throw new Error(await motivoDeLaFuncion(error, "No se pudo crear la invitación"));
       }
 
       // Check if needs reactivation (deleted user, orphaned user, or soft-deleted employee)
@@ -443,7 +467,7 @@ const Usuarios = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) throw new Error(await motivoDeLaFuncion(error, "No se pudo reactivar el usuario"));
       if (data.error) throw new Error(data.error);
 
       const invitationLink = `${window.location.origin}/crear-cuenta?token=${data.invitation.token}`;
@@ -490,7 +514,7 @@ const Usuarios = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) throw new Error(await motivoDeLaFuncion(error, "No se pudo eliminar el usuario huérfano"));
       if (data.error) throw new Error(data.error);
 
       toast({

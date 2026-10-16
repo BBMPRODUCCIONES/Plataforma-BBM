@@ -60,3 +60,31 @@ export function sumarMontos(proyectos: Project[]) {
 
   return { base, iva, total, sinDiscriminar };
 }
+
+/**
+ * A que dia pertenece la venta de un evento.
+ *
+ * Es la fecha en que el evento SE EJECUTA, no en la que se monta. Un stand que
+ * se arma el 30 de octubre y se ejecuta el 1 de noviembre es una venta de
+ * noviembre: el montaje es trabajo previo, no es cuando se vende.
+ *
+ * Cuando la ejecucion cruza de mes, manda el dia en que arranca. Es la misma
+ * regla que usa la grafica de Ventas por comercial, para que los dos paneles
+ * no digan cifras distintas del mismo mes.
+ */
+export function fechaDeVenta(p: Project): Date | null {
+  const valor = p.fechaEjecucionInicio;
+  if (!valor) return null;
+  // Se arma con la fecha suelta y hora cero local: parsear "2026-11-01" como
+  // UTC corre el dia hacia atras en Bogota y la venta cae en octubre.
+  const d = new Date(valor.length > 10 ? valor : `${valor}T00:00:00`);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/** Si la venta de un evento cae dentro del periodo que se esta mirando. */
+export function ventaEnRango(p: Project, rango?: { start: Date; end: Date }): boolean {
+  if (!rango) return true;
+  const f = fechaDeVenta(p);
+  if (!f) return false;
+  return f >= rango.start && f <= rango.end;
+}

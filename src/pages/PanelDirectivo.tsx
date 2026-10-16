@@ -1180,7 +1180,7 @@ const PanelDirectivo = () => {
           </TabsContent>
 
           <TabsContent value="dashboard" className="mt-4">
-            <DashboardStats projects={filteredProjects} />
+            <DashboardStats projects={filteredProjects} rango={getDateRange()} />
           </TabsContent>
         </Tabs>
 

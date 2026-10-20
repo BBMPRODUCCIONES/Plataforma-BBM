@@ -605,7 +605,8 @@ const PanelGeneral = () => {
   const panelColumn = {
     key: "acciones",
     header: "Acciones",
-    width: "240px",
+    // Antes cabian dos botones (Directivo y Ops). Quedo solo Directivo.
+    width: "150px",
     render: (p: Project) => (
       <div className="flex gap-1 items-center">
         {p.isDeleted && (
@@ -623,18 +624,6 @@ const PanelGeneral = () => {
           }}
         >
           Directivo
-          <ExternalLink className="h-2.5 w-2.5 ml-1" />
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-6 px-2 text-[10px]"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/panel-operaciones?proyecto=${p.id}`);
-          }}
-        >
-          Ops
           <ExternalLink className="h-2.5 w-2.5 ml-1" />
         </Button>
       </div>

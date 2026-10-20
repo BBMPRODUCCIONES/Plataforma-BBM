@@ -885,18 +885,6 @@ const PanelDirectivo = () => {
             ELIMINADO
           </Badge>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/panel-operaciones?proyecto=${p.id}`);
-          }}
-        >
-          Ops
-          <ExternalLink className="h-3 w-3 ml-1" />
-        </Button>
         {isAdmin && !p.isDeleted && (
           <AlertDialog>
             <AlertDialogTrigger asChild>

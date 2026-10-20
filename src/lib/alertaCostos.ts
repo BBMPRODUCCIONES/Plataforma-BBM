@@ -1,5 +1,6 @@
 import { Project } from "@/types";
 import { listaDeProductores } from "@/components/ProductorSelect";
+import { COLORES_PROYECTO, colorVisualDeEvento } from "@/lib/coloresProyecto";
 
 /**
  * Alerta roja: eventos que ya arrancaron y a los que nadie les cargo los
@@ -56,27 +57,80 @@ export function eventoVencidoSinCostos(proyecto: Project, ahora: Date = new Date
   return (proyecto.costos || []).length === 0;
 }
 
-/** El evento esta asignado a esta persona como productor? */
-export function esSuProyecto(proyecto: Project, nombreDelUsuario?: string | null): boolean {
+/**
+ * Quien ve TODOS los eventos sin costos, no solo los suyos.
+ *
+ * Es por correo y no por rol: Abraham tambien es administrador y lo que se
+ * pidio es que vea unicamente lo suyo. Agregar a alguien aqui es una linea.
+ */
+const VEN_TODO = ["bayron.bocanegra@bbmproducciones.com.co"];
+
+export function veTodosLosEventos(correo?: string | null): boolean {
+  const c = (correo || "").trim().toLowerCase();
+  return !!c && VEN_TODO.includes(c);
+}
+
+/**
+ * A que comercial pertenece un correo, segun los colores.
+ *
+ * Usa el mismo criterio que colorVisualDeEvento para atribuir un evento por
+ * su autor: el correo empieza por el nombre del comercial y un punto
+ * ("abraham.varela@..." -> Abraham). Asi el dueno del evento y el dueno de la
+ * alerta se calculan igual y nunca discrepan.
+ */
+function comercialDelCorreo(correo?: string | null): string | null {
+  const c = (correo || "").trim().toLowerCase();
+  if (!c) return null;
+  const encontrado = COLORES_PROYECTO.find(
+    (col) => col.comercial && c.startsWith(col.comercial.toLowerCase() + ".")
+  );
+  return encontrado?.comercial ?? null;
+}
+
+/**
+ * El evento es de esta persona?
+ *
+ * Lo es por dos caminos, y basta uno: lleva su color (el puesto a mano, y si
+ * no hay, el que sale de quien subio el evento), o esta asignada como
+ * productor. Con el color solo no alcanzaba: Diego y Laura no son comerciales
+ * y se habrian quedado sin ninguna alerta.
+ */
+export function esSuProyecto(
+  proyecto: Project,
+  nombreDelUsuario?: string | null,
+  correoDelUsuario?: string | null
+): boolean {
   const nombre = (nombreDelUsuario || "").trim().toLowerCase();
-  if (!nombre) return false;
-  return listaDeProductores(proyecto.productor).some((n) => n.toLowerCase() === nombre);
+  if (nombre && listaDeProductores(proyecto.productor).some((n) => n.toLowerCase() === nombre)) {
+    return true;
+  }
+
+  const mio = comercialDelCorreo(correoDelUsuario);
+  if (!mio) return false;
+  const visual = colorVisualDeEvento(proyecto);
+  return visual?.nombre?.toLowerCase() === mio.toLowerCase();
 }
 
 /**
  * Le toca a quien esta mirando?
  *
- * El productor ve en rojo lo suyo y nada mas, para que la alerta siga
- * queriendo decir "esto lo tienes que hacer tu". El administrador las ve
- * todas, incluidas las que no tienen productor: alguien tiene que verlas.
+ * Cada quien ve en rojo lo suyo y nada mas, para que la alerta siga queriendo
+ * decir "esto lo tienes que hacer tu". La excepcion esta en VEN_TODO: alguien
+ * tiene que ver los que no son de nadie.
+ *
+ * No se usa el rol: Abraham tambien es administrador, y con la regla anterior
+ * veia los dieciocho eventos de la empresa en rojo en vez de los suyos.
  */
 export function alertaVisiblePara(
   proyecto: Project,
-  opciones: { nombreDelUsuario?: string | null; esAdministrador?: boolean }
+  opciones: {
+    nombreDelUsuario?: string | null;
+    correoDelUsuario?: string | null;
+  }
 ): boolean {
   if (!eventoVencidoSinCostos(proyecto)) return false;
-  if (opciones.esAdministrador) return true;
-  return esSuProyecto(proyecto, opciones.nombreDelUsuario);
+  if (veTodosLosEventos(opciones.correoDelUsuario)) return true;
+  return esSuProyecto(proyecto, opciones.nombreDelUsuario, opciones.correoDelUsuario);
 }
 
 /**
@@ -88,10 +142,10 @@ export function alertaVisiblePara(
  */
 export function alertaParpadea(
   proyecto: Project,
-  opciones: { nombreDelUsuario?: string | null }
+  opciones: { nombreDelUsuario?: string | null; correoDelUsuario?: string | null }
 ): boolean {
   if (!eventoVencidoSinCostos(proyecto)) return false;
-  return esSuProyecto(proyecto, opciones.nombreDelUsuario);
+  return esSuProyecto(proyecto, opciones.nombreDelUsuario, opciones.correoDelUsuario);
 }
 
 /** De una lista, cuantos no tienen productor asignado. */

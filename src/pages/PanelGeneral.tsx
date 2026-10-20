@@ -161,9 +161,9 @@ const PanelGeneral = () => {
   );
   const nombreDelUsuario =
     usuariosRegistrados.find((u) => u.id === user?.id)?.nombre ?? null;
+  const correoDelUsuario = user?.email ?? null;
   const alertaDeCostos = (p: Project) =>
-    puedeVerCostos &&
-    alertaVisiblePara(p, { nombreDelUsuario, esAdministrador: isAdmin });
+    puedeVerCostos && alertaVisiblePara(p, { nombreDelUsuario, correoDelUsuario });
   // Se cuentan sobre todos los eventos y no sobre los filtrados: un evento de
   // octubre sin costos no deja de faltar porque el panel este mirando
   // noviembre. Si solo apareciera dentro del filtro, nadie lo encontraria.
@@ -171,10 +171,10 @@ const PanelGeneral = () => {
     () =>
       puedeVerCostos
         ? projects.filter((p) =>
-            alertaVisiblePara(p, { nombreDelUsuario, esAdministrador: isAdmin })
+            alertaVisiblePara(p, { nombreDelUsuario, correoDelUsuario })
           )
         : [],
-    [projects, nombreDelUsuario, isAdmin, puedeVerCostos]
+    [projects, nombreDelUsuario, correoDelUsuario, puedeVerCostos]
   );
   // El aviso se cuenta entero, pero se lee por meses: "17" no dice nada si no
   // se sabe que 11 son de octubre y 6 de noviembre.
@@ -188,10 +188,10 @@ const PanelGeneral = () => {
       porMes: [...porMes.entries()],
       sinProductor: cuantosSinProductor(eventosSinCostos),
       mios: eventosSinCostos.filter((p) =>
-        alertaParpadea(p, { nombreDelUsuario })
+        alertaParpadea(p, { nombreDelUsuario, correoDelUsuario })
       ).length,
     };
-  }, [eventosSinCostos, nombreDelUsuario]);
+  }, [eventosSinCostos, nombreDelUsuario, correoDelUsuario]);
   const [costosDeProyectoId, setCostosDeProyectoId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroProductor, setFiltroProductor] = useState("todos");
@@ -344,7 +344,10 @@ const PanelGeneral = () => {
             proyecto={p}
             onAbrir={setCostosDeProyectoId}
             enAlerta={alertaDeCostos(p)}
-            parpadea={puedeVerCostos && alertaParpadea(p, { nombreDelUsuario })}
+            parpadea={
+              puedeVerCostos &&
+              alertaParpadea(p, { nombreDelUsuario, correoDelUsuario })
+            }
           />
         );
       case "personalNomina":

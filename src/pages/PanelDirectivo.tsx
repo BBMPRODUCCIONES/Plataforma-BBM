@@ -56,6 +56,7 @@ import {
 import { FiltroProductor, pasaFiltroDeProductor } from "@/components/FiltroProductor";
 import { useUsuariosRegistrados } from "@/hooks/useUsuariosRegistrados";
 import { ESTADOS } from "@/lib/estadosEvento";
+import { lineasReales, marcadoSinTerceros, totalDeCostos } from "@/lib/costosEvento";
 
 interface SmartSuggestion {
   type: string;
@@ -83,8 +84,9 @@ const BotonCostos = ({
   proyecto: Project;
   onAbrir: (id: string) => void;
 }) => {
-  const lineas = proyecto.costos || [];
-  const total = lineas.reduce((suma, c) => suma + (Number(c.valor) || 0), 0);
+  const lineas = lineasReales(proyecto.costos);
+  const total = totalDeCostos(proyecto.costos);
+  const sinTerceros = marcadoSinTerceros(proyecto.costos);
   const soportes = (proyecto.costosAdjuntos || []).length;
   return (
     <Button
@@ -97,9 +99,11 @@ const BotonCostos = ({
       }}
       title={
         [
-          lineas.length > 0
-            ? `${lineas.length} costo${lineas.length === 1 ? "" : "s"} cargado${lineas.length === 1 ? "" : "s"}`
-            : "Cargar los costos del evento",
+          sinTerceros
+            ? "Marcado: el evento no tuvo costos de terceros"
+            : lineas.length > 0
+              ? `${lineas.length} costo${lineas.length === 1 ? "" : "s"} cargado${lineas.length === 1 ? "" : "s"}`
+              : "Cargar los costos del evento",
           soportes > 0 ? `${soportes} soporte${soportes === 1 ? "" : "s"}` : "",
         ]
           .filter(Boolean)
@@ -111,6 +115,8 @@ const BotonCostos = ({
         <span className="truncate font-mono tabular-nums">
           $ {total.toLocaleString("es-CO")}
         </span>
+      ) : sinTerceros ? (
+        <span className="truncate text-muted-foreground">Sin costos</span>
       ) : (
         <span className="truncate text-muted-foreground">Cargar costos</span>
       )}
@@ -384,7 +390,7 @@ const PanelDirectivo = () => {
             case "ingresoTotal": return proj.ingresoTotal || 0;
             case "cotizaciones": return (proj.cotizaciones || []).length;
             case "ordenCompra": return (proj.ordenesCompra || []).length;
-            case "costos": return (proj.costos || []).reduce((suma, c) => suma + (Number(c.valor) || 0), 0);
+            case "costos": return totalDeCostos(proj.costos);
             case "productor": return proj.productor || "";
             case "notas": return proj.notas || "";
             case "fechaMontaje": return proj.fechaMontajeInicio || "";

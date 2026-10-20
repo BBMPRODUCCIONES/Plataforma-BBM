@@ -1,6 +1,7 @@
 import { Project } from "@/types";
 import { listaDeProductores } from "@/components/ProductorSelect";
 import { COLORES_PROYECTO, colorVisualDeEvento } from "@/lib/coloresProyecto";
+import { costosResueltos } from "@/lib/costosEvento";
 
 /**
  * Alerta roja: eventos que ya arrancaron y a los que nadie les cargo los
@@ -11,10 +12,10 @@ import { COLORES_PROYECTO, colorVisualDeEvento } from "@/lib/coloresProyecto";
  * seria una pared roja que nadie va a atender y que termina ensenando a
  * ignorar el color.
  *
- * Solo se mira si hay lineas de costo cargadas, no cuanto suman: un evento
- * puede cerrar en cero (lo cubrio otro contrato, se hizo con equipo propio) y
- * eso es una decision, no un olvido. Lo que se esta persiguiendo es que nadie
- * deje el evento sin tocar.
+ * Solo se mira si el evento quedo resuelto, no cuanto suma: resuelto es tener
+ * costos cargados, o que alguien haya marcado que no tuvo costos de terceros.
+ * Lo que se persigue es que nadie deje el evento sin tocar, no que todos
+ * tengan que gastar.
  */
 
 /** Desde cuando se persiguen los costos. Formato ISO, dia incluido. */
@@ -54,7 +55,10 @@ export function eventoVencidoSinCostos(proyecto: Project, ahora: Date = new Date
   const arranque = arranqueDeEjecucion(proyecto);
   if (!arranque || arranque > ahora) return false;
 
-  return (proyecto.costos || []).length === 0;
+  // Resuelto es tener costos cargados O haber declarado que no hubo de
+  // terceros. Sin lo segundo, un evento hecho con equipo propio se quedaba en
+  // rojo para siempre.
+  return !costosResueltos(proyecto.costos);
 }
 
 /**

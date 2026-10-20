@@ -46,6 +46,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { FiltroProductor, pasaFiltroDeProductor } from "@/components/FiltroProductor";
+import { lineasReales, marcadoSinTerceros, totalDeCostos } from "@/lib/costosEvento";
 
 /**
  * Columnas que ya no se muestran en Panel General.
@@ -77,8 +78,9 @@ const BotonCostos = ({
   /** Ademas es un evento del que esta mirando: se mueve para que lo vea. */
   parpadea?: boolean;
 }) => {
-  const lineas = proyecto.costos || [];
-  const total = lineas.reduce((suma, c) => suma + (Number(c.valor) || 0), 0);
+  const lineas = lineasReales(proyecto.costos);
+  const total = totalDeCostos(proyecto.costos);
+  const sinTerceros = marcadoSinTerceros(proyecto.costos);
   const soportes = (proyecto.costosAdjuntos || []).length;
   return (
     <Button
@@ -103,9 +105,11 @@ const BotonCostos = ({
             : enAlerta
               ? "Este evento ya se ejecuto y no tiene costos cargados"
               : "",
-          lineas.length > 0
-            ? `${lineas.length} costo${lineas.length === 1 ? "" : "s"} cargado${lineas.length === 1 ? "" : "s"}`
-            : "Cargar los costos del evento",
+          sinTerceros
+            ? "Marcado: el evento no tuvo costos de terceros"
+            : lineas.length > 0
+              ? `${lineas.length} costo${lineas.length === 1 ? "" : "s"} cargado${lineas.length === 1 ? "" : "s"}`
+              : "Cargar los costos del evento",
           soportes > 0 ? `${soportes} soporte${soportes === 1 ? "" : "s"}` : "",
         ]
           .filter(Boolean)
@@ -123,7 +127,7 @@ const BotonCostos = ({
         </span>
       ) : (
         <span className={enAlerta ? "truncate" : "truncate text-muted-foreground"}>
-          {enAlerta ? "Faltan costos" : "Cargar costos"}
+          {enAlerta ? "Faltan costos" : sinTerceros ? "Sin costos" : "Cargar costos"}
         </span>
       )}
       {soportes > 0 && (

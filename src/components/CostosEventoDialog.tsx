@@ -24,6 +24,13 @@ import { Attachment, CostoEvento, Project, TipoCosto } from "@/types";
 import { AttachmentManager } from "@/components/AttachmentManager";
 import { toast } from "@/hooks/use-toast";
 import { ListaAdjuntos } from "@/components/ListaAdjuntos";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  lineaDeMarca,
+  lineasReales,
+  marcadoSinTerceros,
+} from "@/lib/costosEvento";
 
 interface CostosEventoDialogProps {
   proyecto: Project | null;
@@ -80,17 +87,24 @@ export function CostosEventoDialog({
   soloLectura = false,
 }: CostosEventoDialogProps) {
   const [lineas, setLineas] = useState<CostoEvento[]>([]);
+  const [sinTerceros, setSinTerceros] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const { user } = useAuth();
 
   // Cada apertura parte de lo que hay guardado, no de lo que quedo en pantalla
-  // la vez anterior.
+  // la vez anterior. La marca de "sin costos de terceros" vive dentro del
+  // mismo campo, asi que se separa aqui y no se dibuja como una linea.
   useEffect(() => {
-    if (open) setLineas(proyecto?.costos ? [...proyecto.costos] : []);
+    if (!open) return;
+    setLineas(lineasReales(proyecto?.costos));
+    setSinTerceros(marcadoSinTerceros(proyecto?.costos));
   }, [open, proyecto]);
 
+  // Con la casilla marcada el evento cuesta cero, haya o no lineas en
+  // pantalla: lo que se va a guardar es la marca.
   const total = useMemo(
-    () => lineas.reduce((suma, l) => suma + (Number(l.valor) || 0), 0),
-    [lineas]
+    () => (sinTerceros ? 0 : lineas.reduce((suma, l) => suma + (Number(l.valor) || 0), 0)),
+    [lineas, sinTerceros]
   );
 
   const porTipo = useMemo(() => {
@@ -98,8 +112,10 @@ export function CostosEventoDialog({
     lineas.forEach((l) => {
       mapa.set(l.tipo, (mapa.get(l.tipo) || 0) + (Number(l.valor) || 0));
     });
-    return [...mapa.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
-  }, [lineas]);
+    return sinTerceros
+      ? []
+      : [...mapa.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  }, [lineas, sinTerceros]);
 
   const ingreso = Number(proyecto?.ingresoTotal) || 0;
   const utilidad = ingreso - total;
@@ -109,6 +125,25 @@ export function CostosEventoDialog({
     setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, ...cambios } : l)));
 
   const guardar = async () => {
+    // Declarar que no hubo costos de terceros y a la vez cargar costos es
+    // contradictorio. Manda lo declarado: se guarda solo la marca.
+    if (sinTerceros) {
+      setGuardando(true);
+      try {
+        await onGuardar([lineaDeMarca(user?.email)]);
+        onOpenChange(false);
+      } catch (error: unknown) {
+        toast({
+          title: "No se pudo guardar",
+          description: error instanceof Error ? error.message : "Intenta de nuevo",
+          variant: "destructive",
+        });
+      } finally {
+        setGuardando(false);
+      }
+      return;
+    }
+
     // Una linea sin concepto ni beneficiario y en cero es una fila que se
     // agrego y no se lleno: se descarta en vez de guardar basura.
     const limpias = lineas.filter(
@@ -155,7 +190,40 @@ export function CostosEventoDialog({
         </DialogHeader>
 
         <div className="flex-1 space-y-2 overflow-y-auto">
-          {lineas.length === 0 && (
+          {/* Arriba del todo: muchas veces la respuesta es "no hubo", y asi no
+              toca agregar una linea de mentira para poder cerrar el evento. */}
+          <label
+            className={`flex items-start gap-2.5 rounded-lg border p-3 ${
+              sinTerceros ? "border-primary/50 bg-primary/5" : "border-border/70"
+            } ${soloLectura ? "" : "cursor-pointer"}`}
+          >
+            <Checkbox
+              checked={sinTerceros}
+              disabled={soloLectura}
+              onCheckedChange={(v) => setSinTerceros(v === true)}
+              className="mt-0.5"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium">
+                Este evento no tuvo costos de terceros
+              </span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Se hizo con equipo propio y personal de nómina, o lo cubrió otro
+                contrato. Queda registrado como resuelto y deja de aparecer en
+                rojo.
+              </span>
+            </span>
+          </label>
+
+          {sinTerceros && lineas.length > 0 && (
+            <p className="rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+              Al guardar se quitarán las {lineas.length} línea
+              {lineas.length === 1 ? "" : "s"} de costo cargadas. Desmarca la
+              casilla si quieres conservarlas.
+            </p>
+          )}
+
+          {!sinTerceros && lineas.length === 0 && (
             <div className="rounded-lg border border-dashed border-border p-6 text-center">
               <p className="text-sm font-medium">Todavía no hay costos cargados</p>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -166,7 +234,7 @@ export function CostosEventoDialog({
             </div>
           )}
 
-          {lineas.map((linea) => (
+          {!sinTerceros && lineas.map((linea) => (
             <div key={linea.id} className="rounded-lg border border-border/70 p-3">
               <div className="grid gap-2 sm:grid-cols-[150px_1fr_auto]">
                 <div>
@@ -272,7 +340,7 @@ export function CostosEventoDialog({
             </div>
           ))}
 
-          {!soloLectura && (
+          {!soloLectura && !sinTerceros && (
             <Button
               variant="outline"
               className="h-11 w-full"

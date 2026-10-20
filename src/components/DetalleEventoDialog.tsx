@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Project } from "@/types";
+import { Attachment, Project } from "@/types";
 import { colorVisualDeEvento, fondoDeColor } from "@/lib/coloresProyecto";
 import { ListaAdjuntos } from "@/components/ListaAdjuntos";
 import { ComentariosEvento } from "@/components/ComentariosEvento";
@@ -30,6 +30,14 @@ interface DetalleEventoDialogProps {
    * a Operaciones, que es donde esta la ficha completa del evento.
    */
   onVerEnTabla?: () => void;
+  /**
+   * Si se pasa, los archivos se pueden borrar. No sale por su cuenta: este
+   * detalle se abre tambien desde el calendario, que ven todos los roles.
+   */
+  onBorrarAdjunto?: (
+    campo: "cotizaciones" | "ordenesCompra",
+    adjunto: Attachment
+  ) => Promise<void>;
 }
 
 const pesos = new Intl.NumberFormat("es-CO", {
@@ -119,6 +127,7 @@ export function DetalleEventoDialog({
   onOpenChange,
   mostrarDinero = false,
   onVerEnTabla,
+  onBorrarAdjunto,
 }: DetalleEventoDialogProps) {
   const navigate = useNavigate();
   if (!proyecto) return null;
@@ -236,8 +245,24 @@ export function DetalleEventoDialog({
           {proyecto.numFactura && <Dato etiqueta="# Factura" valor={proyecto.numFactura} />}
 
           {/* Los archivos del evento, para abrirlos sin salir de la ficha. */}
-          <ListaAdjuntos adjuntos={proyecto.cotizaciones || []} etiqueta="Cotización" />
-          <ListaAdjuntos adjuntos={proyecto.ordenesCompra || []} etiqueta="Orden de compra" />
+          <ListaAdjuntos
+            adjuntos={proyecto.cotizaciones || []}
+            etiqueta="Cotización"
+            onBorrar={
+              onBorrarAdjunto
+                ? (a) => onBorrarAdjunto("cotizaciones", a)
+                : undefined
+            }
+          />
+          <ListaAdjuntos
+            adjuntos={proyecto.ordenesCompra || []}
+            etiqueta="Orden de compra"
+            onBorrar={
+              onBorrarAdjunto
+                ? (a) => onBorrarAdjunto("ordenesCompra", a)
+                : undefined
+            }
+          />
 
           {proyecto.notas && (
             <div>

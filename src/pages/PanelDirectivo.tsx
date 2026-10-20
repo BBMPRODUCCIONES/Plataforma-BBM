@@ -1018,6 +1018,18 @@ const PanelDirectivo = () => {
           open={Boolean(fichaDeProyectoId)}
           onOpenChange={(abierto) => { if (!abierto) setFichaDeProyectoId(null); }}
           mostrarDinero
+          // Borrar archivos solo con permiso de editar Directivo. Desde el
+          // calendario el detalle se abre sin esta prop y el boton no aparece.
+          onBorrarAdjunto={
+            canEditDir
+              ? async (campo, adjunto) => {
+                  const p = projects.find((x) => x.id === fichaDeProyectoId);
+                  if (!p) return;
+                  const quedan = (p[campo] || []).filter((a) => a.id !== adjunto.id);
+                  await updateProject(p.id, campo, quedan);
+                }
+              : undefined
+          }
         />
 
         <CostosEventoDialog

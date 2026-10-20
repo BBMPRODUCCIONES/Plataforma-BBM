@@ -34,9 +34,10 @@ function finDeEjecucion(p: Project): Date | null {
 export function eventoVencidoSinCostos(proyecto: Project, ahora: Date = new Date()): boolean {
   if (proyecto.isDeleted) return false;
 
-  // Sin productor no hay a quien avisarle. Fue lo que se pidio: la alerta es
-  // para el productor asignado, no un reporte general de eventos sin costos.
-  if (listaDeProductores(proyecto.productor).length === 0) return false;
+  // Un evento sin productor asignado tambien cuenta. En la primera version se
+  // excluia, y el resultado fue que de 17 eventos de octubre sin costos solo
+  // se veian 6: los otros 11 no tenian productor y desaparecian justo cuando
+  // son los mas faciles de olvidar, porque no hay nadie responsable.
 
   const inicio = proyecto.fechaEjecucionInicio || "";
   if (!inicio || inicio.slice(0, 10) < COSTOS_SE_EXIGEN_DESDE) return false;
@@ -47,12 +48,19 @@ export function eventoVencidoSinCostos(proyecto: Project, ahora: Date = new Date
   return (proyecto.costos || []).length === 0;
 }
 
+/** El evento esta asignado a esta persona como productor? */
+export function esSuProyecto(proyecto: Project, nombreDelUsuario?: string | null): boolean {
+  const nombre = (nombreDelUsuario || "").trim().toLowerCase();
+  if (!nombre) return false;
+  return listaDeProductores(proyecto.productor).some((n) => n.toLowerCase() === nombre);
+}
+
 /**
  * Le toca a quien esta mirando?
  *
  * El productor ve en rojo lo suyo y nada mas, para que la alerta siga
  * queriendo decir "esto lo tienes que hacer tu". El administrador las ve
- * todas, porque es quien persigue a los demas.
+ * todas, incluidas las que no tienen productor: alguien tiene que verlas.
  */
 export function alertaVisiblePara(
   proyecto: Project,
@@ -60,8 +68,38 @@ export function alertaVisiblePara(
 ): boolean {
   if (!eventoVencidoSinCostos(proyecto)) return false;
   if (opciones.esAdministrador) return true;
+  return esSuProyecto(proyecto, opciones.nombreDelUsuario);
+}
 
-  const nombre = (opciones.nombreDelUsuario || "").trim().toLowerCase();
-  if (!nombre) return false;
-  return listaDeProductores(proyecto.productor).some((n) => n.toLowerCase() === nombre);
+/**
+ * Parpadea? Solo en los eventos propios del productor.
+ *
+ * El parpadeo es para que no se pueda pasar por alto lo que uno mismo tiene
+ * pendiente. Si parpadearan los diecisiete que ve el administrador, la
+ * pantalla entera se mueve y deja de significar algo.
+ */
+export function alertaParpadea(
+  proyecto: Project,
+  opciones: { nombreDelUsuario?: string | null }
+): boolean {
+  if (!eventoVencidoSinCostos(proyecto)) return false;
+  return esSuProyecto(proyecto, opciones.nombreDelUsuario);
+}
+
+/** De una lista, cuantos no tienen productor asignado. */
+export function cuantosSinProductor(proyectos: Project[]): number {
+  return proyectos.filter((p) => listaDeProductores(p.productor).length === 0).length;
+}
+
+/** "octubre de 2026" a partir de la fecha de ejecucion, para agrupar el aviso. */
+export function mesDeEjecucion(proyecto: Project): string {
+  const v = proyecto.fechaEjecucionInicio || "";
+  if (v.length < 7) return "sin fecha";
+  const [anio, mes] = v.slice(0, 7).split("-");
+  const nombres = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+  ];
+  const i = Number(mes) - 1;
+  return `${nombres[i] ?? mes} de ${anio}`;
 }

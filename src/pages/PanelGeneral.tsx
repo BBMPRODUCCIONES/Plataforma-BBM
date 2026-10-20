@@ -21,8 +21,14 @@ import { CostosEventoDialog } from "@/components/CostosEventoDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { anclarPrimero } from "@/lib/columnasPanel";
+import { cn } from "@/lib/utils";
 import { coincideBusquedaDeEvento } from "@/lib/busquedaEvento";
-import { alertaVisiblePara } from "@/lib/alertaCostos";
+import {
+  alertaVisiblePara,
+  alertaParpadea,
+  cuantosSinProductor,
+  mesDeEjecucion,
+} from "@/lib/alertaCostos";
 import { useUsuariosRegistrados } from "@/hooks/useUsuariosRegistrados";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjects } from "@/contexts/ProjectsContext";
@@ -52,11 +58,14 @@ const BotonCostos = ({
   proyecto,
   onAbrir,
   enAlerta = false,
+  parpadea = false,
 }: {
   proyecto: Project;
   onAbrir: (id: string) => void;
   /** El evento ya se ejecuto y sigue sin costos. Ver lib/alertaCostos. */
   enAlerta?: boolean;
+  /** Ademas es un evento del que esta mirando: se mueve para que lo vea. */
+  parpadea?: boolean;
 }) => {
   const lineas = proyecto.costos || [];
   const total = lineas.reduce((suma, c) => suma + (Number(c.valor) || 0), 0);
@@ -67,7 +76,10 @@ const BotonCostos = ({
       size="sm"
       className={
         enAlerta
-          ? "h-7 w-full justify-start px-1.5 text-xs bg-destructive/10 font-medium text-destructive ring-1 ring-inset ring-destructive/40 hover:bg-destructive/20"
+          ? cn(
+              "h-7 w-full justify-start px-1.5 text-xs bg-destructive/10 font-medium text-destructive ring-1 ring-inset ring-destructive/40 hover:bg-destructive/20",
+              parpadea && "animate-pulse ring-destructive"
+            )
           : "h-7 w-full justify-start px-1.5 text-xs"
       }
       onClick={(e) => {
@@ -76,9 +88,11 @@ const BotonCostos = ({
       }}
       title={
         [
-          enAlerta
-            ? "Este evento ya se ejecuto y no tiene costos cargados"
-            : "",
+          parpadea
+            ? "Eres el productor de este evento: ya se ejecuto y no tiene costos cargados"
+            : enAlerta
+              ? "Este evento ya se ejecuto y no tiene costos cargados"
+              : "",
           lineas.length > 0
             ? `${lineas.length} costo${lineas.length === 1 ? "" : "s"} cargado${lineas.length === 1 ? "" : "s"}`
             : "Cargar los costos del evento",
@@ -146,6 +160,22 @@ const PanelGeneral = () => {
         : [],
     [projects, nombreDelUsuario, isAdmin, puedeVerCostos]
   );
+  // El aviso se cuenta entero, pero se lee por meses: "17" no dice nada si no
+  // se sabe que 11 son de octubre y 6 de noviembre.
+  const resumenSinCostos = useMemo(() => {
+    const porMes = new Map<string, number>();
+    for (const p of eventosSinCostos) {
+      const mes = mesDeEjecucion(p);
+      porMes.set(mes, (porMes.get(mes) ?? 0) + 1);
+    }
+    return {
+      porMes: [...porMes.entries()],
+      sinProductor: cuantosSinProductor(eventosSinCostos),
+      mios: eventosSinCostos.filter((p) =>
+        alertaParpadea(p, { nombreDelUsuario })
+      ).length,
+    };
+  }, [eventosSinCostos, nombreDelUsuario]);
   const [costosDeProyectoId, setCostosDeProyectoId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroProductor, setFiltroProductor] = useState("todos");
@@ -298,6 +328,7 @@ const PanelGeneral = () => {
             proyecto={p}
             onAbrir={setCostosDeProyectoId}
             enAlerta={alertaDeCostos(p)}
+            parpadea={puedeVerCostos && alertaParpadea(p, { nombreDelUsuario })}
           />
         );
       case "personalNomina":
@@ -707,22 +738,37 @@ const PanelGeneral = () => {
             {eventosSinCostos.length > 0 && (
               <span
                 className="inline-flex items-center gap-1.5 rounded-md bg-destructive/10 px-2.5 py-1.5 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/40"
-                title={
-                  "Eventos ya ejecutados sin costos cargados:\n" +
-                  eventosSinCostos
-                    .slice(0, 12)
-                    .map((p) => `\u00b7 ${p.evento || "Sin nombre"}`)
-                    .join("\n") +
-                  (eventosSinCostos.length > 12
-                    ? `\n\u00b7 y ${eventosSinCostos.length - 12} mas`
-                    : "")
-                }
+                title={[
+                  "Eventos ya ejecutados a los que les faltan los costos.",
+                  "",
+                  ...resumenSinCostos.porMes.map(
+                    ([mes, n]) => `\u00b7 ${mes}: ${n}`
+                  ),
+                  resumenSinCostos.mios > 0
+                    ? `\n${resumenSinCostos.mios} ${resumenSinCostos.mios === 1 ? "es tuyo" : "son tuyos"} como productor (en rojo intermitente)`
+                    : "",
+                  resumenSinCostos.sinProductor > 0
+                    ? `${resumenSinCostos.sinProductor} sin productor asignado`
+                    : "",
+                ]
+                  .filter((l) => l !== "")
+                  .join("\n")}
               >
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                <AlertTriangle
+                  className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    resumenSinCostos.mios > 0 && "animate-pulse"
+                  )}
+                />
                 {eventosSinCostos.length}{" "}
                 {eventosSinCostos.length === 1
                   ? "evento sin costos"
                   : "eventos sin costos"}
+                {resumenSinCostos.sinProductor > 0 && (
+                  <span className="font-normal opacity-80">
+                    ({resumenSinCostos.sinProductor} sin productor)
+                  </span>
+                )}
               </span>
             )}
 

@@ -2,7 +2,8 @@ import { Project } from "@/types";
 import { listaDeProductores } from "@/components/ProductorSelect";
 
 /**
- * Alerta roja: eventos ya ejecutados a los que nadie les cargo los costos.
+ * Alerta roja: eventos que ya arrancaron y a los que nadie les cargo los
+ * costos. Un evento que todavia no empieza no se marca: no esta atrasado.
  *
  * Arranca con octubre de 2026 a proposito. Antes de esa fecha los costos se
  * llevaban por fuera del planner, asi que pintar de rojo todo el historico
@@ -18,11 +19,18 @@ import { listaDeProductores } from "@/components/ProductorSelect";
 /** Desde cuando se persiguen los costos. Formato ISO, dia incluido. */
 export const COSTOS_SE_EXIGEN_DESDE = "2026-10-01";
 
-/** La fecha con la que se decide si el evento ya paso. */
-function finDeEjecucion(p: Project): Date | null {
-  const valor = p.fechaEjecucionFin || p.fechaEjecucionInicio;
+/**
+ * Desde cuando se le puede exigir los costos a un evento.
+ *
+ * Es el dia en que ARRANCA la ejecucion, no el dia en que termina. Con el dia
+ * de cierre, un evento de dos dias que empieza hoy no se marcaba hasta pasado
+ * manana, que es justo cuando el productor todavia se acuerda de lo que pago.
+ * Esperar a que termine es esperar a que se olvide.
+ */
+function arranqueDeEjecucion(p: Project): Date | null {
+  const valor = p.fechaEjecucionInicio;
   if (!valor) return null;
-  const d = new Date(valor.length > 10 ? valor : `${valor}T23:59:59`);
+  const d = new Date(valor.length > 10 ? valor : `${valor}T00:00:00`);
   return isNaN(d.getTime()) ? null : d;
 }
 
@@ -42,8 +50,8 @@ export function eventoVencidoSinCostos(proyecto: Project, ahora: Date = new Date
   const inicio = proyecto.fechaEjecucionInicio || "";
   if (!inicio || inicio.slice(0, 10) < COSTOS_SE_EXIGEN_DESDE) return false;
 
-  const fin = finDeEjecucion(proyecto);
-  if (!fin || fin > ahora) return false;
+  const arranque = arranqueDeEjecucion(proyecto);
+  if (!arranque || arranque > ahora) return false;
 
   return (proyecto.costos || []).length === 0;
 }

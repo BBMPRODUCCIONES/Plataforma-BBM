@@ -57,6 +57,7 @@ import { FiltroProductor, pasaFiltroDeProductor } from "@/components/FiltroProdu
 import { useUsuariosRegistrados } from "@/hooks/useUsuariosRegistrados";
 import { ESTADOS } from "@/lib/estadosEvento";
 import { lineasReales, marcadoSinTerceros, totalDeCostos } from "@/lib/costosEvento";
+import { FiltroComercial, pasaFiltroDeComercial } from "@/components/FiltroComercial";
 
 interface SmartSuggestion {
   type: string;
@@ -180,6 +181,7 @@ const PanelDirectivo = () => {
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
   // "todos", un nombre, o SIN_PRODUCTOR. Ver FiltroProductor.
   const [filtroProductor, setFiltroProductor] = useState("todos");
+  const [filtroComercial, setFiltroComercial] = useState("todos");
   // Los nombres registrados los necesita el filtro para separar los nombres
   // escritos a mano que no corresponden a ningun usuario.
   const { usuarios: usuariosDelFiltro } = useUsuariosRegistrados();
@@ -339,6 +341,7 @@ const PanelDirectivo = () => {
       const matchesDeleted = showDeleted || !p.isDeleted;
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
       const matchesProductor = pasaFiltroDeProductor(p, filtroProductor, nombresRegistrados);
+      const matchesComercial = pasaFiltroDeComercial(p, filtroComercial);
 
       const range = getDateRange();
       const projectStart = parseISO(p.fechaMontajeInicio);
@@ -348,7 +351,7 @@ const PanelDirectivo = () => {
         isWithinInterval(projectEnd, range) ||
         (projectStart <= range.start && projectEnd >= range.end);
 
-      if (!matchesDeleted || !matchesStatus || !matchesProductor || !matchesDate) return false;
+      if (!matchesDeleted || !matchesStatus || !matchesProductor || !matchesComercial || !matchesDate) return false;
 
       // Smart search: check each token
       if (searchTokens.length === 0) return true;
@@ -1103,6 +1106,13 @@ const PanelDirectivo = () => {
                 proyectos={projects}
                 value={filtroProductor}
                 onChange={setFiltroProductor}
+                compacto={isMobile}
+              />
+
+              <FiltroComercial
+                proyectos={projects}
+                value={filtroComercial}
+                onChange={setFiltroComercial}
                 compacto={isMobile}
               />
               <div className={isMobile ? 'relative w-full' : 'relative w-80'}>

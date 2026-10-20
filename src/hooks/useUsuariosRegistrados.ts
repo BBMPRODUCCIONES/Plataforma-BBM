@@ -5,6 +5,8 @@ import { logger } from "@/lib/logger";
 export interface UsuarioRegistrado {
   id: string;
   nombre: string;
+  /** Correo con el que entra al planner. Vacio si no se pudo leer. */
+  correo?: string;
 }
 
 /**
@@ -28,11 +30,32 @@ async function traer(): Promise<UsuarioRegistrado[]> {
     return [];
   }
 
+  // El correo vive en user_roles, no en profiles. Se trae para poder amarrar
+  // el usuario con su ficha de empleado: los nombres no coinciden (el usuario
+  // dice "Abraham Varela" y la ficha dice "abraham.varela"), pero el correo
+  // es el mismo en los dos lados. Si falla, se sigue sin correo: sirve para
+  // afinar, no es indispensable.
+  const correos = new Map<string, string>();
+  const { data: roles, error: errorRoles } = await supabase
+    .from("user_roles")
+    .select("user_id, email");
+  if (errorRoles) {
+    logger.debug("[useUsuariosRegistrados] sin correos:", errorRoles.message);
+  } else {
+    for (const r of roles || []) {
+      if (r.user_id && r.email) correos.set(r.user_id, String(r.email).trim());
+    }
+  }
+
   // Un perfil sin nombre no sirve para escoger: no hay que mostrar en la lista.
   // Se arregla poniendole el nombre desde Gestion de Usuarios.
   return (data || [])
     .filter((p) => (p.full_name || "").trim().length > 0)
-    .map((p) => ({ id: p.id, nombre: (p.full_name as string).trim() }));
+    .map((p) => ({
+      id: p.id,
+      nombre: (p.full_name as string).trim(),
+      correo: correos.get(p.id) || "",
+    }));
 }
 
 export function useUsuariosRegistrados() {

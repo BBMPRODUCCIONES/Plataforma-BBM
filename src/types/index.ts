@@ -20,6 +20,8 @@ export interface Project {
   horaDesmontajeInicio?: string;
   horaDesmontajeFin?: string;
   estado: ProjectStatus;
+  /** En que va el COBRO. Independiente de estado. Ver lib/facturacionEvento. */
+  estadoFacturacion?: string;
   // Panel Directivo fields
   administrativoResponsable?: string;
   ingresoTotal?: number;

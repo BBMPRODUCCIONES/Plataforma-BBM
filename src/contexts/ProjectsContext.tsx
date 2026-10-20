@@ -75,6 +75,7 @@ function dbRowToProject(row: any): Project {
     // en el que le corresponde en vez de salir en blanco. Ver
     // lib/estadosEvento.
     estado: normalizarEstado(row.estado),
+    estadoFacturacion: row.estado_facturacion || "sin_definir",
     administrativoResponsable: row.administrativo_responsable || "",
     ingresoTotal: Number(row.ingreso_total) || 0,
     ingresoBruto: Number(row.ingreso_bruto) || 0,
@@ -150,6 +151,7 @@ function projectToDbRow(project: Partial<Project>): Record<string, any> {
   if (project.horaDesmontajeInicio !== undefined) row.hora_desmontaje_inicio = project.horaDesmontajeInicio;
   if (project.horaDesmontajeFin !== undefined) row.hora_desmontaje_fin = project.horaDesmontajeFin;
   if (project.estado !== undefined) row.estado = project.estado;
+  if (project.estadoFacturacion !== undefined) row.estado_facturacion = project.estadoFacturacion;
   if (project.administrativoResponsable !== undefined) row.administrativo_responsable = project.administrativoResponsable;
   if (project.ingresoTotal !== undefined) row.ingreso_total = project.ingresoTotal;
   if (project.ingresoBruto !== undefined) row.ingreso_bruto = project.ingresoBruto;

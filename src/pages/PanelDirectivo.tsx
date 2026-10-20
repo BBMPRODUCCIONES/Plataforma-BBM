@@ -58,6 +58,7 @@ import { useUsuariosRegistrados } from "@/hooks/useUsuariosRegistrados";
 import { ESTADOS } from "@/lib/estadosEvento";
 import { lineasReales, marcadoSinTerceros, totalDeCostos } from "@/lib/costosEvento";
 import { FiltroComercial, pasaFiltroDeComercial } from "@/components/FiltroComercial";
+import { FacturacionSelect } from "@/components/FacturacionSelect";
 
 interface SmartSuggestion {
   type: string;
@@ -167,6 +168,7 @@ const PanelDirectivo = () => {
     { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "80px", visible: true, isCustom: false, order: 6 },
     { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "85px", visible: true, isCustom: false, order: 7 },
     { key: "estado", header: "Estado", type: "select" as CellType, width: "150px", visible: true, isCustom: false, order: 8 },
+    { key: "estadoFacturacion", header: "Facturación", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 8.5 },
     { key: "ingresoBruto", header: "Ing. Bruto", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
     { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "110px", visible: true, isCustom: false, order: 10 },
     { key: "cotizaciones", header: "OC o Cotización", type: "file" as CellType, width: "115px", visible: true, isCustom: false, order: 11 },
@@ -388,6 +390,7 @@ const PanelDirectivo = () => {
             case "evento": return proj.evento || "";
             case "centroCostos": return proj.centroCostos || "";
             case "estado": return proj.estado || "";
+            case "estadoFacturacion": return proj.estadoFacturacion || "";
             case "avanzada": return proj.avanzada || "";
             case "ingresoBruto": return proj.ingresoBruto || 0;
             case "ingresoTotal": return proj.ingresoTotal || 0;
@@ -496,6 +499,7 @@ const PanelDirectivo = () => {
     { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 6 },
     { key: "fechaDesmontaje", header: "Desmontaje", type: "date" as CellType, width: "95px", visible: true, isCustom: false, order: 7 },
     { key: "estado", header: "Estado", type: "select" as CellType, width: "150px", visible: true, isCustom: false, order: 8 },
+    { key: "estadoFacturacion", header: "Facturación", type: "select" as CellType, width: "130px", visible: true, isCustom: false, order: 8.5 },
     { key: "ingresoBruto", header: "Ing. Bruto", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 9 },
     { key: "ingresoTotal", header: "Ing. Total", type: "number" as CellType, width: "90px", visible: true, isCustom: false, order: 10 },
     { key: "cotizaciones", header: "OC o Cotización", type: "file" as CellType, width: "125px", visible: true, isCustom: false, order: 11 },
@@ -587,6 +591,14 @@ const PanelDirectivo = () => {
             );
             return <Badge variant="outline" className="text-xs">{statusLabels[p.estado] || p.estado}</Badge>;
           };
+        case "estadoFacturacion":
+          return (p: Project) => (
+            <FacturacionSelect
+              value={p.estadoFacturacion}
+              onChange={(v) => updateProject(p.id, "estadoFacturacion", v)}
+              disabled={!canEditDir}
+            />
+          );
         case "ingresoBruto":
           return (p: Project) => <span className="text-xs font-mono">{p.ingresoBruto ? `$ ${p.ingresoBruto.toLocaleString("es-CO")}` : "—"}</span>;
         case "ingresoTotal":

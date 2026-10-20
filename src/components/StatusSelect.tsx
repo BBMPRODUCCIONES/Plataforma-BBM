@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ProjectStatus } from "@/types";
+import { ESTADOS, normalizarEstado } from "@/lib/estadosEvento";
 import { cn } from "@/lib/utils";
 
 interface StatusSelectProps {
@@ -14,22 +15,21 @@ interface StatusSelectProps {
   className?: string;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'por_planear', label: 'Por Planear', className: 'bg-yellow-500/20 text-yellow-400' },
-  { value: 'por_ejecutar', label: 'Por Ejecutar', className: 'bg-orange-500/20 text-orange-400' },
-  { value: 'en_progreso', label: 'En Progreso', className: 'bg-blue-500/20 text-blue-400' },
-  { value: 'terminado', label: 'Terminado', className: 'bg-green-500/20 text-green-400' },
-  { value: 'pendiente_facturar', label: 'Por Facturar', className: 'bg-violet-500/20 text-violet-400' },
-  { value: 'facturado', label: 'Facturado', className: 'bg-emerald-500/20 text-emerald-400' },
-  { value: 'no_se_factura', label: 'No se Factura', className: 'bg-slate-500/20 text-slate-400' },
-] as const;
+const STATUS_OPTIONS = ESTADOS.map((e) => ({
+  value: e.value,
+  label: e.label,
+  className: e.clase,
+}));
 
 export function StatusSelect({ value, onChange, className }: StatusSelectProps) {
-  const currentOption = STATUS_OPTIONS.find(o => o.value === value);
+  // Un evento guardado con un estado viejo se dibuja en el que le
+  // corresponde, en vez de salir en blanco. Ver lib/estadosEvento.
+  const estado = normalizarEstado(value);
+  const currentOption = STATUS_OPTIONS.find(o => o.value === estado);
 
   return (
     <Select
-      value={value}
+      value={estado}
       onValueChange={(val) => onChange(val as ProjectStatus)}
     >
       <SelectTrigger 
@@ -58,6 +58,6 @@ export function StatusSelect({ value, onChange, className }: StatusSelectProps) 
 }
 
 export function getStatusLabel(value: ProjectStatus): string {
-  const option = STATUS_OPTIONS.find(o => o.value === value);
+  const option = STATUS_OPTIONS.find(o => o.value === normalizarEstado(value));
   return option?.label || '-';
 }

@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { FiltroProductor, pasaFiltroDeProductor } from "@/components/FiltroProductor";
 import { useUsuariosRegistrados } from "@/hooks/useUsuariosRegistrados";
+import { ESTADOS } from "@/lib/estadosEvento";
 
 interface SmartSuggestion {
   type: string;
@@ -572,7 +573,9 @@ const PanelDirectivo = () => {
           ) : <span className="text-xs text-muted-foreground">—</span>;
         case "estado":
           return (p: Project) => {
-            const statusLabels: Record<string, string> = { por_planear: "Por Planear", por_ejecutar: "Por Ejecutar", en_progreso: "En Progreso", terminado: "Terminado", pendiente_facturar: "Por Facturar", facturado: "Facturado", no_se_factura: "No se Factura" };
+            const statusLabels: Record<string, string> = Object.fromEntries(
+              ESTADOS.map((e) => [e.value, e.label])
+            );
             return <Badge variant="outline" className="text-xs">{statusLabels[p.estado] || p.estado}</Badge>;
           };
         case "ingresoBruto":

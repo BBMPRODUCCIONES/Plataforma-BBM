@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { logger } from "@/lib/logger";
+import { normalizarEstado } from "@/lib/estadosEvento";
 
 // Helper function to send push notifications and create in-app notifications
 async function sendPushNotification(
@@ -70,7 +71,10 @@ function dbRowToProject(row: any): Project {
     fechaDesmontajeFin: row.fecha_desmontaje_fin || "",
     horaDesmontajeInicio: row.hora_desmontaje_inicio || "18:00",
     horaDesmontajeFin: row.hora_desmontaje_fin || "22:00",
-    estado: row.estado || "por_planear",
+    // Se normaliza al leer: una fila guardada con un estado viejo se dibuja
+    // en el que le corresponde en vez de salir en blanco. Ver
+    // lib/estadosEvento.
+    estado: normalizarEstado(row.estado),
     administrativoResponsable: row.administrativo_responsable || "",
     ingresoTotal: Number(row.ingreso_total) || 0,
     ingresoBruto: Number(row.ingreso_bruto) || 0,

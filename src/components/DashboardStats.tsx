@@ -5,6 +5,7 @@ import { CalendarDays, DollarSign, TrendingUp, Users } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import { es } from "date-fns/locale";
 import { fechaDeVenta, ventaEnRango } from "@/lib/montosEvento";
+import { ESTADOS, normalizarEstado } from "@/lib/estadosEvento";
 
 interface DashboardStatsProps {
   projects: Project[];
@@ -27,15 +28,7 @@ interface DashboardStatsProps {
 // "Terminado" y "Por Ejecutar" salian identicos, y "Facturado" y "En Progreso"
 // costaban incluso con vision normal. La leyenda de al lado sigue diciendo el
 // nombre y el numero de cada estado: el color acompana, no es el unico dato.
-const COLORS = {
-  por_planear: "hsl(48, 96%, 53%)",
-  por_ejecutar: "hsl(217, 91%, 60%)",
-  en_progreso: "hsl(142, 71%, 45%)",
-  terminado: "hsl(258, 70%, 50%)",
-  pendiente_facturar: "hsl(25, 95%, 53%)",
-  facturado: "hsl(162, 94%, 24%)",
-  no_se_factura: "hsl(213, 20%, 65%)",
-};
+// Los colores salen de lib/estadosEvento, que es donde viven los estados.
 
 export function DashboardStats({ projects, rango }: DashboardStatsProps) {
   // Solo los eventos que se EJECUTAN en el periodo cuentan como venta suya.
@@ -45,18 +38,16 @@ export function DashboardStats({ projects, rango }: DashboardStatsProps) {
   // se ejecutan en otro. Decirlo evita que el total parezca estar mal.
   const soloMontaje = projects.length - ventasDelPeriodo.length;
   const totalEventos = projects.length;
-  const eventosActivos = projects.filter((p) => p.estado === "en_progreso" || p.estado === "por_ejecutar").length;
+  const eventosActivos = projects.filter(
+    (p) => normalizarEstado(p.estado) === "en_progreso"
+  ).length;
 
   // Data for status pie chart
-  const statusData = [
-    { name: "Por Planear", value: projects.filter((p) => p.estado === "por_planear").length, color: COLORS.por_planear },
-    { name: "Por Ejecutar", value: projects.filter((p) => p.estado === "por_ejecutar").length, color: COLORS.por_ejecutar },
-    { name: "En Progreso", value: projects.filter((p) => p.estado === "en_progreso").length, color: COLORS.en_progreso },
-    { name: "Terminado", value: projects.filter((p) => p.estado === "terminado").length, color: COLORS.terminado },
-    { name: "Por Facturar", value: projects.filter((p) => p.estado === "pendiente_facturar").length, color: COLORS.pendiente_facturar },
-    { name: "Facturado", value: projects.filter((p) => p.estado === "facturado").length, color: COLORS.facturado },
-    { name: "No se Factura", value: projects.filter((p) => p.estado === "no_se_factura").length, color: COLORS.no_se_factura },
-  ].filter((d) => d.value > 0);
+  const statusData = ESTADOS.map((e) => ({
+    name: e.label,
+    value: projects.filter((p) => normalizarEstado(p.estado) === e.value).length,
+    color: e.color,
+  })).filter((d) => d.value > 0);
 
   /**
    * Eventos por mes, de verdad.

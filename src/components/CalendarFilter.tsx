@@ -36,6 +36,7 @@ import { es } from "date-fns/locale";
 import { CalendarViewMode, ProjectStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
+import { ESTADOS } from "@/lib/estadosEvento";
 
 interface CalendarFilterProps {
   viewMode: CalendarViewMode;
@@ -50,13 +51,7 @@ interface CalendarFilterProps {
 
 const STATUS_OPTIONS: { value: ProjectStatus | "todos"; label: string }[] = [
   { value: "todos", label: "Todos los estados" },
-  { value: "por_planear", label: "Por Planear" },
-  { value: "por_ejecutar", label: "Por Ejecutar" },
-  { value: "en_progreso", label: "En Progreso" },
-  { value: "terminado", label: "Terminado" },
-  { value: "pendiente_facturar", label: "Por Facturar" },
-  { value: "facturado", label: "Facturado" },
-  { value: "no_se_factura", label: "No se Factura" },
+  ...ESTADOS.map((e) => ({ value: e.value, label: e.label })),
 ];
 
 const VIEW_MODE_LABELS: Record<CalendarViewMode, string> = {

@@ -38,6 +38,7 @@ import { TimeInputManual } from "@/components/TimeInputManual";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AttachmentManager } from "@/components/AttachmentManager";
 import { Attachment } from "@/types";
+import { ESTADOS } from "@/lib/estadosEvento";
 
 interface NewProjectDialogProps {
   open: boolean;
@@ -517,13 +518,11 @@ export function NewProjectDialog({
                   <SelectValue placeholder="Estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="por_planear">Por Planear</SelectItem>
-                  <SelectItem value="por_ejecutar">Por Ejecutar</SelectItem>
-                  <SelectItem value="en_progreso">En Progreso</SelectItem>
-                  <SelectItem value="terminado">Terminado</SelectItem>
-                  <SelectItem value="pendiente_facturar">Por Facturar</SelectItem>
-                  <SelectItem value="facturado">Facturado</SelectItem>
-                  <SelectItem value="no_se_factura">No se Factura</SelectItem>
+                  {ESTADOS.map((e) => (
+                    <SelectItem key={e.value} value={e.value}>
+                      {e.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

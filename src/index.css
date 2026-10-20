@@ -821,6 +821,39 @@
     display: none; /* Chrome/Safari: hide native scrollbar */
   }
 
+  /* El encabezado de la matriz, fijo al bajar.
+     .matrix-table th ya era position:sticky con top:0, pero no servia de
+     nada: este contenedor tiene overflow-x:auto, y eso vuelve tambien el
+     overflow-y automatico, asi que el encabezado se pegaba a ESTE caja en
+     vez de a la ventana. Como la caja crecia con el contenido y nunca
+     desplazaba por dentro, quien bajaba era la pagina entera y el
+     encabezado se iba con ella.
+     Con un alto maximo, el desplazamiento vertical pasa a ocurrir aqui
+     adentro y el encabezado se queda arriba. De paso tampoco se pierden de
+     vista los filtros ni el buscador, que quedan por encima de la caja.
+     Solo en pantalla grande: en movil se desplaza con el dedo y encerrar la
+     tabla en una caja corta estorba mas de lo que ayuda. */
+  @media (min-width: 769px) {
+    .matrix-table-main-scroll {
+      overflow-y: auto;
+      max-height: calc(100vh - 240px);
+      min-height: 320px;
+    }
+
+    /* El fondo es obligatorio: sin el, las filas se ven por debajo del
+       encabezado al desplazar. */
+    .matrix-table thead th {
+      background: hsl(var(--table-header));
+      z-index: 15;
+    }
+
+    /* La columna congelada tiene que quedar por encima del resto del
+       encabezado, no solo por encima de las celdas. */
+    .matrix-table thead th.matrix-sticky-col {
+      z-index: 25;
+    }
+  }
+
   /* Prevent nested scroll containers inside sticky scroll system (e.g. shadcn Table wrapper) */
   .matrix-table-main-scroll > .relative.overflow-auto {
     overflow: visible !important;

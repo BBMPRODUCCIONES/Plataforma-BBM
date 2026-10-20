@@ -97,6 +97,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PhotoExportDialog, PhotoExportItem } from "@/components/PhotoExportDialog";
 import { CameraCapture } from "@/components/CameraCapture";
 import { FiltroProductor, pasaFiltroDeProductor } from "@/components/FiltroProductor";
+import { useUsuariosRegistrados } from "@/hooks/useUsuariosRegistrados";
 
 // (Legacy responsable helpers removed - now using auto-login system)
 
@@ -422,6 +423,13 @@ const PanelOperaciones = () => {
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroProductor, setFiltroProductor] = useState("todos");
+  // Los nombres registrados los necesita el filtro para separar los nombres
+  // escritos a mano que no corresponden a ningun usuario.
+  const { usuarios: usuariosDelFiltro } = useUsuariosRegistrados();
+  const nombresRegistrados = useMemo(
+    () => usuariosDelFiltro.map((u) => u.nombre),
+    [usuariosDelFiltro]
+  );
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"matriz" | "gantt">("matriz");
@@ -750,7 +758,7 @@ const PanelOperaciones = () => {
       const matchesDeleted = showDeleted || !p.isDeleted;
       const matchesSearch = coincideBusquedaDeEvento(p, searchTerm);
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
-      const matchesProductor = pasaFiltroDeProductor(p, filtroProductor);
+      const matchesProductor = pasaFiltroDeProductor(p, filtroProductor, nombresRegistrados);
       const range = getDateRange();
       const projectStart = parseISO(p.fechaMontajeInicio);
       const projectEnd = parseISO(p.fechaEjecucionFin);

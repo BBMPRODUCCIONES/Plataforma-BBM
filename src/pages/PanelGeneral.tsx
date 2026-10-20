@@ -47,6 +47,16 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { FiltroProductor, pasaFiltroDeProductor } from "@/components/FiltroProductor";
 
+/**
+ * Columnas que ya no se muestran en Panel General.
+ *
+ * Se esconden, no se borran: el dato sigue guardado en cada evento y volver a
+ * mostrarlas es sacar la clave de esta lista. Se filtran aqui y no en la
+ * configuracion de columnas porque esa configuracion es la misma para todos
+ * los usuarios y cualquiera podria devolverlas sin querer.
+ */
+const COLUMNAS_RETIRADAS = ["avanzada"];
+
 
 /**
  * Celda de Costos: el total si hay algo cargado, o la invitacion a cargarlo.
@@ -143,6 +153,12 @@ const PanelGeneral = () => {
   // Para la alerta de costos hay que saber como se llama quien esta mirando:
   // el productor del evento se guarda por nombre, no por id de usuario.
   const { usuarios: usuariosRegistrados } = useUsuariosRegistrados();
+  // Los nombres registrados los necesita el filtro de productor para saber
+  // cuales de los escritos a mano no corresponden a nadie.
+  const nombresRegistrados = useMemo(
+    () => usuariosRegistrados.map((u) => u.nombre),
+    [usuariosRegistrados]
+  );
   const nombreDelUsuario =
     usuariosRegistrados.find((u) => u.id === user?.id)?.nombre ?? null;
   const alertaDeCostos = (p: Project) =>
@@ -243,7 +259,7 @@ const PanelGeneral = () => {
       const matchesDeleted = showDeleted || !p.isDeleted;
       const matchesSearch = coincideBusquedaDeEvento(p, searchTerm);
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
-      const matchesProductor = pasaFiltroDeProductor(p, filtroProductor);
+      const matchesProductor = pasaFiltroDeProductor(p, filtroProductor, nombresRegistrados);
       const range = getDateRange();
       const projectStart = parseISO(p.fechaMontajeInicio);
       const projectEnd = parseISO(p.fechaEjecucionFin);
@@ -637,6 +653,7 @@ const PanelGeneral = () => {
       // Aunque la columna este marcada como visible en la configuracion global,
       // al rol visual no se le dibuja.
       .filter(col => col.key !== "costos" || puedeVerCostos)
+      .filter(col => !COLUMNAS_RETIRADAS.includes(col.key))
       .sort((a, b) => a.order - b.order)
       .map(col => ({
         key: col.key,

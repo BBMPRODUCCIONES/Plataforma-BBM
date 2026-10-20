@@ -54,6 +54,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { FiltroProductor, pasaFiltroDeProductor } from "@/components/FiltroProductor";
+import { useUsuariosRegistrados } from "@/hooks/useUsuariosRegistrados";
 
 interface SmartSuggestion {
   type: string;
@@ -172,6 +173,13 @@ const PanelDirectivo = () => {
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "todos">("todos");
   // "todos", un nombre, o SIN_PRODUCTOR. Ver FiltroProductor.
   const [filtroProductor, setFiltroProductor] = useState("todos");
+  // Los nombres registrados los necesita el filtro para separar los nombres
+  // escritos a mano que no corresponden a ningun usuario.
+  const { usuarios: usuariosDelFiltro } = useUsuariosRegistrados();
+  const nombresRegistrados = useMemo(
+    () => usuariosDelFiltro.map((u) => u.nombre),
+    [usuariosDelFiltro]
+  );
   
   // Computed dateRange from global context
   const dateRange = globalDateRange?.from && globalDateRange?.to 
@@ -323,7 +331,7 @@ const PanelDirectivo = () => {
     let result = projects.filter((p) => {
       const matchesDeleted = showDeleted || !p.isDeleted;
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
-      const matchesProductor = pasaFiltroDeProductor(p, filtroProductor);
+      const matchesProductor = pasaFiltroDeProductor(p, filtroProductor, nombresRegistrados);
 
       const range = getDateRange();
       const projectStart = parseISO(p.fechaMontajeInicio);

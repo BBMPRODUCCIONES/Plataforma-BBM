@@ -5,6 +5,7 @@ import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { MatrixTable } from "@/components/MatrixTable";
 import { ProductorSelect } from "@/components/ProductorSelect";
+import { PersonalNominaSelect } from "@/components/PersonalNominaSelect";
 import { StatusSelect } from "@/components/StatusSelect";
 import { EventCalendar } from "@/components/EventCalendar";
 import { CalendarFilter } from "@/components/CalendarFilter";
@@ -20,6 +21,9 @@ import { CostosEventoDialog } from "@/components/CostosEventoDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { anclarPrimero } from "@/lib/columnasPanel";
+import { coincideBusquedaDeEvento } from "@/lib/busquedaEvento";
+import { alertaVisiblePara } from "@/lib/alertaCostos";
+import { useUsuariosRegistrados } from "@/hooks/useUsuariosRegistrados";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
@@ -28,7 +32,7 @@ import { acentoVisualDeEvento, estiloFilaVisual } from "@/lib/coloresProyecto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, ExternalLink, Settings, Loader2, Eye, ArrowUpDown, ArrowUp, ArrowDown, Receipt, Paperclip } from "lucide-react";
+import { Search, ExternalLink, Settings, Loader2, Eye, ArrowUpDown, ArrowUp, ArrowDown, Receipt, Paperclip, AlertTriangle } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
@@ -47,9 +51,12 @@ import { FiltroProductor, pasaFiltroDeProductor } from "@/components/FiltroProdu
 const BotonCostos = ({
   proyecto,
   onAbrir,
+  enAlerta = false,
 }: {
   proyecto: Project;
   onAbrir: (id: string) => void;
+  /** El evento ya se ejecuto y sigue sin costos. Ver lib/alertaCostos. */
+  enAlerta?: boolean;
 }) => {
   const lineas = proyecto.costos || [];
   const total = lineas.reduce((suma, c) => suma + (Number(c.valor) || 0), 0);
@@ -58,13 +65,20 @@ const BotonCostos = ({
     <Button
       variant="ghost"
       size="sm"
-      className="h-7 w-full justify-start px-1.5 text-xs"
+      className={
+        enAlerta
+          ? "h-7 w-full justify-start px-1.5 text-xs bg-destructive/10 font-medium text-destructive ring-1 ring-inset ring-destructive/40 hover:bg-destructive/20"
+          : "h-7 w-full justify-start px-1.5 text-xs"
+      }
       onClick={(e) => {
         e.stopPropagation();
         onAbrir(proyecto.id);
       }}
       title={
         [
+          enAlerta
+            ? "Este evento ya se ejecuto y no tiene costos cargados"
+            : "",
           lineas.length > 0
             ? `${lineas.length} costo${lineas.length === 1 ? "" : "s"} cargado${lineas.length === 1 ? "" : "s"}`
             : "Cargar los costos del evento",
@@ -74,13 +88,19 @@ const BotonCostos = ({
           .join(" \u00b7 ")
       }
     >
-      <Receipt className="mr-1 h-3.5 w-3.5 shrink-0 opacity-70" />
+      {enAlerta ? (
+        <AlertTriangle className="mr-1 h-3.5 w-3.5 shrink-0" />
+      ) : (
+        <Receipt className="mr-1 h-3.5 w-3.5 shrink-0 opacity-70" />
+      )}
       {total > 0 ? (
         <span className="truncate font-mono tabular-nums">
           $ {total.toLocaleString("es-CO")}
         </span>
       ) : (
-        <span className="truncate text-muted-foreground">Cargar costos</span>
+        <span className={enAlerta ? "truncate" : "truncate text-muted-foreground"}>
+          {enAlerta ? "Faltan costos" : "Cargar costos"}
+        </span>
       )}
       {soportes > 0 && (
         <Paperclip className="ml-1 h-3 w-3 shrink-0 opacity-60" />
@@ -91,7 +111,7 @@ const BotonCostos = ({
 
 const PanelGeneral = () => {
   const navigate = useNavigate();
-  const { canEditStructure, role, canEditGeneral, canEditDirectivo } = useUserRole();
+  const { canEditStructure, role, canEditGeneral, canEditDirectivo, canEditPersonal } = useUserRole();
   const { user } = useAuth();
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple } = useProjects();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
@@ -102,6 +122,30 @@ const PanelGeneral = () => {
   // columnas, porque esa configuracion es la misma para todos los usuarios.
   const puedeVerCostos = role?.toLowerCase() === "administrador" || role?.toLowerCase() === "operativo";
   const costosSoloLectura = !canEditDirectivo();
+  // El personal de nomina del evento se marca aca, no en Operaciones. Lo
+  // gobierna el mismo permiso de siempre (puede_editar_personal), para no
+  // inventar un permiso nuevo que habria que ir a activarle a cada usuario.
+  const puedeEditarNomina = canEditPersonal();
+  // Para la alerta de costos hay que saber como se llama quien esta mirando:
+  // el productor del evento se guarda por nombre, no por id de usuario.
+  const { usuarios: usuariosRegistrados } = useUsuariosRegistrados();
+  const nombreDelUsuario =
+    usuariosRegistrados.find((u) => u.id === user?.id)?.nombre ?? null;
+  const alertaDeCostos = (p: Project) =>
+    puedeVerCostos &&
+    alertaVisiblePara(p, { nombreDelUsuario, esAdministrador: isAdmin });
+  // Se cuentan sobre todos los eventos y no sobre los filtrados: un evento de
+  // octubre sin costos no deja de faltar porque el panel este mirando
+  // noviembre. Si solo apareciera dentro del filtro, nadie lo encontraria.
+  const eventosSinCostos = useMemo(
+    () =>
+      puedeVerCostos
+        ? projects.filter((p) =>
+            alertaVisiblePara(p, { nombreDelUsuario, esAdministrador: isAdmin })
+          )
+        : [],
+    [projects, nombreDelUsuario, isAdmin, puedeVerCostos]
+  );
   const [costosDeProyectoId, setCostosDeProyectoId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroProductor, setFiltroProductor] = useState("todos");
@@ -124,10 +168,11 @@ const PanelGeneral = () => {
     { key: "jefeOperaciones", header: "Jefe Ops", type: "text" as CellType, width: "95px", visible: true, isCustom: false, order: 9 },
     { key: "aCargoDe", header: "A Cargo", type: "text" as CellType, width: "85px", visible: true, isCustom: false, order: 10 },
     { key: "productor", header: "Productor", type: "text" as CellType, width: "90px", visible: true, isCustom: false, order: 11 },
-    { key: "ubicacion", header: "Ubicación", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 12 },
-    { key: "notas", header: "Notas", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 13 },
-    { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 14 },
-    { key: "panelDirectivo", header: "Panel", type: "text" as CellType, width: "65px", visible: true, isCustom: false, order: 15 },
+    { key: "personalNomina", header: "Personal", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 12 },
+    { key: "ubicacion", header: "Ubicación", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 13 },
+    { key: "notas", header: "Notas", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 14 },
+    { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 15 },
+    { key: "panelDirectivo", header: "Panel", type: "text" as CellType, width: "65px", visible: true, isCustom: false, order: 16 },
   ];
   const { columns: managedColumns, setColumns: setManagedColumns, loading: columnsLoading, isAdmin: canModifyStructure } = useGlobalColumns("panel-general", defaultColumns);
   
@@ -166,10 +211,7 @@ const PanelGeneral = () => {
   const filteredProjects = useMemo(() => {
     let result = projects.filter((p) => {
       const matchesDeleted = showDeleted || !p.isDeleted;
-      const matchesSearch =
-        p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = coincideBusquedaDeEvento(p, searchTerm);
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
       const matchesProductor = pasaFiltroDeProductor(p, filtroProductor);
       const range = getDateRange();
@@ -223,6 +265,7 @@ const PanelGeneral = () => {
     { key: "estado", header: "Estado", type: "select" as CellType, width: "150px", visible: true, isCustom: false, order: 7 },
     { key: "ordenCompra", header: "OC + OCR", type: "file" as CellType, width: "90px", visible: true, isCustom: false, order: 8 },
     { key: "costos", header: "Costos", type: "text" as CellType, width: "110px", visible: true, isCustom: false, order: 9 },
+    { key: "personalNomina", header: "Personal", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 10 },
   ], []);
 
   // Get all columns - direct calculation for immediate updates
@@ -250,7 +293,21 @@ const PanelGeneral = () => {
   const getColumnRender = (colConfig: ColumnConfig) => {
     switch (colConfig.key) {
       case "costos":
-        return (p: Project) => <BotonCostos proyecto={p} onAbrir={setCostosDeProyectoId} />;
+        return (p: Project) => (
+          <BotonCostos
+            proyecto={p}
+            onAbrir={setCostosDeProyectoId}
+            enAlerta={alertaDeCostos(p)}
+          />
+        );
+      case "personalNomina":
+        return (p: Project) => (
+          <PersonalNominaSelect
+            value={p.personal}
+            onChange={(personal) => updateProject(p.id, "personal", personal)}
+            disabled={!puedeEditarNomina}
+          />
+        );
       case "centroCostos":
         return (p: Project) => generalReadOnly ? (
           <span className="text-sm font-mono">{p.centroCostos || "-"}</span>
@@ -647,6 +704,28 @@ const PanelGeneral = () => {
               </Button>
             </div>
 
+            {eventosSinCostos.length > 0 && (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-md bg-destructive/10 px-2.5 py-1.5 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/40"
+                title={
+                  "Eventos ya ejecutados sin costos cargados:\n" +
+                  eventosSinCostos
+                    .slice(0, 12)
+                    .map((p) => `\u00b7 ${p.evento || "Sin nombre"}`)
+                    .join("\n") +
+                  (eventosSinCostos.length > 12
+                    ? `\n\u00b7 y ${eventosSinCostos.length - 12} mas`
+                    : "")
+                }
+              >
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                {eventosSinCostos.length}{" "}
+                {eventosSinCostos.length === 1
+                  ? "evento sin costos"
+                  : "eventos sin costos"}
+              </span>
+            )}
+
             <FiltroProductor
               proyectos={projects}
               value={filtroProductor}
@@ -656,7 +735,7 @@ const PanelGeneral = () => {
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar..."
+                placeholder="Buscar cliente, evento, CC o #factura..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9 h-9"

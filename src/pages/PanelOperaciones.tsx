@@ -33,7 +33,18 @@ import { BodegaEventoDialog } from "@/components/BodegaEventoDialog";
  * Se esconden, no se borran: el dato sigue guardado y volver a mostrarlas es
  * sacar la clave de esta lista.
  */
-const COLUMNAS_RETIRADAS = ["jefeOperaciones", "formatoPreproduccion", "aCargoDe"];
+const COLUMNAS_RETIRADAS = [
+  "jefeOperaciones",
+  "formatoPreproduccion",
+  "aCargoDe",
+  // Personal pasa al Panel General, donde se marca con el selector de nomina.
+  // Gasto (caja menor) sale de la matriz; las solicitudes y su aprobacion
+  // siguen en Panel Reportes. Ojo: los datos que ya tiene un evento en
+  // cajaMenor y legalizacion siguen guardados, pero desde la aplicacion ya no
+  // hay por donde abrirlos. Devolver la columna es sacar la clave de aqui.
+  "personal",
+  "cajaMenor",
+];
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectsContext";
@@ -41,6 +52,7 @@ import { useEmpleados } from "@/contexts/EmpleadosContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Project, PersonalItem, InventarioItem, CajaMenorItem, LegalizacionItem, ProjectStatus, CalendarViewMode, Attachment, RelacionGastoEntry } from "@/types";
+import { coincideBusquedaDeEvento } from "@/lib/busquedaEvento";
 import { acentoVisualDeEvento, estiloFilaVisual } from "@/lib/coloresProyecto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -736,10 +748,7 @@ const PanelOperaciones = () => {
     // Normal filter mode
     let result = projects.filter((p) => {
       const matchesDeleted = showDeleted || !p.isDeleted;
-      const matchesSearch =
-        p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.evento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.centroCostos.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = coincideBusquedaDeEvento(p, searchTerm);
       const matchesStatus = statusFilter === "todos" || p.estado === statusFilter;
       const matchesProductor = pasaFiltroDeProductor(p, filtroProductor);
       const range = getDateRange();
@@ -2960,7 +2969,7 @@ const PanelOperaciones = () => {
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar..."
+                placeholder="Buscar cliente, evento, CC o #factura..."
                 value={searchTerm}
                 onChange={(e) => {
                   exitFocusMode();

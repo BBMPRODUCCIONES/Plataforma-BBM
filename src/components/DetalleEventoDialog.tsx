@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowUpRight, CalendarDays, Clock, MapPin, User } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Check, Clock, MapPin, Pencil, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,8 @@ import { Attachment, Project } from "@/types";
 import { colorVisualDeEvento, fondoDeColor } from "@/lib/coloresProyecto";
 import { ListaAdjuntos } from "@/components/ListaAdjuntos";
 import { ComentariosEvento } from "@/components/ComentariosEvento";
+import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
+import { useState } from "react";
 
 interface DetalleEventoDialogProps {
   proyecto: Project | null;
@@ -38,7 +40,54 @@ interface DetalleEventoDialogProps {
     campo: "cotizaciones" | "ordenesCompra",
     adjunto: Attachment
   ) => Promise<void>;
+  /**
+   * Si se pasa, aparece el boton de editar las fechas. Lo que se guarda aqui
+   * entra por el mismo camino que la tabla (el contexto de proyectos), asi
+   * que el calendario de atras se redibuja solo: no hay que recargar ni
+   * volver a abrir nada.
+   *
+   * No sale por su cuenta: esta ficha la abre tambien el rol visual desde el
+   * calendario, y ese no edita.
+   */
+  onGuardarFechas?: (cambios: Record<string, string | undefined>) => void | Promise<void>;
 }
+
+/**
+ * Las tres fases del evento y con que campos se guardan.
+ *
+ * Esta en una tabla y no repetido tres veces porque ahora cada fase se
+ * dibuja de dos formas (solo lectura y editable) y mantener seis bloques
+ * casi iguales es como se cuelan los errores de copiar y pegar.
+ */
+const FASES = [
+  {
+    nombre: "Montaje",
+    tipo: "montaje" as const,
+    punto: "bg-blue-500",
+    campoInicio: "fechaMontajeInicio",
+    campoFin: "fechaMontajeFin",
+    horaInicio: "horaMontajeInicio",
+    horaFin: "horaMontajeFin",
+  },
+  {
+    nombre: "Ejecución",
+    tipo: "ejecucion" as const,
+    punto: "bg-emerald-500",
+    campoInicio: "fechaEjecucionInicio",
+    campoFin: "fechaEjecucionFin",
+    horaInicio: "horaEjecucionInicio",
+    horaFin: "horaEjecucionFin",
+  },
+  {
+    nombre: "Desmontaje",
+    tipo: "desmontaje" as const,
+    punto: "bg-amber-500",
+    campoInicio: "fechaDesmontajeInicio",
+    campoFin: "fechaDesmontajeFin",
+    horaInicio: "horaDesmontajeInicio",
+    horaFin: "horaDesmontajeFin",
+  },
+] as const;
 
 const pesos = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -128,8 +177,11 @@ export function DetalleEventoDialog({
   mostrarDinero = false,
   onVerEnTabla,
   onBorrarAdjunto,
+  onGuardarFechas,
 }: DetalleEventoDialogProps) {
   const navigate = useNavigate();
+  // Antes del early return: los hooks no pueden quedar detras de un if.
+  const [editando, setEditando] = useState(false);
   if (!proyecto) return null;
 
   const marca = colorVisualDeEvento(proyecto);
@@ -205,25 +257,76 @@ export function DetalleEventoDialog({
             </div>
           )}
 
+          {onGuardarFechas && (
+            <div className="flex justify-end">
+              <Button
+                variant={editando ? "default" : "outline"}
+                size="sm"
+                className="h-7 gap-1.5 text-xs"
+                onClick={() => setEditando((v) => !v)}
+              >
+                {editando ? (
+                  <>
+                    <Check className="h-3.5 w-3.5" />
+                    Listo
+                  </>
+                ) : (
+                  <>
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar fechas
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
           <div className="grid gap-2 sm:grid-cols-3">
-            <Fase
-              nombre="Montaje"
-              punto="bg-blue-500"
-              dias={rango(proyecto.fechaMontajeInicio, proyecto.fechaMontajeFin)}
-              franja={horas(proyecto.horaMontajeInicio, proyecto.horaMontajeFin)}
-            />
-            <Fase
-              nombre="Ejecución"
-              punto="bg-emerald-500"
-              dias={rango(proyecto.fechaEjecucionInicio, proyecto.fechaEjecucionFin)}
-              franja={horas(proyecto.horaEjecucionInicio, proyecto.horaEjecucionFin)}
-            />
-            <Fase
-              nombre="Desmontaje"
-              punto="bg-amber-500"
-              dias={rango(proyecto.fechaDesmontajeInicio, proyecto.fechaDesmontajeFin)}
-              franja={horas(proyecto.horaDesmontajeInicio, proyecto.horaDesmontajeFin)}
-            />
+            {FASES.map((f) => {
+              const tarjeta = (
+                <Fase
+                  nombre={f.nombre}
+                  punto={f.punto}
+                  dias={rango(
+                    proyecto[f.campoInicio] as string,
+                    proyecto[f.campoFin] as string
+                  )}
+                  franja={horas(
+                    proyecto[f.horaInicio] as string,
+                    proyecto[f.horaFin] as string
+                  )}
+                />
+              );
+
+              if (!editando || !onGuardarFechas) {
+                return <div key={f.nombre}>{tarjeta}</div>;
+              }
+
+              return (
+                <DateTimeRangeEditor
+                  key={f.nombre}
+                  type={f.tipo}
+                  value={{
+                    fechaInicio: (proyecto[f.campoInicio] as string) || "",
+                    fechaFin: (proyecto[f.campoFin] as string) || "",
+                    horaInicio: proyecto[f.horaInicio] as string | undefined,
+                    horaFin: proyecto[f.horaFin] as string | undefined,
+                  }}
+                  onChange={(v) =>
+                    onGuardarFechas({
+                      [f.campoInicio]: v.fechaInicio,
+                      [f.campoFin]: v.fechaFin,
+                      [f.horaInicio]: v.horaInicio,
+                      [f.horaFin]: v.horaFin,
+                    })
+                  }
+                  displayValue={
+                    <div className="w-full cursor-pointer rounded-lg ring-1 ring-primary/40 transition hover:ring-primary">
+                      {tarjeta}
+                    </div>
+                  }
+                />
+              );
+            })}
           </div>
 
           {/* Boolean() no sobra: con los dos ingresos en cero, la expresion

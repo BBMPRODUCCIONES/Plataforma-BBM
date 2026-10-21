@@ -3012,6 +3012,11 @@ const PanelOperaciones = () => {
                 projects={filteredProjects}
                 startDate={globalSelectedDate}
                 onProjectClick={handleGanttProjectClick}
+                onEditarFechas={
+                  operativoReadOnly
+                    ? undefined
+                    : (id, cambios) => updateProjectMultiple(id, cambios)
+                }
               />
           </TabsContent>
         </Tabs>

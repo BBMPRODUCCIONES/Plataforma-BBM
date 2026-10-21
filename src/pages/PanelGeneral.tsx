@@ -823,6 +823,11 @@ const PanelGeneral = () => {
                 projects={filteredProjects}
                 startDate={globalSelectedDate}
                 onProjectClick={handleGanttProjectClick}
+                onEditarFechas={
+                  generalReadOnly
+                    ? undefined
+                    : (id, cambios) => updateProjectMultiple(id, cambios)
+                }
               />
           </TabsContent>
         </Tabs>

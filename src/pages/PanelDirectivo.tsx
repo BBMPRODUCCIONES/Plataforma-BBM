@@ -543,6 +543,14 @@ const PanelDirectivo = () => {
 
   // Build render functions for columns
   const canEditDir = canEditDirectivo();
+  // La columna de Facturacion necesita la columna estado_facturacion en la
+  // base. Mientras no exista, el campo llega undefined en todos los eventos y
+  // la columna no se dibuja. Asi este codigo se puede publicar ANTES de
+  // correr la migracion sin que nadie vea un control que falla al guardar: en
+  // cuanto el SQL corra, la columna aparece sola.
+  const columnaFacturacionLista = projects.some(
+    (p) => p.estadoFacturacion !== undefined
+  );
   const getColumnRender = (colConfig: ColumnConfig) => {
     // Special render functions for specific columns
     if (!canEditDir) {
@@ -970,6 +978,7 @@ const PanelDirectivo = () => {
   const columns = (() => {
     const visibleColumns = allColumnConfigs
       .filter(col => col.visible)
+      .filter(col => col.key !== "estadoFacturacion" || columnaFacturacionLista)
       .sort((a, b) => a.order - b.order)
       .map(col => ({
         key: col.key,
@@ -1020,6 +1029,11 @@ const PanelDirectivo = () => {
           mostrarDinero
           // Borrar archivos solo con permiso de editar Directivo. Desde el
           // calendario el detalle se abre sin esta prop y el boton no aparece.
+          onGuardarFechas={
+            canEditDir && fichaDeProyectoId
+              ? (cambios) => updateProjectMultiple(fichaDeProyectoId, cambios)
+              : undefined
+          }
           onBorrarAdjunto={
             canEditDir
               ? async (campo, adjunto) => {
@@ -1215,6 +1229,11 @@ const PanelDirectivo = () => {
                 startDate={globalSelectedDate}
                 onProjectClick={handleGanttProjectClick}
                 mostrarDinero
+                onEditarFechas={
+                  canEditDir
+                    ? (id, cambios) => updateProjectMultiple(id, cambios)
+                    : undefined
+                }
               />
           </TabsContent>
 

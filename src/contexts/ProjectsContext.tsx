@@ -75,7 +75,10 @@ function dbRowToProject(row: any): Project {
     // en el que le corresponde en vez de salir en blanco. Ver
     // lib/estadosEvento.
     estado: normalizarEstado(row.estado),
-    estadoFacturacion: row.estado_facturacion || "sin_definir",
+    // Sin "|| sin_definir" a proposito: mientras la columna no exista en la
+    // base esto llega undefined, y eso es lo que usa el Panel Directivo para
+    // no dibujar la columna todavia. Ver COLUMNA_FACTURACION_LISTA alla.
+    estadoFacturacion: row.estado_facturacion,
     administrativoResponsable: row.administrativo_responsable || "",
     ingresoTotal: Number(row.ingreso_total) || 0,
     ingresoBruto: Number(row.ingreso_bruto) || 0,

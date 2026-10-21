@@ -35,6 +35,14 @@ interface EventCalendarProps {
   onProjectClick?: (projectId: string) => void;
   /** Muestra los montos en la ficha. Solo para los paneles que ya los ensenan. */
   mostrarDinero?: boolean;
+  /**
+   * Si se pasa, desde la ficha se pueden ajustar las fechas y el calendario
+   * se redibuja solo. Lo pasa el panel que sabe si el usuario puede editar.
+   */
+  onEditarFechas?: (
+    projectId: string,
+    cambios: Record<string, string | undefined>
+  ) => void | Promise<void>;
 }
 
 type Fase = "montaje" | "ejecucion" | "desmontaje";
@@ -91,6 +99,7 @@ export function EventCalendar({
   startDate,
   onProjectClick,
   mostrarDinero = false,
+  onEditarFechas,
 }: EventCalendarProps) {
   const [detalleId, setDetalleId] = useState<string | null>(null);
   const proyectoDelDetalle = detalleId
@@ -404,6 +413,11 @@ export function EventCalendar({
         open={Boolean(proyectoDelDetalle)}
         onOpenChange={(abierto) => { if (!abierto) setDetalleId(null); }}
         mostrarDinero={mostrarDinero}
+        onGuardarFechas={
+          onEditarFechas && proyectoDelDetalle
+            ? (cambios) => onEditarFechas(proyectoDelDetalle.id, cambios)
+            : undefined
+        }
         onVerEnTabla={
           onProjectClick && detalleId
             ? () => { const id = detalleId; setDetalleId(null); onProjectClick(id); }

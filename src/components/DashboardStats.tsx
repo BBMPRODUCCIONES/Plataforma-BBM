@@ -11,6 +11,8 @@ import {
   Receipt,
   TrendingUp,
   UserX,
+  Users,
+  Ticket,
 } from "lucide-react";
 import {
   addDays,
@@ -86,6 +88,16 @@ const finDelEvento = (p: Project) =>
 const inicioDelEvento = (p: Project) =>
   aFecha(p.fechaMontajeInicio) ?? aFecha(p.fechaEjecucionInicio);
 
+/** Mismo cliente aunque cambien mayusculas, tildes o espacios. */
+function claveCliente(nombre?: string | null): string {
+  return (nombre || "sin cliente")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
 function comercialDe(p: Project): string | null {
   const visual = colorVisualDeEvento(p);
   if (!visual) return null;
@@ -125,13 +137,54 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
   );
   const ventas = sumarMontos(delPeriodo);
 
-  const anterior = useMemo(() => {
+  const periodoPrevio = useMemo(() => {
     if (!rango) return null;
     const r = periodoAnterior(rango);
-    return sumarMontos(universo.filter((p) => ventaEnRango(p, r))).base;
+    const eventos = universo.filter((p) => ventaEnRango(p, r));
+    const base = sumarMontos(eventos).base;
+    const conVenta = eventos.filter((p) => montosDelEvento(p).base > 0).length;
+    return {
+      base,
+      ticket: conVenta > 0 ? base / conVenta : null,
+      clientes: new Set(eventos.map((p) => claveCliente(p.cliente))).size,
+    };
   }, [universo, rango]);
+  const anterior = periodoPrevio?.base ?? null;
   const variacion =
     anterior && anterior > 0 ? ((ventas.base - anterior) / anterior) * 100 : null;
+
+  // ---- Ticket promedio y clientes ------------------------------------------------
+  // El ticket se saca solo con eventos que tienen valor: uno en $0 (prestamo,
+  // cortesia, o sin cotizar todavia) bajaria el promedio sin ser una venta.
+  const eventosConVenta = delPeriodo.filter((p) => montosDelEvento(p).base > 0);
+  const ticket = eventosConVenta.length > 0 ? ventas.base / eventosConVenta.length : null;
+  const variacionTicket =
+    ticket !== null && periodoPrevio?.ticket
+      ? ((ticket - periodoPrevio.ticket) / periodoPrevio.ticket) * 100
+      : null;
+
+  const clientesDelPeriodo = new Set(delPeriodo.map((p) => claveCliente(p.cliente)));
+  // Nuevo = su primer evento de toda la historia cae en este periodo.
+  const clientesNuevos = useMemo(() => {
+    if (!rango) return 0;
+    const primero = new Map<string, Date>();
+    for (const p of universo) {
+      const f = fechaDeVenta(p);
+      if (!f) continue;
+      const k = claveCliente(p.cliente);
+      const prev = primero.get(k);
+      if (!prev || f < prev) primero.set(k, f);
+    }
+    let n = 0;
+    for (const k of clientesDelPeriodo) {
+      const f = primero.get(k);
+      if (f && f >= rango.start && f <= rango.end) n += 1;
+    }
+    return n;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [universo, rango, delPeriodo]);
+  const ventaPorCliente =
+    clientesDelPeriodo.size > 0 ? ventas.base / clientesDelPeriodo.size : null;
 
   // Ejecutado = ya arranco la ejecucion. Es lo que se puede exigir en costos y
   // en cobro; lo que viene todavia no.
@@ -299,7 +352,7 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
   return (
     <div className="space-y-4">
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Kpi titulo="Ventas del periodo" icono={DollarSign}>
           <div className="text-2xl font-bold">{pesos(ventas.base)}</div>
           <p className="text-xs text-muted-foreground mt-1">
@@ -364,8 +417,43 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
             {ejecutados.length} ejecutados · {porRealizar} por realizar
           </p>
           <p className="text-xs text-muted-foreground">
-            {enCursoHoy} en curso hoy · {topClientes.length} clientes
+            {enCursoHoy} en curso hoy
           </p>
+        </Kpi>
+
+        <Kpi titulo="Ticket promedio" icono={Ticket}>
+          <div className="text-2xl font-bold">{ticket === null ? "—" : pesos(ticket)}</div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Venta sin IVA por evento · {eventosConVenta.length} eventos con valor
+          </p>
+          {variacionTicket !== null && (
+            <p
+              className={`text-xs mt-1 font-medium ${
+                variacionTicket >= 0 ? "text-emerald-400" : "text-red-400"
+              }`}
+            >
+              {variacionTicket >= 0 ? "▲" : "▼"} {Math.abs(variacionTicket).toFixed(0)}% vs periodo
+              anterior ({pesosCortos(periodoPrevio?.ticket ?? 0)})
+            </p>
+          )}
+        </Kpi>
+
+        <Kpi titulo="Clientes" icono={Users}>
+          <div className="text-2xl font-bold">
+            {clientesDelPeriodo.size}{" "}
+            <span className="text-base font-semibold text-muted-foreground">
+              {clientesNuevos} nuevo{clientesNuevos === 1 ? "" : "s"}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {clientesDelPeriodo.size - clientesNuevos} recurrentes
+            {periodoPrevio ? ` · ${periodoPrevio.clientes} en el periodo anterior` : ""}
+          </p>
+          {ventaPorCliente !== null && (
+            <p className="text-xs text-muted-foreground">
+              {pesosCortos(ventaPorCliente)} de venta promedio por cliente
+            </p>
+          )}
         </Kpi>
       </div>
 

@@ -338,6 +338,20 @@ const PanelDirectivo = () => {
     }
   }, [suggestions, currentToken]);
 
+  // Los mismos filtros de la tabla, menos el de fechas. El tablero los usa para
+  // la grafica por mes y para comparar con el periodo anterior.
+  const proyectosSinFiltroDeFecha = useMemo(
+    () =>
+      projects.filter(
+        (p) =>
+          !p.isDeleted &&
+          (statusFilter === "todos" || p.estado === statusFilter) &&
+          pasaFiltroDeProductor(p, filtroProductor, nombresRegistrados) &&
+          pasaFiltroDeComercial(p, filtroComercial)
+      ),
+    [projects, statusFilter, filtroProductor, nombresRegistrados, filtroComercial]
+  );
+
   const filteredProjects = useMemo(() => {
     let result = projects.filter((p) => {
       const matchesDeleted = showDeleted || !p.isDeleted;
@@ -1238,7 +1252,7 @@ const PanelDirectivo = () => {
           </TabsContent>
 
           <TabsContent value="dashboard" className="mt-4">
-            <DashboardStats projects={filteredProjects} rango={getDateRange()} />
+            <DashboardStats projects={filteredProjects} todos={proyectosSinFiltroDeFecha} rango={getDateRange()} />
           </TabsContent>
         </Tabs>
 

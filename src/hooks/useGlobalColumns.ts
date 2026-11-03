@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ColumnConfig } from "@/components/ColumnManagerDialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,12 +29,21 @@ function setPersistedCache(panelKey: string, cols: ColumnConfig[]) {
   } catch {}
 }
 
-export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[]) {
+export function useGlobalColumns(panelKey: string, defaultColumnsProp: ColumnConfig[]) {
+  // Las paginas arman `defaultColumns` dentro del render, asi que llega un
+  // arreglo nuevo en cada render. Antes ese arreglo estaba en las
+  // dependencias de fetchColumns y de la suscripcion en vivo: cada render
+  // volvia a consultar panel_column_configs, la respuesta hacia otro render, y
+  // asi sin parar. Fueron unos 16 millones de consultas y tumbaron la base el
+  // 3/11/2026. Ahora se guarda en una ref y los efectos dependen solo del panel
+  // y del usuario.
+  const defaultColumnsRef = useRef(defaultColumnsProp);
+  defaultColumnsRef.current = defaultColumnsProp;
   const { user } = useAuth();
   const { role, loading: roleLoading } = useUserRole();
   
   const cachedColumns = columnsCache.get(panelKey) || getPersistedCache(panelKey);
-  const initialColumns = cachedColumns || defaultColumns;
+  const initialColumns = cachedColumns || defaultColumnsProp;
 
   const [state, setState] = useState<GlobalColumnsState>({
     columns: initialColumns,
@@ -62,7 +71,7 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
         .from("panel_column_configs")
         .insert({
           panel_key: panelKey,
-          columns: defaultColumns as unknown as Json,
+          columns: defaultColumnsRef.current as unknown as Json,
           updated_by: user.id,
           updated_by_email: user.email,
         });
@@ -81,10 +90,12 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
       console.error("[useGlobalColumns] Unexpected init error:", err);
       return false;
     }
-  }, [panelKey, defaultColumns, user, isAdmin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panelKey, user?.id, isAdmin]);
 
   // Fetch columns from database
   const fetchColumns = useCallback(async () => {
+    const defaultColumns = defaultColumnsRef.current;
     try {
       const { data, error } = await supabase
         .from("panel_column_configs")
@@ -173,7 +184,8 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
       console.error("[useGlobalColumns] Unexpected error:", err);
       setStateAndCache({ columns: state.columns, loading: false, error: "Error inesperado" });
     }
-  }, [panelKey, defaultColumns, isAdmin, user, initializeConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panelKey, isAdmin, user?.id, initializeConfig]);
 
   // Initial fetch
   useEffect(() => {
@@ -198,7 +210,7 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
           logger.debug(`[useGlobalColumns] Realtime update for ${panelKey}:`, payload.eventType);
           
           if (payload.eventType === "DELETE") {
-            setStateAndCache({ columns: defaultColumns, loading: false, error: null });
+            setStateAndCache({ columns: defaultColumnsRef.current, loading: false, error: null });
           } else if (payload.new && (payload.new as any).columns) {
             const newColumns = (payload.new as any).columns as ColumnConfig[];
             setStateAndCache({ columns: newColumns, loading: false, error: null });
@@ -210,7 +222,8 @@ export function useGlobalColumns(panelKey: string, defaultColumns: ColumnConfig[
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [panelKey, defaultColumns]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panelKey]);
 
   // Save columns to database (admin only) - returns true on success, false on failure
   const setColumns = useCallback(async (newColumns: ColumnConfig[]): Promise<boolean> => {

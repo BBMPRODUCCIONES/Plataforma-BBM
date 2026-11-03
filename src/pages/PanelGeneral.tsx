@@ -18,6 +18,8 @@ import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { EventLink } from "@/components/EventLink";
 import { CostosEventoDialog } from "@/components/CostosEventoDialog";
+import { ListaSinCostos } from "@/components/ListaSinCostos";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { anclarPrimero } from "@/lib/columnasPanel";
@@ -197,6 +199,7 @@ const PanelGeneral = () => {
     };
   }, [eventosSinCostos, nombreDelUsuario, correoDelUsuario]);
   const [costosDeProyectoId, setCostosDeProyectoId] = useState<string | null>(null);
+  const [listaSinCostosAbierta, setListaSinCostosAbierta] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroProductor, setFiltroProductor] = useState("todos");
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
@@ -749,8 +752,11 @@ const PanelGeneral = () => {
             </div>
 
             {eventosSinCostos.length > 0 && (
-              <span
-                className="inline-flex items-center gap-1.5 rounded-md bg-destructive/10 px-2.5 py-1.5 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/40"
+              <Popover open={listaSinCostosAbierta} onOpenChange={setListaSinCostosAbierta}>
+              <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md bg-destructive/10 px-2.5 py-1.5 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/40 hover:bg-destructive/20 transition-colors cursor-pointer"
                 title={[
                   "Eventos ya ejecutados a los que les faltan los costos.",
                   "",
@@ -782,7 +788,19 @@ const PanelGeneral = () => {
                     ({resumenSinCostos.sinProductor} sin productor)
                   </span>
                 )}
-              </span>
+              </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[min(92vw,26rem)] p-3">
+                <ListaSinCostos
+                  eventos={eventosSinCostos}
+                  esMio={(p) => alertaParpadea(p, { nombreDelUsuario, correoDelUsuario })}
+                  onAbrirCostos={(id) => {
+                    setListaSinCostosAbierta(false);
+                    setCostosDeProyectoId(id);
+                  }}
+                />
+              </PopoverContent>
+              </Popover>
             )}
 
             <FiltroProductor

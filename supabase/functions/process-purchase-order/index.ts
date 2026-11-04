@@ -95,10 +95,14 @@ serve(async (req) => {
     
     console.log(`Processing file: ${fileName}, type: ${fileType}`);
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    // Antes usaba la pasarela de IA de Lovable (LOVABLE_API_KEY), que deja de
+    // existir al salir de Lovable. Ahora va directo a la API de Claude con la
+    // clave propia de BBM.
+    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY no esta configurada en los secretos de Supabase');
     }
+    const MODELO = Deno.env.get('ANTHROPIC_MODEL') || 'claude-sonnet-4-5';
 
     // Common prompt for extraction
     const extractionPrompt = `Analiza esta cotización, Orden de Compra o factura y extrae:
@@ -154,80 +158,73 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto:
 
 Si no encuentras ítems de inventario, devuelve "inventarioItems": []`;
 
-    // Prepare the message content based on file type
+    // El front manda imagenes y PDF como data URL ("data:<tipo>;base64,<datos>").
+    const separarDataUrl = (valor: string) => {
+      const m = valor.match(/^data:([^;]+);base64,(.*)$/s);
+      return m ? { tipo: m[1], datos: m[2] } : { tipo: fileType, datos: valor };
+    };
+
     let messageContent: any[];
-    
-    if (fileType.startsWith('image/') || fileType === 'application/pdf') {
-      // For images and PDFs, send as image with base64
+    if (fileType.startsWith('image/')) {
+      const { tipo, datos } = separarDataUrl(fileContent);
       messageContent = [
-        {
-          type: "text",
-          text: extractionPrompt
-        },
-        {
-          type: "image_url",
-          image_url: {
-            url: fileContent
-          }
-        }
+        { type: 'image', source: { type: 'base64', media_type: tipo, data: datos } },
+        { type: 'text', text: extractionPrompt },
+      ];
+    } else if (fileType === 'application/pdf') {
+      const { datos } = separarDataUrl(fileContent);
+      messageContent = [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: datos } },
+        { type: 'text', text: extractionPrompt },
       ];
     } else {
-      // For Excel or text content, send as text
+      // Excel o texto: llega como texto plano.
       messageContent = [
-        {
-          type: "text",
-          text: `${extractionPrompt}\n\nContenido del archivo (${fileName}):\n\n${fileContent}`
-        }
+        { type: 'text', text: `${extractionPrompt}\n\nContenido del archivo (${fileName}):\n\n${fileContent}` },
       ];
     }
 
-    console.log('Calling Lovable AI Gateway...');
-    
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    console.log(`Llamando a la API de Claude (${MODELO})...`);
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'user',
-            content: messageContent
-          }
-        ],
+        model: MODELO,
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: messageContent }],
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      
+      console.error('Error de la API de Claude:', response.status, errorText);
+
       if (response.status === 429) {
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
           success: false,
-          error: 'Límite de solicitudes excedido. Intenta de nuevo en unos minutos.' 
-        }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+          error: 'Límite de solicitudes excedido. Intenta de nuevo en unos minutos.'
+        }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ 
+      if (response.status === 401 || response.status === 403) {
+        return new Response(JSON.stringify({
           success: false,
-          error: 'Créditos insuficientes. Agrega créditos en Configuración.' 
-        }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+          error: 'La clave de la API de Claude no es válida. Revísala en los secretos de Supabase.'
+        }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-      
-      throw new Error(`AI Gateway error: ${response.status}`);
+
+      throw new Error(`Error de la API de Claude: ${response.status}`);
     }
 
     const data = await response.json();
-    const aiResponse = data.choices?.[0]?.message?.content;
+    const aiResponse = (data.content || [])
+      .filter((b: any) => b.type === 'text')
+      .map((b: any) => b.text)
+      .join('\n');
     
     console.log('AI Response:', aiResponse);
 

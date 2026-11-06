@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Smartphone, Download, Share, Plus, Check } from "lucide-react";
+import { eventoDeInstalacion, suscribirInstalacion } from "@/lib/instalarApp";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,14 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export const InstallPWAButton = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
+    () => eventoDeInstalacion() as BeforeInstallPromptEvent | null
+  );
+  // El aviso pudo llegar antes de montar este boton: lo guarda lib/instalarApp.
+  useEffect(
+    () => suscribirInstalacion(() => setDeferredPrompt(eventoDeInstalacion() as BeforeInstallPromptEvent | null)),
+    []
+  );
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isMobile, setIsMobile] = useState(false);

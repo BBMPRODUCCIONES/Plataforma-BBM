@@ -16,6 +16,7 @@ import {
   Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BotonInstalarApp } from "@/components/BotonInstalarApp";
 
 // Route config type
 interface RouteConfigItem {
@@ -94,6 +95,8 @@ export function MobileHeader() {
           {config.title}
         </span>
       </div>
+
+      <BotonInstalarApp />
 
       {/* La campana de notificaciones se quito por pedido: el contador vivia
           en 50 y ya nadie lo miraba. El aviso sigue llegando al celular por

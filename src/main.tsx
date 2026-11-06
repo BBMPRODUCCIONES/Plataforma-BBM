@@ -1,6 +1,8 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+// Se importa antes de montar React: el aviso de instalacion llega una sola vez.
+import "./lib/instalarApp";
 
 // Auto-recovery: detect stale SW cache serving incompatible JS/CSS
 let isRecovering = false;

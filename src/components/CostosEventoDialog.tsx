@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, Loader2, Receipt } from "lucide-react";
 import {
   Dialog,
@@ -26,6 +26,17 @@ import { toast } from "@/hooks/use-toast";
 import { ListaAdjuntos } from "@/components/ListaAdjuntos";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   lineaDeMarca,
   lineasReales,
@@ -91,14 +102,88 @@ export function CostosEventoDialog({
   const [guardando, setGuardando] = useState(false);
   const { user } = useAuth();
 
+  const [confirmarSalida, setConfirmarSalida] = useState(false);
+  // Lo que habia guardado al abrir, para saber si hay cambios sin guardar.
+  const [inicial, setInicial] = useState("");
+  const abiertoPara = useRef<string | null>(null);
+
   // Cada apertura parte de lo que hay guardado, no de lo que quedo en pantalla
   // la vez anterior. La marca de "sin costos de terceros" vive dentro del
   // mismo campo, asi que se separa aqui y no se dibuja como una linea.
+  //
+  // OJO: se carga UNA vez por apertura (o si cambia el evento), no cada vez
+  // que cambia el objeto `proyecto`. Antes dependia de `proyecto`, y como la
+  // lista de eventos se refresca sola (otro usuario edita algo, o aqui mismo
+  // se sube un soporte, que guarda el evento), el formulario se reiniciaba a
+  // mitad de camino y se borraban las lineas que la persona venia escribiendo.
+  // Despues daba "Guardar" y no quedaba nada: de ahi los "a veces no se guarda".
   useEffect(() => {
-    if (!open) return;
-    setLineas(lineasReales(proyecto?.costos));
-    setSinTerceros(marcadoSinTerceros(proyecto?.costos));
+    if (!open) {
+      abiertoPara.current = null;
+      return;
+    }
+    const id = proyecto?.id ?? null;
+    if (abiertoPara.current === id) return;
+    abiertoPara.current = id;
+    const l = lineasReales(proyecto?.costos);
+    const st = marcadoSinTerceros(proyecto?.costos);
+    setLineas(l);
+    setSinTerceros(st);
+    setInicial(JSON.stringify({ l, st }));
   }, [open, proyecto]);
+
+  const hayCambios =
+    !soloLectura && open && inicial !== "" && JSON.stringify({ l: lineas, st: sinTerceros }) !== inicial;
+
+  // Cerrar con cambios sin guardar pide confirmacion en vez de perderlos.
+  const pedirCierre = (abrir: boolean) => {
+    if (!abrir && hayCambios && !guardando) {
+      setConfirmarSalida(true);
+      return;
+    }
+    onOpenChange(abrir);
+  };
+
+  /**
+   * Guarda y COMPRUEBA en la base que quedo guardado.
+   *
+   * La funcion que guarda (updateProject del panel) no avisa si falla: muestra
+   * un aviso suelto y sigue. Por eso aqui se vuelve a leer el evento desde la
+   * base y se compara linea por linea. Solo si coincide se cierra la ventana y
+   * se confirma; si no, la ventana sigue abierta con lo escrito.
+   */
+  const guardarYComprobar = async (lista: CostoEvento[]) => {
+    if (!proyecto) return;
+    await onGuardar(lista);
+    const huella = (xs: CostoEvento[]) =>
+      JSON.stringify(
+        (xs || [])
+          .map((c) => [c.id, c.tipo, Number(c.valor) || 0, (c.concepto || "").trim()])
+          .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+      );
+    const { data, error } = await supabase
+      .from("projects")
+      .select("costos")
+      .eq("id", proyecto.id)
+      .single();
+    if (error) throw new Error("No se pudo comprobar en la base: " + error.message);
+    const enBase = ((data as { costos?: CostoEvento[] } | null)?.costos || []) as CostoEvento[];
+    if (huella(enBase) !== huella(lista)) {
+      throw new Error(
+        "La base no tiene los costos que escribiste. Revisa la conexión y vuelve a dar Guardar; no cierres la ventana."
+      );
+    }
+    const reales = lineasReales(enBase);
+    const suma = reales.reduce((s, c) => s + (Number(c.valor) || 0), 0);
+    toast({
+      title: "✓ Costos guardados",
+      description: marcadoSinTerceros(enBase)
+        ? `Quedó registrado que el evento no tuvo costos de terceros.`
+        : `${reales.length} línea${reales.length === 1 ? "" : "s"} · ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(suma)} confirmados en la base.`,
+    });
+    setInicial(JSON.stringify({ l: lineasReales(lista), st: marcadoSinTerceros(lista) }));
+    onOpenChange(false);
+  };
 
   // Con la casilla marcada el evento cuesta cero, haya o no lineas en
   // pantalla: lo que se va a guardar es la marca.
@@ -130,8 +215,7 @@ export function CostosEventoDialog({
     if (sinTerceros) {
       setGuardando(true);
       try {
-        await onGuardar([lineaDeMarca(user?.email)]);
-        onOpenChange(false);
+        await guardarYComprobar([lineaDeMarca(user?.email)]);
       } catch (error: unknown) {
         toast({
           title: "No se pudo guardar",
@@ -161,8 +245,7 @@ export function CostosEventoDialog({
 
     setGuardando(true);
     try {
-      await onGuardar(limpias.map((l) => ({ ...l, valor: Number(l.valor) || 0 })));
-      onOpenChange(false);
+      await guardarYComprobar(limpias.map((l) => ({ ...l, valor: Number(l.valor) || 0 })));
     } catch (error: unknown) {
       toast({
         title: "No se pudo guardar",
@@ -177,7 +260,8 @@ export function CostosEventoDialog({
   if (!proyecto) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={pedirCierre}>
       <DialogContent className="sm:max-w-2xl sm:max-h-[88vh] flex flex-col">
         <DialogHeader className="pr-10">
           <DialogTitle className="flex items-center gap-2 text-left text-base">
@@ -420,18 +504,42 @@ export function CostosEventoDialog({
         </div>
 
         <DialogFooter className="shrink-0 gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="h-11 w-full sm:h-10 sm:w-auto">
+          <Button variant="outline" onClick={() => pedirCierre(false)} className="h-11 w-full sm:h-10 sm:w-auto">
             {soloLectura ? "Cerrar" : "Cancelar"}
           </Button>
           {!soloLectura && (
             <Button onClick={guardar} disabled={guardando} className="h-11 w-full sm:h-10 sm:w-auto">
               {guardando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Guardar costos
+              {guardando ? "Guardando y comprobando…" : "Guardar costos"}
             </Button>
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={confirmarSalida} onOpenChange={setConfirmarSalida}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Tienes costos sin guardar</AlertDialogTitle>
+          <AlertDialogDescription>
+            Si cierras ahora se pierde lo que escribiste. ¿Quieres volver y darle "Guardar costos"?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Volver a los costos</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              setConfirmarSalida(false);
+              onOpenChange(false);
+            }}
+          >
+            Salir sin guardar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { BotonInstalarApp } from "@/components/BotonInstalarApp";
 import { AvisoFacturasPendientes } from "@/components/AvisoFacturasPendientes";
 import { AvisoCostosPendientes } from "@/components/AvisoCostosPendientes";
+import { AvisoCostosCerrados } from "@/components/AvisoCostosCerrados";
 
 // Route config type
 interface RouteConfigItem {
@@ -99,6 +100,7 @@ export function MobileHeader() {
         </span>
       </div>
 
+      <AvisoCostosCerrados compacto />
       <AvisoCostosPendientes compacto />
       <AvisoFacturasPendientes compacto />
       <BotonInstalarApp />

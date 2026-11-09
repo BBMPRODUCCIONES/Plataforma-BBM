@@ -7,6 +7,7 @@ import { MobileHeader } from "@/components/MobileHeader";
 import { NotificationPrompt } from "@/components/NotificationPrompt";
 import { AvisoFacturasPendientes } from "@/components/AvisoFacturasPendientes";
 import { AvisoCostosPendientes } from "@/components/AvisoCostosPendientes";
+import { AvisoCostosCerrados } from "@/components/AvisoCostosCerrados";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface LayoutProps {
@@ -53,6 +54,7 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <AvisoCostosCerrados />
               <AvisoCostosPendientes />
               <AvisoFacturasPendientes />
             </div>

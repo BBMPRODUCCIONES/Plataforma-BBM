@@ -79,6 +79,17 @@ function dbRowToProject(row: any): Project {
     // base esto llega undefined, y eso es lo que usa el Panel Directivo para
     // no dibujar la columna todavia. Ver COLUMNA_FACTURACION_LISTA alla.
     estadoFacturacion: row.estado_facturacion,
+    factura: row.factura_archivo
+      ? {
+          fecha: row.factura_fecha ?? null,
+          subtotal: row.factura_subtotal != null ? Number(row.factura_subtotal) : null,
+          iva: row.factura_iva != null ? Number(row.factura_iva) : null,
+          total: row.factura_total != null ? Number(row.factura_total) : null,
+          archivo: row.factura_archivo,
+          registradaPor: row.factura_registrada_por ?? null,
+          registradaEn: row.factura_registrada_en ?? null,
+        }
+      : null,
     administrativoResponsable: row.administrativo_responsable || "",
     ingresoTotal: Number(row.ingreso_total) || 0,
     ingresoBruto: Number(row.ingreso_bruto) || 0,
@@ -155,6 +166,16 @@ function projectToDbRow(project: Partial<Project>): Record<string, any> {
   if (project.horaDesmontajeFin !== undefined) row.hora_desmontaje_fin = project.horaDesmontajeFin;
   if (project.estado !== undefined) row.estado = project.estado;
   if (project.estadoFacturacion !== undefined) row.estado_facturacion = project.estadoFacturacion;
+  if (project.factura !== undefined) {
+    const f = project.factura;
+    row.factura_fecha = f?.fecha ?? null;
+    row.factura_subtotal = f?.subtotal ?? null;
+    row.factura_iva = f?.iva ?? null;
+    row.factura_total = f?.total ?? null;
+    row.factura_archivo = f?.archivo ?? null;
+    row.factura_registrada_por = f?.registradaPor ?? null;
+    row.factura_registrada_en = f?.registradaEn ?? null;
+  }
   if (project.administrativoResponsable !== undefined) row.administrativo_responsable = project.administrativoResponsable;
   if (project.ingresoTotal !== undefined) row.ingreso_total = project.ingresoTotal;
   if (project.ingresoBruto !== undefined) row.ingreso_bruto = project.ingresoBruto;

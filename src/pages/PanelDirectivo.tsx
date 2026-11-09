@@ -27,6 +27,7 @@ import { useDateRange } from "@/contexts/DateRangeContext";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
 import { acentoVisualDeEvento, estiloFilaVisual } from "@/lib/coloresProyecto";
 import { SelectorColorProyecto } from "@/components/SelectorColorProyecto";
+import { FacturaCelda } from "@/components/FacturaEvento";
 import { CostosEventoDialog } from "@/components/CostosEventoDialog";
 import { DetalleEventoDialog } from "@/components/DetalleEventoDialog";
 import { ProductorSelect } from "@/components/ProductorSelect";
@@ -573,7 +574,7 @@ const PanelDirectivo = () => {
         case "centroCostos":
           return (p: Project) => <span className="text-xs font-mono">{p.centroCostos || "—"}</span>;
         case "numFactura":
-          return (p: Project) => <span className="text-xs font-mono">{p.numFactura || "—"}</span>;
+          return (p: Project) => <FacturaCelda proyecto={p} soloLectura onGuardar={async () => {}} />;
         case "cliente":
           return (p: Project) => <span className="text-xs">{p.cliente || "—"}</span>;
         case "evento":
@@ -660,13 +661,12 @@ const PanelDirectivo = () => {
           />
         );
       case "numFactura":
+        // El numero de factura ya no se escribe: se sube la factura y se lee.
         return (p: Project) => (
-          <EditableCell
-            value={p.numFactura}
-            type="text"
-            onChange={(value) => updateProject(p.id, "numFactura", value)}
-            className="font-mono"
-            placeholder="Nº factura"
+          <FacturaCelda
+            proyecto={p}
+            soloLectura={!canEditDir}
+            onGuardar={(cambios) => updateProjectMultiple(p.id, cambios)}
           />
         );
       case "cliente":

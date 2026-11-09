@@ -15,6 +15,7 @@ import { AttachmentButton, AttachmentManager } from "@/components/AttachmentMana
 import { PurchaseOrderUpload } from "@/components/PurchaseOrderUpload";
 import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
+import { FacturaCelda } from "@/components/FacturaEvento";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { EmpleadoAutocomplete } from "@/components/EmpleadoAutocomplete";
@@ -823,14 +824,12 @@ const PanelOperaciones = () => {
             />
           );
         case "numFactura":
+          // El numero de factura ya no se escribe: se sube la factura y se lee.
           return (
-            <EditableCell
-              value={p.numFactura}
-              type="text"
-              onChange={(value) => updateProject(p.id, "numFactura", value)}
-              className="font-mono"
-              placeholder="Nº factura"
-              disabled={operativoReadOnly}
+            <FacturaCelda
+              proyecto={p}
+              soloLectura={operativoReadOnly}
+              onGuardar={(cambios) => updateProjectMultiple(p.id, cambios)}
             />
           );
         case "cliente":

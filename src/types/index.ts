@@ -22,6 +22,11 @@ export interface Project {
   estado: ProjectStatus;
   /** En que va el COBRO. Independiente de estado. Ver lib/facturacionEvento. */
   estadoFacturacion?: string;
+  /**
+   * La factura real del evento (PDF subido). Sin ella el evento NO cuenta en
+   * "ventas reales", aunque tenga numero de factura escrito.
+   */
+  factura?: FacturaEvento | null;
   // Panel Directivo fields
   administrativoResponsable?: string;
   ingresoTotal?: number;
@@ -99,6 +104,18 @@ export type ProjectStatus =
   | 'por_planear'
   | 'en_progreso'
   | 'ejecutado';
+
+export interface FacturaEvento {
+  /** Dia en que se facturo (YYYY-MM-DD). Es el que manda en ventas reales. */
+  fecha: string | null;
+  /** Valor antes de IVA: es la venta real. */
+  subtotal: number | null;
+  iva: number | null;
+  total: number | null;
+  archivo: Attachment | null;
+  registradaPor?: string | null;
+  registradaEn?: string | null;
+}
 
 export interface Attachment {
   id: string;

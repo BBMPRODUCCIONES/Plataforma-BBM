@@ -17,6 +17,7 @@ import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { EventLink } from "@/components/EventLink";
+import { FacturaCelda } from "@/components/FacturaEvento";
 import { CostosEventoDialog } from "@/components/CostosEventoDialog";
 import { ListaSinCostos } from "@/components/ListaSinCostos";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -378,15 +379,12 @@ const PanelGeneral = () => {
           />
         );
       case "numFactura":
-        return (p: Project) => generalReadOnly ? (
-          <span className="text-sm font-mono">{p.numFactura || "Sin factura"}</span>
-        ) : (
-          <EditableCell
-            value={p.numFactura}
-            type="text"
-            onChange={(value) => updateProject(p.id, "numFactura", value)}
-            className="font-mono"
-            placeholder="Nº factura"
+        // El numero de factura ya no se escribe: se sube la factura y se lee.
+        return (p: Project) => (
+          <FacturaCelda
+            proyecto={p}
+            soloLectura={generalReadOnly}
+            onGuardar={(cambios) => updateProjectMultiple(p.id, cambios)}
           />
         );
       case "cliente":

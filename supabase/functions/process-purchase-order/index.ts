@@ -31,6 +31,9 @@ const purchaseOrderSchema = z.object({
   fileName: z.string()
     .min(1, "Nombre del archivo es requerido")
     .max(255, "Nombre del archivo muy largo"),
+  // "factura": lee una factura de venta de BBM (numero, fecha, subtotal, IVA,
+  // total). Sin este campo se comporta como siempre (cotizacion / OC).
+  tipoDocumento: z.enum(['cotizacion', 'factura']).optional(),
 });
 
 serve(async (req) => {
@@ -91,7 +94,7 @@ serve(async (req) => {
       );
     }
 
-    const { fileContent, fileType, fileName } = validationResult.data;
+    const { fileContent, fileType, fileName, tipoDocumento } = validationResult.data;
     
     console.log(`Processing file: ${fileName}, type: ${fileType}`);
 
@@ -105,7 +108,30 @@ serve(async (req) => {
     const MODELO = Deno.env.get('ANTHROPIC_MODEL') || 'claude-sonnet-4-5';
 
     // Common prompt for extraction
-    const extractionPrompt = `Analiza esta cotización, Orden de Compra o factura y extrae:
+    const promptFactura = `Esta es una FACTURA DE VENTA emitida por BBM Producciones / Big Brand Moments (NIT 902.080.383-1) a un cliente.
+Extrae exactamente lo que dice la factura:
+
+- numeroFactura: el número o consecutivo de la factura tal como aparece (con prefijo si lo tiene, ej. "FE-123" o "BBM 45").
+- fechaFactura: la fecha de EXPEDICIÓN/EMISIÓN de la factura en formato YYYY-MM-DD (no la de vencimiento).
+- subtotal: valor antes de IVA (subtotal / base gravable / total bruto), solo número sin símbolos ni separadores.
+- iva: valor del IVA, solo número.
+- total: total a pagar con IVA, solo número.
+- cliente: razón social del cliente al que se le factura.
+
+Si un dato no aparece, devuelve null. No inventes.
+
+Responde ÚNICAMENTE con un JSON válido:
+{
+  "numeroFactura": "<texto o null>",
+  "fechaFactura": "<YYYY-MM-DD o null>",
+  "subtotal": <número o null>,
+  "iva": <número o null>,
+  "total": <número o null>,
+  "cliente": "<texto o null>",
+  "confianza": "<alta, media, baja>"
+}`;
+
+    const extractionPromptCotizacion = `Analiza esta cotización, Orden de Compra o factura y extrae:
 
 ## 1. VALORES MONETARIOS:
 
@@ -157,6 +183,8 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto:
 }
 
 Si no encuentras ítems de inventario, devuelve "inventarioItems": []`;
+
+    const extractionPrompt = tipoDocumento === 'factura' ? promptFactura : extractionPromptCotizacion;
 
     // El front manda imagenes y PDF como data URL ("data:<tipo>;base64,<datos>").
     const separarDataUrl = (valor: string) => {

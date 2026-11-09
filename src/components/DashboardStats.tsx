@@ -137,6 +137,26 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
   );
   const ventas = sumarMontos(delPeriodo);
 
+  // ---- Ventas REALES: solo con la factura subida ---------------------------------
+  // Cuenta el subtotal de la factura (sin IVA) en el dia en que se facturo, no
+  // lo cotizado ni el dia de ejecucion. Un numero de factura escrito sin el PDF
+  // no cuenta: asi se decidio para que la cifra sea verificable.
+  const fechaFactura = (p: Project) => aFecha(p.factura?.fecha ?? null);
+  const esFacturaReal = (p: Project) => Boolean(p.factura?.archivo) && (p.factura?.subtotal ?? 0) > 0;
+  const realesDelPeriodo = useMemo(
+    () =>
+      universo.filter((p) => {
+        if (!esFacturaReal(p)) return false;
+        const f = fechaFactura(p);
+        if (!f) return false;
+        return !rango || (f >= rango.start && f <= endOfDay(rango.end));
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [universo, rango]
+  );
+  const ventasReales = realesDelPeriodo.reduce((s, p) => s + (p.factura?.subtotal || 0), 0);
+  const ivaReal = realesDelPeriodo.reduce((s, p) => s + (p.factura?.iva || 0), 0);
+
   const periodoPrevio = useMemo(() => {
     if (!rango) return null;
     const r = periodoAnterior(rango);
@@ -251,6 +271,12 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
       critico: false,
     },
     {
+      icono: FileWarning,
+      texto: "Ejecutados sin factura subida (no cuentan como venta real)",
+      n: ejecutados.filter((p) => !p.factura?.archivo).length,
+      critico: false,
+    },
+    {
       icono: UserX,
       texto: "Sin productor asignado",
       n: delPeriodo.filter((p) => !p.productor || !p.productor.trim()).length,
@@ -290,7 +316,7 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
     const mesActual = format(hoy, "yyyy-MM");
     const cajones = new Map<
       string,
-      { clave: string; mes: string; venta: number; eventos: number; futuro: boolean }
+      { clave: string; mes: string; venta: number; real: number; eventos: number; facturas: number; futuro: boolean }
     >();
     for (let i = -5; i <= 2; i++) {
       const d = startOfMonth(addMonths(hoy, i));
@@ -299,7 +325,9 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
         clave,
         mes: format(d, "LLL yy", { locale: es }),
         venta: 0,
+        real: 0,
         eventos: 0,
+        facturas: 0,
         futuro: clave > mesActual,
       });
     }
@@ -310,6 +338,15 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
       if (!c) continue;
       c.venta += montosDelEvento(p).base;
       c.eventos += 1;
+    }
+    for (const p of universo) {
+      if (!esFacturaReal(p)) continue;
+      const f = fechaFactura(p);
+      if (!f) continue;
+      const c = cajones.get(format(f, "yyyy-MM"));
+      if (!c) continue;
+      c.real += p.factura?.subtotal || 0;
+      c.facturas += 1;
     }
     return [...cajones.values()];
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -353,10 +390,10 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
     <div className="space-y-4">
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Kpi titulo="Ventas del periodo" icono={DollarSign}>
+        <Kpi titulo="Ventas estimadas" icono={DollarSign}>
           <div className="text-2xl font-bold">{pesos(ventas.base)}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            Sin IVA · {pesos(ventas.total)} con IVA
+            Cotizado sin IVA, por fecha de ejecución · {pesos(ventas.total)} con IVA
           </p>
           {variacion !== null && (
             <p
@@ -366,6 +403,19 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
             >
               {variacion >= 0 ? "▲" : "▼"} {Math.abs(variacion).toFixed(0)}% vs periodo anterior (
               {pesosCortos(anterior ?? 0)})
+            </p>
+          )}
+        </Kpi>
+
+        <Kpi titulo="Ventas reales (facturadas)" icono={Receipt}>
+          <div className="text-2xl font-bold text-emerald-400">{pesos(ventasReales)}</div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Subtotal de {realesDelPeriodo.length} factura{realesDelPeriodo.length === 1 ? "" : "s"} subida
+            {realesDelPeriodo.length === 1 ? "" : "s"}, por fecha de factura · IVA {pesos(ivaReal)}
+          </p>
+          {ventas.base > 0 && (
+            <p className="text-xs mt-1 text-muted-foreground">
+              {((ventasReales / ventas.base) * 100).toFixed(0)}% de lo estimado del periodo
             </p>
           )}
         </Kpi>
@@ -461,9 +511,10 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="bg-card border-border lg:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Ventas sin IVA por mes de ejecución</CardTitle>
+            <CardTitle className="text-sm font-semibold">Ventas estimadas vs. reales, sin IVA</CardTitle>
             <p className="text-xs text-muted-foreground">
-              Últimos 6 meses y los 2 que vienen (más claros: lo ya agendado, puede crecer)
+              <span className="inline-block h-2 w-2 rounded-full bg-primary mr-1" />Estimada: cotizado, por mes de ejecución ·{" "}
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 mr-1" />Real: facturas subidas, por mes de factura
             </p>
           </CardHeader>
           <CardContent>
@@ -490,10 +541,11 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
                     borderRadius: "8px",
                   }}
                   labelStyle={{ color: "hsl(var(--foreground))" }}
-                  formatter={(v: number, _n, item) => [
-                    `${pesos(v)} · ${item.payload.eventos} eventos`,
-                    "Venta sin IVA",
-                  ]}
+                  formatter={(v: number, n, item) =>
+                    n === "real"
+                      ? [`${pesos(v)} · ${item.payload.facturas} facturas`, "Real (facturado)"]
+                      : [`${pesos(v)} · ${item.payload.eventos} eventos`, "Estimada (cotizado)"]
+                  }
                 />
                 <Bar dataKey="venta" radius={[4, 4, 0, 0]}>
                   {porMes.map((m) => (
@@ -504,6 +556,7 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
                     />
                   ))}
                 </Bar>
+                <Bar dataKey="real" fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

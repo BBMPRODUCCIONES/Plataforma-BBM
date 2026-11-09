@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { AlertTriangle, ExternalLink, FileCheck2, Loader2, Receipt, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, Ban, ExternalLink, FileCheck2, Loader2, Receipt, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Attachment, FacturaEvento as Factura, Project } from "@/types";
 import { cn } from "@/lib/utils";
+import { puedeGestionarFactura } from "@/lib/permisosFactura";
 
 /**
  * Celda "# Factura" de las tablas.
@@ -25,6 +26,10 @@ import { cn } from "@/lib/utils";
  * la persona revisa y confirma. Solo los eventos con factura subida cuentan en
  * "ventas reales", con el subtotal y en la fecha de la factura. Lo cotizado
  * sigue siendo la venta estimada.
+ *
+ * Solo las personas de lib/permisosFactura pueden subirla o marcar el evento
+ * como "No se factura" (clientes a los que no se les factura). Los demas la
+ * ven en solo lectura; la base tambien lo impide.
  */
 const BUCKET = "project-attachments";
 
@@ -54,13 +59,38 @@ interface Props {
 }
 
 export function FacturaCelda({ proyecto, soloLectura = false, onGuardar }: Props) {
+  const { user } = useAuth();
   const [abierto, setAbierto] = useState(false);
   const f = proyecto.factura;
   const conPdf = Boolean(f?.archivo);
   const num = proyecto.numFactura?.trim();
+  const lectura = soloLectura || !puedeGestionarFactura(user?.email);
+  const noSeFactura = !conPdf && proyecto.estadoFacturacion === "no_se_factura";
 
-  if (soloLectura && !num && !conPdf) {
+  if (noSeFactura && lectura) {
+    return <span className="text-xs text-slate-400">No se factura</span>;
+  }
+  if (lectura && !num && !conPdf) {
     return <span className="text-xs text-muted-foreground">Sin factura</span>;
+  }
+
+  if (noSeFactura) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setAbierto(true)}
+          title="Marcado: a este cliente no se le factura. No cuenta en ventas reales."
+          className="inline-flex max-w-full items-center gap-1 rounded px-1.5 py-0.5 text-xs text-slate-400 transition-colors hover:bg-slate-500/10"
+        >
+          <Ban className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">No se factura</span>
+        </button>
+        {abierto && (
+          <FacturaDialog proyecto={proyecto} soloLectura={false} onGuardar={onGuardar} onClose={() => setAbierto(false)} />
+        )}
+      </>
+    );
   }
 
   return (
@@ -89,12 +119,12 @@ export function FacturaCelda({ proyecto, soloLectura = false, onGuardar }: Props
         ) : (
           <Upload className="h-3.5 w-3.5 shrink-0" />
         )}
-        <span className="truncate">{num || (soloLectura ? "Sin factura" : "Subir")}</span>
+        <span className="truncate">{num || (lectura ? "Sin factura" : "Subir")}</span>
       </button>
       {abierto && (
         <FacturaDialog
           proyecto={proyecto}
-          soloLectura={soloLectura}
+          soloLectura={lectura}
           onGuardar={onGuardar}
           onClose={() => setAbierto(false)}
         />
@@ -103,7 +133,7 @@ export function FacturaCelda({ proyecto, soloLectura = false, onGuardar }: Props
   );
 }
 
-function FacturaDialog({
+export function FacturaDialog({
   proyecto,
   soloLectura,
   onGuardar,
@@ -111,7 +141,8 @@ function FacturaDialog({
 }: Props & { onClose: () => void }) {
   const { user } = useAuth();
   const actual = proyecto.factura;
-  const [editando, setEditando] = useState(!actual?.archivo && !soloLectura);
+  const marcadoNoSeFactura = !actual?.archivo && proyecto.estadoFacturacion === "no_se_factura";
+  const [editando, setEditando] = useState(!actual?.archivo && !soloLectura && !marcadoNoSeFactura);
   const [archivo, setArchivo] = useState<Attachment | null>(null);
   const [leyendo, setLeyendo] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -207,7 +238,7 @@ function FacturaDialog({
     };
     setGuardando(true);
     try {
-      await onGuardar({ numFactura: numero.trim(), factura });
+      await onGuardar({ numFactura: numero.trim(), factura, estadoFacturacion: "facturado" });
       // Se comprueba en la base, igual que los costos: el guardado del panel
       // no avisa cuando falla.
       const { data, error } = await supabase
@@ -241,9 +272,37 @@ function FacturaDialog({
     if (!window.confirm("¿Quitar la factura de este evento? Dejará de contar en ventas reales.")) return;
     setGuardando(true);
     try {
-      await onGuardar({ factura: null });
+      await onGuardar({ factura: null, estadoFacturacion: "por_facturar" });
       toast({ title: "Factura quitada" });
       onClose();
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  /** Marca o desmarca "No se factura" y comprueba en la base que quedo. */
+  const cambiarNoSeFactura = async (marcar: boolean) => {
+    const nuevo = marcar ? "no_se_factura" : "por_facturar";
+    setGuardando(true);
+    try {
+      await onGuardar({ estadoFacturacion: nuevo });
+      const { data, error } = await supabase
+        .from("projects")
+        .select("estado_facturacion")
+        .eq("id", proyecto.id)
+        .single();
+      if (error || (data as { estado_facturacion?: string } | null)?.estado_facturacion !== nuevo) {
+        throw new Error("La base no guardó el cambio. Revisa la conexión y vuelve a intentarlo.");
+      }
+      toast({
+        title: marcar ? "✓ Marcado: no se factura" : "✓ Vuelve a estar pendiente de factura",
+        description: marcar
+          ? "Sale de la lista de facturas pendientes y no cuenta en ventas reales."
+          : "Ya se puede subir la factura.",
+      });
+      onClose();
+    } catch (e) {
+      toast({ title: "No se guardó", description: e instanceof Error ? e.message : "Intenta de nuevo", variant: "destructive" });
     } finally {
       setGuardando(false);
     }
@@ -286,9 +345,27 @@ function FacturaDialog({
               </div>
             )}
           </div>
+        ) : marcadoNoSeFactura && !editando && !soloLectura ? (
+          <div className="space-y-3 text-sm">
+            <p className="rounded-md bg-slate-500/10 p-3 text-slate-500">
+              Marcado como <strong>No se factura</strong>: a este cliente no se le factura. No
+              cuenta en ventas reales ni aparece como factura pendiente.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setEditando(true)} disabled={guardando}>
+                <Upload className="mr-1 h-4 w-4" /> Subir factura
+              </Button>
+              <Button variant="ghost" onClick={() => cambiarNoSeFactura(false)} disabled={guardando}>
+                {guardando && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                Quitar marca
+              </Button>
+            </div>
+          </div>
         ) : soloLectura ? (
           <p className="text-sm text-muted-foreground">
-            {proyecto.numFactura
+            {proyecto.estadoFacturacion === "no_se_factura" && !actual?.archivo
+              ? "A este cliente no se le factura."
+              : proyecto.numFactura
               ? `Número ${proyecto.numFactura}, pero sin la factura subida: no cuenta en ventas reales.`
               : "Este evento todavía no tiene factura."}
           </p>
@@ -332,6 +409,16 @@ function FacturaDialog({
               <Campo label="IVA" value={iva} onChange={setIva} numerico />
               <Campo label="Total" value={total} onChange={setTotal} numerico />
             </div>
+            {!archivo && proyecto.estadoFacturacion !== "no_se_factura" && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                onClick={() => cambiarNoSeFactura(true)}
+                disabled={guardando || leyendo}
+              >
+                <Ban className="h-3.5 w-3.5" /> Este evento no se factura
+              </button>
+            )}
           </div>
         )}
 

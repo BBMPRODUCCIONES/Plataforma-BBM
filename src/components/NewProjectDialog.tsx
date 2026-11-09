@@ -400,15 +400,6 @@ export function NewProjectDialog({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="numFactura"># Factura</Label>
-              <Input
-                id="numFactura"
-                placeholder="Ej: C-7014"
-                value={formData.numFactura || ""}
-                onChange={(e) => setFormData({ ...formData, numFactura: e.target.value })}
-              />
-            </div>
           </div>
     </>
   );

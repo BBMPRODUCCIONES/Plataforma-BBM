@@ -60,6 +60,7 @@ import { ESTADOS } from "@/lib/estadosEvento";
 import { lineasReales, marcadoSinTerceros, totalDeCostos } from "@/lib/costosEvento";
 import { FiltroComercial, pasaFiltroDeComercial } from "@/components/FiltroComercial";
 import { FacturacionSelect } from "@/components/FacturacionSelect";
+import { puedeGestionarFactura } from "@/lib/permisosFactura";
 
 interface SmartSuggestion {
   type: string;
@@ -619,7 +620,7 @@ const PanelDirectivo = () => {
             <FacturacionSelect
               value={p.estadoFacturacion}
               onChange={(v) => updateProject(p.id, "estadoFacturacion", v)}
-              disabled={!canEditDir}
+              disabled={!canEditDir || !puedeGestionarFactura(user?.email)}
             />
           );
         case "ingresoBruto":

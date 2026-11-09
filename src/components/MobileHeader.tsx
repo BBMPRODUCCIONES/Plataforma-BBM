@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BotonInstalarApp } from "@/components/BotonInstalarApp";
+import { AvisoFacturasPendientes } from "@/components/AvisoFacturasPendientes";
 
 // Route config type
 interface RouteConfigItem {
@@ -96,6 +97,7 @@ export function MobileHeader() {
         </span>
       </div>
 
+      <AvisoFacturasPendientes compacto />
       <BotonInstalarApp />
 
       {/* La campana de notificaciones se quito por pedido: el contador vivia

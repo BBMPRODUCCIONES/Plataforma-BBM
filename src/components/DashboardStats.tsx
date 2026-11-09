@@ -156,6 +156,12 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
   );
   const ventasReales = realesDelPeriodo.reduce((s, p) => s + (p.factura?.subtotal || 0), 0);
   const ivaReal = realesDelPeriodo.reduce((s, p) => s + (p.factura?.iva || 0), 0);
+  // Clientes a los que no se les factura: son venta, pero no hay factura que
+  // la respalde. Se muestran aparte y NO se suman a las ventas reales.
+  const sinFacturaDelPeriodo = delPeriodo.filter(
+    (p) => !p.factura?.archivo && normalizarFacturacion(p.estadoFacturacion) === "no_se_factura"
+  );
+  const ventasSinFactura = sumarMontos(sinFacturaDelPeriodo).base;
 
   const periodoPrevio = useMemo(() => {
     if (!rango) return null;
@@ -273,7 +279,9 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
     {
       icono: FileWarning,
       texto: "Ejecutados sin factura subida (no cuentan como venta real)",
-      n: ejecutados.filter((p) => !p.factura?.archivo).length,
+      n: ejecutados.filter(
+        (p) => !p.factura?.archivo && normalizarFacturacion(p.estadoFacturacion) !== "no_se_factura"
+      ).length,
       critico: false,
     },
     {
@@ -416,6 +424,12 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
           {ventas.base > 0 && (
             <p className="text-xs mt-1 text-muted-foreground">
               {((ventasReales / ventas.base) * 100).toFixed(0)}% de lo estimado del periodo
+            </p>
+          )}
+          {sinFacturaDelPeriodo.length > 0 && (
+            <p className="text-xs mt-1 text-slate-400">
+              Aparte: {pesos(ventasSinFactura)} de {sinFacturaDelPeriodo.length} evento
+              {sinFacturaDelPeriodo.length === 1 ? "" : "s"} que no se facturan
             </p>
           )}
         </Kpi>

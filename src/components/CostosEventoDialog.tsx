@@ -119,6 +119,7 @@ export function CostosEventoDialog({
   const bloqueado = Boolean(cierre) && !puedeVerificar;
   const soloLectura = soloLecturaProp || bloqueado;
   const [reabriendo, setReabriendo] = useState(false);
+  const [confirmarCierre, setConfirmarCierre] = useState(false);
 
   const [confirmarSalida, setConfirmarSalida] = useState(false);
   // Lo que habia guardado al abrir, para saber si hay cambios sin guardar.
@@ -173,7 +174,7 @@ export function CostosEventoDialog({
    * base y se compara linea por linea. Solo si coincide se cierra la ventana y
    * se confirma; si no, la ventana sigue abierta con lo escrito.
    */
-  const guardarYComprobar = async (lista: CostoEvento[]) => {
+  const guardarYComprobar = async (lista: CostoEvento[], cerrar = false) => {
     if (!proyecto) return;
     await onGuardar(lista);
     const huella = (xs: CostoEvento[]) =>
@@ -197,12 +198,17 @@ export function CostosEventoDialog({
     const reales = lineasReales(enBase);
     const suma = reales.reduce((s, c) => s + (Number(c.valor) || 0), 0);
 
-    // Checklist completo -> se cierran. Si quien verifica quita algun check,
-    // se reabren.
+    // Los costos se cierran SOLO con el boton "Cerrar costos" (cerrar=true) y
+    // con el checklist completo. Si quien verifica quita algun check y
+    // guarda, se reabren solos: unos costos cerrados sin verificar no tienen
+    // sentido.
     let avisoCierre = "";
     if (puedeVerificar) {
       const completo = enBase.length > 0 && enBase.every(lineaVerificada);
-      if (completo && !cierre) {
+      if (cerrar && !completo) {
+        throw new Error("Para cerrar, todos los costos deben tener su check de verificación.");
+      }
+      if (cerrar && completo && !cierre) {
         await updateProjectMultiple(proyecto.id, {
           costosVerificacion: { por: user?.email ?? "", en: new Date().toISOString(), huella: "" },
         });
@@ -247,13 +253,13 @@ export function CostosEventoDialog({
   const cambiar = (id: string, cambios: Partial<CostoEvento>) =>
     setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, ...cambios } : l)));
 
-  const guardar = async () => {
+  const guardar = async (cerrar = false) => {
     // Declarar que no hubo costos de terceros y a la vez cargar costos es
     // contradictorio. Manda lo declarado: se guarda solo la marca.
     if (sinTerceros) {
       setGuardando(true);
       try {
-        await guardarYComprobar([marca ?? lineaDeMarca(user?.email)]);
+        await guardarYComprobar([marca ?? lineaDeMarca(user?.email)], cerrar);
       } catch (error: unknown) {
         toast({
           title: "No se pudo guardar",
@@ -283,7 +289,7 @@ export function CostosEventoDialog({
 
     setGuardando(true);
     try {
-      await guardarYComprobar(limpias.map((l) => ({ ...l, valor: Number(l.valor) || 0 })));
+      await guardarYComprobar(limpias.map((l) => ({ ...l, valor: Number(l.valor) || 0 })), cerrar);
     } catch (error: unknown) {
       toast({
         title: "No se pudo guardar",
@@ -402,10 +408,10 @@ export function CostosEventoDialog({
                   ? cierre
                     ? "Todos los costos están verificados"
                     : puedeVerificar
-                      ? "Checklist completo: al dar Guardar los costos quedan cerrados"
+                      ? "Checklist completo: ya puedes dar \"Cerrar costos\" abajo"
                       : "Todos los costos están verificados"
                   : `${hechas} de ${lineasVisibles.length} verificado${lineasVisibles.length === 1 ? "" : "s"}` +
-                    (puedeVerificar ? " · al completar el checklist y guardar, se cierran" : "")}
+                    (puedeVerificar ? " · cuando estén todos, se habilita \"Cerrar costos\"" : "")}
               </span>
               {puedeVerificar && hechas < lineasVisibles.length && (
                 <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={verificarTodas}>
@@ -629,14 +635,52 @@ export function CostosEventoDialog({
             {soloLectura ? "Cerrar" : "Cancelar"}
           </Button>
           {!soloLectura && (
-            <Button onClick={guardar} disabled={guardando} className="h-11 w-full sm:h-10 sm:w-auto">
+            <Button onClick={() => guardar()} disabled={guardando} className="h-11 w-full sm:h-10 sm:w-auto">
               {guardando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {guardando ? "Guardando y comprobando…" : "Guardar costos"}
+            </Button>
+          )}
+          {/* Cierre de costos: solo quien verifica (auxbbm@ y Bayron), con
+              todas las lineas verificadas. Despues de cerrar nadie mas puede
+              cargar ni cambiar costos en este evento. */}
+          {puedeVerificar && !cierre && !soloLectura && lineasVisibles.length > 0 && (
+            <Button
+              onClick={() => setConfirmarCierre(true)}
+              disabled={guardando || hechas < lineasVisibles.length}
+              title={hechas < lineasVisibles.length ? "Primero verifica todos los costos" : undefined}
+              className="h-11 w-full gap-2 bg-emerald-600 text-white hover:bg-emerald-700 sm:h-10 sm:w-auto"
+            >
+              <Lock className="h-4 w-4" />
+              Cerrar costos
             </Button>
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={confirmarCierre} onOpenChange={setConfirmarCierre}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Cerrar los costos de este evento?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Se guardan los costos tal como están y quedan cerrados: nadie más podrá agregar,
+            cambiar ni borrar costos ni soportes en este evento. Solo tú puedes reabrirlos.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Volver</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-emerald-600 text-white hover:bg-emerald-700"
+            onClick={() => {
+              setConfirmarCierre(false);
+              void guardar(true);
+            }}
+          >
+            Sí, cerrar costos
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
     <AlertDialog open={confirmarSalida} onOpenChange={setConfirmarSalida}>
       <AlertDialogContent>

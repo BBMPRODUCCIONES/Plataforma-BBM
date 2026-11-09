@@ -44,6 +44,7 @@ const routeConfig: Record<string, RouteConfigItem> = {
   "/calendar": { title: "Calendario", icon: Calendar },
   "/panel-reportes": { title: "Reportes", icon: FileBarChart },
   "/panel-ventas": { title: "Ventas", icon: TrendingUp },
+  "/exportar-costos": { title: "Exportar costos", icon: FileBarChart },
   "/usuarios": { title: "Usuarios", icon: UserPlus, primaryAction: { icon: Plus, label: "Invitar" } },
   "/clientes": { title: "Clientes", icon: Building2, primaryAction: { icon: Plus, label: "Nuevo" } },
   "/empleados": { title: "Empleados", icon: Users, primaryAction: { icon: Plus, label: "Nuevo" } },

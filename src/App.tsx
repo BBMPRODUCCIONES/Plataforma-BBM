@@ -32,6 +32,7 @@ import InstalarApp from "./pages/InstalarApp";
 
 import PanelReportes from "./pages/PanelReportes";
 import PanelVentas from "./pages/PanelVentas";
+import ExportarCostos from "./pages/ExportarCostos";
 
 const queryClient = new QueryClient();
 
@@ -91,6 +92,13 @@ const App = () => (
                   <Route path="/panel-ventas" element={
                     <ProtectedRoute requiredPanel="directivo">
                       <PanelVentas />
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Exportar costos: la pagina misma y la base revisan el correo */}
+                  <Route path="/exportar-costos" element={
+                    <ProtectedRoute>
+                      <ExportarCostos />
                     </ProtectedRoute>
                   } />
 

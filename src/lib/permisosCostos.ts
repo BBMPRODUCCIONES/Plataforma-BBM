@@ -59,3 +59,19 @@ export function faltaCentroCostos(p: Project): boolean {
   if (!inicio || inicio < CENTRO_COSTOS_SE_EXIGE_DESDE) return false;
   return !(p.centroCostos || "").trim();
 }
+
+/**
+ * Quien puede descargar la informacion de costos (pantalla "Exportar
+ * costos"). La misma lista esta en la base (`puede_exportar_costos`), que es
+ * la que de verdad lo impide.
+ */
+const EXPORTADORES = [
+  RESPONSABLE_COSTOS,
+  "abraham.varela@bbmproducciones.com.co",
+  "gerencia.administrativa@bbmproducciones.com.co",
+  "contabilidadbbm@gmail.com",
+  "bayron.bocanegra@bbmproducciones.com.co",
+  "administrativo@bbmproducciones.com.co",
+];
+
+export const puedeExportarCostos = (email?: string | null) => EXPORTADORES.includes(norm(email));

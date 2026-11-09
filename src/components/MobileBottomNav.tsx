@@ -1,8 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, Grid3X3, Wrench, Users, MoreHorizontal, X, Calendar, Settings, LogOut, FileBarChart, TrendingUp, LayoutGrid, Construction, Boxes } from "lucide-react";
+import { Briefcase, Grid3X3, Wrench, Users, MoreHorizontal, X, Calendar, Settings, LogOut, FileBarChart, TrendingUp, LayoutGrid, Construction, Boxes, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
+import { puedeExportarCostos } from "@/lib/permisosCostos";
 import { useState } from "react";
 import {
   Sheet,
@@ -27,6 +28,7 @@ const moreNavItems = [
   // Reportes salio del menu (ver AppSidebar.tsx); en su lugar va Ventas.
   // { title: "Reportes", url: "/panel-reportes", icon: FileBarChart, panel: "reportes", adminOnly: true },
   { title: "Ventas por comercial", url: "/panel-ventas", icon: TrendingUp, panel: "directivo" },
+  { title: "Exportar costos", url: "/exportar-costos", icon: FileSpreadsheet, soloExportadores: true },
   { title: "Bodega", url: "/panel-bodega", icon: Boxes, panel: "bodega" },
   // Archivo suelto, no pantalla del PLANNER: se abre en pestana propia para
   // que use toda la ventana.
@@ -42,7 +44,7 @@ export function MobileBottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { canAccessPanel, canEditStructure, role } = useUserRole();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
 
   const currentPath = location.pathname;
@@ -74,6 +76,7 @@ export function MobileBottomNav() {
   const visibleMainItems = mainNavItems.filter(puedeVer);
   const visibleMoreItems = moreNavItems.filter(item => {
     if (item.adminOnly && !canEditStructure()) return false;
+    if (item.soloExportadores && !puedeExportarCostos(user?.email)) return false;
     return puedeVer(item);
   });
 

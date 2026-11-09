@@ -17,12 +17,14 @@ import {
   Construction,
   Boxes,
   ExternalLink,
+  FileSpreadsheet,
 } from "lucide-react";
 import bbmLogo from "@/assets/bbm-logo.png";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
+import { puedeExportarCostos } from "@/lib/permisosCostos";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -56,6 +58,8 @@ const mainNavItems = [
   { title: "Ventas por comercial", url: "/panel-ventas", icon: TrendingUp, panel: "directivo" },
   { title: "Bodega", url: "/panel-bodega", icon: Boxes, panel: "bodega" },
   { title: "Proveedores", url: "/proveedores", icon: Users, panel: "proveedores" },
+  // Solo para las personas que pueden descargar costos (lib/permisosCostos).
+  { title: "Exportar costos", url: "/exportar-costos", icon: FileSpreadsheet, soloExportadores: true },
 ];
 
 const adminNavItems = [
@@ -79,7 +83,7 @@ function SidebarSkeleton() {
 
 export function AppSidebar() {
   const { canAccessPanel, canEditStructure, canAccessAdminPage, role, roleLoading } = useUserRole();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -123,6 +127,7 @@ export function AppSidebar() {
                   {mainNavItems.map((item) => {
                     // Check admin-only items first
                     if (item.adminOnly && !canEditStructure()) return null;
+                    if (item.soloExportadores && !puedeExportarCostos(user?.email)) return null;
                     
                     // Un item sin "panel" es una herramienta abierta a todos
                     // (Plano LED): no hay permiso que consultar.

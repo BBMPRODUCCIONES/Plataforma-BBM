@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2, Loader2, Receipt, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Loader2, Receipt, ShieldCheck, AlertTriangle, Lock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { puedeVerificarCostos } from "@/lib/permisosCostos";
+import { useProjects } from "@/contexts/ProjectsContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,7 +101,7 @@ export function CostosEventoDialog({
   onOpenChange,
   onGuardar,
   onGuardarAdjuntos,
-  soloLectura = false,
+  soloLectura: soloLecturaProp = false,
 }: CostosEventoDialogProps) {
   const [lineas, setLineas] = useState<CostoEvento[]>([]);
   const [sinTerceros, setSinTerceros] = useState(false);
@@ -109,7 +110,15 @@ export function CostosEventoDialog({
   // (con su check) en vez de crear una nueva en cada guardado.
   const [marca, setMarca] = useState<CostoEvento | null>(null);
   const { user } = useAuth();
+  const { updateProjectMultiple } = useProjects();
   const puedeVerificar = puedeVerificarCostos(user?.email);
+  // Cierre de costos: cuando auxbbm@ termina el checklist (todas las lineas
+  // con check) los costos quedan cerrados. Desde ahi nadie mas los puede
+  // tocar; la base tambien lo impide. Solo quien verifica puede reabrirlos.
+  const cierre = proyecto?.costosVerificacion?.en ? proyecto.costosVerificacion : null;
+  const bloqueado = Boolean(cierre) && !puedeVerificar;
+  const soloLectura = soloLecturaProp || bloqueado;
+  const [reabriendo, setReabriendo] = useState(false);
 
   const [confirmarSalida, setConfirmarSalida] = useState(false);
   // Lo que habia guardado al abrir, para saber si hay cambios sin guardar.
@@ -187,11 +196,28 @@ export function CostosEventoDialog({
     }
     const reales = lineasReales(enBase);
     const suma = reales.reduce((s, c) => s + (Number(c.valor) || 0), 0);
+
+    // Checklist completo -> se cierran. Si quien verifica quita algun check,
+    // se reabren.
+    let avisoCierre = "";
+    if (puedeVerificar) {
+      const completo = enBase.length > 0 && enBase.every(lineaVerificada);
+      if (completo && !cierre) {
+        await updateProjectMultiple(proyecto.id, {
+          costosVerificacion: { por: user?.email ?? "", en: new Date().toISOString(), huella: "" },
+        });
+        avisoCierre = " Checklist completo: costos cerrados, nadie más puede modificarlos.";
+      } else if (!completo && cierre) {
+        await updateProjectMultiple(proyecto.id, { costosVerificacion: null });
+        avisoCierre = " Faltan checks: los costos quedan abiertos otra vez.";
+      }
+    }
+
     toast({
-      title: "✓ Costos guardados",
+      title: avisoCierre.includes("cerrados") ? "🔒 Costos guardados y cerrados" : "✓ Costos guardados",
       description: marcadoSinTerceros(enBase)
         ? `Quedó registrado que el evento no tuvo costos de terceros.`
-        : `${reales.length} línea${reales.length === 1 ? "" : "s"} · ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(suma)} confirmados en la base.`,
+        : `${reales.length} línea${reales.length === 1 ? "" : "s"} · ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(suma)} confirmados en la base.` + avisoCierre,
     });
     setInicial(JSON.stringify({ l: lineasReales(lista), st: marcadoSinTerceros(lista), m: marca?.verificacion ?? null }));
     onOpenChange(false);
@@ -275,6 +301,23 @@ export function CostosEventoDialog({
     verificacion: si ? { por: user?.email ?? "", en: new Date().toISOString(), huella: huellaDeLinea(c) } : null,
   });
 
+  const reabrir = async () => {
+    if (!proyecto) return;
+    setReabriendo(true);
+    try {
+      await updateProjectMultiple(proyecto.id, { costosVerificacion: null });
+      const { data } = await supabase.from("projects").select("costos_verificados_en").eq("id", proyecto.id).single();
+      if ((data as { costos_verificados_en?: string | null } | null)?.costos_verificados_en) {
+        throw new Error("La base no reabrió los costos.");
+      }
+      toast({ title: "Costos reabiertos", description: "Ya se pueden agregar o cambiar costos. Se cierran otra vez cuando completes el checklist y guardes." });
+    } catch (e) {
+      toast({ title: "No se pudo reabrir", description: e instanceof Error ? e.message : "Intenta de nuevo", variant: "destructive" });
+    } finally {
+      setReabriendo(false);
+    }
+  };
+
   if (!proyecto) return null;
 
   const lineasVisibles = sinTerceros ? (marca ? [marca] : []) : lineas;
@@ -302,6 +345,22 @@ export function CostosEventoDialog({
         </DialogHeader>
 
         <div className="flex-1 space-y-2 overflow-y-auto">
+          {cierre && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
+              <Lock className="h-4 w-4 shrink-0 text-emerald-500" />
+              <span className="min-w-[12rem] flex-1">
+                <strong>Costos cerrados</strong> por {cierre.por || "—"} ·{" "}
+                {new Date(cierre.en).toLocaleString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
+                . {puedeVerificar ? "Si los reabres, el equipo puede volver a cargar costos." : "Ya no se pueden agregar ni cambiar costos."}
+              </span>
+              {puedeVerificar && (
+                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={reabriendo || hayCambios} onClick={reabrir}>
+                  {reabriendo && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+                  Reabrir costos
+                </Button>
+              )}
+            </div>
+          )}
           {/* Arriba del todo: muchas veces la respuesta es "no hubo", y asi no
               toca agregar una linea de mentira para poder cerrar el evento. */}
           <label
@@ -340,8 +399,13 @@ export function CostosEventoDialog({
               <ShieldCheck className={"h-3.5 w-3.5 " + (hechas === lineasVisibles.length ? "text-emerald-500" : "text-muted-foreground")} />
               <span className="flex-1">
                 {hechas === lineasVisibles.length
-                  ? "Todos los costos están verificados"
-                  : `${hechas} de ${lineasVisibles.length} verificado${lineasVisibles.length === 1 ? "" : "s"}`}
+                  ? cierre
+                    ? "Todos los costos están verificados"
+                    : puedeVerificar
+                      ? "Checklist completo: al dar Guardar los costos quedan cerrados"
+                      : "Todos los costos están verificados"
+                  : `${hechas} de ${lineasVisibles.length} verificado${lineasVisibles.length === 1 ? "" : "s"}` +
+                    (puedeVerificar ? " · al completar el checklist y guardar, se cierran" : "")}
               </span>
               {puedeVerificar && hechas < lineasVisibles.length && (
                 <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={verificarTodas}>

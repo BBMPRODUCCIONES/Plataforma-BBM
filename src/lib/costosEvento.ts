@@ -57,3 +57,21 @@ export function lineaDeMarca(correo?: string | null): CostoEvento {
     creadoPorEmail: correo || undefined,
   };
 }
+
+/**
+ * Huella de los costos: cambia si cambia cualquier linea (tipo, valor,
+ * concepto, beneficiario) o la marca de "sin costos de terceros". Sirve para
+ * saber si lo verificado sigue siendo lo que hay.
+ */
+export function huellaDeCostos(costos?: CostoEvento[] | null): string {
+  const filas = (costos || [])
+    .map((c) =>
+      [c.id, c.tipo, Number(c.valor) || 0, (c.concepto || "").trim(), (c.beneficiario || "").trim()].join("|")
+    )
+    .sort();
+  // djb2: corta y estable; no es seguridad, es detectar cambios.
+  let h = 5381;
+  const txt = filas.join("\n");
+  for (let i = 0; i < txt.length; i++) h = ((h << 5) + h + txt.charCodeAt(i)) | 0;
+  return `${filas.length}-${(h >>> 0).toString(36)}`;
+}

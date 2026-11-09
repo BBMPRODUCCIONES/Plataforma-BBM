@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2, Loader2, Receipt } from "lucide-react";
+import { Plus, Trash2, Loader2, Receipt, ShieldCheck, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,8 @@ import { ListaAdjuntos } from "@/components/ListaAdjuntos";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useProjects } from "@/contexts/ProjectsContext";
+import { estadoVerificacion, puedeVerificarCostos } from "@/lib/permisosCostos";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  huellaDeCostos,
   lineaDeMarca,
   lineasReales,
   marcadoSinTerceros,
@@ -100,7 +103,9 @@ export function CostosEventoDialog({
   const [lineas, setLineas] = useState<CostoEvento[]>([]);
   const [sinTerceros, setSinTerceros] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [verificando, setVerificando] = useState(false);
   const { user } = useAuth();
+  const { updateProjectMultiple } = useProjects();
 
   const [confirmarSalida, setConfirmarSalida] = useState(false);
   // Lo que habia guardado al abrir, para saber si hay cambios sin guardar.
@@ -257,7 +262,54 @@ export function CostosEventoDialog({
     }
   };
 
+  /**
+   * Check de verificacion (auxbbm@). Se guarda con la huella de los costos que
+   * hay en la base: si alguien los cambia despues, deja de valer solo.
+   */
+  const cambiarVerificacion = async (verificar: boolean) => {
+    if (!proyecto) return;
+    setVerificando(true);
+    try {
+      const { data, error } = await supabase.from("projects").select("costos").eq("id", proyecto.id).single();
+      if (error) throw new Error(error.message);
+      const enBase = ((data as { costos?: CostoEvento[] } | null)?.costos || []) as CostoEvento[];
+      const huella = huellaDeCostos(enBase);
+      const v = verificar
+        ? { por: user?.email ?? "", en: new Date().toISOString(), huella }
+        : null;
+      await updateProjectMultiple(proyecto.id, { costosVerificacion: v });
+      const { data: d2, error: e2 } = await supabase
+        .from("projects")
+        .select("costos_verificados_huella")
+        .eq("id", proyecto.id)
+        .single();
+      const quedo = (d2 as { costos_verificados_huella?: string | null } | null)?.costos_verificados_huella ?? null;
+      if (e2 || quedo !== (verificar ? huella : null)) {
+        throw new Error("La base no guardó la verificación. Revisa la conexión o tus permisos.");
+      }
+      toast({
+        title: verificar ? "✓ Costos verificados" : "Verificación quitada",
+        description: verificar ? "Si alguien los cambia, vuelven a quedar por verificar." : undefined,
+      });
+    } catch (e) {
+      toast({ title: "No se guardó", description: e instanceof Error ? e.message : "Intenta de nuevo", variant: "destructive" });
+    } finally {
+      setVerificando(false);
+    }
+  };
+
   if (!proyecto) return null;
+  const estadoVer = estadoVerificacion(proyecto);
+  const puedeVerificar = puedeVerificarCostos(user?.email);
+  const fechaVer = proyecto.costosVerificacion?.en
+    ? new Date(proyecto.costosVerificacion.en).toLocaleString("es-CO", {
+        timeZone: "America/Bogota",
+        day: "numeric",
+        month: "short",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "";
 
   return (
     <>
@@ -502,6 +554,54 @@ export function CostosEventoDialog({
             contabilidad: no descuenta impuestos ni dice si ya se cobró.
           </p>
         </div>
+
+        {estadoVer !== "sin_costos" && (
+          <div
+            className={
+              "shrink-0 rounded-lg border p-3 text-sm " +
+              (estadoVer === "verificado"
+                ? "border-emerald-500/40 bg-emerald-500/5"
+                : estadoVer === "cambiaron"
+                  ? "border-amber-500/40 bg-amber-500/5"
+                  : "border-border/70")
+            }
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              {estadoVer === "verificado" ? (
+                <ShieldCheck className="h-4 w-4 text-emerald-500" />
+              ) : (
+                <AlertTriangle className={"h-4 w-4 " + (estadoVer === "cambiaron" ? "text-amber-500" : "text-muted-foreground")} />
+              )}
+              <span className="flex-1 min-w-[12rem]">
+                {estadoVer === "verificado" && (
+                  <>Costos verificados por <strong>{proyecto.costosVerificacion?.por}</strong> · {fechaVer}</>
+                )}
+                {estadoVer === "cambiaron" && (
+                  <>Los costos cambiaron después de verificarse ({proyecto.costosVerificacion?.por}, {fechaVer}). Hay que verificarlos de nuevo.</>
+                )}
+                {estadoVer === "sin_verificar" && <>Costos sin verificar.</>}
+              </span>
+              {puedeVerificar && (
+                estadoVer === "verificado" ? (
+                  <Button size="sm" variant="ghost" className="h-8 text-xs" disabled={verificando} onClick={() => cambiarVerificacion(false)}>
+                    Quitar verificación
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1 text-xs"
+                    disabled={verificando || hayCambios}
+                    title={hayCambios ? "Guarda primero los cambios" : undefined}
+                    onClick={() => cambiarVerificacion(true)}
+                  >
+                    {verificando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+                    Verifiqué los costos
+                  </Button>
+                )
+              )}
+            </div>
+          </div>
+        )}
 
         <DialogFooter className="shrink-0 gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => pedirCierre(false)} className="h-11 w-full sm:h-10 sm:w-auto">

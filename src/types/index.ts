@@ -80,6 +80,11 @@ export interface Project {
   color?: string | null;
   /** Costos reales del evento. Ver CostoEvento. */
   costos?: CostoEvento[];
+  /**
+   * Quien reviso los costos y sobre que version. Si los costos cambian despues,
+   * la huella ya no coincide y la verificacion deja de valer.
+   */
+  costosVerificacion?: VerificacionCostos | null;
   /** Soportes de los costos: facturas, recibos, cuentas de cobro. */
   costosAdjuntos?: Attachment[];
   /** Archivos de bodega: remisiones, listas de despacho, fotos de salida y entrada. */
@@ -104,6 +109,12 @@ export type ProjectStatus =
   | 'por_planear'
   | 'en_progreso'
   | 'ejecutado';
+
+export interface VerificacionCostos {
+  por: string;
+  en: string;
+  huella: string;
+}
 
 export interface FacturaEvento {
   /** Dia en que se facturo (YYYY-MM-DD). Es el que manda en ventas reales. */

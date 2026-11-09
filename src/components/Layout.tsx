@@ -6,6 +6,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { MobileHeader } from "@/components/MobileHeader";
 import { NotificationPrompt } from "@/components/NotificationPrompt";
 import { AvisoFacturasPendientes } from "@/components/AvisoFacturasPendientes";
+import { AvisoCostosPendientes } from "@/components/AvisoCostosPendientes";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface LayoutProps {
@@ -51,7 +52,10 @@ const Layout = ({ children }: LayoutProps) => {
                 <span className="font-mono text-xs text-muted-foreground truncate">PRODUCCIÓN DE EVENTOS</span>
               </div>
             </div>
-            <AvisoFacturasPendientes />
+            <div className="flex items-center gap-2">
+              <AvisoCostosPendientes />
+              <AvisoFacturasPendientes />
+            </div>
           </header>
           {/* Content area with controlled internal scroll */}
           <div className="content-scroll-area flex-1 overflow-y-auto overflow-x-hidden min-w-0">

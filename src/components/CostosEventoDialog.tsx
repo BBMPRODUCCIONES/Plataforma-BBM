@@ -27,8 +27,7 @@ import { ListaAdjuntos } from "@/components/ListaAdjuntos";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useProjects } from "@/contexts/ProjectsContext";
-import { estadoVerificacion, puedeVerificarCostos } from "@/lib/permisosCostos";
+import { puedeVerificarCostos } from "@/lib/permisosCostos";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,9 +39,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  huellaDeCostos,
+  huellaDeLinea,
+  lineaCambioTrasVerificar,
   lineaDeMarca,
   lineasReales,
+  lineaVerificada,
+  TIPO_SIN_TERCEROS,
   marcadoSinTerceros,
 } from "@/lib/costosEvento";
 
@@ -103,9 +105,11 @@ export function CostosEventoDialog({
   const [lineas, setLineas] = useState<CostoEvento[]>([]);
   const [sinTerceros, setSinTerceros] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [verificando, setVerificando] = useState(false);
+  // La linea de marca "sin costos de terceros" que habia guardada: se conserva
+  // (con su check) en vez de crear una nueva en cada guardado.
+  const [marca, setMarca] = useState<CostoEvento | null>(null);
   const { user } = useAuth();
-  const { updateProjectMultiple } = useProjects();
+  const puedeVerificar = puedeVerificarCostos(user?.email);
 
   const [confirmarSalida, setConfirmarSalida] = useState(false);
   // Lo que habia guardado al abrir, para saber si hay cambios sin guardar.
@@ -132,13 +136,16 @@ export function CostosEventoDialog({
     abiertoPara.current = id;
     const l = lineasReales(proyecto?.costos);
     const st = marcadoSinTerceros(proyecto?.costos);
+    const m = (proyecto?.costos || []).find((c) => c.tipo === (TIPO_SIN_TERCEROS as CostoEvento["tipo"])) ?? null;
     setLineas(l);
     setSinTerceros(st);
-    setInicial(JSON.stringify({ l, st }));
+    setMarca(m);
+    setInicial(JSON.stringify({ l, st, m: m?.verificacion ?? null }));
   }, [open, proyecto]);
 
   const hayCambios =
-    !soloLectura && open && inicial !== "" && JSON.stringify({ l: lineas, st: sinTerceros }) !== inicial;
+    !soloLectura && open && inicial !== "" &&
+    JSON.stringify({ l: lineas, st: sinTerceros, m: marca?.verificacion ?? null }) !== inicial;
 
   // Cerrar con cambios sin guardar pide confirmacion en vez de perderlos.
   const pedirCierre = (abrir: boolean) => {
@@ -163,7 +170,7 @@ export function CostosEventoDialog({
     const huella = (xs: CostoEvento[]) =>
       JSON.stringify(
         (xs || [])
-          .map((c) => [c.id, c.tipo, Number(c.valor) || 0, (c.concepto || "").trim()])
+          .map((c) => [c.id, c.tipo, Number(c.valor) || 0, (c.concepto || "").trim(), c.verificacion?.huella ?? ""])
           .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
       );
     const { data, error } = await supabase
@@ -186,7 +193,7 @@ export function CostosEventoDialog({
         ? `Quedó registrado que el evento no tuvo costos de terceros.`
         : `${reales.length} línea${reales.length === 1 ? "" : "s"} · ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(suma)} confirmados en la base.`,
     });
-    setInicial(JSON.stringify({ l: lineasReales(lista), st: marcadoSinTerceros(lista) }));
+    setInicial(JSON.stringify({ l: lineasReales(lista), st: marcadoSinTerceros(lista), m: marca?.verificacion ?? null }));
     onOpenChange(false);
   };
 
@@ -220,7 +227,7 @@ export function CostosEventoDialog({
     if (sinTerceros) {
       setGuardando(true);
       try {
-        await guardarYComprobar([lineaDeMarca(user?.email)]);
+        await guardarYComprobar([marca ?? lineaDeMarca(user?.email)]);
       } catch (error: unknown) {
         toast({
           title: "No se pudo guardar",
@@ -262,54 +269,23 @@ export function CostosEventoDialog({
     }
   };
 
-  /**
-   * Check de verificacion (auxbbm@). Se guarda con la huella de los costos que
-   * hay en la base: si alguien los cambia despues, deja de valer solo.
-   */
-  const cambiarVerificacion = async (verificar: boolean) => {
-    if (!proyecto) return;
-    setVerificando(true);
-    try {
-      const { data, error } = await supabase.from("projects").select("costos").eq("id", proyecto.id).single();
-      if (error) throw new Error(error.message);
-      const enBase = ((data as { costos?: CostoEvento[] } | null)?.costos || []) as CostoEvento[];
-      const huella = huellaDeCostos(enBase);
-      const v = verificar
-        ? { por: user?.email ?? "", en: new Date().toISOString(), huella }
-        : null;
-      await updateProjectMultiple(proyecto.id, { costosVerificacion: v });
-      const { data: d2, error: e2 } = await supabase
-        .from("projects")
-        .select("costos_verificados_huella")
-        .eq("id", proyecto.id)
-        .single();
-      const quedo = (d2 as { costos_verificados_huella?: string | null } | null)?.costos_verificados_huella ?? null;
-      if (e2 || quedo !== (verificar ? huella : null)) {
-        throw new Error("La base no guardó la verificación. Revisa la conexión o tus permisos.");
-      }
-      toast({
-        title: verificar ? "✓ Costos verificados" : "Verificación quitada",
-        description: verificar ? "Si alguien los cambia, vuelven a quedar por verificar." : undefined,
-      });
-    } catch (e) {
-      toast({ title: "No se guardó", description: e instanceof Error ? e.message : "Intenta de nuevo", variant: "destructive" });
-    } finally {
-      setVerificando(false);
-    }
-  };
+  /** Pone o quita el check de una linea, con la huella de como esta AHORA. */
+  const verificar = (c: CostoEvento, si: boolean): CostoEvento => ({
+    ...c,
+    verificacion: si ? { por: user?.email ?? "", en: new Date().toISOString(), huella: huellaDeLinea(c) } : null,
+  });
 
   if (!proyecto) return null;
-  const estadoVer = estadoVerificacion(proyecto);
-  const puedeVerificar = puedeVerificarCostos(user?.email);
-  const fechaVer = proyecto.costosVerificacion?.en
-    ? new Date(proyecto.costosVerificacion.en).toLocaleString("es-CO", {
-        timeZone: "America/Bogota",
-        day: "numeric",
-        month: "short",
-        hour: "numeric",
-        minute: "2-digit",
-      })
-    : "";
+
+  const lineasVisibles = sinTerceros ? (marca ? [marca] : []) : lineas;
+  const hechas = lineasVisibles.filter(lineaVerificada).length;
+  const verificarTodas = () => {
+    if (sinTerceros) {
+      setMarca((m) => verificar(m ?? lineaDeMarca(user?.email), true));
+    } else {
+      setLineas((prev) => prev.map((l) => (lineaVerificada(l) ? l : verificar(l, true))));
+    }
+  };
 
   return (
     <>
@@ -350,6 +326,30 @@ export function CostosEventoDialog({
               </span>
             </span>
           </label>
+
+          {sinTerceros && (
+            <CheckLinea
+              linea={marca}
+              puede={puedeVerificar}
+              onCambiar={(si) => setMarca((m) => verificar(m ?? lineaDeMarca(user?.email), si))}
+            />
+          )}
+
+          {lineasVisibles.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/40 px-3 py-1.5 text-xs">
+              <ShieldCheck className={"h-3.5 w-3.5 " + (hechas === lineasVisibles.length ? "text-emerald-500" : "text-muted-foreground")} />
+              <span className="flex-1">
+                {hechas === lineasVisibles.length
+                  ? "Todos los costos están verificados"
+                  : `${hechas} de ${lineasVisibles.length} verificado${lineasVisibles.length === 1 ? "" : "s"}`}
+              </span>
+              {puedeVerificar && hechas < lineasVisibles.length && (
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={verificarTodas}>
+                  Marcar todas
+                </Button>
+              )}
+            </div>
+          )}
 
           {sinTerceros && lineas.length > 0 && (
             <p className="rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
@@ -473,6 +473,11 @@ export function CostosEventoDialog({
                   )}
                 </div>
               </div>
+              <CheckLinea
+                linea={linea}
+                puede={puedeVerificar}
+                onCambiar={(si) => setLineas((prev) => prev.map((l) => (l.id === linea.id ? verificar(l, si) : l)))}
+              />
             </div>
           ))}
 
@@ -555,54 +560,6 @@ export function CostosEventoDialog({
           </p>
         </div>
 
-        {estadoVer !== "sin_costos" && (
-          <div
-            className={
-              "shrink-0 rounded-lg border p-3 text-sm " +
-              (estadoVer === "verificado"
-                ? "border-emerald-500/40 bg-emerald-500/5"
-                : estadoVer === "cambiaron"
-                  ? "border-amber-500/40 bg-amber-500/5"
-                  : "border-border/70")
-            }
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              {estadoVer === "verificado" ? (
-                <ShieldCheck className="h-4 w-4 text-emerald-500" />
-              ) : (
-                <AlertTriangle className={"h-4 w-4 " + (estadoVer === "cambiaron" ? "text-amber-500" : "text-muted-foreground")} />
-              )}
-              <span className="flex-1 min-w-[12rem]">
-                {estadoVer === "verificado" && (
-                  <>Costos verificados por <strong>{proyecto.costosVerificacion?.por}</strong> · {fechaVer}</>
-                )}
-                {estadoVer === "cambiaron" && (
-                  <>Los costos cambiaron después de verificarse ({proyecto.costosVerificacion?.por}, {fechaVer}). Hay que verificarlos de nuevo.</>
-                )}
-                {estadoVer === "sin_verificar" && <>Costos sin verificar.</>}
-              </span>
-              {puedeVerificar && (
-                estadoVer === "verificado" ? (
-                  <Button size="sm" variant="ghost" className="h-8 text-xs" disabled={verificando} onClick={() => cambiarVerificacion(false)}>
-                    Quitar verificación
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    className="h-8 gap-1 text-xs"
-                    disabled={verificando || hayCambios}
-                    title={hayCambios ? "Guarda primero los cambios" : undefined}
-                    onClick={() => cambiarVerificacion(true)}
-                  >
-                    {verificando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
-                    Verifiqué los costos
-                  </Button>
-                )
-              )}
-            </div>
-          </div>
-        )}
-
         <DialogFooter className="shrink-0 gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => pedirCierre(false)} className="h-11 w-full sm:h-10 sm:w-auto">
             {soloLectura ? "Cerrar" : "Cancelar"}
@@ -640,6 +597,48 @@ export function CostosEventoDialog({
       </AlertDialogContent>
     </AlertDialog>
     </>
+  );
+}
+
+/**
+ * El check de una linea. auxbbm@ (y Bayron) lo marcan; los demas ven si esta
+ * verificada o no. Si la linea cambio despues del check, se avisa en ambar.
+ */
+function CheckLinea({
+  linea,
+  puede,
+  onCambiar,
+}: {
+  linea: CostoEvento | null;
+  puede: boolean;
+  onCambiar: (si: boolean) => void;
+}) {
+  const ok = linea ? lineaVerificada(linea) : false;
+  const cambio = linea ? lineaCambioTrasVerificar(linea) : false;
+  const quien = linea?.verificacion?.por || "";
+  const cuando = linea?.verificacion?.en
+    ? new Date(linea.verificacion.en).toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "short" })
+    : "";
+  const texto = ok
+    ? `Verificado por ${quien} · ${cuando}`
+    : cambio
+      ? `Cambió después de verificarse (${quien}, ${cuando})`
+      : "Sin verificar";
+  const color = ok ? "text-emerald-500" : cambio ? "text-amber-500" : "text-muted-foreground";
+
+  if (!puede) {
+    return (
+      <p className={"mt-2 flex items-center gap-1 text-[11px] " + color}>
+        {ok ? <ShieldCheck className="h-3.5 w-3.5" /> : cambio ? <AlertTriangle className="h-3.5 w-3.5" /> : null}
+        {texto}
+      </p>
+    );
+  }
+  return (
+    <label className={"mt-2 flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-xs " + (ok ? "border-emerald-500/40 bg-emerald-500/5" : cambio ? "border-amber-500/40 bg-amber-500/5" : "border-dashed border-border")}>
+      <Checkbox checked={ok} onCheckedChange={(v) => onCambiar(v === true)} />
+      <span className={color}>{ok ? texto : cambio ? texto + " — vuelve a marcar" : "Verifiqué este costo"}</span>
+    </label>
   );
 }
 

@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { CostoEvento, Project } from "@/types";
 import {
+  avanceVerificacion,
   costosPorVerificar,
   esResponsableCostos,
   estadoVerificacion,
@@ -99,8 +100,8 @@ export function AvisoCostosPendientes({ compacto = false }: { compacto?: boolean
             {vistaReal === "costos" ? (
               <>
                 <p className="mb-1 text-xs text-muted-foreground">
-                  Eventos con costos cargados que falta revisar. "Revisar" abre los costos; ahí está el
-                  check "Verifiqué los costos".
+                  Eventos con costos cargados que falta revisar. "Revisar" abre los costos: cada
+                  línea tiene su check "Verifiqué este costo"; luego dale Guardar.
                 </p>
                 <ul className="-mx-1 max-h-[60vh] divide-y divide-border overflow-y-auto">
                   {porVerificar.map((p) => (
@@ -111,7 +112,9 @@ export function AvisoCostosPendientes({ compacto = false }: { compacto?: boolean
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm">{p.evento || "Sin nombre"}</span>
                         <span className={cn("block truncate text-xs", estadoVerificacion(p) === "cambiaron" ? "text-amber-500" : "text-muted-foreground")}>
-                          {estadoVerificacion(p) === "cambiaron" ? "Cambiaron después de verificar" : p.cliente || "—"}
+                          {estadoVerificacion(p) === "cambiaron"
+                            ? "Cambiaron después de verificar"
+                            : `${p.cliente || "—"} · ${avanceVerificacion(p).hechas}/${avanceVerificacion(p).total} verificados`}
                         </span>
                       </span>
                       <Button

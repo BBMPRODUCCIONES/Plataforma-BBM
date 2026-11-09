@@ -75,3 +75,21 @@ export function huellaDeCostos(costos?: CostoEvento[] | null): string {
   for (let i = 0; i < txt.length; i++) h = ((h << 5) + h + txt.charCodeAt(i)) | 0;
   return `${filas.length}-${(h >>> 0).toString(36)}`;
 }
+
+/** Huella de UNA linea: tipo, valor, concepto y a quien se le pago. */
+export function huellaDeLinea(c: CostoEvento): string {
+  const txt = [c.tipo, Number(c.valor) || 0, (c.concepto || "").trim(), (c.beneficiario || "").trim()].join("|");
+  let h = 5381;
+  for (let i = 0; i < txt.length; i++) h = ((h << 5) + h + txt.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+/** La linea tiene check y sigue siendo la misma que se verifico. */
+export function lineaVerificada(c: CostoEvento): boolean {
+  return Boolean(c.verificacion?.en) && c.verificacion?.huella === huellaDeLinea(c);
+}
+
+/** Tuvo check pero la cambiaron despues. */
+export function lineaCambioTrasVerificar(c: CostoEvento): boolean {
+  return Boolean(c.verificacion?.en) && c.verificacion?.huella !== huellaDeLinea(c);
+}

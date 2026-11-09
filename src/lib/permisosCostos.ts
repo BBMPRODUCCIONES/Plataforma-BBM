@@ -1,5 +1,5 @@
 import { Project } from "@/types";
-import { costosResueltos, huellaDeCostos } from "@/lib/costosEvento";
+import { costosResueltos, lineaCambioTrasVerificar, lineaVerificada } from "@/lib/costosEvento";
 import { COSTOS_SE_EXIGEN_DESDE } from "@/lib/alertaCostos";
 
 /**
@@ -25,11 +25,22 @@ export const CENTRO_COSTOS_SE_EXIGE_DESDE = "2026-09-01";
 
 export type EstadoVerificacion = "sin_costos" | "sin_verificar" | "verificado" | "cambiaron";
 
+/**
+ * Se verifica linea por linea. El evento queda verificado cuando TODAS sus
+ * lineas (o la marca de "sin costos de terceros") tienen check vigente.
+ */
 export function estadoVerificacion(p: Project): EstadoVerificacion {
   if (!costosResueltos(p.costos)) return "sin_costos";
-  const v = p.costosVerificacion;
-  if (!v?.en) return "sin_verificar";
-  return v.huella === huellaDeCostos(p.costos) ? "verificado" : "cambiaron";
+  const lineas = p.costos || [];
+  if (lineas.every(lineaVerificada)) return "verificado";
+  if (lineas.some(lineaCambioTrasVerificar)) return "cambiaron";
+  return "sin_verificar";
+}
+
+/** Cuantas lineas tienen check vigente, de cuantas. */
+export function avanceVerificacion(p: Project): { hechas: number; total: number } {
+  const lineas = p.costos || [];
+  return { hechas: lineas.filter(lineaVerificada).length, total: lineas.length };
 }
 
 /** Tiene costos cargados que nadie ha verificado (o que cambiaron despues). */

@@ -177,6 +177,11 @@ export interface CostoEvento {
   tipo: TipoCosto;
   /** Que se pago: "Operario de montaje", "Alquiler de pantalla", ... */
   concepto: string;
+  /**
+   * Check de auxbbm@ sobre ESTA linea. La huella es de la linea al momento de
+   * verificarla: si la linea cambia despues, deja de valer.
+   */
+  verificacion?: VerificacionCostos | null;
   /** A quien se le paga: nombre del proveedor o de la persona. */
   beneficiario: string;
   /** Id del proveedor o del empleado, cuando salio del autocompletar. */

@@ -104,8 +104,22 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
+    // El aviso en tiempo real solo les llega a los administradores: la tabla
+    // de empleados no la pueden leer los demas, y Supabase no les manda los
+    // cambios. Por eso, ademas, se vuelve a pedir la lista cada vez que la
+    // persona regresa a la app (desbloquea el celular, cambia de pestana).
+    let ultima = Date.now();
+    const alVolver = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - ultima < 30_000) return;
+      ultima = Date.now();
+      fetchEmpleados();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+
     return () => {
       supabase.removeChannel(channel);
+      document.removeEventListener("visibilitychange", alVolver);
     };
   }, [user, authLoading, fetchEmpleados]);
 

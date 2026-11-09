@@ -53,8 +53,8 @@ export function PersonalNominaSelect({
   onChange,
   disabled = false,
 }: PersonalNominaSelectProps) {
-  const { usuarios, cargando } = useUsuariosRegistrados();
-  const { empleados } = useEmpleados();
+  const { usuarios, cargando, recargar } = useUsuariosRegistrados();
+  const { empleados, refetch: recargarEmpleados } = useEmpleados();
   const [abierto, setAbierto] = useState(false);
   const [busqueda, setBusqueda] = useState("");
 
@@ -120,14 +120,18 @@ export function PersonalNominaSelect({
       ? empleados.find((e) => normalizar(e.correo || "") === normalizar(u.correo || ""))
       : undefined;
 
+    // Si la ficha no esta en la lista de empleados de quien mira (a los
+    // operativos no les llega el correo), se usa la que trae la base.
+    const empleadoId = ficha?.id || u.empleadoId;
+    const cedula = ficha?.cedula || u.cedula;
     const nuevo: PersonalItem = {
       id: `p${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
       tipoPersonal: "BBM",
       nombre: u.nombre,
-      cargo: ficha?.cargo || "",
+      cargo: ficha?.cargo || u.cargo || "",
       telefono: ficha?.telefono || "",
-      ...(ficha ? { empleadoId: ficha.id } : {}),
-      ...(ficha?.cedula ? { cedula: ficha.cedula, cedulaOrigen: "empleado" as const } : {}),
+      ...(empleadoId ? { empleadoId } : {}),
+      ...(cedula ? { cedula, cedulaOrigen: "empleado" as const } : {}),
     };
     onChange([...todas, nuevo]);
   };
@@ -152,6 +156,12 @@ export function PersonalNominaSelect({
       onOpenChange={(v) => {
         setAbierto(v);
         if (!v) setBusqueda("");
+        // Al abrir se trae la lista fresca: si alguien acaba de crear un
+        // usuario o cambiarle el nombre, aparece sin tener que cerrar la app.
+        if (v) {
+          void recargar();
+          void recargarEmpleados();
+        }
       }}
     >
       <PopoverTrigger asChild>

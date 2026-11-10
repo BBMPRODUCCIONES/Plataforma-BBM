@@ -33,6 +33,7 @@ import InstalarApp from "./pages/InstalarApp";
 import PanelReportes from "./pages/PanelReportes";
 import PanelVentas from "./pages/PanelVentas";
 import ExportarCostos from "./pages/ExportarCostos";
+import Productividad from "./pages/Productividad";
 
 const queryClient = new QueryClient();
 
@@ -99,6 +100,13 @@ const App = () => (
                   <Route path="/exportar-costos" element={
                     <ProtectedRoute>
                       <ExportarCostos />
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Productividad: solo Bayron (la pagina y la base lo revisan) */}
+                  <Route path="/productividad" element={
+                    <ProtectedRoute>
+                      <Productividad />
                     </ProtectedRoute>
                   } />
 

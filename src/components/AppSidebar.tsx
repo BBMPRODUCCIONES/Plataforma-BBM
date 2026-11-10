@@ -18,6 +18,7 @@ import {
   Boxes,
   ExternalLink,
   FileSpreadsheet,
+  Gauge,
 } from "lucide-react";
 import bbmLogo from "@/assets/bbm-logo.png";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +26,7 @@ import { NavLink } from "@/components/NavLink";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { puedeExportarCostos } from "@/lib/permisosCostos";
+import { puedeVerProductividad } from "@/lib/productividad";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -60,6 +62,8 @@ const mainNavItems = [
   { title: "Proveedores", url: "/proveedores", icon: Users, panel: "proveedores" },
   // Solo para las personas que pueden descargar costos (lib/permisosCostos).
   { title: "Exportar costos", url: "/exportar-costos", icon: FileSpreadsheet, soloExportadores: true },
+  // Solo Bayron.
+  { title: "Productividad", url: "/productividad", icon: Gauge, soloDueno: true },
 ];
 
 const adminNavItems = [
@@ -128,6 +132,7 @@ export function AppSidebar() {
                     // Check admin-only items first
                     if (item.adminOnly && !canEditStructure()) return null;
                     if (item.soloExportadores && !puedeExportarCostos(user?.email)) return null;
+                    if (item.soloDueno && !puedeVerProductividad(user?.email)) return null;
                     
                     // Un item sin "panel" es una herramienta abierta a todos
                     // (Plano LED): no hay permiso que consultar.

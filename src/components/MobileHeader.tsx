@@ -20,6 +20,7 @@ import { BotonInstalarApp } from "@/components/BotonInstalarApp";
 import { AvisoFacturasPendientes } from "@/components/AvisoFacturasPendientes";
 import { AvisoCostosPendientes } from "@/components/AvisoCostosPendientes";
 import { AvisoCostosCerrados } from "@/components/AvisoCostosCerrados";
+import { MisTareas } from "@/components/MisTareas";
 
 // Route config type
 interface RouteConfigItem {
@@ -46,6 +47,7 @@ const routeConfig: Record<string, RouteConfigItem> = {
   "/panel-reportes": { title: "Reportes", icon: FileBarChart },
   "/panel-ventas": { title: "Ventas", icon: TrendingUp },
   "/exportar-costos": { title: "Exportar costos", icon: FileBarChart },
+  "/productividad": { title: "Productividad", icon: FileBarChart },
   "/usuarios": { title: "Usuarios", icon: UserPlus, primaryAction: { icon: Plus, label: "Invitar" } },
   "/clientes": { title: "Clientes", icon: Building2, primaryAction: { icon: Plus, label: "Nuevo" } },
   "/empleados": { title: "Empleados", icon: Users, primaryAction: { icon: Plus, label: "Nuevo" } },
@@ -100,6 +102,7 @@ export function MobileHeader() {
         </span>
       </div>
 
+      <MisTareas compacto />
       <AvisoCostosCerrados compacto />
       <AvisoCostosPendientes compacto />
       <AvisoFacturasPendientes compacto />

@@ -366,27 +366,40 @@ export function responsabilidadesDe(p: Persona, tareas: Tarea[]): string[] {
 export interface AvanceMeta {
   comercial: string;
   meta: number;
-  /** Todo lo del mes que ya esta en el planner (incluye eventos que faltan). */
+  /** Todo lo del mes que ya esta en el planner (ejecutado o por ejecutar). */
   vendido: number;
-  /** Solo lo ejecutado hasta hoy: es lo que se usa para los promedios. */
+  /** Lo que falta para la meta (0 si ya se cumplio). */
+  falta: number;
+  /** vendido / meta, en %. null si no hay meta. */
+  porcentaje: number | null;
+  /** Lo que "deberia" llevar a hoy si vendiera parejo todo el mes. */
+  esperadoAHoy: number;
+  /** De lo vendido, lo que ya se ejecuto hasta hoy. */
   ejecutadoAFecha: number;
   eventos: number;
   diasMes: number;
   diasTranscurridos: number;
+  diasRestantes: number;
+  /** vendido / dias transcurridos del mes. */
   promedioDiario: number;
+  /** promedio diario x 7. */
   promedioSemanal: number;
-  proyeccion: number;
+  /** Lo que tiene que vender por dia, de aqui a fin de mes, para llegar. */
   necesarioPorDia: number | null;
   porSemana: { semana: string; venta: number }[];
 }
 
 /**
- * Ventas del mes de un comercial (venta sin IVA, por fecha de ejecucion, la
- * misma regla del dashboard) contra su meta.
- * Promedio diario = lo ejecutado hasta hoy / dias transcurridos del mes
- * (todos los dias, no solo habiles). Promedio semanal = promedio diario x 7.
- * Proyeccion = promedio diario x dias del mes. "Vendido" incluye ademas los
- * eventos del mes que todavia no se ejecutan.
+ * Avance del mes de un comercial contra su meta.
+ *
+ * Venta = valor sin IVA de cada evento del comercial cuya ejecucion cae en el
+ * mes (la misma regla del dashboard). "Vendido" cuenta TODO lo del mes que ya
+ * esta en el planner, se haya ejecutado o no: es plata ya vendida.
+ *
+ *  - Porcentaje = vendido / meta.
+ *  - Promedio diario = vendido / dias corridos del mes. Semanal = diario x 7.
+ *  - Esperado a hoy = meta x dias corridos / dias del mes (ritmo parejo).
+ *  - Necesario por dia = (meta - vendido) / dias que quedan.
  */
 export function avanceDeMeta(
   proyectos: Project[],
@@ -399,8 +412,8 @@ export function avanceDeMeta(
   const diasMes = new Date(Date.UTC(y, m, 0)).getUTCDate();
   const primero = `${mes}-01`;
   const ultimo = `${mes}-${String(diasMes).padStart(2, "0")}`;
-  const diasTranscurridos =
-    hoy < primero ? 0 : hoy > ultimo ? diasMes : diasEntre(primero, hoy) + 1;
+  const diasTranscurridos = hoy < primero ? 0 : hoy > ultimo ? diasMes : diasEntre(primero, hoy) + 1;
+  const diasRestantes = diasMes - diasTranscurridos;
 
   const delMes = proyectos.filter(
     (p) => !p.isDeleted && comercialDe(p) === comercial && inicioEvento(p) >= primero && inicioEvento(p) <= ultimo
@@ -409,7 +422,7 @@ export function avanceDeMeta(
   const ejecutadoAFecha = delMes
     .filter((p) => inicioEvento(p) <= hoy)
     .reduce((s, p) => s + montosDelEvento(p).base, 0);
-  const promedioDiario = diasTranscurridos ? ejecutadoAFecha / diasTranscurridos : 0;
+  const promedioDiario = diasTranscurridos ? vendido / diasTranscurridos : 0;
 
   const porSemana: { semana: string; venta: number }[] = [];
   for (let d = 1; d <= diasMes; d += 7) {
@@ -421,19 +434,23 @@ export function avanceDeMeta(
       .reduce((s2, p) => s2 + montosDelEvento(p).base, 0);
     porSemana.push({ semana: `${d}–${h}`, venta });
   }
-  const restantes = diasMes - diasTranscurridos;
+
+  const falta = Math.max(0, meta - vendido);
   return {
     comercial,
     meta,
     vendido,
+    falta,
+    porcentaje: meta > 0 ? (vendido / meta) * 100 : null,
+    esperadoAHoy: diasMes ? (meta * diasTranscurridos) / diasMes : 0,
     ejecutadoAFecha,
     eventos: delMes.length,
     diasMes,
     diasTranscurridos,
+    diasRestantes,
     promedioDiario,
     promedioSemanal: promedioDiario * 7,
-    proyeccion: promedioDiario * diasMes,
-    necesarioPorDia: restantes > 0 ? Math.max(0, (meta - ejecutadoAFecha) / restantes) : null,
+    necesarioPorDia: diasRestantes > 0 && meta > 0 ? falta / diasRestantes : null,
     porSemana,
   };
 }

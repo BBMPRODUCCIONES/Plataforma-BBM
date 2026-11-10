@@ -450,14 +450,20 @@ function ResumenVentas({
       {comerciales.map((c) => {
         const meta = metas[c] ?? 0;
         const a = avanceDeMeta(projects, c, meta, mes);
-        const pct = meta > 0 ? (a.vendido / meta) * 100 : null;
-        const pctEj = meta > 0 ? (a.ejecutadoAFecha / meta) * 100 : 0;
+        const pct = a.porcentaje;
+        const cumplida = pct != null && pct >= 100;
+        const diferencia = a.vendido - a.esperadoAHoy; // + adelantado, - atrasado
+        const pctEsperado = meta > 0 ? (a.esperadoAHoy / meta) * 100 : 0;
+        const tono =
+          pct == null ? "text-muted-foreground" : cumplida ? "text-emerald-500" : diferencia >= 0 ? "text-sky-400" : pct >= 50 ? "text-amber-500" : "text-red-500";
+        const barra =
+          pct == null ? "bg-muted-foreground" : cumplida ? "bg-emerald-500" : diferencia >= 0 ? "bg-sky-500" : pct >= 50 ? "bg-amber-500" : "bg-red-500";
         const maxSemana = Math.max(1, ...a.porSemana.map((s) => s.venta));
         return (
           <Card key={c}>
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-1">
               <CardTitle className="flex items-center gap-2 text-sm">
-                <Target className="h-4 w-4" /> Ventas de {c} · <span className="capitalize">{nombreMes(mes)}</span>
+                <Target className="h-4 w-4" /> {c} · <span className="capitalize">{nombreMes(mes)}</span>
                 {!compacto && (
                   <Button
                     size="sm"
@@ -468,52 +474,95 @@ function ResumenVentas({
                       setValor(meta ? String(meta) : "");
                     }}
                   >
-                    <Pencil className="h-3 w-3" /> Meta
+                    <Pencil className="h-3 w-3" /> Cambiar meta
                   </Button>
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
+            <CardContent className="space-y-4 text-sm">
               {editando === c && (
                 <div className="flex gap-2">
                   <Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Meta mensual sin IVA" inputMode="numeric" className="h-8" />
                   <Button size="sm" className="h-8" onClick={() => guardarMeta(c)}>Guardar</Button>
                 </div>
               )}
-              <div className="flex flex-wrap items-end justify-between gap-2">
-                <div>
-                  <div className="text-2xl font-bold tabular-nums">{pesos(a.vendido)}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {meta ? `de ${pesos(meta)} · ${pct!.toFixed(0)}% de la meta` : "Sin meta definida"} · {a.eventos} evento(s)
+
+              {pct == null ? (
+                <p className="text-muted-foreground">Sin meta definida. Vendido: {pesos(a.vendido)}.</p>
+              ) : (
+                <>
+                  {/* Lo principal: cuanto lleva de la meta y cuanto le falta */}
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <div className={cn("text-5xl font-extrabold leading-none tabular-nums", tono)}>
+                        {Math.floor(pct)}%
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">de la meta de {pesos(meta)}</div>
+                    </div>
+                    <div className="text-right">
+                      {cumplida ? (
+                        <div className="text-lg font-bold text-emerald-500">¡Meta cumplida! 🎯</div>
+                      ) : (
+                        <>
+                          <div className="text-xs uppercase text-muted-foreground">Le falta</div>
+                          <div className={cn("text-2xl font-bold tabular-nums", tono)}>{pesos(a.falta)}</div>
+                        </>
+                      )}
+                      <div className="text-xs text-muted-foreground">Vendido: {pesos(a.vendido)} · {a.eventos} evento(s)</div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              {meta > 0 && (
-                <div className="relative h-2.5 overflow-hidden rounded-full bg-muted">
-                  <div className="absolute inset-y-0 left-0 bg-blue-500/40" style={{ width: `${Math.min(100, pct!)}%` }} />
-                  <div className="absolute inset-y-0 left-0 bg-blue-500" style={{ width: `${Math.min(100, pctEj)}%` }} />
-                </div>
+
+                  {/* Barra con la marca de donde deberia ir hoy */}
+                  <div>
+                    <div className="relative h-4 rounded-full bg-muted">
+                      <div className={cn("h-4 rounded-full transition-all", barra)} style={{ width: `${Math.min(100, pct)}%` }} />
+                      {!cumplida && a.diasRestantes > 0 && (
+                        <div
+                          className="absolute -top-1 h-6 w-0.5 bg-foreground"
+                          style={{ left: `${Math.min(100, pctEsperado)}%` }}
+                          title="Donde debería ir hoy vendiendo parejo todo el mes"
+                        />
+                      )}
+                    </div>
+                    {!cumplida && a.diasRestantes > 0 && (
+                      <p className={cn("mt-1.5 text-xs font-medium", diferencia >= 0 ? "text-sky-400" : "text-amber-500")}>
+                        {diferencia >= 0
+                          ? `Va adelantado: lleva ${pesos(diferencia)} más de lo que debería tener hoy (${pesos(a.esperadoAHoy)}).`
+                          : `Va atrasado: a hoy debería llevar ${pesos(a.esperadoAHoy)}; le faltan ${pesos(-diferencia)} para ponerse al día.`}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* El ritmo */}
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <Dato k="Vende por día" v={pesos(a.promedioDiario)} />
+                    <Dato k="Vende por semana" v={pesos(a.promedioSemanal)} />
+                    <Dato
+                      k="Necesita por día"
+                      v={cumplida ? "—" : a.necesarioPorDia != null ? pesos(a.necesarioPorDia) : "—"}
+                      alerta={!cumplida && a.necesarioPorDia != null && a.necesarioPorDia > a.promedioDiario}
+                    />
+                  </div>
+                  {!cumplida && a.necesarioPorDia != null && (
+                    <p className="text-xs text-muted-foreground">
+                      Quedan {a.diasRestantes} días. Para llegar a la meta tiene que vender {pesos(a.necesarioPorDia)} por día
+                      {a.necesarioPorDia > a.promedioDiario
+                        ? `, más que lo que viene vendiendo (${pesos(a.promedioDiario)}).`
+                        : `; a su ritmo actual (${pesos(a.promedioDiario)}) llega.`}
+                    </p>
+                  )}
+                </>
               )}
-              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                <Dato k="Ejecutado a hoy" v={pesos(a.ejecutadoAFecha)} />
-                <Dato k="Promedio diario" v={pesos(a.promedioDiario)} />
-                <Dato k="Promedio semanal" v={pesos(a.promedioSemanal)} />
-                <Dato k="Proyección del mes" v={pesos(a.proyeccion)} alerta={meta > 0 && a.proyeccion < meta} />
-              </div>
-              {meta > 0 && a.necesarioPorDia != null && (
-                <p className="text-xs text-muted-foreground">
-                  Para llegar a la meta necesita {pesos(a.necesarioPorDia)} por día en los {a.diasMes - a.diasTranscurridos} días que quedan.
-                </p>
-              )}
+
               {!compacto && (
                 <div>
-                  <p className="mb-1 text-xs text-muted-foreground">Por semana del mes</p>
+                  <p className="mb-1 text-xs text-muted-foreground">Ventas por semana (según el día del evento)</p>
                   <div className="space-y-1">
                     {a.porSemana.map((s) => (
                       <div key={s.semana} className="flex items-center gap-2 text-xs">
                         <span className="w-14 shrink-0 tabular-nums text-muted-foreground">{s.semana}</span>
                         <div className="h-3 flex-1 rounded bg-muted">
-                          <div className="h-3 rounded bg-blue-500" style={{ width: `${(s.venta / maxSemana) * 100}%` }} />
+                          <div className={cn("h-3 rounded", barra)} style={{ width: `${(s.venta / maxSemana) * 100}%` }} />
                         </div>
                         <span className="w-28 shrink-0 text-right tabular-nums">{pesos(s.venta)}</span>
                       </div>
@@ -527,9 +576,9 @@ function ResumenVentas({
       })}
       {!compacto && (
         <p className="text-[11px] text-muted-foreground md:col-span-2">
-          Venta = valor sin IVA de los eventos del comercial (por su color o por quien los creó), por fecha de ejecución,
-          igual que en el dashboard. La barra clara es todo lo del mes; la oscura, lo ya ejecutado. Promedios = ejecutado a
-          hoy ÷ días corridos del mes (semanal = diario × 7).
+          Vendido = valor sin IVA de todos los eventos del comercial que se ejecutan este mes y ya están en el planner
+          (aunque todavía no se hayan hecho). Vende por día = vendido ÷ días corridos del mes; por semana = por día × 7.
+          La raya blanca en la barra marca dónde debería ir hoy si vendiera parejo todo el mes.
         </p>
       )}
     </div>

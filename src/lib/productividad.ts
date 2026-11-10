@@ -32,6 +32,7 @@ export type TipoTarea =
   | "centro_costos"
   | "verificar_costos"
   | "valor_cotizacion"
+  | "productor"
   | "manual";
 
 export const NOMBRE_TAREA: Record<TipoTarea, string> = {
@@ -41,6 +42,7 @@ export const NOMBRE_TAREA: Record<TipoTarea, string> = {
   centro_costos: "Subir el centro de costos",
   verificar_costos: "Verificar y cerrar los costos",
   valor_cotizacion: "Cargar el valor de la cotización",
+  productor: "Asignar productor al evento",
   manual: "Tarea asignada",
 };
 
@@ -59,6 +61,7 @@ export const MEDIR_DESDE = {
   centro_costos: "2026-09-01",
   verificar_costos: "2026-10-01",
   valor_cotizacion: "2026-10-01",
+  productor: "2026-10-01",
 };
 
 export interface Persona {
@@ -261,8 +264,30 @@ export function tareasAutomaticas(
       );
     }
 
-    // 6. Comercial: valor de la cotizacion antes del montaje
+    // 6. Director de cuenta (comercial del evento): asignar el productor antes
+    //    del montaje. Asignar el PERSONAL ya le toca al productor (regla 2).
     const comercial = comercialDe(p);
+    if (comercial && ini >= MEDIR_DESDE.productor) {
+      const limite = montaje(p);
+      const hecha = productores.length > 0;
+      if (hecha || sumarDias(limite, -7) <= hoy) {
+        add(
+          {
+            id: `productor-${p.id}`,
+            tipo: "productor",
+            titulo: NOMBRE_TAREA.productor,
+            detalle: evento,
+            limite,
+            hecha,
+            hechaEl: null,
+            proyectoId: p.id,
+          },
+          personaComercial(comercial)
+        );
+      }
+    }
+
+    // 7. Comercial: valor de la cotizacion antes del montaje
     if (comercial && ini >= MEDIR_DESDE.valor_cotizacion) {
       const limite = montaje(p);
       const hecha = montosDelEvento(p).total > 0;
@@ -330,7 +355,8 @@ export function responsabilidadesDe(p: Persona, tareas: Tarea[]): string[] {
     out.push("Subir el centro de costos de cada evento antes del montaje.");
     out.push(`Verificar línea por línea y cerrar los costos (máximo ${PLAZOS.verificarDiasDespuesDeCargados} días después de cargados).`);
   }
-  if (tipos.has("valor_cotizacion")) out.push("Como comercial: cargar el valor de la cotización de sus eventos antes del montaje.");
+  if (tipos.has("productor") || tipos.has("valor_cotizacion"))
+    out.push("Como director de cuenta: asignar el productor de sus eventos y cargar el valor de la cotización antes del montaje.");
   if (tipos.has("manual")) out.push("Las tareas que le asignes desde aquí.");
   return out;
 }

@@ -171,6 +171,7 @@ export default function Productividad() {
       { tipo: "centro_costos" as TipoTarea, ...cuenta("centro_costos") },
       { tipo: "costos" as TipoTarea, ...cuenta("costos") },
       { tipo: "verificar_costos" as TipoTarea, ...cuenta("verificar_costos") },
+      { tipo: "productor" as TipoTarea, ...cuenta("productor") },
       { tipo: "personal" as TipoTarea, ...cuenta("personal") },
       { tipo: "valor_cotizacion" as TipoTarea, ...cuenta("valor_cotizacion") },
     ];

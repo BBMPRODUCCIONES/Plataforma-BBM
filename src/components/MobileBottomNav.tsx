@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, Grid3X3, Wrench, Users, MoreHorizontal, X, Calendar, Settings, LogOut, FileBarChart, TrendingUp, LayoutGrid, Construction, Boxes, FileSpreadsheet, Gauge } from "lucide-react";
+import { Briefcase, Grid3X3, Wrench, Users, MoreHorizontal, X, Calendar, Settings, LogOut, FileBarChart, TrendingUp, LayoutGrid, Construction, Boxes, FileSpreadsheet, Gauge, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +28,7 @@ const moreNavItems = [
   { title: "Google Calendar", url: "/calendar", icon: Calendar, panel: "calendar" },
   // Reportes salio del menu (ver AppSidebar.tsx); en su lugar va Ventas.
   // { title: "Reportes", url: "/panel-reportes", icon: FileBarChart, panel: "reportes", adminOnly: true },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, panel: "directivo" },
   { title: "Ventas por comercial", url: "/panel-ventas", icon: TrendingUp, panel: "directivo" },
   { title: "Exportar costos", url: "/exportar-costos", icon: FileSpreadsheet, soloExportadores: true },
   { title: "Productividad", url: "/productividad", icon: Gauge, soloDueno: true },

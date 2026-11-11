@@ -38,6 +38,7 @@ interface RouteConfigItem {
 const routeConfig: Record<string, RouteConfigItem> = {
   "/": { title: "Dashboard", icon: Grid3X3 },
   "/panel-directivo": { title: "Directivo", icon: Briefcase },
+  "/dashboard": { title: "Dashboard", icon: Briefcase },
   "/panel-general": { title: "General", icon: Grid3X3 },
   "/panel-operaciones": { title: "Operaciones", icon: Wrench },
   "/panel-bodega": { title: "Bodega", icon: Package },

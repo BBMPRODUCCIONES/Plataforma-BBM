@@ -64,6 +64,12 @@ const App = () => (
                       <PanelDirectivo />
                     </ProtectedRoute>
                   } />
+                  {/* Dashboard: el mismo Panel Directivo, abierto en su pestana Dashboard */}
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute requiredPanel="directivo" adminOnly>
+                      <PanelDirectivo vistaInicial="dashboard" />
+                    </ProtectedRoute>
+                  } />
                   <Route path="/panel-general" element={
                     <ProtectedRoute requiredPanel="general">
                       <PanelGeneral />

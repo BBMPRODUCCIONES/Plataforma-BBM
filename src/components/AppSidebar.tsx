@@ -19,6 +19,7 @@ import {
   ExternalLink,
   FileSpreadsheet,
   Gauge,
+  LayoutDashboard,
 } from "lucide-react";
 import bbmLogo from "@/assets/bbm-logo.png";
 import { useNavigate } from "react-router-dom";
@@ -44,6 +45,7 @@ import {
 
 const mainNavItems = [
   { title: "Panel Directivo", url: "/panel-directivo", icon: Briefcase, panel: "directivo" },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, panel: "directivo" },
   { title: "Panel General", url: "/panel-general", icon: Grid3X3, panel: "general" },
   { title: "Panel Operaciones", url: "/panel-operaciones", icon: Wrench, panel: "operaciones" },
   // Sin "panel": es una herramienta, la ve cualquiera que entre.

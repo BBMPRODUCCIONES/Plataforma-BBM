@@ -131,7 +131,11 @@ const BotonCostos = ({
   );
 };
 
-const PanelDirectivo = () => {
+/**
+ * vistaInicial: con "dashboard" abre directo en la pestana Dashboard. Asi se
+ * usa en la ruta /dashboard, que tiene su propio boton en el menu.
+ */
+const PanelDirectivo = ({ vistaInicial = "tabla" }: { vistaInicial?: "tabla" | "gantt" | "dashboard" } = {}) => {
   const navigate = useNavigate();
   const { canEditStructure, role, canEditDirectivo } = useUserRole();
   const { user } = useAuth();
@@ -1122,7 +1126,7 @@ const PanelDirectivo = () => {
           onStatusChange={setStatusFilter}
         />
 
-        <Tabs defaultValue="tabla" className={isMobile ? "space-y-2" : "space-y-4"}>
+        <Tabs key={vistaInicial} defaultValue={vistaInicial} className={isMobile ? "space-y-2" : "space-y-4"}>
           {/* Mobile-optimized: toggle visible without scroll */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             {/* Toggle always visible first on mobile */}

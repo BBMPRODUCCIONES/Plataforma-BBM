@@ -25,6 +25,10 @@ const mainNavItems = [
 
 // Items in "More" menu
 const moreNavItems = [
+  // Herramientas (igual que en el menu de computador): visibles para todos.
+  // Plano LED y Truss son archivos sueltos y se abren en pestana propia.
+  { title: "Plano LED", url: "/plano-led/", icon: LayoutGrid, externo: true },
+  { title: "Configurador de Truss", url: "/configurador-truss/", icon: Construction, externo: true },
   { title: "Google Calendar", url: "/calendar", icon: Calendar, panel: "calendar" },
   // Reportes salio del menu (ver AppSidebar.tsx); en su lugar va Ventas.
   // { title: "Reportes", url: "/panel-reportes", icon: FileBarChart, panel: "reportes", adminOnly: true },
@@ -33,10 +37,6 @@ const moreNavItems = [
   { title: "Exportar costos", url: "/exportar-costos", icon: FileSpreadsheet, soloExportadores: true },
   { title: "Productividad", url: "/productividad", icon: Gauge, soloDueno: true },
   { title: "Bodega", url: "/panel-bodega", icon: Boxes, panel: "bodega" },
-  // Archivo suelto, no pantalla del PLANNER: se abre en pestana propia para
-  // que use toda la ventana.
-  { title: "Plano LED", url: "/plano-led/", icon: LayoutGrid, externo: true },
-  { title: "Configurador de Truss", url: "/configurador-truss/", icon: Construction, externo: true },
   { title: "Usuarios", url: "/usuarios", icon: Users, panel: "usuarios", adminOnly: true },
   { title: "Clientes", url: "/clientes", icon: Users, panel: "clientes", adminOnly: true },
   { title: "Empleados", url: "/empleados", icon: Users, panel: "empleados", adminOnly: true },

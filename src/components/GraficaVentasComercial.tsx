@@ -63,7 +63,7 @@ export function GraficaVentasComercial({
     return () => obs.disconnect();
   }, []);
 
-  const { datos, totales, ivaPorComercial, ivaDelPeriodo, sinDiscriminar, sinAsignar, eventosSinAsignar, eventosDelMes } = useMemo(() => {
+  const { datos, totales, ivaPorComercial, ivaDelPeriodo, sinDiscriminar, sinAsignar, eventosSinAsignar, eventosDelMes, facturado, facturadoSinAsignar, facturasPorComercial } = useMemo(() => {
     // Un cajon por mes, aunque el mes no tenga ventas: los huecos se ven.
     // Con `mes` hay un solo cajon y solo cuenta lo de ese mes.
     const cajones = new Map<string, Record<string, number | string>>();
@@ -99,6 +99,26 @@ export function GraficaVentasComercial({
     let sinDiscriminar = 0;
 
     let contadorDelMes = 0;
+
+    // Ventas REALES: subtotal (sin IVA) de las facturas subidas, contadas en el
+    // mes de la FECHA DE LA FACTURA (no de la ejecucion), igual que el
+    // dashboard. Se atribuyen al comercial con la misma regla del color.
+    const facturado: Record<string, number> = {};
+    const facturasPorComercial: Record<string, number> = {};
+    COLORES_DE_COMERCIAL.forEach((c) => { facturado[c.valor] = 0; facturasPorComercial[c.valor] = 0; });
+    let facturadoSinAsignar = 0;
+    projects.forEach((p) => {
+      if (p.isDeleted || !p.factura?.archivo || !(p.factura?.subtotal && p.factura.subtotal > 0)) return;
+      const f = aFecha(p.factura.fecha);
+      if (!f || !cajones.has(format(startOfMonth(f), "yyyy-MM"))) return;
+      const color = buscarColor(colorVisualDeEvento(p)?.color);
+      if (color && color.comercial) {
+        facturado[color.valor] += p.factura.subtotal;
+        facturasPorComercial[color.valor] += 1;
+      } else {
+        facturadoSinAsignar += p.factura.subtotal;
+      }
+    });
 
     projects.forEach((p) => {
       if (p.isDeleted) return;
@@ -147,6 +167,9 @@ export function GraficaVentasComercial({
       sinAsignar: montoSinAsignar,
       eventosSinAsignar: contadorSinAsignar,
       eventosDelMes: contadorDelMes,
+      facturado,
+      facturadoSinAsignar,
+      facturasPorComercial,
     };
   }, [projects, meses, mes]);
 
@@ -194,6 +217,18 @@ export function GraficaVentasComercial({
               <div className="mt-1 text-lg font-semibold tabular-nums">
                 {pesos.format(totales[c.valor] || 0)}
               </div>
+              <div className="text-[11px] text-muted-foreground">Vendido (en el planner)</div>
+              <div className="mt-2 border-t border-border pt-2">
+                <div className="text-base font-semibold tabular-nums text-emerald-500">
+                  {pesos.format(facturado[c.valor] || 0)}
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Facturado real · {facturasPorComercial[c.valor] || 0} factura
+                  {(facturasPorComercial[c.valor] || 0) === 1 ? "" : "s"}
+                  {(totales[c.valor] || 0) > 0 &&
+                    ` · ${Math.round(((facturado[c.valor] || 0) / (totales[c.valor] || 1)) * 100)}% de lo vendido`}
+                </div>
+              </div>
             </div>
           ))}
           <div className="rounded-lg border border-dashed border-border p-3">
@@ -204,6 +239,11 @@ export function GraficaVentasComercial({
             <div className="text-[11px] text-muted-foreground">
               {eventosSinAsignar} evento{eventosSinAsignar === 1 ? "" : "s"}
             </div>
+            {facturadoSinAsignar > 0 && (
+              <div className="mt-2 border-t border-border pt-2 text-[11px] text-muted-foreground">
+                Facturado real: <span className="font-semibold text-emerald-500/80">{pesos.format(facturadoSinAsignar)}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -220,11 +260,24 @@ export function GraficaVentasComercial({
               <span className="font-semibold tabular-nums">{pesos.format(ivaDelPeriodo)}</span>
             </span>
             <span>
-              <span className="text-muted-foreground">Facturado </span>
+              <span className="text-muted-foreground">Total con IVA </span>
               <span className="font-semibold tabular-nums">{pesos.format(ventaDelPeriodo + ivaDelPeriodo)}</span>
+            </span>
+            <span>
+              <span className="text-muted-foreground">Facturado real (sin IVA) </span>
+              <span className="font-semibold tabular-nums text-emerald-500">
+                {pesos.format(
+                  COLORES_DE_COMERCIAL.reduce((a, c) => a + (facturado[c.valor] || 0), 0) + facturadoSinAsignar
+                )}
+              </span>
             </span>
           </div>
         )}
+
+        <p className="text-[11px] text-muted-foreground">
+          Vendido = lo puesto en el planner, por mes de ejecución. Facturado real = subtotal sin IVA de las
+          facturas subidas, por mes de la fecha de la factura (por eso puede no cuadrar mes a mes con lo vendido).
+        </p>
 
         {sinDiscriminar > 0 && (
           <p className="text-[11px] text-muted-foreground">

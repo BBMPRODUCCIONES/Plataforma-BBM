@@ -43,17 +43,22 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 
-const mainNavItems = [
+interface ItemMenu {
+  title: string;
+  url: string;
+  icon: typeof Briefcase;
+  panel?: string;
+  externo?: boolean;
+  adminOnly?: boolean;
+  soloExportadores?: boolean;
+  soloDueno?: boolean;
+}
+
+const mainNavItems: ItemMenu[] = [
   { title: "Panel Directivo", url: "/panel-directivo", icon: Briefcase, panel: "directivo" },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, panel: "directivo" },
   { title: "Panel General", url: "/panel-general", icon: Grid3X3, panel: "general" },
   { title: "Panel Operaciones", url: "/panel-operaciones", icon: Wrench, panel: "operaciones" },
-  // Sin "panel": es una herramienta, la ve cualquiera que entre.
-  // "externo": es un archivo suelto, no una pantalla del PLANNER. Se abre en
-  // pestana propia para que use toda la ventana; metido aqui adentro quedaba
-  // apretado contra el menu y el encabezado.
-  { title: "Plano LED", url: "/plano-led/", icon: LayoutGrid, externo: true },
-  { title: "Configurador de Truss", url: "/configurador-truss/", icon: Construction, externo: true },
   
   // Reportes salio del menu; en su lugar va Ventas por comercial, que antes
   // era una ventana dentro del Panel Directivo. La ruta /panel-reportes sigue
@@ -222,6 +227,29 @@ export function AppSidebar() {
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
+                  {/* Plano LED y Configurador de Truss: archivos sueltos, no
+                      pantallas del PLANNER. Los ve cualquiera que entre y se
+                      abren en pestana propia para usar toda la ventana. */}
+                  {[
+                    { title: "Plano LED", url: "/plano-led/", icon: LayoutGrid },
+                    { title: "Configurador de Truss", url: "/configurador-truss/", icon: Construction },
+                  ].map((h) => (
+                    <SidebarMenuItem key={h.url}>
+                      <SidebarMenuButton asChild>
+                        <a
+                          href={h.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-sidebar-accent"
+                          title={`${h.title} — se abre en una pestaña nueva`}
+                        >
+                          <h.icon className="w-4 h-4" />
+                          <span className="text-sm">{h.title}</span>
+                          <ExternalLink className="w-3 h-3 ml-auto opacity-40" />
+                        </a>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <NavLink

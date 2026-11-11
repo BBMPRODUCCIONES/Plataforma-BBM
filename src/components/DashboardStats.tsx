@@ -409,8 +409,28 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
 
   const maxCliente = topClientes[0]?.[1].venta || 1;
 
+  const etiquetaPeriodo = rango
+    ? (() => {
+        const a = rango.start;
+        const b = rango.end;
+        const mismoMesCompleto =
+          a.getDate() === 1 && endOfMonth(a).getDate() === b.getDate() && a.getMonth() === b.getMonth();
+        if (mismoMesCompleto) return format(a, "MMMM 'de' yyyy", { locale: es });
+        return `${format(a, "d MMM", { locale: es })} – ${format(b, "d MMM yyyy", { locale: es })}`;
+      })()
+    : "todo el historial";
+
   return (
     <div className="space-y-4">
+      {/* Que periodo se esta mirando: todo lo de abajo es de este rango */}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+        <span className="text-muted-foreground">Cifras de</span>
+        <span className="font-semibold capitalize">{etiquetaPeriodo}</span>
+        <span className="text-xs text-muted-foreground">
+          · cámbialo con Día / Semana / Mes / Rango arriba. Respeta también los filtros de productor, comercial y búsqueda.
+        </span>
+      </div>
+
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Kpi titulo="Ventas estimadas" icono={DollarSign}>

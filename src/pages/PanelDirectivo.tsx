@@ -142,6 +142,15 @@ const PanelDirectivo = ({ vistaInicial = "tabla" }: { vistaInicial?: "tabla" | "
   const { projects, loading, updateProject: contextUpdateProject, updateProjectMultiple, addProject, softDeleteProject, restoreProject } = useProjects();
   const { globalDateRange, setGlobalDateRange, globalViewMode, setGlobalViewMode, globalSelectedDate, setGlobalSelectedDate } = useDateRange();
   const isAdmin = role?.toLowerCase() === "administrador";
+  // El boton "Dashboard" del menu abre en el MES actual: el filtro de fechas
+  // se comparte entre paneles y casi siempre venia en "Semana", y las ventas
+  // de una semana se leian como si fueran las del mes.
+  useEffect(() => {
+    if (vistaInicial !== "dashboard") return;
+    setGlobalViewMode("month");
+    setGlobalSelectedDate(new Date());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vistaInicial]);
   const [costosDeProyectoId, setCostosDeProyectoId] = useState<string | null>(null);
   const [fichaDeProyectoId, setFichaDeProyectoId] = useState<string | null>(null);
   const isMobile = useIsMobile();

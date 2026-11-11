@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, ChevronsUpDown, Users, User, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Users, User, Search, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
@@ -35,9 +35,30 @@ interface PersonalNominaSelectProps {
 const normalizar = (t: string) =>
   (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
 
-/** Las lineas de nomina (BBM) de un evento, en el orden en que estan. */
+/** Las PERSONAS de nomina (BBM) de un evento, en el orden en que estan. */
 export function personalDeNomina(personal?: PersonalItem[]): PersonalItem[] {
-  return (personal || []).filter((p) => p.tipoPersonal === "BBM");
+  return (personal || []).filter((p) => p.tipoPersonal === "BBM" && p.marca !== "no_tuvo_personal");
+}
+
+/**
+ * "No tuvo personal": se guarda como una linea de marca dentro del mismo
+ * campo `personal` (igual que "sin costos de terceros" en los costos). Asi
+ * el evento queda resuelto y no aparece como "personal por asignar".
+ */
+export function noTuvoPersonal(personal?: PersonalItem[]): boolean {
+  return (personal || []).some((p) => p.marca === "no_tuvo_personal");
+}
+
+function lineaNoTuvoPersonal(): PersonalItem {
+  return {
+    // El id empieza con p + milisegundos: de ahi se lee cuando se marco.
+    id: `p${Date.now()}-no-tuvo-personal`,
+    tipoPersonal: "BBM",
+    nombre: "No tuvo personal",
+    cargo: "",
+    telefono: "",
+    marca: "no_tuvo_personal",
+  };
 }
 
 /** Como se ve en una casilla angosta: el primero, y cuantos mas hay. */
@@ -60,10 +81,14 @@ export function PersonalNominaSelect({
 
   const todas = value || [];
   const deNomina = personalDeNomina(todas);
-  const hay = deNomina.length > 0;
-  const tituloCompleto = hay
-    ? deNomina.map((p) => (p.cargo ? `${p.nombre} - ${p.cargo}` : p.nombre)).join("\n")
-    : "Sin personal asignado";
+  const sinPersonal = noTuvoPersonal(todas);
+  const hay = deNomina.length > 0 || sinPersonal;
+  const tituloCompleto = sinPersonal
+    ? "Marcado: el evento no tuvo personal de BBM"
+    : deNomina.length
+      ? deNomina.map((p) => (p.cargo ? `${p.nombre} - ${p.cargo}` : p.nombre)).join("\n")
+      : "Sin personal asignado";
+  const textoResumen = sinPersonal ? "No tuvo personal" : resumen(deNomina);
 
   // Con una docena de personas, bajar rodando es mas lento que escribir el
   // nombre. Busca tambien por correo: hay usuarios que se llaman "Bodega" o
@@ -88,7 +113,7 @@ export function PersonalNominaSelect({
           <User className="h-3 w-3 shrink-0 opacity-40" />
         )}
         <span className={cn("truncate", !hay && "text-muted-foreground")}>
-          {resumen(deNomina)}
+          {textoResumen}
         </span>
       </span>
     );
@@ -102,9 +127,12 @@ export function PersonalNominaSelect({
     const u = usuarios.find((x) => x.id === usuarioId);
     if (!u) return;
 
+    // Marcar a alguien quita la marca de "no tuvo personal".
+    const base = todas.filter((p) => p.marca !== "no_tuvo_personal");
+
     if (estaMarcado(u.nombre)) {
       onChange(
-        todas.filter(
+        base.filter(
           (p) => p.tipoPersonal !== "BBM" || normalizar(p.nombre) !== normalizar(u.nombre)
         )
       );
@@ -133,7 +161,14 @@ export function PersonalNominaSelect({
       ...(empleadoId ? { empleadoId } : {}),
       ...(cedula ? { cedula, cedulaOrigen: "empleado" as const } : {}),
     };
-    onChange([...todas, nuevo]);
+    onChange([...base, nuevo]);
+  };
+
+  const marcarNoTuvoPersonal = () => {
+    // Se van las personas de nomina (Proveedor y Transporte se quedan) y
+    // queda la marca.
+    onChange([...todas.filter((p) => p.tipoPersonal !== "BBM"), lineaNoTuvoPersonal()]);
+    setAbierto(false);
   };
 
   const dejarSinPersonal = () => {
@@ -175,7 +210,7 @@ export function PersonalNominaSelect({
           <span className="flex min-w-0 items-center gap-1">
             {deNomina.length > 1 && <Users className="h-3 w-3 shrink-0 opacity-40" />}
             <span className={cn("truncate", !hay && "text-muted-foreground")}>
-              {resumen(deNomina)}
+              {textoResumen}
             </span>
           </span>
           <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-40" />
@@ -213,11 +248,25 @@ export function PersonalNominaSelect({
                   onClick={dejarSinPersonal}
                   className={cn(
                     "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-accent",
-                    !hay && "bg-accent/60"
+                    !hay && !sinPersonal && "bg-accent/60"
                   )}
                 >
                   <span className="h-3 w-3 shrink-0" />
-                  <span className="text-muted-foreground">Sin personal</span>
+                  <span className="text-muted-foreground">Sin asignar</span>
+                </button>
+              )}
+              {!busqueda && (
+                <button
+                  type="button"
+                  onClick={marcarNoTuvoPersonal}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-accent",
+                    sinPersonal && "bg-accent/60"
+                  )}
+                  title="El evento se hizo sin personal de BBM. Queda resuelto y no sale como pendiente."
+                >
+                  {sinPersonal ? <Check className="h-3 w-3 shrink-0" /> : <UserX className="h-3 w-3 shrink-0 opacity-60" />}
+                  <span>No tuvo personal</span>
                 </button>
               )}
 

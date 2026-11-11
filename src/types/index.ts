@@ -156,6 +156,11 @@ export interface PersonalItem {
   rutaTransporte?: string; // Campo para la ruta cuando es Transporte
   adjuntos?: Attachment[]; // Archivos adjuntos (solo para Proveedor y Transporte)
   feedback?: string; // Feedback del personal
+  /**
+   * "no_tuvo_personal": linea de marca, no una persona. Dice que el evento se
+   * hizo sin personal de BBM (ver PersonalNominaSelect).
+   */
+  marca?: "no_tuvo_personal";
 }
 
 /** Categorias de costo del evento. El orden es el que se ve en el selector. */

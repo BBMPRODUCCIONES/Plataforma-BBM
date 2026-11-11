@@ -1,4 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronDown } from "lucide-react";
 import { Project } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
@@ -232,12 +234,13 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
   const conCostos = ejecutados.filter(
     (p) => marcadoSinTerceros(p.costos) || totalDeCostos(p.costos) >= COSTO_MINIMO_REAL
   );
-  const costosSimbolicos = delPeriodo.filter(
+  const eventosCostosSimbolicos = delPeriodo.filter(
     (p) =>
       !marcadoSinTerceros(p.costos) &&
       lineasReales(p.costos).length > 0 &&
       totalDeCostos(p.costos) < COSTO_MINIMO_REAL
-  ).length;
+  );
+  const costosSimbolicos = eventosCostosSimbolicos.length;
   const ventaConCostos = conCostos.reduce((s, p) => s + montosDelEvento(p).base, 0);
   const costosTerceros = conCostos.reduce((s, p) => s + totalDeCostos(p.costos), 0);
   const utilidad = ventaConCostos - costosTerceros;
@@ -257,57 +260,69 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
   const montoSinCobrar = sinCobrar.reduce((s, p) => s + montosDelEvento(p).total, 0);
 
   // ---- Pendientes ------------------------------------------------------------
-  const pendientes = [
+  // Cada pendiente lleva su lista de eventos: al tocarlo se despliega, y
+  // cada evento abre el Panel General mostrando solo ese evento.
+  const pendientes: {
+    icono: typeof AlertTriangle;
+    texto: string;
+    eventos: Project[];
+    critico: boolean;
+    abrir?: "costos";
+  }[] = [
     {
       icono: AlertTriangle,
       texto: "Ejecutados sin costos cargados",
-      n: delPeriodo.filter((p) => eventoVencidoSinCostos(p, hoy)).length,
+      eventos: delPeriodo.filter((p) => eventoVencidoSinCostos(p, hoy)),
       critico: true,
+      abrir: "costos",
     },
     {
       icono: AlertTriangle,
       texto: "Costos simbólicos (menos de $1.000)",
-      n: costosSimbolicos,
+      eventos: eventosCostosSimbolicos,
       critico: true,
+      abrir: "costos",
     },
     {
       icono: Receipt,
       texto: hayColumnaFacturacion ? "Ejecutados por facturar" : "Ejecutados sin # de factura",
-      n: sinCobrar.length,
+      eventos: sinCobrar,
       critico: false,
     },
     {
       icono: FileWarning,
       texto: "Ejecutados sin factura subida (no cuentan como venta real)",
-      n: ejecutados.filter(
+      eventos: ejecutados.filter(
         (p) => !p.factura?.archivo && normalizarFacturacion(p.estadoFacturacion) !== "no_se_factura"
-      ).length,
+      ),
       critico: false,
     },
     {
       icono: UserX,
       texto: "Sin productor asignado",
-      n: delPeriodo.filter((p) => !p.productor || !p.productor.trim()).length,
+      eventos: delPeriodo.filter((p) => !p.productor || !p.productor.trim()),
       critico: false,
     },
     {
       icono: CalendarDays,
       texto: "Fechas inconsistentes (fin antes del inicio)",
-      n: delPeriodo.filter((p) => {
+      eventos: delPeriodo.filter((p) => {
         const ei = aFecha(p.fechaEjecucionInicio);
         const ef = aFecha(p.fechaEjecucionFin);
         const mi = aFecha(p.fechaMontajeInicio);
         return (ei && ef && ef < ei) || (mi && ei && mi > ei);
-      }).length,
+      }),
       critico: false,
     },
     {
       icono: FileWarning,
       texto: "Sin ingreso bruto (IVA sin separar)",
-      n: ventas.sinDiscriminar,
+      eventos: delPeriodo.filter((p) => montosDelEvento(p).sinDiscriminar),
       critico: false,
     },
   ];
+  const [pendienteAbierto, setPendienteAbierto] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // ---- Proximos 7 dias -------------------------------------------------------
   const proximos = useMemo(() => {
@@ -581,28 +596,66 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
             <CardTitle className="text-sm font-semibold">Pendientes del periodo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
-            {pendientes.map(({ icono: Icono, texto, n, critico }) => (
-              <div
-                key={texto}
-                className="flex items-center justify-between gap-2 rounded-md px-2 py-2 hover:bg-muted/40"
-              >
-                <span className="flex items-center gap-2 text-sm">
-                  <Icono
-                    className={`h-4 w-4 shrink-0 ${
-                      n > 0 && critico ? "text-red-400" : n > 0 ? "text-amber-400" : "text-muted-foreground"
-                    }`}
-                  />
-                  <span className={n === 0 ? "text-muted-foreground" : ""}>{texto}</span>
-                </span>
-                <span
-                  className={`text-sm font-semibold tabular-nums ${
-                    n > 0 && critico ? "text-red-400" : n > 0 ? "text-foreground" : "text-muted-foreground"
-                  }`}
-                >
-                  {n === 0 ? "✓" : n}
-                </span>
-              </div>
-            ))}
+            {pendientes.map(({ icono: Icono, texto, eventos, critico, abrir }) => {
+              const n = eventos.length;
+              const abierto = pendienteAbierto === texto && n > 0;
+              return (
+                <div key={texto}>
+                  <button
+                    type="button"
+                    disabled={n === 0}
+                    onClick={() => setPendienteAbierto(abierto ? null : texto)}
+                    className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-2 text-left hover:bg-muted/40 disabled:cursor-default disabled:hover:bg-transparent"
+                    title={n > 0 ? "Ver cuáles son" : undefined}
+                  >
+                    <span className="flex items-center gap-2 text-sm">
+                      <Icono
+                        className={`h-4 w-4 shrink-0 ${
+                          n > 0 && critico ? "text-red-400" : n > 0 ? "text-amber-400" : "text-muted-foreground"
+                        }`}
+                      />
+                      <span className={n === 0 ? "text-muted-foreground" : ""}>{texto}</span>
+                    </span>
+                    <span
+                      className={`flex items-center gap-1 text-sm font-semibold tabular-nums ${
+                        n > 0 && critico ? "text-red-400" : n > 0 ? "text-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      {n === 0 ? "✓" : n}
+                      {n > 0 && (
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${abierto ? "rotate-180" : ""}`} />
+                      )}
+                    </span>
+                  </button>
+                  {abierto && (
+                    <ul className="mb-2 ml-6 max-h-64 divide-y divide-border overflow-y-auto rounded-md border">
+                      {[...eventos]
+                        .sort((x, y) => (x.fechaEjecucionInicio || "").localeCompare(y.fechaEjecucionInicio || ""))
+                        .map((p) => (
+                          <li key={p.id}>
+                            <button
+                              type="button"
+                              className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs hover:bg-muted/40"
+                              title="Abrir el evento en el Panel General"
+                              onClick={() =>
+                                navigate(`/panel-general?eventId=${p.id}${abrir === "costos" ? "&abrir=costos" : ""}`)
+                              }
+                            >
+                              <span className="w-14 shrink-0 tabular-nums text-muted-foreground">
+                                {p.fechaEjecucionInicio
+                                  ? format(aFecha(p.fechaEjecucionInicio)!, "d MMM", { locale: es })
+                                  : "—"}
+                              </span>
+                              <span className="min-w-0 flex-1 truncate">{p.evento || "Sin nombre"}</span>
+                              <span className="max-w-[40%] shrink-0 truncate text-muted-foreground">{p.cliente}</span>
+                            </button>
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       </div>

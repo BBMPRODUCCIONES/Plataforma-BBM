@@ -16,6 +16,7 @@ import { COLORES_DE_COMERCIAL, buscarColor, colorVisualDeEvento } from "@/lib/co
 import { montosDelEvento } from "@/lib/montosEvento";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GraficaClientes } from "@/components/GraficaClientes";
+import { VentasSinFacturar } from "@/components/VentasSinFacturar";
 
 interface GraficaVentasComercialProps {
   projects: Project[];
@@ -199,7 +200,12 @@ export function GraficaVentasComercial({
           <TabsList className="w-full">
             <TabsTrigger value="comercial" className="flex-1">Por comercial</TabsTrigger>
             <TabsTrigger value="cliente" className="flex-1">Por cliente</TabsTrigger>
+            <TabsTrigger value="sin-facturar" className="flex-1">Sin facturar</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="sin-facturar" className="mt-3 w-full min-w-0">
+            <VentasSinFacturar projects={projects} meses={meses} mes={mes} />
+          </TabsContent>
 
           <TabsContent value="cliente" className="mt-3 w-full min-w-0">
             <GraficaClientes projects={projects} meses={meses} mes={mes} />

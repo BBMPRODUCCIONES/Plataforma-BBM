@@ -589,14 +589,16 @@ export function DashboardStats({ projects, todos, rango }: DashboardStatsProps) 
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
                   }}
-                  labelStyle={{ color: "hsl(var(--foreground))" }}
+                  labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
+                  // Texto siempre legible; el color de la serie lo lleva el nombre.
+                  itemStyle={{ color: "hsl(var(--foreground))" }}
                   formatter={(v: number, n, item) =>
                     n === "real"
-                      ? [`${pesos(v)} · ${item.payload.facturas} facturas`, "Real (facturado)"]
-                      : [`${pesos(v)} · ${item.payload.eventos} eventos`, "Estimada (cotizado)"]
+                      ? [`${pesos(v)} · ${item.payload.facturas} facturas`, "🟢 Real (facturado)"]
+                      : [`${pesos(v)} · ${item.payload.eventos} eventos`, "🔵 Estimada (cotizado)"]
                   }
                 />
-                <Bar dataKey="venta" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="venta" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
                   {porMes.map((m) => (
                     <Cell
                       key={m.clave}

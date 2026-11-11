@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { logger } from "@/lib/logger";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
@@ -204,6 +204,11 @@ const PanelGeneral = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroProductor, setFiltroProductor] = useState("todos");
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
+  // Modo foco: llegar desde otra pantalla (Productividad) a UN evento para
+  // editarlo. /panel-general?eventId=...&abrir=costos muestra solo ese evento
+  // (sin importar filtros ni fechas) y, si se pide, abre su ventana de costos.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [focoId, setFocoId] = useState<string | null>(null);
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [notaExpandida, setNotaExpandida] = useState<{ evento: string; nota: string } | null>(null);
@@ -263,6 +268,7 @@ const PanelGeneral = () => {
   };
 
   const filteredProjects = useMemo(() => {
+    if (focoId) return projects.filter((p) => p.id === focoId);
     let result = projects.filter((p) => {
       const matchesDeleted = showDeleted || !p.isDeleted;
       const matchesSearch = coincideBusquedaDeEvento(p, searchTerm);
@@ -291,7 +297,20 @@ const PanelGeneral = () => {
     }
 
     return result;
-  }, [projects, showDeleted, searchTerm, statusFilter, filtroProductor, montajeSort, globalViewMode, globalSelectedDate, globalDateRange]);
+  }, [projects, showDeleted, searchTerm, statusFilter, filtroProductor, montajeSort, globalViewMode, globalSelectedDate, globalDateRange, focoId]);
+
+  useEffect(() => {
+    const id = searchParams.get("eventId");
+    if (!id || projects.length === 0) return;
+    const abrir = searchParams.get("abrir");
+    if (projects.some((p) => p.id === id)) {
+      setFocoId(id);
+      setHighlightedProjectId(id);
+      if (abrir === "costos") setCostosDeProyectoId(id);
+    }
+    setSearchParams({}, { replace: true });
+  }, [searchParams, projects, setSearchParams]);
+  const eventoEnFoco = focoId ? projects.find((p) => p.id === focoId) : undefined;
 
 
   const getRowClassName = (project: Project) => {
@@ -701,6 +720,21 @@ const PanelGeneral = () => {
             )
           }
         />
+
+        {eventoEnFoco && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">
+            <span className="flex-1">
+              Mostrando solo <strong>{eventoEnFoco.evento || "este evento"}</strong>
+              {eventoEnFoco.cliente ? ` · ${eventoEnFoco.cliente}` : ""}. Edítalo aquí abajo.
+            </span>
+            <Button size="sm" variant="outline" className="h-8" onClick={() => { setFocoId(null); setHighlightedProjectId(null); }}>
+              Ver todos los eventos
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8" onClick={() => navigate(-1)}>
+              Volver
+            </Button>
+          </div>
+        )}
 
         {/* Calendar Filter */}
         <CalendarFilter

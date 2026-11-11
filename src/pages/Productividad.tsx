@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, ClipboardList, Loader2, Lock, Pencil, Plus, Target, Trash2, Undo2 } from "lucide-react";
 import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
@@ -366,7 +367,15 @@ export default function Productividad() {
   );
 }
 
+// Tareas que se resuelven en la ventana de costos: se abre de una vez.
+const ABRE_COSTOS = new Set<TipoTarea>(["costos", "verificar_costos"]);
+
 function ListaTareas({ titulo, tareas, hoy, conResponsable }: { titulo: string; tareas: Tarea[]; hoy: string; conResponsable?: boolean }) {
+  const navigate = useNavigate();
+  const ir = (t: Tarea) => {
+    if (!t.proyectoId) return;
+    navigate(`/panel-general?eventId=${t.proyectoId}${ABRE_COSTOS.has(t.tipo) ? "&abrir=costos" : ""}`);
+  };
   const orden = [...tareas].sort((a, b) => {
     const va = vencida(a, hoy) ? 0 : 1;
     const vb = vencida(b, hoy) ? 0 : 1;
@@ -375,6 +384,9 @@ function ListaTareas({ titulo, tareas, hoy, conResponsable }: { titulo: string; 
   return (
     <div>
       {titulo && <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">{titulo} ({tareas.length})</p>}
+      {orden.some((t) => t.proyectoId) && (
+        <p className="mb-1 text-[11px] text-muted-foreground">Toca una tarea para abrir el evento y editarlo.</p>
+      )}
       {orden.length === 0 ? (
         <p className="text-xs text-muted-foreground">Nada por aquí.</p>
       ) : (
@@ -383,7 +395,12 @@ function ListaTareas({ titulo, tareas, hoy, conResponsable }: { titulo: string; 
             const v = vencida(t, hoy);
             const tarde = t.hecha && t.hechaEl && t.limite && t.hechaEl > t.limite;
             return (
-              <li key={t.id} className="flex items-start gap-2 px-3 py-2">
+              <li
+                key={t.id}
+                className={cn("flex items-start gap-2 px-3 py-2", t.proyectoId && "cursor-pointer hover:bg-muted/40")}
+                onClick={() => ir(t)}
+                title={t.proyectoId ? "Abrir el evento en el Panel General para editarlo" : undefined}
+              >
                 {t.hecha ? (
                   <CheckCircle2 className={cn("mt-0.5 h-4 w-4 shrink-0", tarde ? "text-amber-500" : "text-emerald-500")} />
                 ) : v ? (

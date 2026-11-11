@@ -75,7 +75,7 @@ export function GraficaVentasComercial({
         mesLargo: format(inicio, "MMMM yyyy", { locale: es }),
         total: 0,
       };
-      COLORES_DE_COMERCIAL.forEach((c) => { fila[c.valor] = 0; });
+      COLORES_DE_COMERCIAL.forEach((c) => { fila[c.valor] = 0; fila[`${c.valor}_fac`] = 0; });
       cajones.set(clave, fila);
     };
 
@@ -110,9 +110,12 @@ export function GraficaVentasComercial({
     projects.forEach((p) => {
       if (p.isDeleted || !p.factura?.archivo || !(p.factura?.subtotal && p.factura.subtotal > 0)) return;
       const f = aFecha(p.factura.fecha);
-      if (!f || !cajones.has(format(startOfMonth(f), "yyyy-MM"))) return;
+      const claveFac = f ? format(startOfMonth(f), "yyyy-MM") : "";
+      if (!f || !cajones.has(claveFac)) return;
       const color = buscarColor(colorVisualDeEvento(p)?.color);
       if (color && color.comercial) {
+        const filaFac = cajones.get(claveFac)!;
+        filaFac[`${color.valor}_fac`] = (Number(filaFac[`${color.valor}_fac`]) || 0) + p.factura.subtotal;
         facturado[color.valor] += p.factura.subtotal;
         facturasPorComercial[color.valor] += 1;
       } else {
@@ -184,9 +187,10 @@ export function GraficaVentasComercial({
     valor: c.valor,
     nombre: c.nombre,
     monto: totales[c.valor] || 0,
+    fac: facturado[c.valor] || 0,
     color: oscuro ? c.graficaOscuro : c.graficaClaro,
   })).sort((a, b) => b.monto - a.monto);
-  const topMes = Math.max(1, ...barrasMes.map((b) => b.monto));
+  const topMes = Math.max(1, ...barrasMes.map((b) => Math.max(b.monto, b.fac)));
   const totalMes = barrasMes.reduce((a, b) => a + b.monto, 0);
 
   return (
@@ -307,11 +311,19 @@ export function GraficaVentasComercial({
                       )}
                     </span>
                   </div>
-                  <div className="h-2.5 w-full overflow-hidden rounded bg-muted">
+                  <div className="relative h-4 w-full overflow-hidden rounded bg-muted">
                     <div
-                      className="h-full rounded"
-                      style={{ width: `${(b.monto / topMes) * 100}%`, backgroundColor: b.color }}
+                      className="absolute inset-y-0 left-0 rounded"
+                      style={{ width: `${(b.monto / topMes) * 100}%`, backgroundColor: b.color, opacity: 0.35 }}
                     />
+                    <div
+                      className="absolute inset-y-0 left-0 rounded"
+                      style={{ width: `${(b.fac / topMes) * 100}%`, backgroundColor: b.color }}
+                    />
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Facturado real: <span className="font-medium text-foreground">{pesos.format(b.fac)}</span>
+                    {b.monto > 0 && ` · ${Math.round((b.fac / b.monto) * 100)}% de lo vendido`}
                   </div>
                 </div>
               ))}
@@ -336,11 +348,15 @@ export function GraficaVentasComercial({
               <BarChart data={datos} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                 <XAxis
+                  xAxisId="est"
                   dataKey="etiqueta"
                   tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                   tickLine={false}
                   axisLine={{ stroke: "hsl(var(--border))" }}
                 />
+                {/* Segundo eje igual y oculto: las barras de facturado caen
+                    exactamente encima de las de vendido. */}
+                <XAxis xAxisId="fac" dataKey="etiqueta" hide />
                 <YAxis
                   tickFormatter={millones}
                   tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
@@ -374,11 +390,25 @@ export function GraficaVentasComercial({
                     <span style={{ color: "hsl(var(--foreground))" }}>{valor}</span>
                   )}
                 />
+                {/* Translucida: vendido (planner). Llena: facturado real. */}
                 {COLORES_DE_COMERCIAL.map((c) => (
                   <Bar
                     key={c.valor}
+                    xAxisId="est"
                     dataKey={c.valor}
-                    name={c.nombre}
+                    name={`${c.nombre} · vendido`}
+                    fill={oscuro ? c.graficaOscuro : c.graficaClaro}
+                    fillOpacity={0.3}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={28}
+                  />
+                ))}
+                {COLORES_DE_COMERCIAL.map((c) => (
+                  <Bar
+                    key={`${c.valor}_fac`}
+                    xAxisId="fac"
+                    dataKey={`${c.valor}_fac`}
+                    name={`${c.nombre} · facturado`}
                     fill={oscuro ? c.graficaOscuro : c.graficaClaro}
                     radius={[4, 4, 0, 0]}
                     maxBarSize={28}
@@ -422,7 +452,7 @@ export function GraficaVentasComercial({
               </thead>
               <tbody>
                 {datos
-                  .filter((f) => Number(f.total) > 0)
+                  .filter((f) => Number(f.total) > 0 || COLORES_DE_COMERCIAL.some((c) => Number(f[`${c.valor}_fac`]) > 0))
                   .reverse()
                   .map((fila) => (
                     <tr key={String(fila.clave)} className="border-t border-border/60">
@@ -432,6 +462,11 @@ export function GraficaVentasComercial({
                           {Number(fila[c.valor]) > 0
                             ? pesos.format(Number(fila[c.valor]))
                             : <span className="text-muted-foreground">—</span>}
+                          {Number(fila[`${c.valor}_fac`]) > 0 && (
+                            <div className="text-[11px] text-emerald-500">
+                              fact. {pesos.format(Number(fila[`${c.valor}_fac`]))}
+                            </div>
+                          )}
                         </td>
                       ))}
                       <td className="px-3 py-1.5 text-right font-medium tabular-nums">

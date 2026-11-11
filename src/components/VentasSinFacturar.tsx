@@ -22,6 +22,13 @@ interface Props {
   mes?: string | null;
 }
 
+/**
+ * Antes de septiembre de 2026 la facturacion se llevaba por fuera del planner
+ * (numeros escritos a mano, eventos de prueba). Esos meses no se persiguen:
+ * llenarian la lista de pendientes que no son pendientes.
+ */
+const SIN_FACTURAR_DESDE = "2026-09-01";
+
 const pesos = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 const hoyBogota = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 const dias = (a: string, b: string) =>
@@ -33,7 +40,8 @@ export function VentasSinFacturar({ projects, meses = 12, mes = null }: Props) {
   const hoy = hoyBogota();
 
   const { filas, desde, hasta } = useMemo(() => {
-    const desde = mes ? `${mes}-01` : format(startOfMonth(subMonths(new Date(), meses - 1)), "yyyy-MM-dd");
+    const desdePeriodo = mes ? `${mes}-01` : format(startOfMonth(subMonths(new Date(), meses - 1)), "yyyy-MM-dd");
+    const desde = desdePeriodo < SIN_FACTURAR_DESDE ? SIN_FACTURAR_DESDE : desdePeriodo;
     const hasta = mes
       ? format(new Date(parseISO(`${mes}-01T00:00:00`).getFullYear(), parseISO(`${mes}-01T00:00:00`).getMonth() + 1, 0), "yyyy-MM-dd")
       : hoy;

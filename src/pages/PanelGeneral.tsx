@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { puedeVerificarCostos } from "@/lib/permisosCostos";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { logger } from "@/lib/logger";
 import Layout from "@/components/Layout";
@@ -386,7 +387,8 @@ const PanelGeneral = () => {
           />
         );
       case "centroCostos":
-        return (p: Project) => generalReadOnly ? (
+        // AUX BBM sube los centros de costos aunque no edite el resto del panel.
+        return (p: Project) => generalReadOnly && !puedeVerificarCostos(user?.email) ? (
           <span className="text-sm font-mono">{p.centroCostos || "-"}</span>
         ) : (
           <EditableCell

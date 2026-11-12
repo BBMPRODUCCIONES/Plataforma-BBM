@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { puedeVerificarCostos } from "@/lib/permisosCostos";
 import { useNavigate } from "react-router-dom";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -586,7 +587,19 @@ const PanelDirectivo = ({ vistaInicial = "tabla" }: { vistaInicial?: "tabla" | "
       // Read-only mode for users without directivo edit permission
       switch (colConfig.key) {
         case "centroCostos":
-          return (p: Project) => <span className="text-xs font-mono">{p.centroCostos || "—"}</span>;
+          // AUX BBM sube los centros de costos aunque no edite el resto del panel.
+          return (p: Project) =>
+            puedeVerificarCostos(user?.email) ? (
+              <EditableCell
+                value={p.centroCostos}
+                type="text"
+                onChange={(value) => updateProject(p.id, "centroCostos", value)}
+                className="font-mono"
+                placeholder="Ej: 3-00814"
+              />
+            ) : (
+              <span className="text-xs font-mono">{p.centroCostos || "—"}</span>
+            );
         case "numFactura":
           return (p: Project) => <FacturaCelda proyecto={p} soloLectura onGuardar={async () => {}} />;
         case "cliente":

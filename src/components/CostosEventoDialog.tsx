@@ -117,7 +117,9 @@ export function CostosEventoDialog({
   // tocar; la base tambien lo impide. Solo quien verifica puede reabrirlos.
   const cierre = proyecto?.costosVerificacion?.en ? proyecto.costosVerificacion : null;
   const bloqueado = Boolean(cierre) && !puedeVerificar;
-  const soloLectura = soloLecturaProp || bloqueado;
+  // AUX BBM (y Bayron) revisan y cierran costos aunque no tengan permiso de
+  // editar el panel desde donde se abre la ventana.
+  const soloLectura = (soloLecturaProp && !puedeVerificar) || bloqueado;
   const [reabriendo, setReabriendo] = useState(false);
   const [confirmarCierre, setConfirmarCierre] = useState(false);
 

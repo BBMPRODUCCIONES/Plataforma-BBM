@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { puedeVerificarCostos } from "@/lib/permisosCostos";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -820,7 +821,8 @@ const PanelOperaciones = () => {
               onChange={(value) => updateProject(p.id, "centroCostos", value)}
               className="font-mono"
               placeholder="Ej: 3-00814"
-              disabled={operativoReadOnly}
+              // AUX BBM sube los centros de costos aunque no edite el resto.
+              disabled={operativoReadOnly && !puedeVerificarCostos(user?.email)}
             />
           );
         case "numFactura":

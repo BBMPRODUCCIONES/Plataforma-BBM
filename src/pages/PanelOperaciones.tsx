@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { ContactoCliente } from "@/components/ContactoCliente";
 import { puedeVerificarCostos } from "@/lib/permisosCostos";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -442,6 +443,7 @@ const PanelOperaciones = () => {
     { key: "centroCostos", header: "CC", type: "text" as CellType, width: "70px", visible: true, isCustom: false, order: 0 },
     { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 1 },
     { key: "cliente", header: "Cliente", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 2 },
+    { key: "contactoCliente", header: "Contacto", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 2.5 },
     { key: "evento", header: "Evento", type: "text" as CellType, width: "140px", visible: true, isCustom: false, order: 3 },
     { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 4, options: ["No se hizo", "Se hizo", "No es necesario"] },
     { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 5 },
@@ -832,6 +834,14 @@ const PanelOperaciones = () => {
               proyecto={p}
               soloLectura={operativoReadOnly}
               onGuardar={(cambios) => updateProjectMultiple(p.id, cambios)}
+            />
+          );
+        case "contactoCliente":
+          return (
+            <ContactoCliente
+              proyecto={p}
+              soloLectura={operativoReadOnly}
+              onGuardar={(c) => updateProjectMultiple(p.id, c)}
             />
           );
         case "cliente":

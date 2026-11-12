@@ -94,6 +94,8 @@ function dbRowToProject(row: any): Project {
     ingresoTotal: Number(row.ingreso_total) || 0,
     ingresoBruto: Number(row.ingreso_bruto) || 0,
     ubicacion: row.ubicacion || "",
+    contactoNombre: row.contacto_nombre || "",
+    contactoTelefono: row.contacto_telefono || "",
     jefeOperaciones: row.jefe_operaciones || "",
     productor: row.productor || "",
     aCargoDe: row.a_cargo_de || "",
@@ -187,6 +189,8 @@ function projectToDbRow(project: Partial<Project>): Record<string, any> {
   if (project.ingresoTotal !== undefined) row.ingreso_total = project.ingresoTotal;
   if (project.ingresoBruto !== undefined) row.ingreso_bruto = project.ingresoBruto;
   if (project.ubicacion !== undefined) row.ubicacion = project.ubicacion;
+  if (project.contactoNombre !== undefined) row.contacto_nombre = project.contactoNombre;
+  if (project.contactoTelefono !== undefined) row.contacto_telefono = project.contactoTelefono;
   if (project.jefeOperaciones !== undefined) row.jefe_operaciones = project.jefeOperaciones;
   if (project.productor !== undefined) row.productor = project.productor;
   if (project.aCargoDe !== undefined) row.a_cargo_de = project.aCargoDe;
@@ -238,6 +242,8 @@ function projectToDbRow(project: Partial<Project>): Record<string, any> {
 function fieldToColumn(field: string): string {
   const mapping: Record<string, string> = {
     centroCostos: "centro_costos",
+    contactoNombre: "contacto_nombre",
+    contactoTelefono: "contacto_telefono",
     numFactura: "num_factura",
     fechaMontajeInicio: "fecha_montaje_inicio",
     fechaMontajeFin: "fecha_montaje_fin",
@@ -443,6 +449,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       ingresoTotal: projectData.ingresoTotal || 0,
       ingresoBruto: projectData.ingresoBruto || 0,
       ubicacion: projectData.ubicacion || "",
+      contactoNombre: projectData.contactoNombre || "",
+      contactoTelefono: projectData.contactoTelefono || "",
       jefeOperaciones: projectData.jefeOperaciones || "",
       productor: projectData.productor || "",
       aCargoDe: projectData.aCargoDe || "",
@@ -485,6 +493,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       ingreso_total: optimisticProject.ingresoTotal,
       ingreso_bruto: optimisticProject.ingresoBruto,
       ubicacion: optimisticProject.ubicacion,
+      contacto_nombre: optimisticProject.contactoNombre,
+      contacto_telefono: optimisticProject.contactoTelefono,
       jefe_operaciones: optimisticProject.jefeOperaciones,
       productor: optimisticProject.productor,
       a_cargo_de: optimisticProject.aCargoDe,

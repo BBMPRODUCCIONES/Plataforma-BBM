@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { ContactoCliente } from "@/components/ContactoCliente";
 import { puedeVerificarCostos } from "@/lib/permisosCostos";
 import { useNavigate } from "react-router-dom";
 import { logger } from "@/lib/logger";
@@ -178,6 +179,7 @@ const PanelDirectivo = ({ vistaInicial = "tabla" }: { vistaInicial?: "tabla" | "
     { key: "productor", header: "Productor", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
     { key: "centroCostos", header: "CC", type: "text" as CellType, width: "60px", visible: true, isCustom: false, order: 1 },
     { key: "cliente", header: "Cliente", type: "text" as CellType, width: "120px", visible: true, isCustom: false, order: 2 },
+    { key: "contactoCliente", header: "Contacto", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 2.5 },
     { key: "evento", header: "Evento", type: "text" as CellType, width: "140px", visible: true, isCustom: false, order: 3 },
     { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "115px", visible: true, isCustom: false, order: 4, options: ["No se hizo", "Se hizo", "No es necesario"] },
     { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "80px", visible: true, isCustom: false, order: 5 },
@@ -523,6 +525,7 @@ const PanelDirectivo = ({ vistaInicial = "tabla" }: { vistaInicial?: "tabla" | "
     { key: "productor", header: "Productor", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 0 },
     { key: "centroCostos", header: "CC", type: "text" as CellType, width: "70px", visible: true, isCustom: false, order: 1 },
     { key: "cliente", header: "Cliente", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 2 },
+    { key: "contactoCliente", header: "Contacto", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 2.5 },
     { key: "evento", header: "Evento", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 3 },
     { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 4 },
     { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 5 },
@@ -602,6 +605,8 @@ const PanelDirectivo = ({ vistaInicial = "tabla" }: { vistaInicial?: "tabla" | "
             );
         case "numFactura":
           return (p: Project) => <FacturaCelda proyecto={p} soloLectura onGuardar={async () => {}} />;
+        case "contactoCliente":
+          return (p: Project) => <ContactoCliente proyecto={p} soloLectura onGuardar={() => {}} />;
         case "cliente":
           return (p: Project) => <span className="text-xs">{p.cliente || "—"}</span>;
         case "evento":
@@ -695,6 +700,10 @@ const PanelDirectivo = ({ vistaInicial = "tabla" }: { vistaInicial?: "tabla" | "
             soloLectura={!canEditDir}
             onGuardar={(cambios) => updateProjectMultiple(p.id, cambios)}
           />
+        );
+      case "contactoCliente":
+        return (p: Project) => (
+          <ContactoCliente proyecto={p} onGuardar={(c) => updateProjectMultiple(p.id, c)} />
         );
       case "cliente":
         return (p: Project) => (

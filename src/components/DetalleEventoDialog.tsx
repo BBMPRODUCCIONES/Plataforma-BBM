@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { enlaceWhatsApp, soloDigitos } from "@/components/ContactoCliente";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { ArrowUpRight, CalendarDays, Check, Clock, MapPin, Pencil, User } from "lucide-react";
@@ -242,6 +243,19 @@ export function DetalleEventoDialog({
             <Dato etiqueta="Cliente" valor={proyecto.cliente} />
             <Dato etiqueta="Centro de costos" valor={proyecto.centroCostos} />
           </div>
+
+          {(proyecto.contactoNombre || proyecto.contactoTelefono) && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Contacto:</span>
+              <span>{proyecto.contactoNombre}</span>
+              {proyecto.contactoTelefono && (
+                <>
+                  <a className="font-mono underline" href={`tel:${soloDigitos(proyecto.contactoTelefono)}`}>{proyecto.contactoTelefono}</a>
+                  <a className="text-xs text-emerald-500 underline" href={enlaceWhatsApp(proyecto.contactoTelefono)} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                </>
+              )}
+            </div>
+          )}
 
           {proyecto.ubicacion && (
             <div className="flex items-start gap-1.5 text-sm">

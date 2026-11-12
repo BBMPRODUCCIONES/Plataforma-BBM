@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { ContactoCliente } from "@/components/ContactoCliente";
 import { puedeVerificarCostos } from "@/lib/permisosCostos";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { logger } from "@/lib/logger";
@@ -219,6 +220,7 @@ const PanelGeneral = () => {
     { key: "centroCostos", header: "CC", type: "text" as CellType, width: "70px", visible: true, isCustom: false, order: 0 },
     { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 1 },
     { key: "cliente", header: "Cliente", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 2 },
+    { key: "contactoCliente", header: "Contacto", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 2.5 },
     { key: "evento", header: "Evento", type: "text" as CellType, width: "150px", visible: true, isCustom: false, order: 3 },
     { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 4, options: ["No se hizo", "Se hizo", "No es necesario"] },
     { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 5 },
@@ -332,6 +334,7 @@ const PanelGeneral = () => {
     { key: "centroCostos", header: "CC", type: "text" as CellType, width: "70px", visible: true, isCustom: false, order: 0 },
     { key: "numFactura", header: "#Factura", type: "text" as CellType, width: "75px", visible: true, isCustom: false, order: 1 },
     { key: "cliente", header: "Cliente", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 2 },
+    { key: "contactoCliente", header: "Contacto", type: "text" as CellType, width: "130px", visible: true, isCustom: false, order: 2.5 },
     { key: "avanzada", header: "Avanzada", type: "select" as CellType, width: "110px", visible: true, isCustom: false, order: 3 },
     { key: "fechaMontaje", header: "Montaje", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 4 },
     { key: "fechaEjecucion", header: "Ejecución", type: "date" as CellType, width: "90px", visible: true, isCustom: false, order: 5 },
@@ -406,6 +409,14 @@ const PanelGeneral = () => {
             proyecto={p}
             soloLectura={generalReadOnly}
             onGuardar={(cambios) => updateProjectMultiple(p.id, cambios)}
+          />
+        );
+      case "contactoCliente":
+        return (p: Project) => (
+          <ContactoCliente
+            proyecto={p}
+            soloLectura={generalReadOnly}
+            onGuardar={(c) => updateProjectMultiple(p.id, c)}
           />
         );
       case "cliente":

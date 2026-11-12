@@ -669,6 +669,30 @@ export function NewProjectDialog({
               />
               {errors.ubicacion && <p className="text-sm text-destructive">{errors.ubicacion}</p>}
             </div>
+            {/* Contacto del cliente: lo llena el comercial para que el
+                productor sepa a quien llamar el dia del evento. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="contactoNombre">Contacto del cliente</Label>
+                <Input
+                  id="contactoNombre"
+                  placeholder="Nombre de la persona"
+                  value={formData.contactoNombre || ""}
+                  onChange={(e) => setFormData({ ...formData, contactoNombre: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contactoTelefono">Celular del contacto</Label>
+                <Input
+                  id="contactoTelefono"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="Ej: 314 277 7773"
+                  value={formData.contactoTelefono || ""}
+                  onChange={(e) => setFormData({ ...formData, contactoTelefono: e.target.value })}
+                />
+              </div>
+            </div>
     </>
   );
 

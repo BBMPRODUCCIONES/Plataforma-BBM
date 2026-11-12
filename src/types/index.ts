@@ -38,6 +38,9 @@ export interface Project {
   aCargoDe?: string;
   productor?: string;
   ubicacion?: string;
+  /** Persona de contacto del cliente y su celular (lo llena el comercial). */
+  contactoNombre?: string;
+  contactoTelefono?: string;
   formatoPreproduccion?: Attachment[];
   personal?: PersonalItem[];
   cotizacionesProveedor?: Attachment[];

@@ -477,6 +477,17 @@ export function GraficaVentasComercial({
                       ))}
                       <td className="px-3 py-1.5 text-right font-medium tabular-nums">
                         {pesos.format(Number(fila.total))}
+                        {(() => {
+                          const fac = COLORES_DE_COMERCIAL.reduce(
+                            (a, c) => a + (Number(fila[`${c.valor}_fac`]) || 0),
+                            0
+                          );
+                          return fac > 0 ? (
+                            <div className="text-[11px] font-normal text-emerald-500">
+                              fact. {pesos.format(fac)}
+                            </div>
+                          ) : null;
+                        })()}
                       </td>
                     </tr>
                   ))}

@@ -3408,18 +3408,22 @@ html:not(.dark) body {
     radial-gradient(circle at 60% 100%, #fff1b8 0, transparent 35%),
     linear-gradient(135deg, #efe7ff, #e3f5f0) fixed;
 }
+/* Solo el contenedor de la app deja ver el degradado. Los dialogos, menus y
+   columnas fijas usan bg-background y deben seguir siendo solidos: si se
+   vuelven transparentes, el contenido de atras se mezcla con el de adelante. */
 html:not(.dark) .app-root,
-html:not(.dark) main,
-html:not(.dark) .bg-background { background-color: transparent !important; }
+html:not(.dark) .app-root > main { background-color: transparent !important; }
 html:not(.dark) h1, html:not(.dark) h2, html:not(.dark) h3 { font-family: Sora, Inter, sans-serif; letter-spacing: -0.02em; }
 html:not(.dark) h1 { font-weight: 800; }
 html:not(.dark) [data-sidebar=sidebar] { background: rgba(255,255,255,.72) !important; backdrop-filter: blur(22px); }
 html:not(.dark) [data-sidebar=menu-button][data-active=true] { border-radius: 12px !important; font-weight: 600; }
-html:not(.dark) .bg-card { background-color: rgba(255,255,255,.82) !important; backdrop-filter: blur(18px); }
+/* Sin backdrop-filter: crea un contenedor nuevo y descuadra los dialogos que
+   viven dentro de una tarjeta. */
+html:not(.dark) .bg-card { background-color: #fff !important; }
 html:not(.dark) .rounded-lg.border.bg-card,
 html:not(.dark) .rounded-xl.border.bg-card { border-radius: 20px !important; border-color: rgba(255,255,255,.9) !important; box-shadow: 0 10px 30px rgba(80,60,140,.08); }
 html:not(.dark) header { background: rgba(255,255,255,.45) !important; backdrop-filter: blur(18px); }
-html:not(.dark) .panel-card { background: rgba(255,255,255,.85) !important; border-radius: 20px !important; border: 1px solid rgba(255,255,255,.95) !important; box-shadow: 0 12px 34px rgba(80,60,140,.08); overflow: hidden; }
+html:not(.dark) .panel-card { background: #fff !important; border-radius: 20px !important; border: 1px solid rgba(255,255,255,.95) !important; box-shadow: 0 12px 34px rgba(80,60,140,.08); }
 html:not(.dark) .matrix-table-main-scroll thead th { background: rgba(250,248,255,.95) !important; font-size: 11px; letter-spacing: .06em; color: hsl(252 12% 45%); }
 /* Los colores -300/-400 estaban pensados para fondo oscuro: en claro se
    pasan a su tono -700 para que se lean. */

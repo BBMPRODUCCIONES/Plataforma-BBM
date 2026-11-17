@@ -19,8 +19,8 @@ const Layout = ({ children }: LayoutProps) => {
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // Set dark mode by default
-    document.documentElement.classList.add("dark");
+    // Tema claro (pastel)
+    document.documentElement.classList.remove("dark");
   }, []);
 
   // Mobile layout: Header + Content + Bottom Nav (no sidebar)

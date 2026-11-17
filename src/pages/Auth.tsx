@@ -25,7 +25,7 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    document.documentElement.classList.add("dark");
+    document.documentElement.classList.remove("dark");
   }, []);
 
   // Check if this is a password recovery flow

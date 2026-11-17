@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;600;700;800&display=swap');
 
 @tailwind base;
 
@@ -3364,3 +3364,77 @@ tr[data-highlighted="true"] {
     min-width: 0;
   }
 }
+
+
+/* ========================================
+   TEMA "PASTEL CLARO" (vidrio esmerilado)
+   Paneles casi blancos sobre un fondo de degradado suave: el color se queda
+   en los bordes y el texto siempre se lee sobre blanco.
+   ======================================== */
+:root {
+  --background: 260 40% 98%;
+  --foreground: 252 28% 20%;
+  --card: 0 0% 100%;
+  --card-foreground: 252 28% 20%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 252 28% 20%;
+  --primary: 252 28% 20%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 252 30% 94%;
+  --secondary-foreground: 252 28% 20%;
+  --muted: 252 30% 96%;
+  --muted-foreground: 252 12% 45%;
+  --accent: 252 45% 94%;
+  --accent-foreground: 252 28% 20%;
+  --border: 252 25% 90%;
+  --input: 252 25% 88%;
+  --ring: 252 40% 60%;
+  --radius: 0.9rem;
+  --table-header: 252 30% 97%;
+  --table-row-hover: 252 40% 97%;
+  --table-border: 252 25% 92%;
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 252 15% 40%;
+  --sidebar-primary: 252 28% 20%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 252 28% 20%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 252 25% 92%;
+}
+html:not(.dark) body {
+  background:
+    radial-gradient(circle at 8% 10%, #ffd1e8 0, transparent 35%),
+    radial-gradient(circle at 95% 5%, #c9f0ff 0, transparent 35%),
+    radial-gradient(circle at 60% 100%, #fff1b8 0, transparent 35%),
+    linear-gradient(135deg, #efe7ff, #e3f5f0) fixed;
+}
+html:not(.dark) .app-root,
+html:not(.dark) main,
+html:not(.dark) .bg-background { background-color: transparent !important; }
+html:not(.dark) h1, html:not(.dark) h2, html:not(.dark) h3 { font-family: Sora, Inter, sans-serif; letter-spacing: -0.02em; }
+html:not(.dark) h1 { font-weight: 800; }
+html:not(.dark) [data-sidebar=sidebar] { background: rgba(255,255,255,.72) !important; backdrop-filter: blur(22px); }
+html:not(.dark) [data-sidebar=menu-button][data-active=true] { border-radius: 12px !important; font-weight: 600; }
+html:not(.dark) .bg-card { background-color: rgba(255,255,255,.82) !important; backdrop-filter: blur(18px); }
+html:not(.dark) .rounded-lg.border.bg-card,
+html:not(.dark) .rounded-xl.border.bg-card { border-radius: 20px !important; border-color: rgba(255,255,255,.9) !important; box-shadow: 0 10px 30px rgba(80,60,140,.08); }
+html:not(.dark) header { background: rgba(255,255,255,.45) !important; backdrop-filter: blur(18px); }
+html:not(.dark) .panel-card { background: rgba(255,255,255,.85) !important; border-radius: 20px !important; border: 1px solid rgba(255,255,255,.95) !important; box-shadow: 0 12px 34px rgba(80,60,140,.08); overflow: hidden; }
+html:not(.dark) .matrix-table-main-scroll thead th { background: rgba(250,248,255,.95) !important; font-size: 11px; letter-spacing: .06em; color: hsl(252 12% 45%); }
+/* Los colores -300/-400 estaban pensados para fondo oscuro: en claro se
+   pasan a su tono -700 para que se lean. */
+html:not(.dark) .text-yellow-300, html:not(.dark) .text-yellow-400 { color: #a16207 !important; }
+html:not(.dark) .text-amber-300, html:not(.dark) .text-amber-400 { color: #b45309 !important; }
+html:not(.dark) .text-orange-300, html:not(.dark) .text-orange-400 { color: #c2410c !important; }
+html:not(.dark) .text-green-300, html:not(.dark) .text-green-400 { color: #15803d !important; }
+html:not(.dark) .text-emerald-300, html:not(.dark) .text-emerald-400 { color: #047857 !important; }
+html:not(.dark) .text-blue-300, html:not(.dark) .text-blue-400 { color: #1d4ed8 !important; }
+html:not(.dark) .text-sky-300, html:not(.dark) .text-sky-400 { color: #0369a1 !important; }
+html:not(.dark) .text-cyan-300, html:not(.dark) .text-cyan-400 { color: #0e7490 !important; }
+html:not(.dark) .text-purple-300, html:not(.dark) .text-purple-400 { color: #7e22ce !important; }
+html:not(.dark) .text-violet-300, html:not(.dark) .text-violet-400 { color: #6d28d9 !important; }
+html:not(.dark) .text-fuchsia-300, html:not(.dark) .text-fuchsia-400 { color: #a21caf !important; }
+html:not(.dark) .text-red-300, html:not(.dark) .text-red-400 { color: #dc2626 !important; }
+html:not(.dark) .text-rose-300, html:not(.dark) .text-rose-400 { color: #e11d48 !important; }
+html:not(.dark) .text-slate-300, html:not(.dark) .text-slate-400 { color: #475569 !important; }
+html:not(.dark) .text-yellow-500, html:not(.dark) .text-amber-500 { color: #b45309 !important; }

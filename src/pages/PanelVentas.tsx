@@ -5,6 +5,10 @@ import Layout from "@/components/Layout";
 import { PanelHeader } from "@/components/PanelHeader";
 import { GraficaVentasComercial } from "@/components/GraficaVentasComercial";
 import { useProjects } from "@/contexts/ProjectsContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { puedeExportarCostos } from "@/lib/permisosCostos";
+import { InformeVentasDialog } from "@/components/InformeVentasDialog";
+import { FileArchive } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +48,10 @@ function mesesDisponibles() {
 
 const PanelVentas = () => {
   const { projects, loading } = useProjects();
+  const { user } = useAuth();
+  // El informe (Excel + PDF de facturas) es para quienes exportan costos.
+  const puedeInforme = puedeExportarCostos(user?.email);
+  const [informeAbierto, setInformeAbierto] = useState(false);
   const isMobile = useIsMobile();
   const [meses, setMeses] = useState(12);
   // null = modo periodo. Al entrar a "Mes" se abre en el mes en curso.
@@ -86,6 +94,16 @@ const PanelVentas = () => {
               >
                 Mes
               </Button>
+              {puedeInforme && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setInformeAbierto(true)}
+                  className={isMobile ? "h-9 w-full px-2.5 text-xs" : ""}
+                >
+                  <FileArchive className="mr-1.5 h-4 w-4" /> Informe de ventas
+                </Button>
+              )}
             </div>
           }
         />
@@ -117,6 +135,7 @@ const PanelVentas = () => {
         ) : (
           <GraficaVentasComercial projects={projects} meses={meses} mes={mes} />
         )}
+        {puedeInforme && <InformeVentasDialog open={informeAbierto} onOpenChange={setInformeAbierto} />}
       </div>
     </Layout>
   );

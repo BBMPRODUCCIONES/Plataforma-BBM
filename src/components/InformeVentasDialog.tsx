@@ -53,6 +53,8 @@ interface FilaInforme {
   factura_iva: number | null;
   factura_total: number | null;
   factura_archivo: { bucket?: string; filePath?: string; name?: string } | null;
+  notas?: string | null;
+  cotizaciones?: string[] | null;
 }
 
 const SIN_ASIGNAR = "Sin asignar";
@@ -74,6 +76,22 @@ function venta(f: FilaInforme) {
     return { base: bruto, iva, total: bruto + iva };
   }
   return { base: total, iva: 0, total };
+}
+
+/**
+ * Numero de cotizacion. No tiene campo propio: sale del nombre del PDF
+ * ("Cotizacion-C-1-1451-Cliente.pdf", "No. C-1-1401 We Make.pdf",
+ * "Cotizacion-N-2-0022-...") o de las notas ("Cotizacion N 2-0106"). Las
+ * ordenes de compra ("OC-1-1108") no cuentan.
+ */
+function numerosCotizacion(f: FilaInforme): string {
+  const vistos = new Set<string>();
+  const agregar = (n: string) => vistos.add(n.toUpperCase().replace(/^N-/, ""));
+  for (const nombre of f.cotizaciones || []) {
+    for (const m of (nombre || "").matchAll(/(?<![A-Za-z])((?:C|N)-\d-\d{3,5})(?!\d)/gi)) agregar(m[1]);
+  }
+  for (const m of (f.notas || "").matchAll(/cotizaci[oó]n\s*(?:n[°ºo.]*\s*)?((?:[CN]-)?\d-\d{3,5})(?!\d)/gi)) agregar(m[1]);
+  return [...vistos].join(", ");
 }
 
 const ESTADO_FACTURACION: Record<string, string> = {
@@ -226,14 +244,14 @@ export function InformeVentasDialog({ open, onOpenChange }: Props) {
 
       // Hoja 2: ventas (eventos del periodo)
       const ventas: (string | number | null)[][] = [[
-        "Fecha ejecución", "Comercial", "Cliente", "Evento", "Productor", "Estado",
+        "Fecha ejecución", "Comercial", "Cliente", "Evento", "# Cotización", "Productor", "Estado",
         "Venta sin IVA", "IVA", "Venta con IVA", "Facturación", "# Factura", "Fecha factura",
         "Subtotal factura", "Total factura", "PDF en el ZIP",
       ]];
       for (const f of vendidos) {
         const v = venta(f);
         ventas.push([
-          f.fecha_ejecucion_inicio?.slice(0, 10) ?? "", comercialDe(f), f.cliente, f.evento, f.productor ?? "",
+          f.fecha_ejecucion_inicio?.slice(0, 10) ?? "", comercialDe(f), f.cliente, f.evento, numerosCotizacion(f), f.productor ?? "",
           f.estado, v.base, v.iva, v.total,
           f.factura_archivo?.filePath ? "Factura subida" : ESTADO_FACTURACION[f.estado_facturacion ?? ""] ?? (f.estado_facturacion || ""),
           f.num_factura || "", f.factura_fecha ?? "",
@@ -242,23 +260,23 @@ export function InformeVentasDialog({ open, onOpenChange }: Props) {
           nombrePdf.get(f.id) ?? "",
         ]);
       }
-      ventas.push(["TOTAL", "", "", "", "", "", sumar(vendidos.map((f) => venta(f).base)),
+      ventas.push(["TOTAL", "", "", "", "", "", "", sumar(vendidos.map((f) => venta(f).base)),
         sumar(vendidos.map((f) => venta(f).iva)), sumar(vendidos.map((f) => venta(f).total)), "", "", "", null, null, ""]);
 
       // Hoja 3: facturas de venta del periodo
       const hojaFacturas: (string | number | null)[][] = [[
-        "Fecha factura", "# Factura", "Comercial", "Cliente", "Evento", "Fecha del evento",
+        "Fecha factura", "# Factura", "# Cotización", "Comercial", "Cliente", "Evento", "Fecha del evento",
         "Subtotal", "IVA", "Total", "Archivo PDF",
       ]];
       for (const f of [...facturas].sort((a, b) => (a.factura_fecha ?? "").localeCompare(b.factura_fecha ?? ""))) {
         hojaFacturas.push([
-          f.factura_fecha ?? "", f.num_factura || "", comercialDe(f), f.cliente, f.evento,
+          f.factura_fecha ?? "", f.num_factura || "", numerosCotizacion(f), comercialDe(f), f.cliente, f.evento,
           f.fecha_ejecucion_inicio?.slice(0, 10) ?? "",
           num(f.factura_subtotal), num(f.factura_iva), num(f.factura_total),
           nombrePdf.get(f.id) ?? "No se pudo descargar",
         ]);
       }
-      hojaFacturas.push(["TOTAL", "", "", "", "", "", sumar(facturas.map((f) => num(f.factura_subtotal))),
+      hojaFacturas.push(["TOTAL", "", "", "", "", "", "", sumar(facturas.map((f) => num(f.factura_subtotal))),
         sumar(facturas.map((f) => num(f.factura_iva))), sumar(facturas.map((f) => num(f.factura_total))), ""]);
 
       const notas: (string | number | null)[][] = [
@@ -267,14 +285,15 @@ export function InformeVentasDialog({ open, onOpenChange }: Props) {
         ["Vendido: eventos con fecha de ejecución en el periodo. Venta sin IVA = ingreso bruto; si no hay bruto, el ingreso total."],
         ["Facturado: facturas con PDF subido al planner y fecha de factura en el periodo. Puede incluir eventos de otros meses."],
         ["El comercial sale del color de la fila en el planner (amarillo Bayron, azul Abraham); si no hay color, del correo de quien subió el evento."],
+        ["# Cotización: sale del nombre del PDF de cotización subido al evento o de las notas. Si está vacío, el evento no tiene cotización con número."],
         ["Es control interno: no dice si la factura ya se cobró."],
         [`Generado el ${format(new Date(), "yyyy-MM-dd HH:mm")}.`],
       ];
 
       const libro = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(libro, hoja(resumen, [16, 10, 16, 14, 16, 9, 16, 14, 16, 12, 16, 16], [2, 3, 4, 6, 7, 8, 10, 11], filasResumen.length > 1), "Resumen");
-      XLSX.utils.book_append_sheet(libro, hoja(ventas, [12, 12, 26, 38, 22, 12, 14, 12, 14, 14, 14, 12, 14, 14, 40], [6, 7, 8, 12, 13], true), "Ventas");
-      XLSX.utils.book_append_sheet(libro, hoja(hojaFacturas, [12, 14, 12, 26, 38, 12, 14, 12, 14, 44], [6, 7, 8], true), "Facturas de venta");
+      XLSX.utils.book_append_sheet(libro, hoja(ventas, [12, 12, 26, 38, 14, 22, 12, 14, 12, 14, 14, 14, 12, 14, 14, 40], [7, 8, 9, 13, 14], true), "Ventas");
+      XLSX.utils.book_append_sheet(libro, hoja(hojaFacturas, [12, 14, 14, 12, 26, 38, 12, 14, 12, 14, 44], [7, 8, 9], true), "Facturas de venta");
       const wsNotas = XLSX.utils.aoa_to_sheet(notas);
       wsNotas["!cols"] = [{ wch: 120 }];
       XLSX.utils.book_append_sheet(libro, wsNotas, "Notas");

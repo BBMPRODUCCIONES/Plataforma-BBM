@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Building2, Check, Search, AlertCircle, Loader2, UserX } from "lucide-react";
+import { Building2, Check, Search, AlertCircle, Loader2, UserX, Plus } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { useProveedores } from "@/contexts/ProveedoresContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -31,9 +32,55 @@ export function ProveedorAutocomplete({
   placeholder = "Buscar proveedor...",
   className,
 }: ProveedorAutocompleteProps) {
-  const { proveedores, loading } = useProveedores();
+  const { proveedores, loading, addProveedor } = useProveedores();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  // Crear un proveedor sin salir de donde se esta: queda en "Creacion de
+  // Proveedores" con lo basico y alla se completan banco, cuenta, etc.
+  const [creando, setCreando] = useState(false);
+  const [nuevo, setNuevo] = useState({ nombre: "", categoria: "", telefono: "" });
+  const [guardando, setGuardando] = useState(false);
+
+  const abrirCrear = () => {
+    setNuevo({ nombre: searchTerm.trim(), categoria: "", telefono: "" });
+    setCreando(true);
+  };
+
+  const crear = async () => {
+    const nombre = nuevo.nombre.trim();
+    if (!nombre) return;
+    const repetido = proveedores.find((p) => normalizeText(p.nombre || "") === normalizeText(nombre));
+    if (repetido) {
+      // Ya existe con ese nombre: se usa ese en vez de duplicarlo.
+      handleSelect(repetido);
+      setCreando(false);
+      return;
+    }
+    setGuardando(true);
+    try {
+      const creado = await addProveedor({
+        nombre,
+        categoria: nuevo.categoria.trim(),
+        telefono: nuevo.telefono.trim(),
+        correo: "",
+        tipoProductoServicio: "",
+        cotizacionesAnteriores: [],
+      });
+      if (creado) {
+        handleSelect(creado);
+        toast({ title: "Proveedor creado", description: `${nombre} quedó en Creación de Proveedores.` });
+      }
+      setCreando(false);
+    } catch (e) {
+      toast({
+        title: "No se pudo crear el proveedor",
+        description: e instanceof Error ? e.message : "Revisa tu conexión e intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setGuardando(false);
+    }
+  };
 
   // Find selected proveedor
   const selectedProveedor = useMemo(() => {
@@ -70,7 +117,7 @@ export function ProveedorAutocomplete({
   const displayValue = selectedProveedor?.nombre || (proveedorDeleted ? "Proveedor eliminado" : "");
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setCreando(false); }}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -119,6 +166,45 @@ export function ProveedorAutocomplete({
           </p>
         </div>
 
+        {creando ? (
+          <div className="space-y-2 p-3" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm font-medium">Nuevo proveedor</p>
+            <Input
+              placeholder="Nombre *"
+              value={nuevo.nombre}
+              onChange={(e) => setNuevo((n) => ({ ...n, nombre: e.target.value }))}
+              className="h-9"
+              autoFocus
+            />
+            <Input
+              placeholder="Categoría (ej. Sonido, Transporte)"
+              value={nuevo.categoria}
+              onChange={(e) => setNuevo((n) => ({ ...n, categoria: e.target.value }))}
+              className="h-9"
+            />
+            <Input
+              placeholder="Teléfono"
+              inputMode="tel"
+              value={nuevo.telefono}
+              onChange={(e) => setNuevo((n) => ({ ...n, telefono: e.target.value }))}
+              className="h-9"
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void crear(); } }}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Los datos bancarios se completan después en "Creación de Proveedores".
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button type="button" variant="outline" size="sm" onClick={() => setCreando(false)} disabled={guardando}>
+                Cancelar
+              </Button>
+              <Button type="button" size="sm" onClick={() => void crear()} disabled={guardando || !nuevo.nombre.trim()}>
+                {guardando ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plus className="mr-1.5 h-4 w-4" />}
+                Crear y usar
+              </Button>
+            </div>
+          </div>
+        ) : (
+        <>
         {/* Proveedor list */}
         <div className="max-h-[250px] overflow-y-auto">
           {loading ? (
@@ -139,7 +225,7 @@ export function ProveedorAutocomplete({
               <Search className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
               <p className="text-sm font-medium text-foreground">Sin coincidencias</p>
               <p className="text-xs text-muted-foreground mt-1.5">
-                Intenta con otro nombre o categoría
+                Intenta con otro nombre o créalo aquí mismo
               </p>
             </div>
           ) : (
@@ -170,6 +256,18 @@ export function ProveedorAutocomplete({
           )}
         </div>
 
+        {/* Crear proveedor */}
+        {!loading && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); abrirCrear(); }}
+            className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm font-medium text-primary hover:bg-accent"
+          >
+            <Plus className="h-4 w-4" />
+            {searchTerm.trim() ? `Crear proveedor "${searchTerm.trim()}"` : "Crear proveedor nuevo"}
+          </button>
+        )}
+
         {/* Footer with count */}
         {proveedores.length > 0 && (
           <div className="px-3 py-2 border-t border-border bg-muted/30">
@@ -177,6 +275,8 @@ export function ProveedorAutocomplete({
               {filteredProveedores.length} de {proveedores.length} proveedor{proveedores.length !== 1 ? "es" : ""}
             </p>
           </div>
+        )}
+        </>
         )}
       </PopoverContent>
     </Popover>

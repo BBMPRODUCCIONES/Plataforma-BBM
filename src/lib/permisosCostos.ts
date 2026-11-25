@@ -72,6 +72,8 @@ const EXPORTADORES = [
   "contabilidadbbm@gmail.com",
   "bayron.bocanegra@bbmproducciones.com.co",
   "administrativo@bbmproducciones.com.co",
+  // Fabian Mancipe, contador.
+  "contadorbbm@gmail.com",
 ];
 
 export const puedeExportarCostos = (email?: string | null) => EXPORTADORES.includes(norm(email));

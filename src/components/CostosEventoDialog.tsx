@@ -24,6 +24,7 @@ import { Attachment, CostoEvento, Project, TipoCosto } from "@/types";
 import { AttachmentManager } from "@/components/AttachmentManager";
 import { toast } from "@/hooks/use-toast";
 import { ListaAdjuntos } from "@/components/ListaAdjuntos";
+import { LectorSoportesCostos } from "@/components/LectorSoportesCostos";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -579,13 +580,24 @@ export function CostosEventoDialog({
               <p className="text-[11px] text-muted-foreground">Sin soportes cargados.</p>
             )
           ) : (
-            <AttachmentManager
-              attachments={proyecto.costosAdjuntos || []}
-              onAttachmentsChange={(archivos) => { void onGuardarAdjuntos(archivos); }}
-              acceptedTypes=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx"
-              fieldName="costos"
-              projectId={proyecto.id}
-            />
+            <>
+              <AttachmentManager
+                attachments={proyecto.costosAdjuntos || []}
+                onAttachmentsChange={(archivos) => { void onGuardarAdjuntos(archivos); }}
+                acceptedTypes=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx"
+                fieldName="costos"
+                projectId={proyecto.id}
+              />
+              {/* La IA lee el soporte y propone la linea (proveedor, concepto,
+                  valor). La persona decide si la agrega. */}
+              <LectorSoportesCostos
+                adjuntos={proyecto.costosAdjuntos || []}
+                onAgregarLinea={(linea) => {
+                  setSinTerceros(false);
+                  setLineas((prev) => [...prev, linea]);
+                }}
+              />
+            </>
           )}
         </div>
 

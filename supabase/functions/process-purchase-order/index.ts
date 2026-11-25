@@ -32,8 +32,10 @@ const purchaseOrderSchema = z.object({
     .min(1, "Nombre del archivo es requerido")
     .max(255, "Nombre del archivo muy largo"),
   // "factura": lee una factura de venta de BBM (numero, fecha, subtotal, IVA,
-  // total). Sin este campo se comporta como siempre (cotizacion / OC).
-  tipoDocumento: z.enum(['cotizacion', 'factura']).optional(),
+  // total). "soporte_costo": lee la factura, recibo o cuenta de cobro de un
+  // PROVEEDOR para cargarla como costo del evento. Sin este campo se comporta
+  // como siempre (cotizacion / OC).
+  tipoDocumento: z.enum(['cotizacion', 'factura', 'soporte_costo']).optional(),
 });
 
 serve(async (req) => {
@@ -131,6 +133,33 @@ Responde ÚNICAMENTE con un JSON válido:
   "confianza": "<alta, media, baja>"
 }`;
 
+    const promptSoporteCosto = `Este documento es un SOPORTE DE UN COSTO de BBM Producciones / Big Brand Moments (NIT 902.080.383-1 o 901.xxx): una factura, recibo, cuenta de cobro o comprobante que un PROVEEDOR o una persona le cobra a BBM.
+Extrae:
+
+- proveedor: nombre o razón social de quien COBRA (el emisor / vendedor / quien firma la cuenta de cobro). NUNCA BBM, BBM Producciones ni Big Brand Moments: ellos son quien paga.
+- nitProveedor: NIT o cédula de quien cobra, si aparece.
+- numeroDocumento: número de la factura, recibo o cuenta de cobro, tal como aparece.
+- fecha: fecha del documento en formato YYYY-MM-DD.
+- concepto: qué se cobró, en una frase corta en español (máximo 80 caracteres). Ej: "Alquiler de pantalla LED 3x2", "Transporte de montaje".
+- subtotal: valor antes de IVA, solo número sin símbolos ni separadores.
+- iva: valor del IVA, solo número (0 si no tiene IVA).
+- total: valor total cobrado (lo que se paga), solo número.
+
+Si un dato no aparece, devuelve null. No inventes. Si solo hay un valor (cuenta de cobro sin IVA), ponlo en subtotal y en total.
+
+Responde ÚNICAMENTE con un JSON válido:
+{
+  "proveedor": "<texto o null>",
+  "nitProveedor": "<texto o null>",
+  "numeroDocumento": "<texto o null>",
+  "fecha": "<YYYY-MM-DD o null>",
+  "concepto": "<texto o null>",
+  "subtotal": <número o null>,
+  "iva": <número o null>,
+  "total": <número o null>,
+  "confianza": "<alta, media, baja>"
+}`;
+
     const extractionPromptCotizacion = `Analiza esta cotización, Orden de Compra o factura y extrae:
 
 ## 1. VALORES MONETARIOS:
@@ -184,7 +213,10 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto:
 
 Si no encuentras ítems de inventario, devuelve "inventarioItems": []`;
 
-    const extractionPrompt = tipoDocumento === 'factura' ? promptFactura : extractionPromptCotizacion;
+    const extractionPrompt =
+      tipoDocumento === 'factura' ? promptFactura
+      : tipoDocumento === 'soporte_costo' ? promptSoporteCosto
+      : extractionPromptCotizacion;
 
     // El front manda imagenes y PDF como data URL ("data:<tipo>;base64,<datos>").
     const separarDataUrl = (valor: string) => {

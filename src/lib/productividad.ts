@@ -148,13 +148,6 @@ export function tareasAutomaticas(
   const personaComercial = (comercial: string): Persona =>
     personas.find((p) => p.correo?.toLowerCase().startsWith(comercial.toLowerCase() + ".")) || persona(comercial);
 
-  // Los directores de cuenta (Bayron, Abraham): su correo empieza por su nombre.
-  const esComercial = (q: Persona) =>
-    COLORES_DE_COMERCIAL.some(
-      (c) => c.comercial && (q.correo?.toLowerCase().startsWith(c.comercial.toLowerCase() + ".") ||
-        norm(q.nombre).startsWith(norm(c.comercial)))
-    );
-
   const tareas: Tarea[] = [];
   let fechaActual = "";
   const add = (t: Omit<Tarea, "responsable" | "responsableNombre" | "fecha">, quien: Persona) =>
@@ -192,18 +185,16 @@ export function tareasAutomaticas(
       }
     }
 
-    // 2. Productor: asignar personal antes del montaje. Solo los productores:
-    //    si el comercial (director de cuenta) figura como productor, esta tarea
-    //    no es suya; lo suyo es subir el evento y asignar el productor.
-    const productoresQueAsignan = productores.filter((n) => !esComercial(persona(n)));
-    if (ini >= MEDIR_DESDE.personal && productoresQueAsignan.length) {
+    // 2. Productor: asignar personal antes del montaje. Le toca a quien figure
+    //    como productor del evento, aunque sea el comercial.
+    if (ini >= MEDIR_DESDE.personal && productores.length) {
       const nomina = (p.personal || []).filter((x) => x.tipoPersonal === "BBM");
       const hecha = nomina.length > 0;
       const fechas = nomina.map((x) => cuandoPersonal(x.id)).filter(Boolean) as string[];
       const limite = montaje(p);
       // Solo cuenta si ya esta hecha o si ya deberia estarlo (falta una semana o menos).
       if (hecha || sumarDias(limite, -7) <= hoy) {
-        for (const q of productoresQueAsignan.map(persona)) {
+        for (const q of productores.map(persona)) {
           add(
             {
               id: `personal-${p.id}-${q.clave}`,

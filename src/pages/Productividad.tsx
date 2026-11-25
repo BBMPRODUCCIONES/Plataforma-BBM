@@ -175,6 +175,7 @@ export default function Productividad() {
       { tipo: "productor" as TipoTarea, ...cuenta("productor") },
       { tipo: "personal" as TipoTarea, ...cuenta("personal") },
       { tipo: "valor_cotizacion" as TipoTarea, ...cuenta("valor_cotizacion") },
+      { tipo: "contacto" as TipoTarea, ...cuenta("contacto") },
     ];
   }, [pendientesTodas, hoy]);
 

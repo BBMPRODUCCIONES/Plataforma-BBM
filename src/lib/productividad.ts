@@ -33,6 +33,7 @@ export type TipoTarea =
   | "verificar_costos"
   | "valor_cotizacion"
   | "productor"
+  | "contacto"
   | "manual";
 
 export const NOMBRE_TAREA: Record<TipoTarea, string> = {
@@ -43,6 +44,7 @@ export const NOMBRE_TAREA: Record<TipoTarea, string> = {
   verificar_costos: "Verificar y cerrar los costos",
   valor_cotizacion: "Cargar el valor de la cotización",
   productor: "Asignar productor al evento",
+  contacto: "Cargar el teléfono del cliente",
   manual: "Tarea asignada",
 };
 
@@ -62,6 +64,8 @@ export const MEDIR_DESDE = {
   verificar_costos: "2026-10-01",
   valor_cotizacion: "2026-10-01",
   productor: "2026-10-01",
+  // El contacto del cliente existe en el planner desde el 12 de noviembre.
+  contacto: "2026-11-12",
 };
 
 export interface Persona {
@@ -144,6 +148,13 @@ export function tareasAutomaticas(
   const personaComercial = (comercial: string): Persona =>
     personas.find((p) => p.correo?.toLowerCase().startsWith(comercial.toLowerCase() + ".")) || persona(comercial);
 
+  // Los directores de cuenta (Bayron, Abraham): su correo empieza por su nombre.
+  const esComercial = (q: Persona) =>
+    COLORES_DE_COMERCIAL.some(
+      (c) => c.comercial && (q.correo?.toLowerCase().startsWith(c.comercial.toLowerCase() + ".") ||
+        norm(q.nombre).startsWith(norm(c.comercial)))
+    );
+
   const tareas: Tarea[] = [];
   let fechaActual = "";
   const add = (t: Omit<Tarea, "responsable" | "responsableNombre" | "fecha">, quien: Persona) =>
@@ -181,15 +192,18 @@ export function tareasAutomaticas(
       }
     }
 
-    // 2. Productor: asignar personal antes del montaje
-    if (ini >= MEDIR_DESDE.personal && productores.length) {
+    // 2. Productor: asignar personal antes del montaje. Solo los productores:
+    //    si el comercial (director de cuenta) figura como productor, esta tarea
+    //    no es suya; lo suyo es subir el evento y asignar el productor.
+    const productoresQueAsignan = productores.filter((n) => !esComercial(persona(n)));
+    if (ini >= MEDIR_DESDE.personal && productoresQueAsignan.length) {
       const nomina = (p.personal || []).filter((x) => x.tipoPersonal === "BBM");
       const hecha = nomina.length > 0;
       const fechas = nomina.map((x) => cuandoPersonal(x.id)).filter(Boolean) as string[];
       const limite = montaje(p);
       // Solo cuenta si ya esta hecha o si ya deberia estarlo (falta una semana o menos).
       if (hecha || sumarDias(limite, -7) <= hoy) {
-        for (const q of productores.map(persona)) {
+        for (const q of productoresQueAsignan.map(persona)) {
           add(
             {
               id: `personal-${p.id}-${q.clave}`,
@@ -307,6 +321,27 @@ export function tareasAutomaticas(
         );
       }
     }
+
+    // 8. Comercial: telefono del cliente antes del montaje
+    if (comercial && ini >= MEDIR_DESDE.contacto) {
+      const limite = montaje(p);
+      const hecha = Boolean((p.contactoTelefono || "").trim());
+      if (hecha || sumarDias(limite, -7) <= hoy) {
+        add(
+          {
+            id: `contacto-${p.id}`,
+            tipo: "contacto",
+            titulo: NOMBRE_TAREA.contacto,
+            detalle: evento,
+            limite,
+            hecha,
+            hechaEl: null,
+            proyectoId: p.id,
+          },
+          personaComercial(comercial)
+        );
+      }
+    }
   }
   return tareas;
 }
@@ -355,8 +390,8 @@ export function responsabilidadesDe(p: Persona, tareas: Tarea[]): string[] {
     out.push("Subir el centro de costos de cada evento antes del montaje.");
     out.push(`Verificar línea por línea y cerrar los costos (máximo ${PLAZOS.verificarDiasDespuesDeCargados} días después de cargados).`);
   }
-  if (tipos.has("productor") || tipos.has("valor_cotizacion"))
-    out.push("Como director de cuenta: asignar el productor de sus eventos y cargar el valor de la cotización antes del montaje.");
+  if (tipos.has("productor") || tipos.has("valor_cotizacion") || tipos.has("contacto"))
+    out.push("Como director de cuenta: subir sus eventos y, antes del montaje, asignar el productor, cargar el valor de la cotización y el teléfono del cliente.");
   if (tipos.has("manual")) out.push("Las tareas que le asignes desde aquí.");
   return out;
 }

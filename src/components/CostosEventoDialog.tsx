@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2, Loader2, Receipt, ShieldCheck, AlertTriangle, Lock } from "lucide-react";
+import { Plus, Trash2, Loader2, Receipt, ShieldCheck, AlertTriangle, Lock, CheckCircle2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -106,6 +106,8 @@ export function CostosEventoDialog({
 }: CostosEventoDialogProps) {
   const [lineas, setLineas] = useState<CostoEvento[]>([]);
   const [sinTerceros, setSinTerceros] = useState(false);
+  // "Ya cargue todos los costos": lo marca el productor; pinta la celda verde.
+  const [completos, setCompletos] = useState(false);
   const [guardando, setGuardando] = useState(false);
   // La linea de marca "sin costos de terceros" que habia guardada: se conserva
   // (con su check) en vez de crear una nueva en cada guardado.
@@ -153,12 +155,13 @@ export function CostosEventoDialog({
     setLineas(l);
     setSinTerceros(st);
     setMarca(m);
-    setInicial(JSON.stringify({ l, st, m: m?.verificacion ?? null }));
+    setCompletos(Boolean(proyecto?.costosCompletos?.en));
+    setInicial(JSON.stringify({ l, st, m: m?.verificacion ?? null, c: Boolean(proyecto?.costosCompletos?.en) }));
   }, [open, proyecto]);
 
   const hayCambios =
     !soloLectura && open && inicial !== "" &&
-    JSON.stringify({ l: lineas, st: sinTerceros, m: marca?.verificacion ?? null }) !== inicial;
+    JSON.stringify({ l: lineas, st: sinTerceros, m: marca?.verificacion ?? null, c: completos }) !== inicial;
 
   // Cerrar con cambios sin guardar pide confirmacion en vez de perderlos.
   const pedirCierre = (abrir: boolean) => {
@@ -222,13 +225,22 @@ export function CostosEventoDialog({
       }
     }
 
+    // Marca de "costos completos" del productor: solo si cambio.
+    let avisoCompletos = "";
+    if (completos !== Boolean(proyecto.costosCompletos?.en)) {
+      await updateProjectMultiple(proyecto.id, {
+        costosCompletos: completos ? { por: user?.email ?? "", en: new Date().toISOString() } : null,
+      });
+      avisoCompletos = completos ? " Marcado: ya están todos los costos." : " Quitada la marca de costos completos.";
+    }
+
     toast({
       title: avisoCierre.includes("cerrados") ? "🔒 Costos guardados y cerrados" : "✓ Costos guardados",
       description: marcadoSinTerceros(enBase)
         ? `Quedó registrado que el evento no tuvo costos de terceros.`
-        : `${reales.length} línea${reales.length === 1 ? "" : "s"} · ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(suma)} confirmados en la base.` + avisoCierre,
+        : `${reales.length} línea${reales.length === 1 ? "" : "s"} · ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(suma)} confirmados en la base.` + avisoCierre + avisoCompletos,
     });
-    setInicial(JSON.stringify({ l: lineasReales(lista), st: marcadoSinTerceros(lista), m: marca?.verificacion ?? null }));
+    setInicial(JSON.stringify({ l: lineasReales(lista), st: marcadoSinTerceros(lista), m: marca?.verificacion ?? null, c: completos }));
     onOpenChange(false);
   };
 
@@ -368,6 +380,16 @@ export function CostosEventoDialog({
                   Reabrir costos
                 </Button>
               )}
+            </div>
+          )}
+          {!cierre && proyecto.costosCompletos?.en && (
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+              <span>
+                <strong>Costos completos.</strong> {(proyecto.costosCompletos.por || "—").split("@")[0]} marcó que ya cargó todos los costos ·{" "}
+                {new Date(proyecto.costosCompletos.en).toLocaleString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
+                . Falta que AUX BBM los revise y los cierre.
+              </span>
             </div>
           )}
           {/* Arriba del todo: muchas veces la respuesta es "no hubo", y asi no
@@ -644,6 +666,17 @@ export function CostosEventoDialog({
           </p>
         </div>
 
+        {!soloLectura && !cierre && (
+          <label className="flex shrink-0 cursor-pointer items-center gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
+            <Checkbox checked={completos} onCheckedChange={(v) => setCompletos(v === true)} className="h-5 w-5" />
+            <span>
+              <strong>Ya cargué todos los costos de este evento</strong>
+              <span className="block text-xs text-muted-foreground">
+                La casilla de Costos se pone verde en el panel. Da "Guardar costos" para que quede.
+              </span>
+            </span>
+          </label>
+        )}
         <DialogFooter className="shrink-0 gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => pedirCierre(false)} className="h-11 w-full sm:h-10 sm:w-auto">
             {soloLectura ? "Cerrar" : "Cancelar"}

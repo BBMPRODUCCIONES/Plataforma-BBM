@@ -88,6 +88,11 @@ export interface Project {
    * la huella ya no coincide y la verificacion deja de valer.
    */
   costosVerificacion?: VerificacionCostos | null;
+  /**
+   * El productor marco que ya cargo todos los costos del evento. Es solo un
+   * aviso (la celda se pone verde); el cierre lo sigue haciendo quien verifica.
+   */
+  costosCompletos?: { por: string; en: string } | null;
   /** Soportes de los costos: facturas, recibos, cuentas de cobro. */
   costosAdjuntos?: Attachment[];
   /** Archivos de bodega: remisiones, listas de despacho, fotos de salida y entrada. */

@@ -31,6 +31,7 @@ import { coincideBusquedaDeEvento } from "@/lib/busquedaEvento";
 import {
   alertaVisiblePara,
   alertaParpadea,
+  esSuProyecto,
   cuantosSinProductor,
   mesDeEjecucion,
 } from "@/lib/alertaCostos";
@@ -43,7 +44,7 @@ import { acentoVisualDeEvento, estiloFilaVisual } from "@/lib/coloresProyecto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, ExternalLink, Settings, Loader2, Eye, ArrowUpDown, ArrowUp, ArrowDown, Receipt, Paperclip, AlertTriangle } from "lucide-react";
+import { Search, ExternalLink, Settings, Loader2, Eye, ArrowUpDown, ArrowUp, ArrowDown, Receipt, Paperclip, AlertTriangle, Lock, CheckCircle2 } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { Switch } from "@/components/ui/switch";
@@ -87,12 +88,18 @@ const BotonCostos = ({
   const total = totalDeCostos(proyecto.costos);
   const sinTerceros = marcadoSinTerceros(proyecto.costos);
   const soportes = (proyecto.costosAdjuntos || []).length;
+  // Cerrados por AUX BBM, o marcados por el productor como completos: verde.
+  const cerrados = Boolean(proyecto.costosVerificacion?.en);
+  const completos = !cerrados && Boolean(proyecto.costosCompletos?.en);
+  const verde = cerrados || completos;
   return (
     <Button
       variant="ghost"
       size="sm"
       className={
-        enAlerta
+        verde
+          ? "h-7 w-full justify-start px-1.5 text-xs bg-emerald-500/15 font-medium text-emerald-800 ring-1 ring-inset ring-emerald-500/50 hover:bg-emerald-500/25"
+          : enAlerta
           ? cn(
               "h-7 w-full justify-start px-1.5 text-xs bg-destructive/10 font-medium text-destructive ring-1 ring-inset ring-destructive/40 hover:bg-destructive/20",
               parpadea && "animate-pulse ring-destructive"
@@ -105,6 +112,11 @@ const BotonCostos = ({
       }}
       title={
         [
+          cerrados
+            ? "Costos cerrados: ya fueron revisados y no se pueden cambiar"
+            : completos
+              ? "El productor marcó que ya cargó todos los costos"
+              : "",
           parpadea
             ? "Eres el productor de este evento: ya se ejecuto y no tiene costos cargados"
             : enAlerta
@@ -121,7 +133,11 @@ const BotonCostos = ({
           .join(" \u00b7 ")
       }
     >
-      {enAlerta ? (
+      {cerrados ? (
+        <Lock className="mr-1 h-3.5 w-3.5 shrink-0" />
+      ) : completos ? (
+        <CheckCircle2 className="mr-1 h-3.5 w-3.5 shrink-0" />
+      ) : enAlerta ? (
         <AlertTriangle className="mr-1 h-3.5 w-3.5 shrink-0" />
       ) : (
         <Receipt className="mr-1 h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -131,8 +147,8 @@ const BotonCostos = ({
           $ {total.toLocaleString("es-CO")}
         </span>
       ) : (
-        <span className={enAlerta ? "truncate" : "truncate text-muted-foreground"}>
-          {enAlerta ? "Faltan costos" : sinTerceros ? "Sin costos" : "Cargar costos"}
+        <span className={enAlerta || verde ? "truncate" : "truncate text-muted-foreground"}>
+          {cerrados ? "Cerrados" : completos ? "Completos" : enAlerta ? "Faltan costos" : sinTerceros ? "Sin costos" : "Cargar costos"}
         </span>
       )}
       {soportes > 0 && (
@@ -910,7 +926,13 @@ const PanelGeneral = () => {
             proyecto={projects.find((p) => p.id === costosDeProyectoId) ?? null}
             open={Boolean(costosDeProyectoId)}
             onOpenChange={(abierto) => { if (!abierto) setCostosDeProyectoId(null); }}
-            soloLectura={costosSoloLectura}
+            soloLectura={(() => {
+              // El productor del evento carga sus costos aunque no tenga
+              // permiso de editar el panel.
+              const p = projects.find((x) => x.id === costosDeProyectoId);
+              if (!costosSoloLectura || canEditGeneral()) return false;
+              return !(p && esSuProyecto(p, nombreDelUsuario, correoDelUsuario));
+            })()}
             onGuardar={async (costos: CostoEvento[]) => {
               if (costosDeProyectoId) await updateProject(costosDeProyectoId, "costos", costos);
             }}

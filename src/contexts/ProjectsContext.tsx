@@ -119,6 +119,9 @@ function dbRowToProject(row: any): Project {
           huella: row.costos_verificados_huella ?? "",
         }
       : null,
+    costosCompletos: row.costos_completos_en
+      ? { por: row.costos_completos_por ?? "", en: row.costos_completos_en }
+      : null,
     bodegaArchivos: row.bodega_archivos || [],
     bodegaObservaciones: row.bodega_observaciones || "",
     legalizacion: row.legalizacion || [],
@@ -203,6 +206,10 @@ function projectToDbRow(project: Partial<Project>): Record<string, any> {
     row.costos_verificados_por = v?.por ?? null;
     row.costos_verificados_en = v?.en ?? null;
     row.costos_verificados_huella = v?.huella ?? null;
+  }
+  if (project.costosCompletos !== undefined) {
+    row.costos_completos_por = project.costosCompletos?.por ?? null;
+    row.costos_completos_en = project.costosCompletos?.en ?? null;
   }
   if (project.bodegaArchivos !== undefined) row.bodega_archivos = project.bodegaArchivos;
   if (project.bodegaObservaciones !== undefined) row.bodega_observaciones = project.bodegaObservaciones;

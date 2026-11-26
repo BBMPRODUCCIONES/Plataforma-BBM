@@ -24,6 +24,7 @@ import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { anclarPrimero, renombrar } from "@/lib/columnasPanel";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
+import { MisPendientesDirectivo } from "@/components/MisPendientesDirectivo";
 import { useProjects } from "@/contexts/ProjectsContext";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { Project, ProjectStatus, CalendarViewMode } from "@/types";
@@ -1144,6 +1145,8 @@ const PanelDirectivo = ({ vistaInicial = "tabla" }: { vistaInicial?: "tabla" | "
             </div>
           }
         />
+
+        <MisPendientesDirectivo onAbrirEvento={setFichaDeProyectoId} />
 
         {/* Calendar Filter */}
         <CalendarFilter

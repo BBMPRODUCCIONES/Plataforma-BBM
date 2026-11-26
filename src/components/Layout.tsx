@@ -9,6 +9,7 @@ import { AvisoFacturasPendientes } from "@/components/AvisoFacturasPendientes";
 import { AvisoCostosPendientes } from "@/components/AvisoCostosPendientes";
 import { AvisoCostosCerrados } from "@/components/AvisoCostosCerrados";
 import { MisTareas } from "@/components/MisTareas";
+import { AvisoPendientesAlEntrar } from "@/components/MisPendientesDirectivo";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface LayoutProps {
@@ -35,6 +36,7 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
         <MobileBottomNav />
         <NotificationPrompt />
+        <AvisoPendientesAlEntrar />
         <Toaster />
       </div>
     );
@@ -70,6 +72,7 @@ const Layout = ({ children }: LayoutProps) => {
         </main>
       </div>
       <NotificationPrompt />
+      <AvisoPendientesAlEntrar />
       <Toaster />
     </SidebarProvider>
   );

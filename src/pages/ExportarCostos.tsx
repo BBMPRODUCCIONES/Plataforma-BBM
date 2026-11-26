@@ -224,7 +224,7 @@ export default function ExportarCostos() {
       // Hoja 2: detalle de costos
       const detalle: (string | number | null)[][] = [[
         "Evento", "Cliente", "Centro de costos", "Ejecución inicio", "Tipo", "Concepto",
-        "Proveedor / persona", "Valor", "Nota", "Cargado por", "Cargado el",
+        "Proveedor / persona", "Valor", "Observaciones", "Cargado por", "Cargado el",
         "Verificación", "Verificado por", "Verificado el", "Costos del evento",
       ]];
       // Una fila por cada costo y, al final de cada evento, su subtotal: asi se

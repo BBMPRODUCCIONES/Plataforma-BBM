@@ -566,6 +566,24 @@ export function CostosEventoDialog({
                   </div>
                 )}
               </div>
+              {soloLectura ? (
+                linea.nota ? (
+                  <p className="mt-2 rounded-md bg-muted/40 px-2 py-1.5 text-xs">
+                    <span className="font-medium text-muted-foreground">Observaciones: </span>
+                    {linea.nota}
+                  </p>
+                ) : null
+              ) : (
+                <div className="mt-2">
+                  <Label className="text-[10px] uppercase text-muted-foreground">Observaciones</Label>
+                  <Input
+                    className="mt-1 h-9 text-sm"
+                    value={linea.nota || ""}
+                    onChange={(e) => cambiar(linea.id, { nota: e.target.value })}
+                    placeholder="Opcional: anticipo, saldo pendiente, factura por llegar…"
+                  />
+                </div>
+              )}
               <CheckLinea
                 linea={linea}
                 puede={puedeVerificar}

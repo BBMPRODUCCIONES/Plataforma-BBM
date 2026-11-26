@@ -134,7 +134,7 @@ function Fase({
 }) {
   if (!dias && !franja) return null;
   return (
-    <div className="rounded-lg border border-border/70 p-3">
+    <div className="h-full min-w-0 rounded-lg border border-border/70 p-3">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         <span className={`h-2 w-2 rounded-full ${punto}`} />
         {nombre}
@@ -205,7 +205,7 @@ export function DetalleEventoDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg sm:max-h-[85vh] sm:overflow-y-auto">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] sm:max-w-xl sm:max-h-[85vh] sm:overflow-y-auto">
         <DialogHeader className="pr-10">
           <DialogTitle className="text-left text-base leading-snug">
             {proyecto.evento || "Sin nombre"}
@@ -238,7 +238,7 @@ export function DetalleEventoDialog({
           </div>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="min-w-0 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Dato etiqueta="Cliente" valor={proyecto.cliente} />
             <Dato etiqueta="Centro de costos" valor={proyecto.centroCostos} />
@@ -294,7 +294,7 @@ export function DetalleEventoDialog({
             </div>
           )}
 
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-2">
             {FASES.map((f) => {
               const tarjeta = (
                 <Fase
@@ -312,7 +312,7 @@ export function DetalleEventoDialog({
               );
 
               if (!editando || !onGuardarFechas) {
-                return <div key={f.nombre}>{tarjeta}</div>;
+                return <div key={f.nombre} className="min-w-0">{tarjeta}</div>;
               }
 
               return (

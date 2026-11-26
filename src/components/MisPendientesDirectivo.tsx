@@ -38,6 +38,12 @@ const fechaCorta = (d?: string | null) =>
     ? new Date(`${d.slice(0, 10)}T12:00:00Z`).toLocaleDateString("es-CO", { day: "numeric", month: "short", timeZone: "UTC" })
     : "Sin fecha";
 
+/** Tareas que se resuelven en la ventana de costos: se abre de una vez. */
+const ABRE_COSTOS = new Set<string>(["costos", "verificar_costos"]);
+/** Donde se resuelve una tarea: el evento solo, en el Panel General. */
+export const rutaDeTarea = (t: Tarea) =>
+  t.proyectoId ? `/panel-general?eventId=${t.proyectoId}${ABRE_COSTOS.has(t.tipo) ? "&abrir=costos" : ""}` : null;
+
 interface TareaManual {
   id: string;
   titulo: string;
@@ -104,9 +110,10 @@ export function useMisPendientes() {
   return { permitido, pendientes, hoy };
 }
 
-export function MisPendientesDirectivo({ onAbrirEvento }: { onAbrirEvento?: (id: string) => void }) {
+export function MisPendientesDirectivo() {
   const { permitido, pendientes, hoy } = useMisPendientes();
   const [abierto, setAbierto] = useState(true);
+  const navigate = useNavigate();
   if (!permitido) return null;
 
   const vencidas = pendientes.filter((t) => vencida(t, hoy)).length;
@@ -141,7 +148,15 @@ export function MisPendientesDirectivo({ onAbrirEvento }: { onAbrirEvento?: (id:
         <ul className="max-h-80 divide-y divide-border overflow-y-auto border-t border-border">
           {pendientes.map((t) => {
             const tarde = vencida(t, hoy);
-            const clic = t.proyectoId && onAbrirEvento ? () => onAbrirEvento(t.proyectoId!) : undefined;
+            const ruta = rutaDeTarea(t);
+            // Lleva al evento en el Panel General (y abre los costos si la
+            // tarea es de costos). La lista se pliega para que se vea el evento.
+            const clic = ruta
+              ? () => {
+                  setAbierto(false);
+                  navigate(ruta);
+                }
+              : undefined;
             return (
               <li
                 key={t.id}
@@ -160,6 +175,7 @@ export function MisPendientesDirectivo({ onAbrirEvento }: { onAbrirEvento?: (id:
                     {t.detalle || (t.tipo === "manual" ? "Tarea asignada" : "")}
                   </span>
                 </span>
+                {clic && <span className="hidden shrink-0 text-xs font-medium text-primary underline-offset-2 sm:inline">Resolver →</span>}
                 <span
                   className={cn(
                     "shrink-0 text-xs tabular-nums",
@@ -248,7 +264,20 @@ export function AvisoPendientesAlEntrar() {
         {primeras.map((t) => {
           const tarde = vencida(t, hoy);
           return (
-            <li key={t.id} className={cn("rounded-lg px-2 py-1.5 text-xs", tarde ? "bg-destructive/10" : "bg-muted/50")}>
+            <li
+              key={t.id}
+              onClick={() => {
+                const ruta = rutaDeTarea(t);
+                if (!ruta) return;
+                cerrar();
+                navigate(ruta);
+              }}
+              className={cn(
+                "rounded-lg px-2 py-1.5 text-xs",
+                rutaDeTarea(t) && "cursor-pointer hover:ring-1 hover:ring-primary/40",
+                tarde ? "bg-destructive/10" : "bg-muted/50"
+              )}
+            >
               <span className="block truncate font-medium">{t.titulo || NOMBRE_TAREA[t.tipo]}</span>
               <span className="flex justify-between gap-2 text-muted-foreground">
                 <span className="truncate">{t.detalle || ""}</span>

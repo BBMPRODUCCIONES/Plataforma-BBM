@@ -1146,7 +1146,7 @@ const PanelDirectivo = ({ vistaInicial = "tabla" }: { vistaInicial?: "tabla" | "
           }
         />
 
-        <MisPendientesDirectivo onAbrirEvento={setFichaDeProyectoId} />
+        <MisPendientesDirectivo />
 
         {/* Calendar Filter */}
         <CalendarFilter

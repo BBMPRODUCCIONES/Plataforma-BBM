@@ -60,6 +60,9 @@ const TIPOS: Record<string, string> = {
   otro: "Otro",
 };
 
+/** Orden fijo de las columnas por tipo en el resumen. */
+const ORDEN_TIPOS = Object.keys(TIPOS) as (keyof typeof TIPOS)[];
+
 const pesos = (n: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
 const iso = (d: Date) => format(d, "yyyy-MM-dd");
@@ -148,9 +151,17 @@ export default function ExportarCostos() {
         alignment: { vertical: "center", wrapText: true },
       };
       const moneda = "#,##0";
-      const hoja = (filasHoja: (string | number | null)[][], anchos: number[], columnasMoneda: number[]) => {
+      const subtotalEstilo = { font: { bold: true }, fill: { fgColor: { rgb: "EEF2FF" } } };
+      const hoja = (filasHoja: (string | number | null)[][], anchos: number[], columnasMoneda: number[], filasNegrita: number[] = []) => {
         const ws = XLSX.utils.aoa_to_sheet(filasHoja);
         const rango = XLSX.utils.decode_range(ws["!ref"] || "A1");
+        for (const r of filasNegrita) {
+          for (let c = rango.s.c; c <= rango.e.c; c++) {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (!ws[ref]) ws[ref] = { t: "s", v: "" };
+            ws[ref].s = subtotalEstilo;
+          }
+        }
         for (let c = rango.s.c; c <= rango.e.c; c++) {
           const ref = XLSX.utils.encode_cell({ r: 0, c });
           if (ws[ref]) ws[ref].s = encabezado;
@@ -169,7 +180,9 @@ export default function ExportarCostos() {
       // Hoja 1: resumen por evento
       const resumen: (string | number | null)[][] = [[
         "Evento", "Cliente", "Centro de costos", "Productor", "Ejecución inicio", "Ejecución fin",
-        "Venta sin IVA", "Venta sin IVA discriminado", "Costos", "Utilidad", "Margen %",
+        "Venta sin IVA", "Venta sin IVA discriminado", "Costos",
+        ...ORDEN_TIPOS.map((t) => `Costos · ${TIPOS[t]}`),
+        "Utilidad", "Margen %",
         "Líneas de costo", "Líneas verificadas", "Estado de costos", "Cerrados por", "Cerrados el",
         "Sin costos de terceros", "# Factura", "Subtotal factura", "Fecha factura", "Facturación",
       ]];
@@ -180,7 +193,12 @@ export default function ExportarCostos() {
         resumen.push([
           e.evento, e.cliente, e.centro_costos || "", e.productor || "",
           fechaCO(e.fecha_ejecucion_inicio), fechaCO(e.fecha_ejecucion_fin),
-          v.base, v.sinDiscriminar ? "No (es el total)" : "Sí", c, v.base - c,
+          v.base, v.sinDiscriminar ? "No (es el total)" : "Sí", c,
+          ...ORDEN_TIPOS.map((t) => {
+            const suma = ls.filter((l) => l.tipo === t).reduce((a, l) => a + (Number(l.valor) || 0), 0);
+            return suma || null;
+          }),
+          v.base - c,
           v.base > 0 ? Math.round(((v.base - c) / v.base) * 1000) / 10 : null,
           ls.length, (e.costos || []).filter(lineaVerificada).length, estadoCostos(e),
           e.costos_cerrados_por || "", fechaHoraCO(e.costos_cerrados_en),
@@ -189,7 +207,9 @@ export default function ExportarCostos() {
         ]);
       }
       resumen.push([]);
-      resumen.push(["TOTAL", "", "", "", "", "", tot.venta, "", tot.costos, tot.utilidad,
+      resumen.push(["TOTAL", "", "", "", "", "", tot.venta, "", tot.costos,
+        ...ORDEN_TIPOS.map((t) => visibles.reduce((a, e) => a + lineas(e).filter((l) => l.tipo === t).reduce((b, l) => b + (Number(l.valor) || 0), 0), 0)),
+        tot.utilidad,
         tot.margen != null ? Math.round(tot.margen * 10) / 10 : null, tot.lineas, null, `${tot.cerrados} cerrados`]);
 
       // Hoja 2: detalle de costos
@@ -198,8 +218,13 @@ export default function ExportarCostos() {
         "Proveedor / persona", "Valor", "Nota", "Cargado por", "Cargado el",
         "Verificación", "Verificado por", "Verificado el", "Costos del evento",
       ]];
+      // Una fila por cada costo y, al final de cada evento, su subtotal: asi se
+      // ve de que esta hecho el total y no solo la suma.
+      const filasSubtotal: number[] = [];
       for (const e of visibles) {
-        for (const l of lineas(e)) {
+        const ls = lineas(e);
+        if (ls.length === 0) continue;
+        for (const l of ls) {
           detalle.push([
             e.evento, e.cliente, e.centro_costos || "", fechaCO(e.fecha_ejecucion_inicio),
             TIPOS[l.tipo] || l.tipo, l.concepto || "", l.beneficiario || "", Number(l.valor) || 0,
@@ -209,13 +234,21 @@ export default function ExportarCostos() {
             estadoCostos(e),
           ]);
         }
+        filasSubtotal.push(detalle.length);
+        detalle.push([
+          `Subtotal · ${e.evento}`, "", "", "", `${ls.length} línea(s)`, "", "",
+          ls.reduce((a, l) => a + (Number(l.valor) || 0), 0), "", "", "", "", "", "", "",
+        ]);
       }
+      filasSubtotal.push(detalle.length);
+      detalle.push(["TOTAL DEL PERIODO", "", "", "", `${tot.lineas} línea(s)`, "", "", tot.costos, "", "", "", "", "", "", ""]);
 
       // Hoja 3: por proveedor / persona
       const porQuien = new Map<string, { nombre: string; tipo: string; valor: number; lineas: number; eventos: Set<string> }>();
       for (const e of visibles) {
         for (const l of lineas(e)) {
-          const quien = (l.beneficiario || "(sin nombre)").trim();
+          // Sin nombre no se amontona todo en una fila: se usa el concepto.
+          const quien = (l.beneficiario || "").trim() || `(sin nombre) ${(l.concepto || "").trim() || TIPOS[l.tipo] || l.tipo}`.trim();
           const k = quien.toLowerCase();
           const a = porQuien.get(k) || { nombre: quien, tipo: TIPOS[l.tipo] || l.tipo, valor: 0, lineas: 0, eventos: new Set<string>() };
           a.valor += Number(l.valor) || 0;
@@ -230,8 +263,11 @@ export default function ExportarCostos() {
         .forEach((a) => proveedores.push([a.nombre, a.tipo, a.valor, a.lineas, a.eventos.size]));
 
       const libro = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(libro, hoja(resumen, [34, 24, 14, 22, 12, 12, 15, 12, 15, 15, 9, 9, 10, 12, 26, 16, 10, 12, 15, 12, 14], [6, 8, 9, 18]), "Resumen por evento");
-      XLSX.utils.book_append_sheet(libro, hoja(detalle, [34, 24, 14, 12, 18, 30, 26, 14, 24, 26, 16, 22, 26, 16, 12], [7]), "Detalle de costos");
+      const nTipos = ORDEN_TIPOS.length;
+      XLSX.utils.book_append_sheet(libro, hoja(detalle, [34, 24, 14, 12, 18, 30, 26, 14, 24, 26, 16, 22, 26, 16, 12], [7], filasSubtotal), "Detalle de costos");
+      XLSX.utils.book_append_sheet(libro, hoja(resumen,
+        [34, 24, 14, 22, 12, 12, 15, 12, 15, ...Array(nTipos).fill(14), 15, 9, 9, 10, 12, 26, 16, 10, 12, 15, 12, 14],
+        [6, 8, ...Array.from({ length: nTipos }, (_, i) => 9 + i), 9 + nTipos, 18 + nTipos]), "Resumen por evento");
       XLSX.utils.book_append_sheet(libro, hoja(proveedores, [32, 18, 16, 8, 8], [2]), "Por proveedor");
       XLSX.writeFile(libro, `Costos BBM ${desde} a ${hasta}.xlsx`);
       toast({ title: "Excel descargado", description: `${tot.eventos} eventos · ${tot.lineas} líneas de costo` });

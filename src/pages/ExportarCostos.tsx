@@ -63,6 +63,23 @@ const TIPOS: Record<string, string> = {
 /** Orden fijo de las columnas por tipo en el resumen. */
 const ORDEN_TIPOS = Object.keys(TIPOS) as (keyof typeof TIPOS)[];
 
+/** Nombre de archivo seguro para Windows. */
+const limpioArchivo = (t: string) => t.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+
+function totales(lista: FilaEvento[]) {
+  const ventaBase = lista.reduce((s, e) => s + venta(e).base, 0);
+  const costos = lista.reduce((s, e) => s + totalCostos(e), 0);
+  return {
+    eventos: lista.length,
+    venta: ventaBase,
+    costos,
+    utilidad: ventaBase - costos,
+    margen: ventaBase > 0 ? ((ventaBase - costos) / ventaBase) * 100 : null,
+    cerrados: lista.filter((e) => e.costos_cerrados_en).length,
+    lineas: lista.reduce((s, e) => s + lineas(e).length, 0),
+  };
+}
+
 const pesos = (n: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
 const iso = (d: Date) => format(d, "yyyy-MM-dd");
@@ -92,6 +109,7 @@ export default function ExportarCostos() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [descargando, setDescargando] = useState(false);
+  const [descargandoUno, setDescargandoUno] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
     if (!permitido || !desde || !hasta) return;
@@ -122,27 +140,18 @@ export default function ExportarCostos() {
     [filas, filtro]
   );
 
-  const tot = useMemo(() => {
-    const ventaBase = visibles.reduce((s, e) => s + venta(e).base, 0);
-    const costos = visibles.reduce((s, e) => s + totalCostos(e), 0);
-    return {
-      eventos: visibles.length,
-      venta: ventaBase,
-      costos,
-      utilidad: ventaBase - costos,
-      margen: ventaBase > 0 ? ((ventaBase - costos) / ventaBase) * 100 : null,
-      cerrados: visibles.filter((e) => e.costos_cerrados_en).length,
-      lineas: visibles.reduce((s, e) => s + lineas(e).length, 0),
-    };
-  }, [visibles]);
+  const tot = useMemo(() => totales(visibles), [visibles]);
 
   const rango = (d: Date, h: Date) => {
     setDesde(iso(d));
     setHasta(iso(h));
   };
 
-  const descargar = async () => {
-    setDescargando(true);
+  // lista: los eventos a exportar (todos los del filtro, o uno solo desde su
+  // fila). archivo: nombre del Excel.
+  const descargar = async (lista: FilaEvento[] = visibles, archivo = `Costos BBM ${desde} a ${hasta}.xlsx`) => {
+    const tot = totales(lista);
+    if (lista.length === 1) setDescargandoUno(lista[0].id); else setDescargando(true);
     try {
       const XLSX = await import("xlsx-js-style");
       const encabezado = {
@@ -186,7 +195,7 @@ export default function ExportarCostos() {
         "Líneas de costo", "Líneas verificadas", "Estado de costos", "Cerrados por", "Cerrados el",
         "Sin costos de terceros", "# Factura", "Subtotal factura", "Fecha factura", "Facturación",
       ]];
-      for (const e of visibles) {
+      for (const e of lista) {
         const v = venta(e);
         const c = totalCostos(e);
         const ls = lineas(e);
@@ -208,7 +217,7 @@ export default function ExportarCostos() {
       }
       resumen.push([]);
       resumen.push(["TOTAL", "", "", "", "", "", tot.venta, "", tot.costos,
-        ...ORDEN_TIPOS.map((t) => visibles.reduce((a, e) => a + lineas(e).filter((l) => l.tipo === t).reduce((b, l) => b + (Number(l.valor) || 0), 0), 0)),
+        ...ORDEN_TIPOS.map((t) => lista.reduce((a, e) => a + lineas(e).filter((l) => l.tipo === t).reduce((b, l) => b + (Number(l.valor) || 0), 0), 0)),
         tot.utilidad,
         tot.margen != null ? Math.round(tot.margen * 10) / 10 : null, tot.lineas, null, `${tot.cerrados} cerrados`]);
 
@@ -221,7 +230,7 @@ export default function ExportarCostos() {
       // Una fila por cada costo y, al final de cada evento, su subtotal: asi se
       // ve de que esta hecho el total y no solo la suma.
       const filasSubtotal: number[] = [];
-      for (const e of visibles) {
+      for (const e of lista) {
         const ls = lineas(e);
         if (ls.length === 0) continue;
         for (const l of ls) {
@@ -241,11 +250,11 @@ export default function ExportarCostos() {
         ]);
       }
       filasSubtotal.push(detalle.length);
-      detalle.push(["TOTAL DEL PERIODO", "", "", "", `${tot.lineas} línea(s)`, "", "", tot.costos, "", "", "", "", "", "", ""]);
+      detalle.push([lista.length === 1 ? "TOTAL DEL EVENTO" : "TOTAL DEL PERIODO", "", "", "", `${tot.lineas} línea(s)`, "", "", tot.costos, "", "", "", "", "", "", ""]);
 
       // Hoja 3: por proveedor / persona
       const porQuien = new Map<string, { nombre: string; tipo: string; valor: number; lineas: number; eventos: Set<string> }>();
-      for (const e of visibles) {
+      for (const e of lista) {
         for (const l of lineas(e)) {
           // Sin nombre no se amontona todo en una fila: se usa el concepto.
           const quien = (l.beneficiario || "").trim() || `(sin nombre) ${(l.concepto || "").trim() || TIPOS[l.tipo] || l.tipo}`.trim();
@@ -269,12 +278,13 @@ export default function ExportarCostos() {
         [34, 24, 14, 22, 12, 12, 15, 12, 15, ...Array(nTipos).fill(14), 15, 9, 9, 10, 12, 26, 16, 10, 12, 15, 12, 14],
         [6, 8, ...Array.from({ length: nTipos }, (_, i) => 9 + i), 9 + nTipos, 18 + nTipos]), "Resumen por evento");
       XLSX.utils.book_append_sheet(libro, hoja(proveedores, [32, 18, 16, 8, 8], [2]), "Por proveedor");
-      XLSX.writeFile(libro, `Costos BBM ${desde} a ${hasta}.xlsx`);
+      XLSX.writeFile(libro, archivo);
       toast({ title: "Excel descargado", description: `${tot.eventos} eventos · ${tot.lineas} líneas de costo` });
     } catch (e) {
       toast({ title: "No se pudo generar el Excel", description: e instanceof Error ? e.message : "", variant: "destructive" });
     } finally {
       setDescargando(false);
+      setDescargandoUno(null);
     }
   };
 
@@ -322,7 +332,7 @@ export default function ExportarCostos() {
                 </SelectContent>
               </Select>
             </div>
-            <Button className="ml-auto h-9 gap-2" onClick={descargar} disabled={descargando || cargando || visibles.length === 0}>
+            <Button className="ml-auto h-9 gap-2" onClick={() => void descargar()} disabled={descargando || cargando || visibles.length === 0}>
               {descargando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               Descargar Excel
             </Button>
@@ -351,7 +361,7 @@ export default function ExportarCostos() {
               <table className="w-full text-xs">
                 <thead className="bg-muted/50 text-left">
                   <tr>
-                    {["Ejecución", "Evento", "Cliente", "CC", "Venta sin IVA", "Costos", "Utilidad", "Margen", "Costos"].map((h, i) => (
+                    {["Ejecución", "Evento", "Cliente", "CC", "Venta sin IVA", "Costos", "Utilidad", "Margen", "Costos", "Descargar"].map((h, i) => (
                       <th key={i} className="whitespace-nowrap px-3 py-2 font-medium">{h}</th>
                     ))}
                   </tr>
@@ -372,6 +382,24 @@ export default function ExportarCostos() {
                         <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{v > 0 ? `${(((v - c) / v) * 100).toFixed(0)}%` : "—"}</td>
                         <td className="whitespace-nowrap px-3 py-2">
                           {e.costos_cerrados_en ? <span className="inline-flex items-center gap-1 text-emerald-500"><Lock className="h-3 w-3" />Cerrados</span> : <span className="text-muted-foreground">{estadoCostos(e)}</span>}
+                        </td>
+                        <td className="whitespace-nowrap px-2 py-1 text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Descargar los costos de este evento"
+                            aria-label={`Descargar costos de ${e.evento}`}
+                            disabled={descargandoUno !== null || descargando}
+                            onClick={() =>
+                              void descargar(
+                                [e],
+                                `Costos ${limpioArchivo(e.evento)} ${fechaCO(e.fecha_ejecucion_inicio)}.xlsx`
+                              )
+                            }
+                          >
+                            {descargandoUno === e.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                          </Button>
                         </td>
                       </tr>
                     );

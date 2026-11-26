@@ -21,7 +21,7 @@ import {
  * tocan a quien esta mirando (como productor o como comercial) y siguen sin
  * hacer, mas las tareas que Bayron le asigno a mano.
  *
- * Solo para los directivos. Las tareas se calculan igual que en
+ * Le sale a cada usuario con lo suyo. Las tareas se calculan igual que en
  * Productividad, asi que lo que ve aqui es lo mismo que mide ese apartado.
  */
 export const DIRECTIVOS_CON_PENDIENTES = [
@@ -53,7 +53,8 @@ export function useMisPendientes() {
   const { usuarios } = useUsuariosRegistrados();
   const [manuales, setManuales] = useState<TareaManual[]>([]);
   const correo = (user?.email || "").toLowerCase();
-  const permitido = DIRECTIVOS_CON_PENDIENTES.includes(correo);
+  // Le sale a cada usuario con sus propias tareas pendientes.
+  const permitido = Boolean(user && correo);
   const hoy = hoyBogota();
 
   const cargarManuales = useCallback(async () => {
@@ -185,6 +186,7 @@ export function MisPendientesDirectivo({ onAbrirEvento }: { onAbrirEvento?: (id:
 const CLAVE_AVISO = "bbm-aviso-pendientes-visto";
 
 export function AvisoPendientesAlEntrar() {
+  const { user } = useAuth();
   const { permitido, pendientes, hoy } = useMisPendientes();
   const navigate = useNavigate();
   const [visto, setVisto] = useState(() => {
@@ -267,10 +269,10 @@ export function AvisoPendientesAlEntrar() {
         className="mt-2 h-8 w-full text-xs"
         onClick={() => {
           cerrar();
-          navigate("/panel-directivo");
+          navigate(DIRECTIVOS_CON_PENDIENTES.includes((user?.email || "").toLowerCase()) ? "/panel-directivo" : "/panel-general");
         }}
       >
-        Ver todas en el Panel Directivo
+        Ver todas en el {DIRECTIVOS_CON_PENDIENTES.includes((user?.email || "").toLowerCase()) ? "Panel Directivo" : "Panel General"}
       </Button>
     </div>
   );

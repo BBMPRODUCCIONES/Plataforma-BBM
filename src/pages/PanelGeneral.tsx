@@ -27,6 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { anclarPrimero } from "@/lib/columnasPanel";
 import { cn } from "@/lib/utils";
+import { MisPendientesDirectivo } from "@/components/MisPendientesDirectivo";
 import { coincideBusquedaDeEvento } from "@/lib/busquedaEvento";
 import {
   alertaVisiblePara,
@@ -749,6 +750,8 @@ const PanelGeneral = () => {
             )
           }
         />
+
+        <MisPendientesDirectivo />
 
         {eventoEnFoco && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">

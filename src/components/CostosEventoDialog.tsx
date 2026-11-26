@@ -354,7 +354,7 @@ export function CostosEventoDialog({
   return (
     <>
     <Dialog open={open} onOpenChange={pedirCierre}>
-      <DialogContent className="sm:max-w-2xl sm:max-h-[88vh] flex flex-col">
+      <DialogContent className="flex h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-32px)] flex-col gap-3 overflow-hidden sm:h-[92vh] sm:max-h-[92vh] sm:max-w-4xl">
         <DialogHeader className="pr-10">
           <DialogTitle className="flex items-center gap-2 text-left text-base">
             <Receipt className="h-4 w-4 shrink-0" />
@@ -365,7 +365,7 @@ export function CostosEventoDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 space-y-2 overflow-y-auto">
+        <div className="-mx-1 min-h-0 flex-1 space-y-2 overflow-y-auto px-1">
           {cierre && (
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
               <Lock className="h-4 w-4 shrink-0 text-emerald-500" />
@@ -465,9 +465,10 @@ export function CostosEventoDialog({
             </div>
           )}
 
-          {!sinTerceros && lineas.map((linea) => (
-            <div key={linea.id} className="rounded-lg border border-border/70 p-3">
-              <div className="grid gap-2 sm:grid-cols-[150px_1fr_auto]">
+          {!sinTerceros && lineas.map((linea, i) => (
+            <div key={linea.id} className="rounded-lg border border-border/70 bg-card p-2.5">
+              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Costo {i + 1}</div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[130px_minmax(0,1.2fr)_minmax(0,1fr)_130px_auto] lg:items-start">
                 <div>
                   <Label className="text-[10px] uppercase text-muted-foreground">Tipo</Label>
                   <Select
@@ -522,22 +523,6 @@ export function CostosEventoDialog({
                   </div>
                 </div>
 
-                {!soloLectura && (
-                  <div className="flex items-end">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => setLineas((prev) => prev.filter((l) => l.id !== linea.id))}
-                      title="Borrar esta línea"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_170px]">
                 <div>
                   <Label className="text-[10px] uppercase text-muted-foreground">Concepto</Label>
                   <Input
@@ -567,6 +552,19 @@ export function CostosEventoDialog({
                     </p>
                   )}
                 </div>
+                {!soloLectura && (
+                  <div className="flex items-end justify-end sm:col-span-2 lg:col-span-1 lg:pt-5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setLineas((prev) => prev.filter((l) => l.id !== linea.id))}
+                      title="Borrar esta línea"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
               <CheckLinea
                 linea={linea}
@@ -586,48 +584,50 @@ export function CostosEventoDialog({
               Agregar línea
             </Button>
           )}
-        </div>
-
-        {/* Los papeles que respaldan lo anterior. Se suben y se guardan al
-            momento, no al dar Guardar: un archivo a medio subir que se pierde
-            porque alguien cerro la ventana es peor que uno de mas. */}
-        <div className="shrink-0 space-y-2 rounded-lg border border-border p-3">
-          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            Soportes (facturas, recibos, cuentas de cobro)
-          </div>
-          {soloLectura ? (
-            (proyecto.costosAdjuntos || []).length > 0 ? (
-              <ListaAdjuntos adjuntos={proyecto.costosAdjuntos || []} etiqueta="Archivos" />
+          {/* Los papeles que respaldan lo anterior. Se suben y se guardan al
+              momento, no al dar Guardar: un archivo a medio subir que se pierde
+              porque alguien cerro la ventana es peor que uno de mas. */}
+          <div className="space-y-2 rounded-lg border border-border p-3">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              Soportes (facturas, recibos, cuentas de cobro)
+            </div>
+            {soloLectura ? (
+              (proyecto.costosAdjuntos || []).length > 0 ? (
+                <ListaAdjuntos adjuntos={proyecto.costosAdjuntos || []} etiqueta="Archivos" />
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Sin soportes cargados.</p>
+              )
             ) : (
-              <p className="text-[11px] text-muted-foreground">Sin soportes cargados.</p>
-            )
-          ) : (
-            <>
-              <AttachmentManager
-                attachments={proyecto.costosAdjuntos || []}
-                onAttachmentsChange={(archivos) => { void onGuardarAdjuntos(archivos); }}
-                acceptedTypes=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx"
-                fieldName="costos"
-                projectId={proyecto.id}
-              />
-              {/* La IA lee el soporte y propone la linea (proveedor, concepto,
-                  valor). La persona decide si la agrega. */}
-              <LectorSoportesCostos
-                adjuntos={proyecto.costosAdjuntos || []}
-                onAgregarLinea={(linea) => {
-                  setSinTerceros(false);
-                  setLineas((prev) => [...prev, linea]);
-                }}
-              />
-            </>
-          )}
+              <>
+                <AttachmentManager
+                  attachments={proyecto.costosAdjuntos || []}
+                  onAttachmentsChange={(archivos) => { void onGuardarAdjuntos(archivos); }}
+                  acceptedTypes=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx"
+                  fieldName="costos"
+                  projectId={proyecto.id}
+                />
+                {/* La IA lee el soporte y propone la linea (proveedor, concepto,
+                    valor). La persona decide si la agrega. */}
+                <LectorSoportesCostos
+                  adjuntos={proyecto.costosAdjuntos || []}
+                  onAgregarLinea={(linea) => {
+                    setSinTerceros(false);
+                    setLineas((prev) => [...prev, linea]);
+                  }}
+                />
+              </>
+            )}
+          </div>
         </div>
 
         {/* El resumen se queda fijo: es lo que se va a mirar mientras se
             escriben las lineas. */}
-        <div className="shrink-0 space-y-2 rounded-lg border border-border p-3">
+        <div
+          className="shrink-0 space-y-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2"
+          title="Utilidad = Ingreso total − costos. Es control interno del evento, no contabilidad: no descuenta impuestos ni dice si ya se cobró."
+        >
           {porTipo.length > 0 && (
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <div className="hidden flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground sm:flex">
               {porTipo.map(([tipo, valor]) => (
                 <span key={tipo} className="tabular-nums">
                   {nombreDeTipo(tipo)}: {pesos.format(valor)}
@@ -660,29 +660,23 @@ export function CostosEventoDialog({
               </div>
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            Utilidad = Ingreso total − costos. Es control interno del evento, no
-            contabilidad: no descuenta impuestos ni dice si ya se cobró.
-          </p>
         </div>
 
         {!soloLectura && !cierre && (
-          <label className="flex shrink-0 cursor-pointer items-center gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
+          <label
+            className={"flex shrink-0 cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm " + (completos ? "border-emerald-500/50 bg-emerald-500/10" : "border-emerald-500/30")}
+            title='La casilla de Costos se pone verde en el panel. Da "Guardar costos" para que quede.'
+          >
             <Checkbox checked={completos} onCheckedChange={(v) => setCompletos(v === true)} className="h-5 w-5" />
-            <span>
-              <strong>Ya cargué todos los costos de este evento</strong>
-              <span className="block text-xs text-muted-foreground">
-                La casilla de Costos se pone verde en el panel. Da "Guardar costos" para que quede.
-              </span>
-            </span>
+            <span className="font-medium">Ya cargué todos los costos de este evento</span>
           </label>
         )}
-        <DialogFooter className="shrink-0 gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => pedirCierre(false)} className="h-11 w-full sm:h-10 sm:w-auto">
+        <DialogFooter className="shrink-0 flex-row flex-wrap gap-2 sm:gap-2">
+          <Button variant="outline" onClick={() => pedirCierre(false)} className="h-10 flex-1 sm:flex-none">
             {soloLectura ? "Cerrar" : "Cancelar"}
           </Button>
           {!soloLectura && (
-            <Button onClick={() => guardar()} disabled={guardando} className="h-11 w-full sm:h-10 sm:w-auto">
+            <Button onClick={() => guardar()} disabled={guardando} className="h-10 flex-1 sm:flex-none">
               {guardando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {guardando ? "Guardando y comprobando…" : "Guardar costos"}
             </Button>
@@ -695,7 +689,7 @@ export function CostosEventoDialog({
               onClick={() => setConfirmarCierre(true)}
               disabled={guardando || hechas < lineasVisibles.length}
               title={hechas < lineasVisibles.length ? "Primero verifica todos los costos" : undefined}
-              className="h-11 w-full gap-2 bg-emerald-600 text-white hover:bg-emerald-700 sm:h-10 sm:w-auto"
+              className="h-10 basis-full gap-2 bg-emerald-600 text-white hover:bg-emerald-700 sm:basis-auto"
             >
               <Lock className="h-4 w-4" />
               Cerrar costos
@@ -783,14 +777,14 @@ function CheckLinea({
 
   if (!puede) {
     return (
-      <p className={"mt-2 flex items-center gap-1 text-[11px] " + color}>
+      <p className={"mt-1.5 flex items-center gap-1 text-[11px] " + color}>
         {ok ? <ShieldCheck className="h-3.5 w-3.5" /> : cambio ? <AlertTriangle className="h-3.5 w-3.5" /> : null}
         {texto}
       </p>
     );
   }
   return (
-    <label className={"mt-2 flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-xs " + (ok ? "border-emerald-500/40 bg-emerald-500/5" : cambio ? "border-amber-500/40 bg-amber-500/5" : "border-dashed border-border")}>
+    <label className={"mt-1.5 inline-flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1 text-xs " + (ok ? "border-emerald-500/40 bg-emerald-500/5" : cambio ? "border-amber-500/40 bg-amber-500/5" : "border-dashed border-border")}>
       <Checkbox checked={ok} onCheckedChange={(v) => onCambiar(v === true)} />
       <span className={color}>{ok ? texto : cambio ? texto + " — vuelve a marcar" : "Verifiqué este costo"}</span>
     </label>

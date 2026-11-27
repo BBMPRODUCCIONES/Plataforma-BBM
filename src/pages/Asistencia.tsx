@@ -15,7 +15,7 @@ export default function Asistencia() {
   const [recargar, setRecargar] = useState(0);
   return (
     <Layout>
-      <div className="mx-auto max-w-4xl space-y-4 p-1">
+      <div className="mx-auto max-w-2xl space-y-3 px-3 pb-6 pt-1 sm:space-y-4 sm:px-1">
         <PanelHeader title="Llegada y salida" description="Foto de llegada y de salida con hora y ubicación" />
         <MarcarAsistencia onMarcado={() => setRecargar((n) => n + 1)} />
         <ReporteHoras titulo={esAdmin ? "Horas trabajadas del equipo" : "Mis horas"} recargar={recargar} />

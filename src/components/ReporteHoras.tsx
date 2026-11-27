@@ -121,12 +121,12 @@ export function ReporteHoras({ titulo = "Horas trabajadas", recargar = 0 }: { ti
       <span className="flex min-w-0 flex-col">
         <span className="flex items-center gap-1.5">
           <span className="font-medium tabular-nums">{horaBogota(m.marcada_en)}</span>
-          <button type="button" onClick={() => void verFoto(m)} className="text-primary hover:opacity-70" title="Ver foto">
-            <ImageIcon className="h-3.5 w-3.5" />
+          <button type="button" onClick={() => void verFoto(m)} className="-m-1 p-1 text-primary hover:opacity-70" title="Ver foto">
+            <ImageIcon className="h-4 w-4" />
           </button>
           {mapa && (
-            <a href={mapa} target="_blank" rel="noopener noreferrer" className="text-primary hover:opacity-70" title="Ver en el mapa">
-              <MapPin className="h-3.5 w-3.5" />
+            <a href={mapa} target="_blank" rel="noopener noreferrer" className="-m-1 p-1 text-primary hover:opacity-70" title="Ver en el mapa">
+              <MapPin className="h-4 w-4" />
             </a>
           )}
         </span>
@@ -136,37 +136,43 @@ export function ReporteHoras({ titulo = "Horas trabajadas", recargar = 0 }: { ti
   };
 
   const FilaJornada = ({ j }: { j: Jornada }) => (
-    <div className="grid grid-cols-[5.5rem_minmax(0,1fr)_minmax(0,1fr)_5.5rem] items-start gap-2 px-3 py-2 text-sm">
-      <span className="text-xs text-muted-foreground">{fechaCortaDia(j.dia)}</span>
-      <Marca m={j.entrada} />
-      <Marca m={j.salida} />
-      <span className={cn("text-right tabular-nums", j.horas == null && "text-xs text-amber-600")}>
+    <div className="grid grid-cols-2 items-start gap-x-3 gap-y-1.5 px-3 py-2.5 text-sm sm:grid-cols-[5.5rem_minmax(0,1fr)_minmax(0,1fr)_5.5rem]">
+      <span className="text-xs font-medium text-muted-foreground sm:font-normal">{fechaCortaDia(j.dia)}</span>
+      <span className={cn("text-right tabular-nums sm:order-last", j.horas == null && "text-xs text-amber-600")}>
         {j.horas == null ? "Incompleta" : formatoHoras(j.horas)}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[10px] uppercase tracking-wide text-muted-foreground sm:hidden">Llegada</span>
+        <Marca m={j.entrada} />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[10px] uppercase tracking-wide text-muted-foreground sm:hidden">Salida</span>
+        <Marca m={j.salida} />
       </span>
     </div>
   );
 
   return (
     <div className="panel-card space-y-3 rounded-xl border border-border bg-card p-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="mr-auto">
-          <h2 className="text-base font-semibold">{titulo}</h2>
-          <p className="text-sm text-muted-foreground">
-            Cada llegada se empareja con la salida siguiente. Una jornada sin salida (o sin llegada) no suma horas.
-          </p>
-        </div>
-        <div>
+      <div>
+        <h2 className="text-base font-semibold">{titulo}</h2>
+        <p className="text-xs text-muted-foreground">
+          Cada llegada se empareja con la salida siguiente. Sin salida (o sin llegada) la jornada no suma horas.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
+        <div className="min-w-0">
           <Label className="text-xs">Desde</Label>
-          <Input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="h-9 w-[9.5rem]" />
+          <Input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="h-10 w-full sm:w-[10rem]" />
         </div>
-        <div>
+        <div className="min-w-0">
           <Label className="text-xs">Hasta</Label>
-          <Input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="h-9 w-[9.5rem]" />
+          <Input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="h-10 w-full sm:w-[10rem]" />
         </div>
-        <Button variant="outline" size="sm" className="h-9" onClick={() => void cargar()} disabled={cargando}>
-          <RefreshCw className={cn("h-4 w-4", cargando && "animate-spin")} />
+        <Button variant="outline" className="h-10" onClick={() => void cargar()} disabled={cargando}>
+          <RefreshCw className={cn("mr-2 h-4 w-4", cargando && "animate-spin")} /> Actualizar
         </Button>
-        <Button size="sm" className="h-9" onClick={descargar} disabled={resumen.length === 0}>
+        <Button className="h-10" onClick={descargar} disabled={resumen.length === 0}>
           <Download className="mr-2 h-4 w-4" /> Excel
         </Button>
       </div>
@@ -204,7 +210,7 @@ export function ReporteHoras({ titulo = "Horas trabajadas", recargar = 0 }: { ti
                 </button>
                 {abierto && (
                   <div className="divide-y divide-border/60 bg-muted/20">
-                    <div className="grid grid-cols-[5.5rem_minmax(0,1fr)_minmax(0,1fr)_5.5rem] gap-2 px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    <div className="hidden grid-cols-[5.5rem_minmax(0,1fr)_minmax(0,1fr)_5.5rem] gap-2 px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground sm:grid">
                       <span>Día</span>
                       <span>Llegada</span>
                       <span>Salida</span>

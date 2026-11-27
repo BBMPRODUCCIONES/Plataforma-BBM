@@ -77,8 +77,14 @@ export function MobileBottomNav() {
   const puedeVer = (item: { panel?: string; adminOnly?: boolean }) =>
     item.panel ? canAccessPanel(item.panel) : true;
 
-  const visibleMainItems = mainNavItems.filter(puedeVer);
-  const visibleMoreItems = moreNavItems.filter(item => {
+  // En la barra van 3 paneles + "Marcar" (llegada y salida, para todos). Lo
+  // que no cabe pasa al menu "Mas" para que nada quede inalcanzable.
+  const paneles = mainNavItems.filter(puedeVer);
+  const marcar = { title: "Marcar", url: "/asistencia", icon: Clock, panel: undefined as string | undefined };
+  const visibleMainItems = [...paneles.slice(0, 2), marcar, ...paneles.slice(2, 3)];
+  type ItemMas = { title: string; url: string; icon: typeof Clock; panel?: string; externo?: boolean; adminOnly?: boolean; soloExportadores?: boolean; soloDueno?: boolean };
+  const sobrantes = paneles.slice(3) as ItemMas[];
+  const visibleMoreItems = [...sobrantes, ...(moreNavItems as ItemMas[]).filter((i) => i.url !== "/asistencia")].filter(item => {
     if (item.adminOnly && !canEditStructure()) return false;
     if (item.soloExportadores && !puedeExportarCostos(user?.email)) return false;
     if (item.soloDueno && !puedeVerProductividad(user?.email)) return false;
@@ -86,13 +92,34 @@ export function MobileBottomNav() {
   });
 
   // Check if current route is in "more" section
-  const isMoreActive = moreNavItems.some(item => currentPath === item.url);
+  const isMoreActive = visibleMoreItems.some(item => currentPath === item.url);
 
   return (
     <nav className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border">
       <div className="mobile-bottom-nav-inner flex items-center justify-around px-2">
         {visibleMainItems.slice(0, 4).map((item) => {
           const isActive = currentPath === item.url;
+          if (item.url === "/asistencia") {
+            // Llegada y salida: boton grande y resaltado en la barra.
+            return (
+              <button
+                key={item.url}
+                onClick={() => handleNavigation(item.url)}
+                aria-label="Marcar llegada o salida"
+                className="-mt-5 flex flex-col items-center justify-center gap-0.5 touch-manipulation"
+              >
+                <span
+                  className={cn(
+                    "flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background transition-transform",
+                    isActive && "scale-105"
+                  )}
+                >
+                  <Clock className="h-6 w-6" />
+                </span>
+                <span className="text-[10px] font-semibold leading-tight text-primary">Marcar</span>
+              </button>
+            );
+          }
           return (
             <button
               key={item.url}

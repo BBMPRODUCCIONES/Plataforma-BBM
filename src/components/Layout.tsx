@@ -1,4 +1,6 @@
 import { ReactNode, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Clock } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "@/components/ui/toaster";
@@ -57,6 +59,14 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* Acceso directo a marcar llegada y salida */}
+              <Link
+                to="/asistencia"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
+              >
+                <Clock className="h-3.5 w-3.5" />
+                Marcar llegada / salida
+              </Link>
               <MisTareas />
               <AvisoCostosCerrados />
               <AvisoCostosPendientes />

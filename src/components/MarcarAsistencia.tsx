@@ -140,6 +140,17 @@ export function MarcarAsistencia({ onMarcado }: { onMarcado?: () => void }) {
 
   const ultima = hoy[0];
   const sugerido: TipoMarca = ultima?.tipo === "entrada" ? "salida" : "entrada";
+  const otro: TipoMarca = sugerido === "entrada" ? "salida" : "entrada";
+  const enJornada = ultima?.tipo === "entrada";
+  // Reloj para mostrar cuanto lleva en la jornada.
+  const [ahora, setAhora] = useState(() => Date.now());
+  useEffect(() => {
+    if (!enJornada) return;
+    const t = setInterval(() => setAhora(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, [enJornada]);
+  const lleva = enJornada ? Math.max(0, (ahora - new Date(ultima!.marcada_en).getTime()) / 3_600_000) : 0;
+  const llevaTexto = `${Math.floor(lleva)} h ${String(Math.round((lleva % 1) * 60) % 60).padStart(2, "0")} min`;
 
   const apagarCamara = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -301,36 +312,57 @@ export function MarcarAsistencia({ onMarcado }: { onMarcado?: () => void }) {
         document.body
       )}
 
-      <div>
-        <h2 className="text-base font-semibold">Marcar llegada y salida</h2>
-        <p className="text-sm text-muted-foreground">
-          Toma una foto al llegar y otra al salir. Queda con la hora, la ubicación y la dirección.
+      {/* Estado de hoy, grande: lo primero que se lee en el celular. */}
+      <div
+        className={cn(
+          "rounded-xl px-4 py-3 text-center",
+          enJornada ? "bg-emerald-500/10 text-emerald-800" : "bg-muted/50 text-foreground"
+        )}
+      >
+        <p className="text-xs font-medium uppercase tracking-wide opacity-70">
+          {fechaLarga(new Date())}
         </p>
+        {enJornada ? (
+          <>
+            <p className="mt-1 text-lg font-semibold">En jornada desde las {horaBogota(ultima!.marcada_en)}</p>
+            <p className="text-3xl font-bold tabular-nums">{llevaTexto}</p>
+          </>
+        ) : ultima ? (
+          <p className="mt-1 text-lg font-semibold">Saliste a las {horaBogota(ultima.marcada_en)}</p>
+        ) : (
+          <p className="mt-1 text-lg font-semibold">Todavía no has marcado hoy</p>
+        )}
       </div>
 
       {paso === "nada" || paso === "preparando" ? (
         <>
-          <div className="grid grid-cols-2 gap-3">
-            {(["entrada", "salida"] as TipoMarca[]).map((t) => (
-              <Button
-                key={t}
-                type="button"
-                variant={sugerido === t ? "default" : "outline"}
-                disabled={paso === "preparando"}
-                onClick={() => empezar(t)}
-                className={cn("h-20 flex-col gap-1 text-base", sugerido === t && "shadow-md")}
-              >
-                {paso === "preparando" && tipo === t ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : t === "entrada" ? (
-                  <LogIn className="h-6 w-6" />
-                ) : (
-                  <LogOut className="h-6 w-6" />
-                )}
-                {t === "entrada" ? "Marcar llegada" : "Marcar salida"}
-              </Button>
-            ))}
-          </div>
+          <Button
+            type="button"
+            disabled={paso === "preparando"}
+            onClick={() => empezar(sugerido)}
+            className={cn(
+              "h-24 w-full flex-col gap-1.5 rounded-2xl text-lg font-semibold shadow-lg",
+              sugerido === "salida" && "bg-emerald-600 text-white hover:bg-emerald-700"
+            )}
+          >
+            {paso === "preparando" && tipo === sugerido ? (
+              <Loader2 className="h-7 w-7 animate-spin" />
+            ) : sugerido === "entrada" ? (
+              <LogIn className="h-7 w-7" />
+            ) : (
+              <LogOut className="h-7 w-7" />
+            )}
+            {sugerido === "entrada" ? "Marcar llegada" : "Marcar salida"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={paso === "preparando"}
+            onClick={() => empezar(otro)}
+            className="h-10 w-full text-sm text-muted-foreground"
+          >
+            {otro === "entrada" ? "¿Volviste a llegar? Marcar llegada" : "Marcar salida"}
+          </Button>
           {paso === "preparando" && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" /> Leyendo la ubicación y preparando la foto…
@@ -341,11 +373,11 @@ export function MarcarAsistencia({ onMarcado }: { onMarcado?: () => void }) {
         preview && (
           <div className="space-y-3">
             <img src={preview.url} alt="Foto de la marca" className="mx-auto max-h-[55vh] rounded-lg border border-border" />
-            <div className="grid grid-cols-2 gap-3">
-              <Button type="button" variant="outline" className="h-12" disabled={paso === "guardando"} onClick={() => { descartar(); if (tipo) empezar(tipo); }}>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button type="button" variant="outline" className="order-2 h-12 sm:order-1" disabled={paso === "guardando"} onClick={() => { descartar(); if (tipo) empezar(tipo); }}>
                 <RotateCcw className="mr-2 h-4 w-4" /> Repetir foto
               </Button>
-              <Button type="button" className="h-12" disabled={paso === "guardando"} onClick={() => void confirmar()}>
+              <Button type="button" className="order-1 h-14 text-base sm:order-2 sm:h-12" disabled={paso === "guardando"} onClick={() => void confirmar()}>
                 {paso === "guardando" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
                 Confirmar {tipo === "entrada" ? "llegada" : "salida"}
               </Button>
@@ -357,19 +389,24 @@ export function MarcarAsistencia({ onMarcado }: { onMarcado?: () => void }) {
         )
       )}
 
-      <div className="rounded-lg bg-muted/40 px-3 py-2 text-sm">
-        <span className="font-medium">Hoy: </span>
-        {hoy.length === 0 ? (
-          <span className="text-muted-foreground">todavía no has marcado.</span>
-        ) : (
-          [...hoy]
-            .reverse()
-            .map((m) => `${m.tipo === "entrada" ? "llegada" : "salida"} ${horaBogota(m.marcada_en)}`)
-            .join(" · ")
-        )}
-      </div>
+      {hoy.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {[...hoy].reverse().map((m) => (
+            <span
+              key={m.id}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm",
+                m.tipo === "entrada" ? "bg-primary/10" : "bg-emerald-500/10 text-emerald-800"
+              )}
+            >
+              {m.tipo === "entrada" ? <LogIn className="h-3.5 w-3.5" /> : <LogOut className="h-3.5 w-3.5" />}
+              {m.tipo === "entrada" ? "Llegada" : "Salida"} {horaBogota(m.marcada_en)}
+            </span>
+          ))}
+        </div>
+      )}
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Camera className="h-3.5 w-3.5" /> La foto se toma en vivo con la cámara (no se puede subir de la galería). La primera vez el planner pide permiso de cámara y de ubicación.
+        <Camera className="h-3.5 w-3.5 shrink-0" /> Foto en vivo con hora y ubicación. La primera vez se pide permiso de cámara y ubicación.
       </p>
     </div>
   );

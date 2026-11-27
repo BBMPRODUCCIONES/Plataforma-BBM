@@ -56,6 +56,8 @@ interface ItemMenu {
 }
 
 const mainNavItems: ItemMenu[] = [
+  // Primero: todos marcan su llegada y salida con foto (y ven sus horas).
+  { title: "Llegada y salida", url: "/asistencia", icon: Clock },
   { title: "Panel Directivo", url: "/panel-directivo", icon: Briefcase, panel: "directivo" },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, panel: "directivo" },
   { title: "Panel General", url: "/panel-general", icon: Grid3X3, panel: "general" },
@@ -70,8 +72,6 @@ const mainNavItems: ItemMenu[] = [
   { title: "Proveedores", url: "/proveedores", icon: Users, panel: "proveedores" },
   // Solo para las personas que pueden descargar costos (lib/permisosCostos).
   { title: "Exportar costos", url: "/exportar-costos", icon: FileSpreadsheet, soloExportadores: true },
-  // Todos: foto de llegada y de salida, y las horas.
-  { title: "Llegada y salida", url: "/asistencia", icon: Clock },
   // Solo Bayron.
   { title: "Productividad", url: "/productividad", icon: Gauge, soloDueno: true },
 ];

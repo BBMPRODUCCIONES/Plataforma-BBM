@@ -17,6 +17,7 @@ import { AvanzadaSelect } from "@/components/AvanzadaSelect";
 import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
+import { rellenoAlCambiarCliente } from "@/lib/contactosCliente";
 import { ColumnManagerDialog, ColumnConfig } from "@/components/ColumnManagerDialog";
 import { EventLink } from "@/components/EventLink";
 import { FacturaCelda } from "@/components/FacturaEvento";
@@ -442,7 +443,7 @@ const PanelGeneral = () => {
         ) : (
           <ClienteAutocomplete
             value={p.cliente}
-            onChange={(value) => updateProject(p.id, "cliente", value)}
+            onChange={(value) => updateProjectMultiple(p.id, rellenoAlCambiarCliente(projects, p, value))}
           />
         );
       case "evento":

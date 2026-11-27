@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Project } from "@/types";
+import { useProjects } from "@/contexts/ProjectsContext";
+import { contactosDelCliente } from "@/lib/contactosCliente";
 import { cn } from "@/lib/utils";
 
 /**
@@ -29,6 +31,9 @@ export function ContactoCliente({
   onGuardar: (cambios: Partial<Project>) => Promise<void> | void;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const { projects } = useProjects();
+  // Contactos que ya se usaron con este cliente en otros eventos.
+  const conocidos = abierto && !soloLectura ? contactosDelCliente(projects, proyecto.cliente, proyecto.id) : [];
   const [nombre, setNombre] = useState(proyecto.contactoNombre || "");
   const [telefono, setTelefono] = useState(proyecto.contactoTelefono || "");
   const tiene = Boolean(proyecto.contactoNombre || proyecto.contactoTelefono);
@@ -85,6 +90,26 @@ export function ContactoCliente({
           !tiene && <p className="text-xs text-muted-foreground">Este evento no tiene contacto cargado.</p>
         ) : (
           <>
+            {conocidos.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[11px] text-muted-foreground">Contactos de {proyecto.cliente}:</p>
+                <div className="flex flex-wrap gap-1">
+                  {conocidos.slice(0, 4).map((c) => (
+                    <button
+                      key={c.telefono}
+                      type="button"
+                      onClick={() => {
+                        setNombre(c.nombre);
+                        setTelefono(c.telefono);
+                      }}
+                      className="rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-muted"
+                    >
+                      {c.nombre || "Sin nombre"} · {c.telefono}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="space-y-1">
               <Label className="text-xs">Nombre</Label>
               <div className="relative">

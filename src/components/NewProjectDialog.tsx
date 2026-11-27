@@ -29,6 +29,8 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Project, ProjectStatus } from "@/types";
 import { useClientes } from "@/contexts/ClientesContext";
+import { useProjects } from "@/contexts/ProjectsContext";
+import { contactosDelCliente } from "@/lib/contactosCliente";
 import { useAuth } from "@/contexts/AuthContext";
 import { NuevoClienteInline } from "@/components/NuevoClienteInline";
 import { toast } from "@/hooks/use-toast";
@@ -129,6 +131,21 @@ export function NewProjectDialog({
   onProjectCreate,
 }: NewProjectDialogProps) {
   const { clientes } = useClientes();
+  const { projects: todosLosEventos } = useProjects();
+  // Al escoger un cliente se pone solo el contacto que ya se uso con el.
+  const ponerCliente = (nombre: string, base: Partial<Project>) => {
+    const conocidos = contactosDelCliente(todosLosEventos, nombre);
+    const s = conocidos[0];
+    const sinTelefono = !(base.contactoTelefono || "").trim();
+    return {
+      ...base,
+      cliente: nombre,
+      ...(s && sinTelefono
+        ? { contactoTelefono: s.telefono, contactoNombre: (base.contactoNombre || "").trim() || s.nombre }
+        : {}),
+    };
+  };
+
   const { role } = useAuth();
   // Solo los administradores pueden crear clientes (asi esta la regla en la base).
   const puedeCrearClientes = role === "administrador";
@@ -142,6 +159,7 @@ export function NewProjectDialog({
     horaDesmontajeInicio: "18:00",
     horaDesmontajeFin: "22:00",
   });
+  const contactosConocidos = contactosDelCliente(todosLosEventos, formData?.cliente);
   const [montajeRange, setMontajeRange] = useState<DateRange | undefined>();
   const [ejecucionRange, setEjecucionRange] = useState<DateRange | undefined>();
   const [desmontajeRange, setDesmontajeRange] = useState<DateRange | undefined>();
@@ -412,7 +430,7 @@ export function NewProjectDialog({
               {creandoCliente ? (
                 <NuevoClienteInline
                   onCreado={(nombre) => {
-                    setFormData({ ...formData, cliente: nombre });
+                    setFormData(ponerCliente(nombre, formData));
                     setErrors({ ...errors, cliente: undefined });
                     setCreandoCliente(false);
                   }}
@@ -426,7 +444,7 @@ export function NewProjectDialog({
                       setCreandoCliente(true);
                       return;
                     }
-                    setFormData({ ...formData, cliente: value });
+                    setFormData(ponerCliente(value, formData));
                     if (errors.cliente) setErrors({ ...errors, cliente: undefined });
                   }}
                 >
@@ -693,6 +711,27 @@ export function NewProjectDialog({
                 />
               </div>
             </div>
+            {contactosConocidos.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="text-muted-foreground">Contactos de {formData.cliente}:</span>
+                {contactosConocidos.slice(0, 4).map((c) => {
+                  const activo = (formData.contactoTelefono || "").replace(/[^\d]/g, "") === c.telefono.replace(/[^\d]/g, "");
+                  return (
+                    <button
+                      key={c.telefono}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, contactoNombre: c.nombre, contactoTelefono: c.telefono })}
+                      className={cn(
+                        "rounded-full border px-2.5 py-1",
+                        activo ? "border-primary bg-primary/10 font-medium" : "border-border hover:bg-muted"
+                      )}
+                    >
+                      {c.nombre || "Sin nombre"} · {c.telefono}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
     </>
   );
 

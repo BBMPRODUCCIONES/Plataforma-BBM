@@ -20,6 +20,7 @@ import { DateTimeRangeEditor } from "@/components/DateTimeRangeEditor";
 import { FacturaCelda } from "@/components/FacturaEvento";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { ClienteAutocomplete } from "@/components/ClienteAutocomplete";
+import { rellenoAlCambiarCliente } from "@/lib/contactosCliente";
 import { EmpleadoAutocomplete } from "@/components/EmpleadoAutocomplete";
 import { ProveedorAutocomplete } from "@/components/ProveedorAutocomplete";
 import { CajaMenorEstadoSelect } from "@/components/CajaMenorEstadoSelect";
@@ -850,7 +851,7 @@ const PanelOperaciones = () => {
           ) : (
             <ClienteAutocomplete
               value={p.cliente}
-              onChange={(value) => updateProject(p.id, "cliente", value)}
+              onChange={(value) => updateProjectMultiple(p.id, rellenoAlCambiarCliente(projects, p, value))}
             />
           );
         case "evento":

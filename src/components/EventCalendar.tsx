@@ -388,30 +388,45 @@ export function EventCalendar({
                       onClick={() => setDetalleId(proyecto.id)}
                       className={cn(
                         "flex w-full items-center gap-2 rounded-md border border-border/60 px-2.5 py-2 text-left transition-colors hover:bg-accent/40",
-                        isMobile && "gap-3 rounded-xl bg-card px-3 py-3"
+                        isMobile && "items-start gap-3 rounded-xl bg-card px-3 py-3"
                       )}
                     >
                       <span
                         style={marca ? { backgroundColor: marca.color } : undefined}
                         className={cn(
                           "h-2.5 w-2.5 shrink-0 rounded-full",
+                          isMobile && "mt-1.5",
                           !marca && FASE_ESTILO[fase].punto
                         )}
                       />
+                      {isMobile ? (
+                        <span className="min-w-0 flex-1 space-y-0.5">
+                          <span className="block text-[15px] font-semibold leading-snug">
+                            {proyecto.evento || "Sin nombre"}
+                          </span>
+                          <span className="block text-sm font-medium">
+                            {FASE_ESTILO[fase].nombre}
+                            {horaDeFase(proyecto, fase) ? ` · ${horaDeFase(proyecto, fase)}` : ""}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">
+                            {proyecto.cliente || "Sin cliente"}
+                          </span>
+                          {(proyecto.ubicacion || proyecto.productor) && (
+                            <span className="block text-xs text-muted-foreground">
+                              {[proyecto.ubicacion, proyecto.productor].filter(Boolean).join(" · ")}
+                            </span>
+                          )}
+                        </span>
+                      ) : (
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">
                           {proyecto.evento || "Sin nombre"}
                         </span>
                         <span className="block truncate text-xs text-muted-foreground">
                           {proyecto.cliente || "Sin cliente"} · {FASE_ESTILO[fase].nombre}
-                          {isMobile && horaDeFase(proyecto, fase) ? ` · ${horaDeFase(proyecto, fase)}` : ""}
                         </span>
-                        {isMobile && (proyecto.ubicacion || proyecto.productor) && (
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {[proyecto.ubicacion, proyecto.productor].filter(Boolean).join(" · ")}
-                          </span>
-                        )}
                       </span>
+                      )}
                       {marca && (
                         <span
                           style={{

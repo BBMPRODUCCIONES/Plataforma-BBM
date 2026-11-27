@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Loader2, LogIn, LogOut, MapPin, RotateCcw, Check } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Camera, Loader2, LogIn, LogOut, MapPin, RotateCcw, Check, SwitchCamera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,9 @@ import { diaBogota, fechaLarga, horaBogota, Marcacion, TipoMarca } from "@/lib/m
 /**
  * Marcar llegada o salida: foto + hora + ubicacion.
  *
- * Al tocar el boton se pide la ubicacion y se abre la camara al mismo tiempo.
+ * Al tocar el boton se pide la ubicacion y se abre la camara EN VIVO dentro
+ * del planner (no hay forma de escoger una foto de la galeria): la foto es el
+ * cuadro que se ve en ese momento.
  * Con la foto tomada se estampa abajo una franja con el tipo, el nombre, la
  * fecha y hora, las coordenadas y la direccion. La persona la revisa y
  * confirma; ahi se sube y se guarda. La hora que vale es la del servidor.
@@ -60,32 +63,31 @@ async function direccionDe(lat: number, lng: number): Promise<string> {
   }
 }
 
-async function cargarImagen(archivo: File): Promise<HTMLImageElement> {
-  const url = URL.createObjectURL(archivo);
-  try {
-    const img = new Image();
-    img.src = url;
-    await img.decode();
-    return img;
-  } finally {
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-  }
-}
-
 /** Dibuja la foto con la franja de datos abajo y devuelve un JPEG. */
-async function estampar(archivo: File, lineas: string[]): Promise<Blob> {
-  const img = await cargarImagen(archivo);
+async function estampar(video: HTMLVideoElement, espejo: boolean, lineas: string[]): Promise<Blob> {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh) throw new Error("La cámara todavía no muestra imagen. Espera un segundo y vuelve a tomar la foto.");
   const max = 1280;
-  const escala = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
-  const w = Math.round(img.naturalWidth * escala);
-  const h = Math.round(img.naturalHeight * escala);
+  const escala = Math.min(1, max / Math.max(vw, vh));
+  const w = Math.round(vw * escala);
+  const h = Math.round(vh * escala);
   const fuente = Math.max(14, Math.round(w / 34));
   const alto = Math.round(fuente * 1.45 * lineas.length + fuente * 1.2);
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h + alto;
   const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(img, 0, 0, w, h);
+  if (espejo) {
+    // La camara de frente se ve como espejo; la foto se guarda derecha.
+    ctx.save();
+    ctx.translate(w, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, w, h);
+    ctx.restore();
+  } else {
+    ctx.drawImage(video, 0, 0, w, h);
+  }
   ctx.fillStyle = "#000";
   ctx.fillRect(0, h, w, alto);
   ctx.fillStyle = "#fff";
@@ -109,7 +111,10 @@ export function MarcarAsistencia({ onMarcado }: { onMarcado?: () => void }) {
   const [tipo, setTipo] = useState<TipoMarca | null>(null);
   const [paso, setPaso] = useState<"nada" | "preparando" | "revisar" | "guardando">("nada");
   const [preview, setPreview] = useState<{ blob: Blob; url: string; ubic: Ubicacion } | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [camara, setCamara] = useState<"user" | "environment" | null>(null);
+  const [camaraLista, setCamaraLista] = useState(false);
   const ubicacionRef = useRef<Promise<GeolocationPosition> | null>(null);
 
   const cargarHoy = useCallback(async () => {
@@ -136,19 +141,68 @@ export function MarcarAsistencia({ onMarcado }: { onMarcado?: () => void }) {
   const ultima = hoy[0];
   const sugerido: TipoMarca = ultima?.tipo === "entrada" ? "salida" : "entrada";
 
+  const apagarCamara = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setCamaraLista(false);
+  }, []);
+
+  const prenderCamara = useCallback(
+    async (modo: "user" | "environment") => {
+      apagarCamara();
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Este navegador no deja usar la cámara. Abre el planner en Chrome o Safari.");
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: modo, width: { ideal: 1280 }, height: { ideal: 1280 } },
+          audio: false,
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => undefined);
+        }
+      } catch (e) {
+        const nombreError = (e as { name?: string })?.name;
+        throw new Error(
+          nombreError === "NotAllowedError"
+            ? "No diste permiso de cámara. Actívalo para el planner en el navegador y vuelve a intentar."
+            : "No se pudo abrir la cámara. Revisa que ninguna otra app la esté usando."
+        );
+      }
+    },
+    [apagarCamara]
+  );
+
+  // Al cerrar la pagina se apaga la camara.
+  useEffect(() => () => apagarCamara(), [apagarCamara]);
+
+  useEffect(() => {
+    if (!camara) return;
+    prenderCamara(camara).catch((e) => {
+      toast.error("No se pudo abrir la cámara", { description: e instanceof Error ? e.message : "" });
+      setCamara(null);
+      setPaso("nada");
+    });
+  }, [camara, prenderCamara]);
+
   const empezar = (t: TipoMarca) => {
     setTipo(t);
-    // La ubicacion se pide ya, mientras la persona toma la foto.
+    // La ubicacion se pide ya, mientras la persona se prepara para la foto.
     ubicacionRef.current = pedirUbicacion();
     ubicacionRef.current.catch(() => undefined);
-    if (inputRef.current) {
-      inputRef.current.value = "";
-      inputRef.current.click();
-    }
+    setCamara("user");
   };
 
-  const alElegirFoto = async (archivo?: File) => {
-    if (!archivo || !tipo) return;
+  const cerrarCamara = () => {
+    apagarCamara();
+    setCamara(null);
+  };
+
+  const tomarFoto = async () => {
+    const video = videoRef.current;
+    if (!video || !tipo || !camara) return;
     setPaso("preparando");
     try {
       const pos = await (ubicacionRef.current || pedirUbicacion());
@@ -164,7 +218,8 @@ export function MarcarAsistencia({ onMarcado }: { onMarcado?: () => void }) {
         direccion || "Dirección no disponible",
         "BBM Producciones · Planner",
       ];
-      const blob = await estampar(archivo, lineas);
+      const blob = await estampar(video, camara === "user", lineas);
+      cerrarCamara();
       setPreview({ blob, url: URL.createObjectURL(blob), ubic: { lat, lng, precision, direccion } });
       setPaso("revisar");
     } catch (e) {
@@ -212,14 +267,39 @@ export function MarcarAsistencia({ onMarcado }: { onMarcado?: () => void }) {
 
   return (
     <div className="panel-card space-y-4 rounded-xl border border-border bg-card p-4">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="user"
-        className="hidden"
-        onChange={(e) => void alElegirFoto(e.target.files?.[0])}
-      />
+      {camara && createPortal(
+        <div className="fixed inset-0 z-[70] flex flex-col bg-black">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            onLoadedData={() => setCamaraLista(true)}
+            className={cn("min-h-0 flex-1 object-contain", camara === "user" && "-scale-x-100")}
+          />
+          <div className="flex items-center justify-between gap-3 bg-black p-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] text-white">
+            <Button type="button" variant="ghost" className="h-12 text-white hover:bg-white/10 hover:text-white" disabled={paso === "preparando"} onClick={() => { cerrarCamara(); setPaso("nada"); }}>
+              <X className="mr-1 h-5 w-5" /> Cancelar
+            </Button>
+            <button
+              type="button"
+              aria-label="Tomar foto"
+              disabled={!camaraLista || paso === "preparando"}
+              onClick={() => void tomarFoto()}
+              className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-white/20 disabled:opacity-40"
+            >
+              {paso === "preparando" ? <Loader2 className="h-6 w-6 animate-spin" /> : <Camera className="h-6 w-6" />}
+            </button>
+            <Button type="button" variant="ghost" className="h-12 text-white hover:bg-white/10 hover:text-white" disabled={paso === "preparando"} onClick={() => setCamara((c) => (c === "user" ? "environment" : "user"))}>
+              <SwitchCamera className="mr-1 h-5 w-5" /> Girar
+            </Button>
+          </div>
+          <p className="bg-black px-4 pb-3 text-center text-xs text-white/70">
+            {tipo === "entrada" ? "Llegada" : "Salida"} · la foto se toma en vivo; no se puede subir de la galería.
+          </p>
+        </div>,
+        document.body
+      )}
 
       <div>
         <h2 className="text-base font-semibold">Marcar llegada y salida</h2>
@@ -289,7 +369,7 @@ export function MarcarAsistencia({ onMarcado }: { onMarcado?: () => void }) {
         )}
       </div>
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Camera className="h-3.5 w-3.5" /> En el celular se abre la cámara. El planner pide permiso de ubicación la primera vez.
+        <Camera className="h-3.5 w-3.5" /> La foto se toma en vivo con la cámara (no se puede subir de la galería). La primera vez el planner pide permiso de cámara y de ubicación.
       </p>
     </div>
   );

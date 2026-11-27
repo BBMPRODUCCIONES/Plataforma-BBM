@@ -1,4 +1,5 @@
 import {
+  Clock,
   Grid3X3,
   Wrench,
   Users,
@@ -69,6 +70,8 @@ const mainNavItems: ItemMenu[] = [
   { title: "Proveedores", url: "/proveedores", icon: Users, panel: "proveedores" },
   // Solo para las personas que pueden descargar costos (lib/permisosCostos).
   { title: "Exportar costos", url: "/exportar-costos", icon: FileSpreadsheet, soloExportadores: true },
+  // Todos: foto de llegada y de salida, y las horas.
+  { title: "Llegada y salida", url: "/asistencia", icon: Clock },
   // Solo Bayron.
   { title: "Productividad", url: "/productividad", icon: Gauge, soloDueno: true },
 ];

@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, Grid3X3, Wrench, Users, MoreHorizontal, X, Calendar, Settings, LogOut, FileBarChart, TrendingUp, LayoutGrid, Construction, Boxes, FileSpreadsheet, Gauge, LayoutDashboard } from "lucide-react";
+import { Briefcase, Grid3X3, Wrench, Users, MoreHorizontal, X, Calendar, Settings, LogOut, FileBarChart, TrendingUp, LayoutGrid, Construction, Boxes, FileSpreadsheet, Gauge, LayoutDashboard, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +35,7 @@ const moreNavItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, panel: "directivo" },
   { title: "Ventas por comercial", url: "/panel-ventas", icon: TrendingUp, panel: "directivo" },
   { title: "Exportar costos", url: "/exportar-costos", icon: FileSpreadsheet, soloExportadores: true },
+  { title: "Llegada y salida", url: "/asistencia", icon: Clock },
   { title: "Productividad", url: "/productividad", icon: Gauge, soloDueno: true },
   { title: "Bodega", url: "/panel-bodega", icon: Boxes, panel: "bodega" },
   { title: "Usuarios", url: "/usuarios", icon: Users, panel: "usuarios", adminOnly: true },

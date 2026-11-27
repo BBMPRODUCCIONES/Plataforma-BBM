@@ -34,6 +34,7 @@ import PanelReportes from "./pages/PanelReportes";
 import PanelVentas from "./pages/PanelVentas";
 import ExportarCostos from "./pages/ExportarCostos";
 import Productividad from "./pages/Productividad";
+import Asistencia from "./pages/Asistencia";
 
 const queryClient = new QueryClient();
 
@@ -106,6 +107,13 @@ const App = () => (
                   <Route path="/exportar-costos" element={
                     <ProtectedRoute>
                       <ExportarCostos />
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Llegada y salida: cualquier usuario marca la suya */}
+                  <Route path="/asistencia" element={
+                    <ProtectedRoute>
+                      <Asistencia />
                     </ProtectedRoute>
                   } />
 

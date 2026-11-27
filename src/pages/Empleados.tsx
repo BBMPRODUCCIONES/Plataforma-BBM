@@ -35,6 +35,7 @@ import { useGlobalColumns } from "@/hooks/useGlobalColumns";
 import { EditableCell, CellType } from "@/components/EditableCell";
 import { BancoAutocomplete } from "@/components/BancoAutocomplete";
 import { GestionHorarios } from "@/components/GestionHorarios";
+import { ReporteHoras } from "@/components/ReporteHoras";
 import { Plus, Trash2, Edit, Users, Search, Settings, Loader2, ShieldAlert, Clock, History, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -358,7 +359,7 @@ export default function Empleados() {
             </TabsTrigger>
             <TabsTrigger value="horarios" className="gap-2">
               <Clock className="h-4 w-4" />
-              Gestión de Horarios
+              Horas trabajadas
             </TabsTrigger>
           </TabsList>
 
@@ -685,8 +686,18 @@ export default function Empleados() {
           </TabsContent>
 
           {/* Gestión de Horarios Tab Content */}
-          <TabsContent value="horarios" className="mt-4">
-            <GestionHorarios />
+          <TabsContent value="horarios" className="mt-4 space-y-4">
+            {/* Las horas salen de las fotos de llegada y salida (/asistencia).
+                El registro anterior queda abajo como historico. */}
+            <ReporteHoras titulo="Horas trabajadas del equipo" />
+            <details className="rounded-xl border border-border bg-card p-3">
+              <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+                Registro anterior de horarios (histórico, hasta febrero 2026)
+              </summary>
+              <div className="mt-3">
+                <GestionHorarios />
+              </div>
+            </details>
           </TabsContent>
         </Tabs>
 

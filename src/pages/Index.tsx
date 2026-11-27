@@ -43,7 +43,9 @@ const Index = () => {
 
   // Redirect authenticated users to /usuarios ONLY after BOTH loading states are complete
   if (!loading && !roleLoading && user) {
-    return <Navigate to="/usuarios" replace />;
+    // En el celular se entra a la Agenda (calendario); en computador, como antes.
+    const esCelular = typeof window !== "undefined" && window.innerWidth < 768;
+    return <Navigate to={esCelular ? "/agenda" : "/usuarios"} replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

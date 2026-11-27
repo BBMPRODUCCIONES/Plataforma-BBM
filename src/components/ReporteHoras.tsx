@@ -153,7 +153,7 @@ export function ReporteHoras({ titulo = "Horas trabajadas", recargar = 0 }: { ti
   );
 
   return (
-    <div className="panel-card space-y-3 rounded-xl border border-border bg-card p-4">
+    <div className="space-y-3 rounded-xl border border-border bg-card p-4">
       <div>
         <h2 className="text-base font-semibold">{titulo}</h2>
         <p className="text-xs text-muted-foreground">

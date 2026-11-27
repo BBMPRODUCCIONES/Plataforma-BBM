@@ -35,6 +35,7 @@ import PanelVentas from "./pages/PanelVentas";
 import ExportarCostos from "./pages/ExportarCostos";
 import Productividad from "./pages/Productividad";
 import Asistencia from "./pages/Asistencia";
+import Agenda from "./pages/Agenda";
 
 const queryClient = new QueryClient();
 
@@ -107,6 +108,13 @@ const App = () => (
                   <Route path="/exportar-costos" element={
                     <ProtectedRoute>
                       <ExportarCostos />
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Agenda: inicio en el celular (calendario de eventos) */}
+                  <Route path="/agenda" element={
+                    <ProtectedRoute>
+                      <Agenda />
                     </ProtectedRoute>
                   } />
 

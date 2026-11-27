@@ -80,10 +80,13 @@ export function MobileBottomNav() {
   // En la barra van 3 paneles + "Marcar" (llegada y salida, para todos). Lo
   // que no cabe pasa al menu "Mas" para que nada quede inalcanzable.
   const paneles = mainNavItems.filter(puedeVer);
+  // Barra del celular: Agenda (calendario) | primer panel | Marcar | segundo
+  // panel | Mas. El resto de paneles va en "Mas".
   const marcar = { title: "Marcar", url: "/asistencia", icon: Clock, panel: undefined as string | undefined };
-  const visibleMainItems = [...paneles.slice(0, 2), marcar, ...paneles.slice(2, 3)];
+  const agenda = { title: "Agenda", url: "/agenda", icon: Calendar, panel: undefined as string | undefined };
+  const visibleMainItems = [agenda, ...paneles.slice(0, 1), marcar, ...paneles.slice(1, 2)];
   type ItemMas = { title: string; url: string; icon: typeof Clock; panel?: string; externo?: boolean; adminOnly?: boolean; soloExportadores?: boolean; soloDueno?: boolean };
-  const sobrantes = paneles.slice(3) as ItemMas[];
+  const sobrantes = paneles.slice(2) as ItemMas[];
   const visibleMoreItems = [...sobrantes, ...(moreNavItems as ItemMas[]).filter((i) => i.url !== "/asistencia")].filter(item => {
     if (item.adminOnly && !canEditStructure()) return false;
     if (item.soloExportadores && !puedeExportarCostos(user?.email)) return false;

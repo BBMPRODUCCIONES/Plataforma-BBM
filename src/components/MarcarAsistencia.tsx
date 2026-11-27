@@ -277,7 +277,7 @@ export function MarcarAsistencia({ onMarcado }: { onMarcado?: () => void }) {
   };
 
   return (
-    <div className="panel-card space-y-4 rounded-xl border border-border bg-card p-4">
+    <div className="space-y-4 rounded-xl border border-border bg-card p-4">
       {camara && createPortal(
         <div className="fixed inset-0 z-[70] flex flex-col bg-black">
           <video

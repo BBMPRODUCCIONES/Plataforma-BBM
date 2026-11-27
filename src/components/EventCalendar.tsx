@@ -43,6 +43,8 @@ interface EventCalendarProps {
     projectId: string,
     cambios: Record<string, string | undefined>
   ) => void | Promise<void>;
+  /** Dia que queda abierto al cargar (la Agenda del celular abre hoy). */
+  diaInicial?: Date;
 }
 
 type Fase = "montaje" | "ejecucion" | "desmontaje";
@@ -94,12 +96,25 @@ function faseDelDia(proyecto: Project, dia: Date): Fase | null {
   return null;
 }
 
+/** "9:00 a 18:00" de la fase, si tiene horas. */
+function horaDeFase(p: Project, fase: Fase): string {
+  const campos: Record<Fase, [string | undefined, string | undefined]> = {
+    montaje: [p.horaMontajeInicio, p.horaMontajeFin],
+    ejecucion: [p.horaEjecucionInicio, p.horaEjecucionFin],
+    desmontaje: [p.horaDesmontajeInicio, p.horaDesmontajeFin],
+  };
+  const [a, b] = campos[fase];
+  if (a && b) return `${a.slice(0, 5)} a ${b.slice(0, 5)}`;
+  return (a || b || "").slice(0, 5);
+}
+
 export function EventCalendar({
   projects,
   startDate,
   onProjectClick,
   mostrarDinero = false,
   onEditarFechas,
+  diaInicial,
 }: EventCalendarProps) {
   const [detalleId, setDetalleId] = useState<string | null>(null);
   const proyectoDelDetalle = detalleId
@@ -107,7 +122,7 @@ export function EventCalendar({
     : null;
   const isMobile = useIsMobile();
   const [mes, setMes] = useState<Date>(() => startOfMonth(startDate ?? new Date()));
-  const [diaAbierto, setDiaAbierto] = useState<Date | null>(null);
+  const [diaAbierto, setDiaAbierto] = useState<Date | null>(diaInicial ?? null);
   /**
    * Dias cuyo "+N mas" se pulso para ver la lista completa dentro de la casilla.
    * Antes ese texto no hacia nada: decia que faltaban eventos y no habia forma
@@ -371,7 +386,10 @@ export function EventCalendar({
                     <button
                       type="button"
                       onClick={() => setDetalleId(proyecto.id)}
-                      className="flex w-full items-center gap-2 rounded-md border border-border/60 px-2.5 py-2 text-left transition-colors hover:bg-accent/40"
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-md border border-border/60 px-2.5 py-2 text-left transition-colors hover:bg-accent/40",
+                        isMobile && "gap-3 rounded-xl bg-card px-3 py-3"
+                      )}
                     >
                       <span
                         style={marca ? { backgroundColor: marca.color } : undefined}
@@ -386,7 +404,13 @@ export function EventCalendar({
                         </span>
                         <span className="block truncate text-xs text-muted-foreground">
                           {proyecto.cliente || "Sin cliente"} · {FASE_ESTILO[fase].nombre}
+                          {isMobile && horaDeFase(proyecto, fase) ? ` · ${horaDeFase(proyecto, fase)}` : ""}
                         </span>
+                        {isMobile && (proyecto.ubicacion || proyecto.productor) && (
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {[proyecto.ubicacion, proyecto.productor].filter(Boolean).join(" · ")}
+                          </span>
+                        )}
                       </span>
                       {marca && (
                         <span
